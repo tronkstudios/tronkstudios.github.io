@@ -3,19 +3,40 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="TronkStudios - juegos, desarrollos en curso y juegos Roblox." />
-  <title>TronkStudios</title>
+
+  <!-- SEO -->
+  <meta
+    name="description"
+    content="TronkStudios es un estudio de videojuegos. Descubre Z Tronks, nuestro juego de zombis para Roblox, además de nuestros próximos proyectos."
+  />
+  <meta name="robots" content="index, follow" />
+
+  <!-- Título de la página -->
+  <title>TronkStudios | Videojuegos y Z Tronks</title>
+
+  <!-- URL principal -->
+  <link
+    rel="canonical"
+    href="https://tronkstudios.github.io/TronkWeb/"
+  />
+
+  <!-- Estilos y JavaScript -->
   <link rel="stylesheet" href="styles.css" />
   <script src="script.js" defer></script>
 </head>
+
 <body>
-  <!-- Cabecera principal -->
+
+  <!-- CABECERA PRINCIPAL -->
   <header class="site-header">
     <div class="container header-inner">
+
       <!-- Nombre de la marca -->
       <div class="brand">
         <h1 class="brand-name">TronkStudios</h1>
-        <p class="brand-tagline">Juegos, creatividad y desarrollo</p>
+        <p class="brand-tagline">
+          Juegos, creatividad y desarrollo
+        </p>
       </div>
 
       <!-- Navegación principal -->
@@ -26,102 +47,222 @@
         <a href="#soporte">Soporte</a>
       </nav>
 
-      <!-- Botón para cambiar modo claro/oscuro -->
-      <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="Cambiar tema">
+      <!-- Botón modo claro/oscuro -->
+      <button
+        id="theme-toggle"
+        class="theme-toggle"
+        type="button"
+        aria-pressed="false"
+        aria-label="Cambiar tema"
+      >
         <span class="theme-icon" aria-hidden="true">🌙</span>
         <span class="theme-label">Oscuro</span>
       </button>
+
     </div>
   </header>
 
-  <!-- Contenido principal -->
+
+  <!-- CONTENIDO PRINCIPAL -->
   <main>
-    <!-- Sección: Nuestros Juegos -->
-    <section id="juegos" class="section" aria-labelledby="juegos-title">
+
+    <!-- NUESTROS JUEGOS -->
+    <section
+      id="juegos"
+      class="section"
+      aria-labelledby="juegos-title"
+    >
       <div class="container">
+
         <div class="section-head">
           <h2 id="juegos-title">Nuestros Juegos</h2>
+          <p>
+            Descubre los videojuegos creados por TronkStudios.
+          </p>
         </div>
 
         <div class="grid">
-          <!-- Estado vacío -->
+
           <div class="empty-state">
-            <span class="empty-icon" aria-hidden="true">🎮</span>
-            <p class="empty-text">No hay nada todavía.</p>
+            <span
+              class="empty-icon"
+              aria-hidden="true"
+            >
+              🎮
+            </span>
+
+            <p class="empty-text">
+              No hay nada todavía.
+            </p>
           </div>
+
         </div>
       </div>
     </section>
 
-    <!-- Sección: Juegos en desarrollo -->
-    <section id="desarrollo" class="section alt" aria-labelledby="desarrollo-title">
+
+    <!-- JUEGOS EN DESARROLLO -->
+    <section
+      id="desarrollo"
+      class="section alt"
+      aria-labelledby="desarrollo-title"
+    >
       <div class="container">
+
         <div class="section-head">
-          <h2 id="desarrollo-title">Juegos en desarrollo</h2>
+          <h2 id="desarrollo-title">
+            Juegos en desarrollo
+          </h2>
+
+          <p>
+            Conoce nuestros próximos videojuegos y proyectos.
+          </p>
         </div>
 
+
         <div class="grid">
-          <!-- Tarjeta en desarrollo: imagen arriba y categoría debajo -->
-          <!-- IMPORTANTE: el archivo debe llamarse EXACTAMENTE "z-tronks.png" y estar en la misma carpeta que index.html -->
+
+          <!-- Z TRONKS -->
           <article class="card dev-card">
+
             <div class="dev-card-media">
-              <img src="z-tronks.png" alt="Z Tronks" loading="lazy" />
+              <img
+                src="z-tronks.png"
+                alt="Z Tronks - juego de zombis para Roblox"
+                loading="lazy"
+              />
             </div>
-            <p class="dev-card-category"><span>Categoría:</span> Roblox</p>
+
+            <h3>Z Tronks</h3>
+
+            <p>
+              Z Tronks es un juego de zombis en desarrollo
+              para Roblox, creado por TronkStudios.
+            </p>
+
+            <p class="dev-card-category">
+              <span>Categoría:</span> Roblox
+            </p>
+
           </article>
+
         </div>
       </div>
     </section>
 
-    <!-- Sección: Juegos Roblox -->
-    <section id="roblox" class="section" aria-labelledby="roblox-title">
+
+    <!-- JUEGOS DE ROBLOX -->
+    <section
+      id="roblox"
+      class="section"
+      aria-labelledby="roblox-title"
+    >
       <div class="container">
+
         <div class="section-head">
-          <h2 id="roblox-title">Juegos Roblox</h2>
+          <h2 id="roblox-title">
+            Juegos Roblox
+          </h2>
+
+          <p>
+            Nuestros proyectos y juegos disponibles en Roblox.
+          </p>
         </div>
 
         <div class="grid">
-          <!-- Estado vacío -->
+
           <div class="empty-state">
-            <span class="empty-icon" aria-hidden="true">🧱</span>
-            <p class="empty-text">No hay nada todavía.</p>
+
+            <span
+              class="empty-icon"
+              aria-hidden="true"
+            >
+              🧱
+            </span>
+
+            <p class="empty-text">
+              No hay nada todavía.
+            </p>
+
           </div>
+
         </div>
       </div>
     </section>
 
-    <!-- Sección: Soporte -->
-    <section id="soporte" class="section alt" aria-labelledby="soporte-title">
+
+    <!-- SOPORTE -->
+    <section
+      id="soporte"
+      class="section alt"
+      aria-labelledby="soporte-title"
+    >
       <div class="container">
+
         <div class="section-head">
-          <h2 id="soporte-title">Soporte</h2>
-          <p>Envía fallos, dudas o sugerencias por correo.</p>
+
+          <h2 id="soporte-title">
+            Soporte
+          </h2>
+
+          <p>
+            Envía fallos, dudas o sugerencias por correo.
+          </p>
+
         </div>
+
 
         <div class="support-card card">
-          <h3>Contacto de soporte</h3>
-          <p>Si encuentras un bug, escríbenos con la mayor información posible.</p>
+
+          <h3>
+            Contacto de soporte
+          </h3>
+
+          <p>
+            Si encuentras un bug, escríbenos con la
+            mayor información posible.
+          </p>
+
           <address>
-            <a class="email-link" href="mailto:tronkstudios7@gmail.com?subject=Soporte%20TronkStudios">
+
+            <a
+              class="email-link"
+              href="mailto:tronkstudios7@gmail.com?subject=Soporte%20TronkStudios"
+            >
               tronkstudios7@gmail.com
             </a>
+
           </address>
+
         </div>
+
       </div>
     </section>
+
   </main>
 
-  <!-- Pie de página -->
+
+  <!-- PIE DE PÁGINA -->
   <footer class="site-footer">
+
     <div class="container footer-inner">
-      <p>© <span id="year">2026</span> TronkStudios</p>
+
+      <p>
+        © <span id="year">2026</span> TronkStudios
+      </p>
+
       <p>
         Soporte:
-        <a href="mailto:tronkstudios7@gmail.com?subject=Soporte%20TronkStudios">
+        <a
+          href="mailto:tronkstudios7@gmail.com?subject=Soporte%20TronkStudios"
+        >
           tronkstudios7@gmail.com
         </a>
       </p>
+
     </div>
+
   </footer>
+
 </body>
 </html>
