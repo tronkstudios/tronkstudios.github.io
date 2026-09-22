@@ -42,28 +42,33 @@
 
   <link rel="stylesheet" href="styles.css" />
 
-  <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+  ></script>
 
   <script src="script.js" defer></script>
 </head>
 
 <body>
 
-  <!-- CABECERA -->
+  <!-- =====================================================
+       CABECERA
+       ===================================================== -->
 
   <header class="site-header">
     <div class="container header-inner">
 
       <div class="brand">
         <h1 class="brand-name">TronkStudios</h1>
-
         <p class="brand-tagline">
           Juegos, creatividad y desarrollo
         </p>
       </div>
 
-      <nav aria-label="Navegación principal" class="main-nav">
+      <nav
+        aria-label="Navegación principal"
+        class="main-nav"
+      >
         <a href="#juegos">Nuestros Juegos</a>
         <a href="#desarrollo">En desarrollo</a>
         <a href="#aplicaciones">Nuestras Aplicaciones</a>
@@ -88,8 +93,16 @@
           aria-pressed="false"
           aria-label="Cambiar tema"
         >
-          <span class="theme-icon" aria-hidden="true">🌙</span>
-          <span class="theme-label">Oscuro</span>
+          <span
+            class="theme-icon"
+            aria-hidden="true"
+          >
+            🌙
+          </span>
+
+          <span class="theme-label">
+            Oscuro
+          </span>
         </button>
 
       </div>
@@ -98,11 +111,15 @@
   </header>
 
 
-  <!-- CONTENIDO -->
+  <!-- =====================================================
+       CONTENIDO PRINCIPAL
+       ===================================================== -->
 
   <main>
 
-    <!-- NUESTROS JUEGOS -->
+    <!-- ===================================================
+         NUESTROS JUEGOS
+         =================================================== -->
 
     <section
       id="juegos"
@@ -114,29 +131,30 @@
 
         <div class="section-head">
 
-          <h2 id="juegos-title">
-            Nuestros Juegos
-          </h2>
+          <div>
+            <h2 id="juegos-title">
+              Nuestros Juegos
+            </h2>
 
-          <p>
-            Nuestros juegos finalizados que se pueden encontrar en Steam.
-          </p>
+            <p>
+              Descubre los juegos creados por TronkStudios.
+            </p>
+          </div>
 
         </div>
 
-        <div class="grid">
+        <div class="empty-state">
 
-          <div class="empty-state">
+          <span
+            class="empty-icon"
+            aria-hidden="true"
+          >
+            🎮
+          </span>
 
-            <span class="empty-icon">
-              🎮
-            </span>
-
-            <p class="empty-text">
-              No hay nada todavía.
-            </p>
-
-          </div>
+          <p class="empty-text">
+            No hay nada todavía.
+          </p>
 
         </div>
 
@@ -145,7 +163,9 @@
     </section>
 
 
-    <!-- DESARROLLO -->
+    <!-- ===================================================
+         JUEGOS EN DESARROLLO
+         =================================================== -->
 
     <section
       id="desarrollo"
@@ -157,17 +177,22 @@
 
         <div class="section-head">
 
-          <h2 id="desarrollo-title">
-            Juegos en desarrollo
-          </h2>
+          <div>
 
-          <p>
-            Conoce nuestros próximos videojuegos y proyectos.
-          </p>
+            <h2 id="desarrollo-title">
+              Juegos en desarrollo
+            </h2>
+
+            <p>
+              Proyectos que estamos desarrollando actualmente.
+            </p>
+
+          </div>
 
         </div>
 
-        <div class="grid">
+
+        <div class="cards-grid">
 
           <article class="card dev-card">
 
@@ -191,8 +216,13 @@
             </p>
 
             <p class="dev-card-category">
-              <span>Categoría:</span>
+
+              <span>
+                Categoría:
+              </span>
+
               Roblox
+
             </p>
 
           </article>
@@ -204,7 +234,9 @@
     </section>
 
 
-    <!-- APLICACIONES -->
+    <!-- ===================================================
+         APLICACIONES
+         =================================================== -->
 
     <section
       id="aplicaciones"
@@ -216,29 +248,34 @@
 
         <div class="section-head">
 
-          <h2 id="aplicaciones-title">
-            Nuestras Aplicaciones
-          </h2>
+          <div>
 
-          <p>
-            Aplicaciones creadas por TronkStudios.
-          </p>
+            <h2 id="aplicaciones-title">
+              Nuestras Aplicaciones
+            </h2>
 
-        </div>
-
-        <div class="grid">
-
-          <div class="empty-state">
-
-            <span class="empty-icon">
-              💻
-            </span>
-
-            <p class="empty-text">
-              No hay nada todavía.
+            <p>
+              Aplicaciones y herramientas desarrolladas
+              por TronkStudios.
             </p>
 
           </div>
+
+        </div>
+
+
+        <div class="empty-state">
+
+          <span
+            class="empty-icon"
+            aria-hidden="true"
+          >
+            📱
+          </span>
+
+          <p class="empty-text">
+            No hay aplicaciones todavía.
+          </p>
 
         </div>
 
@@ -247,7 +284,9 @@
     </section>
 
 
-    <!-- ROBLOX -->
+    <!-- ===================================================
+         ROBLOX
+         =================================================== -->
 
     <section
       id="roblox"
@@ -259,29 +298,33 @@
 
         <div class="section-head">
 
-          <h2 id="roblox-title">
-            Juegos Roblox
-          </h2>
+          <div>
 
-          <p>
-            Nuestros proyectos y juegos disponibles en Roblox.
-          </p>
+            <h2 id="roblox-title">
+              Roblox
+            </h2>
 
-        </div>
-
-        <div class="grid">
-
-          <div class="empty-state">
-
-            <span class="empty-icon">
-              🧱
-            </span>
-
-            <p class="empty-text">
-              No hay nada todavía.
+            <p>
+              Nuestros proyectos y experiencias en Roblox.
             </p>
 
           </div>
+
+        </div>
+
+
+        <div class="empty-state">
+
+          <span
+            class="empty-icon"
+            aria-hidden="true"
+          >
+            🎮
+          </span>
+
+          <p class="empty-text">
+            No hay experiencias disponibles todavía.
+          </p>
 
         </div>
 
@@ -290,7 +333,9 @@
     </section>
 
 
-    <!-- SUGERENCIAS -->
+    <!-- ===================================================
+         COMUNIDAD
+         =================================================== -->
 
     <section
       id="sugerencias"
@@ -303,6 +348,7 @@
         <div class="section-head">
 
           <div>
+
             <h2 id="sugerencias-title">
               Comunidad
             </h2>
@@ -310,7 +356,9 @@
             <p>
               Mira las ideas propuestas por la comunidad.
             </p>
+
           </div>
+
 
           <button
             id="new-suggestion-button"
@@ -322,8 +370,6 @@
 
         </div>
 
-
-        <!-- PESTAÑAS -->
 
         <div class="suggestion-tabs">
 
@@ -346,8 +392,6 @@
         </div>
 
 
-        <!-- BUSCADOR Y FILTRO -->
-
         <div class="suggestion-tools">
 
           <input
@@ -358,23 +402,38 @@
             aria-label="Buscar sugerencias"
           />
 
+
           <select
             id="suggestion-category"
             class="suggestion-category"
             aria-label="Filtrar por categoría"
           >
-            <option value="Todas">Todas las categorías</option>
-            <option value="Roblox">Roblox</option>
-            <option value="Juego">Juego</option>
-            <option value="Aplicación">Aplicación</option>
+
+            <option value="Todas">
+              Todas las categorías
+            </option>
+
+            <option value="Roblox">
+              Roblox
+            </option>
+
+            <option value="Juego">
+              Juego
+            </option>
+
+            <option value="Aplicación">
+              Aplicación
+            </option>
+
           </select>
 
         </div>
 
 
-        <!-- LISTA -->
-
-        <div id="suggestions-list" class="suggestions-list">
+        <div
+          id="suggestions-list"
+          class="suggestions-list"
+        >
 
           <div class="suggestions-loading">
             Cargando sugerencias...
@@ -389,7 +448,9 @@
   </main>
 
 
-  <!-- FOOTER -->
+  <!-- =====================================================
+       PIE DE PÁGINA
+       ===================================================== -->
 
   <footer class="site-footer">
 
@@ -398,6 +459,20 @@
       <p>
         © <span id="year"></span> TronkStudios
       </p>
+
+
+      <p>
+
+        Soporte:
+
+        <a
+          href="mailto:tronkstudios7@gmail.com"
+        >
+          tronkstudios7@gmail.com
+        </a>
+
+      </p>
+
 
       <button
         id="footer-suggestion-button"
@@ -412,7 +487,9 @@
   </footer>
 
 
-  <!-- MODAL DE CUENTA -->
+  <!-- =====================================================
+       MODAL DE CUENTA
+       ===================================================== -->
 
   <div
     id="account-modal"
@@ -421,6 +498,7 @@
   >
 
     <div class="modal-backdrop"></div>
+
 
     <div
       class="modal-box"
@@ -438,6 +516,7 @@
         ×
       </button>
 
+
       <h2 id="account-modal-title">
         Tu cuenta
       </h2>
@@ -450,6 +529,7 @@
         <p class="modal-description">
           Inicia sesión para participar en la comunidad.
         </p>
+
 
         <form id="login-form">
 
@@ -464,6 +544,7 @@
             autocomplete="email"
           />
 
+
           <label for="login-password">
             Contraseña
           </label>
@@ -475,6 +556,7 @@
             autocomplete="current-password"
           />
 
+
           <button
             class="primary-button full-button"
             type="submit"
@@ -484,11 +566,18 @@
 
         </form>
 
+
         <p class="auth-switch">
+
           ¿No tienes cuenta?
-          <button id="show-register" type="button">
+
+          <button
+            id="show-register"
+            type="button"
+          >
             Crear cuenta
           </button>
+
         </p>
 
       </div>
@@ -496,11 +585,15 @@
 
       <!-- REGISTRO -->
 
-      <div id="register-panel" class="hidden">
+      <div
+        id="register-panel"
+        class="hidden"
+      >
 
         <p class="modal-description">
           Crea una cuenta para publicar sugerencias.
         </p>
+
 
         <form id="register-form">
 
@@ -516,6 +609,7 @@
             autocomplete="name"
           />
 
+
           <label for="register-email">
             Correo electrónico
           </label>
@@ -526,6 +620,7 @@
             required
             autocomplete="email"
           />
+
 
           <label for="register-password">
             Contraseña
@@ -539,6 +634,7 @@
             autocomplete="new-password"
           />
 
+
           <button
             class="primary-button full-button"
             type="submit"
@@ -548,19 +644,29 @@
 
         </form>
 
+
         <p class="auth-switch">
+
           ¿Ya tienes cuenta?
-          <button id="show-login" type="button">
+
+          <button
+            id="show-login"
+            type="button"
+          >
             Iniciar sesión
           </button>
+
         </p>
 
       </div>
 
 
-      <!-- CUENTA LOGUEADA -->
+      <!-- USUARIO CONECTADO -->
 
-      <div id="logged-panel" class="hidden">
+      <div
+        id="logged-panel"
+        class="hidden"
+      >
 
         <div class="account-info">
 
@@ -569,6 +675,7 @@
           </div>
 
           <div>
+
             <strong id="account-name">
               Usuario
             </strong>
@@ -576,9 +683,11 @@
             <span id="account-email">
               correo
             </span>
+
           </div>
 
         </div>
+
 
         <button
           id="logout-button"
@@ -602,7 +711,9 @@
   </div>
 
 
-  <!-- MODAL SUGERENCIA -->
+  <!-- =====================================================
+       MODAL DE SUGERENCIAS
+       ===================================================== -->
 
   <div
     id="suggestion-modal"
@@ -611,6 +722,7 @@
   >
 
     <div class="modal-backdrop"></div>
+
 
     <div
       class="modal-box"
@@ -628,13 +740,16 @@
         ×
       </button>
 
+
       <h2 id="suggestion-modal-title">
         Sugerir una idea
       </h2>
 
+
       <p class="modal-description">
         Comparte una idea para mejorar TronkStudios.
       </p>
+
 
       <form id="suggestion-form">
 
@@ -649,6 +764,7 @@
           required
         />
 
+
         <label for="suggestion-category-input">
           Categoría
         </label>
@@ -657,10 +773,21 @@
           id="suggestion-category-input"
           required
         >
-          <option value="Roblox">Roblox</option>
-          <option value="Juego">Juego</option>
-          <option value="Aplicación">Aplicación</option>
+
+          <option value="Roblox">
+            Roblox
+          </option>
+
+          <option value="Juego">
+            Juego
+          </option>
+
+          <option value="Aplicación">
+            Aplicación
+          </option>
+
         </select>
+
 
         <label for="suggestion-text">
           Idea
@@ -674,9 +801,15 @@
           placeholder="Escribe tu idea..."
         ></textarea>
 
+
         <p class="character-counter">
-          <span id="character-count">0</span>/1000
+
+          <span id="character-count">
+            0
+          </span>/1000
+
         </p>
+
 
         <button
           class="primary-button full-button"
@@ -686,6 +819,7 @@
         </button>
 
       </form>
+
 
       <p
         id="suggestion-message"
