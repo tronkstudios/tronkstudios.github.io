@@ -14,12 +14,19 @@
    */
 
   const SUPABASE_URL = "PON_AQUI_TU_SUPABASE_URL";
-  const SUPABASE_ANON_KEY = "PON_AQUI_TU_SUPABASE_ANON_KEY";
+const SUPABASE_ANON_KEY = "PON_AQUI_TU_SUPABASE_ANON_KEY";
 
-  const supabaseClient = window.supabase.createClient(
+let supabaseClient = null;
+
+if (
+  SUPABASE_URL !== "PON_AQUI_TU_SUPABASE_URL" &&
+  SUPABASE_ANON_KEY !== "PON_AQUI_TU_SUPABASE_ANON_KEY"
+) {
+  supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_ANON_KEY
   );
+}
 
 
   /*
