@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- SEO -->
   <meta
     name="description"
     content="TronkStudios es un estudio de videojuegos dedicado a crear juegos, experiencias y proyectos con creatividad y determinación."
@@ -12,39 +11,47 @@
 
   <meta name="robots" content="index, follow" />
 
-  <!-- Título que aparecerá en Google -->
   <title>TronkStudios | Videojuegos y Determinación</title>
 
-  <!-- URL principal -->
   <link
     rel="canonical"
     href="https://tronkstudios.github.io/TronkWeb/"
   />
 
-  <!-- Imagen y datos para buscadores y redes sociales -->
-  <meta property="og:title" content="TronkStudios | Videojuegos y Determinación" />
+  <meta
+    property="og:title"
+    content="TronkStudios | Videojuegos y Determinación"
+  />
+
   <meta
     property="og:description"
     content="TronkStudios es un estudio de videojuegos dedicado a crear juegos, experiencias y proyectos con creatividad y determinación."
   />
+
   <meta
     property="og:image"
     content="https://tronkstudios.github.io/TronkWeb/tronkstudios-preview.png"
   />
+
   <meta
     property="og:url"
     content="https://tronkstudios.github.io/TronkWeb/"
   />
+
   <meta property="og:type" content="website" />
 
-  <!-- Estilos y JavaScript -->
   <link rel="stylesheet" href="styles.css" />
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <script src="script.js" defer></script>
 </head>
 
 <body>
 
-  <!-- CABECERA PRINCIPAL -->
+  <!-- CABECERA -->
+
   <header class="site-header">
     <div class="container header-inner">
 
@@ -56,34 +63,47 @@
         </p>
       </div>
 
-      <!-- NAVEGACIÓN -->
       <nav aria-label="Navegación principal" class="main-nav">
         <a href="#juegos">Nuestros Juegos</a>
         <a href="#desarrollo">En desarrollo</a>
+        <a href="#aplicaciones">Nuestras Aplicaciones</a>
         <a href="#roblox">Roblox</a>
-        <a href="#soporte">Soporte</a>
+        <a href="#sugerencias">Comunidad</a>
       </nav>
 
-      <!-- CAMBIO DE TEMA -->
-      <button
-        id="theme-toggle"
-        class="theme-toggle"
-        type="button"
-        aria-pressed="false"
-        aria-label="Cambiar tema"
-      >
-        <span class="theme-icon" aria-hidden="true">🌙</span>
-        <span class="theme-label">Oscuro</span>
-      </button>
+      <div class="header-actions">
+
+        <button
+          id="account-button"
+          class="account-button"
+          type="button"
+        >
+          👤 Cuenta
+        </button>
+
+        <button
+          id="theme-toggle"
+          class="theme-toggle"
+          type="button"
+          aria-pressed="false"
+          aria-label="Cambiar tema"
+        >
+          <span class="theme-icon" aria-hidden="true">🌙</span>
+          <span class="theme-label">Oscuro</span>
+        </button>
+
+      </div>
 
     </div>
   </header>
 
 
-  <!-- CONTENIDO PRINCIPAL -->
+  <!-- CONTENIDO -->
+
   <main>
 
     <!-- NUESTROS JUEGOS -->
+
     <section
       id="juegos"
       class="section"
@@ -93,23 +113,22 @@
       <div class="container">
 
         <div class="section-head">
+
           <h2 id="juegos-title">
             Nuestros Juegos
           </h2>
 
           <p>
-            Descubre los videojuegos creados por TronkStudios.
+            Nuestros juegos finalizados que se pueden encontrar en Steam.
           </p>
+
         </div>
 
         <div class="grid">
 
           <div class="empty-state">
 
-            <span
-              class="empty-icon"
-              aria-hidden="true"
-            >
+            <span class="empty-icon">
               🎮
             </span>
 
@@ -126,7 +145,8 @@
     </section>
 
 
-    <!-- JUEGOS EN DESARROLLO -->
+    <!-- DESARROLLO -->
+
     <section
       id="desarrollo"
       class="section alt"
@@ -147,10 +167,8 @@
 
         </div>
 
-
         <div class="grid">
 
-          <!-- Z TRONKS -->
           <article class="card dev-card">
 
             <div class="dev-card-media">
@@ -186,10 +204,54 @@
     </section>
 
 
+    <!-- APLICACIONES -->
+
+    <section
+      id="aplicaciones"
+      class="section"
+      aria-labelledby="aplicaciones-title"
+    >
+
+      <div class="container">
+
+        <div class="section-head">
+
+          <h2 id="aplicaciones-title">
+            Nuestras Aplicaciones
+          </h2>
+
+          <p>
+            Aplicaciones creadas por TronkStudios.
+          </p>
+
+        </div>
+
+        <div class="grid">
+
+          <div class="empty-state">
+
+            <span class="empty-icon">
+              💻
+            </span>
+
+            <p class="empty-text">
+              No hay nada todavía.
+            </p>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
     <!-- ROBLOX -->
+
     <section
       id="roblox"
-      class="section"
+      class="section alt"
       aria-labelledby="roblox-title"
     >
 
@@ -207,15 +269,11 @@
 
         </div>
 
-
         <div class="grid">
 
           <div class="empty-state">
 
-            <span
-              class="empty-icon"
-              aria-hidden="true"
-            >
+            <span class="empty-icon">
               🧱
             </span>
 
@@ -232,49 +290,95 @@
     </section>
 
 
-    <!-- SOPORTE -->
+    <!-- SUGERENCIAS -->
+
     <section
-      id="soporte"
-      class="section alt"
-      aria-labelledby="soporte-title"
+      id="sugerencias"
+      class="section"
+      aria-labelledby="sugerencias-title"
     >
 
       <div class="container">
 
         <div class="section-head">
 
-          <h2 id="soporte-title">
-            Soporte
-          </h2>
+          <div>
+            <h2 id="sugerencias-title">
+              Comunidad
+            </h2>
 
-          <p>
-            Envía fallos, dudas o sugerencias por correo.
-          </p>
+            <p>
+              Mira las ideas propuestas por la comunidad.
+            </p>
+          </div>
+
+          <button
+            id="new-suggestion-button"
+            class="primary-button"
+            type="button"
+          >
+            💡 Sugerir una idea
+          </button>
 
         </div>
 
 
-        <div class="support-card card">
+        <!-- PESTAÑAS -->
 
-          <h3>
-            Contacto de soporte
-          </h3>
+        <div class="suggestion-tabs">
 
-          <p>
-            Si encuentras un bug, escríbenos con la
-            mayor información posible.
-          </p>
+          <button
+            class="suggestion-tab active"
+            data-tab="all"
+            type="button"
+          >
+            Todas
+          </button>
 
-          <address>
+          <button
+            class="suggestion-tab"
+            data-tab="mine"
+            type="button"
+          >
+            Mis sugerencias
+          </button>
 
-            <a
-              class="email-link"
-              href="mailto:tronkstudios7@gmail.com?subject=Soporte%20TronkStudios"
-            >
-              tronkstudios7@gmail.com
-            </a>
+        </div>
 
-          </address>
+
+        <!-- BUSCADOR Y FILTRO -->
+
+        <div class="suggestion-tools">
+
+          <input
+            id="suggestion-search"
+            class="suggestion-search"
+            type="search"
+            placeholder="Buscar sugerencias..."
+            aria-label="Buscar sugerencias"
+          />
+
+          <select
+            id="suggestion-category"
+            class="suggestion-category"
+            aria-label="Filtrar por categoría"
+          >
+            <option value="Todas">Todas las categorías</option>
+            <option value="Roblox">Roblox</option>
+            <option value="Juego">Juego</option>
+            <option value="Aplicación">Aplicación</option>
+          </select>
+
+        </div>
+
+
+        <!-- LISTA -->
+
+        <div id="suggestions-list" class="suggestions-list">
+
+          <div class="suggestions-loading">
+            Cargando sugerencias...
+          </div>
 
         </div>
 
@@ -285,29 +389,313 @@
   </main>
 
 
-  <!-- PIE DE PÁGINA -->
+  <!-- FOOTER -->
+
   <footer class="site-footer">
 
     <div class="container footer-inner">
 
       <p>
-        © <span id="year">2026</span> TronkStudios
+        © <span id="year"></span> TronkStudios
       </p>
 
-      <p>
-        Soporte:
-
-        <a
-          href="mailto:tronkstudios7@gmail.com?subject=Soporte%20TronkStudios"
-        >
-          tronkstudios7@gmail.com
-        </a>
-
-      </p>
+      <button
+        id="footer-suggestion-button"
+        class="footer-suggestion-button"
+        type="button"
+      >
+        💡 Sugerir una idea
+      </button>
 
     </div>
 
   </footer>
+
+
+  <!-- MODAL DE CUENTA -->
+
+  <div
+    id="account-modal"
+    class="modal hidden"
+    aria-hidden="true"
+  >
+
+    <div class="modal-backdrop"></div>
+
+    <div
+      class="modal-box"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="account-modal-title"
+    >
+
+      <button
+        class="modal-close"
+        data-close-modal="account-modal"
+        type="button"
+        aria-label="Cerrar"
+      >
+        ×
+      </button>
+
+      <h2 id="account-modal-title">
+        Tu cuenta
+      </h2>
+
+
+      <!-- LOGIN -->
+
+      <div id="login-panel">
+
+        <p class="modal-description">
+          Inicia sesión para participar en la comunidad.
+        </p>
+
+        <form id="login-form">
+
+          <label for="login-email">
+            Correo electrónico
+          </label>
+
+          <input
+            id="login-email"
+            type="email"
+            required
+            autocomplete="email"
+          />
+
+          <label for="login-password">
+            Contraseña
+          </label>
+
+          <input
+            id="login-password"
+            type="password"
+            required
+            autocomplete="current-password"
+          />
+
+          <button
+            class="primary-button full-button"
+            type="submit"
+          >
+            Iniciar sesión
+          </button>
+
+        </form>
+
+        <p class="auth-switch">
+          ¿No tienes cuenta?
+          <button id="show-register" type="button">
+            Crear cuenta
+          </button>
+        </p>
+
+      </div>
+
+
+      <!-- REGISTRO -->
+
+      <div id="register-panel" class="hidden">
+
+        <p class="modal-description">
+          Crea una cuenta para publicar sugerencias.
+        </p>
+
+        <form id="register-form">
+
+          <label for="register-name">
+            Nombre
+          </label>
+
+          <input
+            id="register-name"
+            type="text"
+            maxlength="30"
+            required
+            autocomplete="name"
+          />
+
+          <label for="register-email">
+            Correo electrónico
+          </label>
+
+          <input
+            id="register-email"
+            type="email"
+            required
+            autocomplete="email"
+          />
+
+          <label for="register-password">
+            Contraseña
+          </label>
+
+          <input
+            id="register-password"
+            type="password"
+            minlength="6"
+            required
+            autocomplete="new-password"
+          />
+
+          <button
+            class="primary-button full-button"
+            type="submit"
+          >
+            Crear cuenta
+          </button>
+
+        </form>
+
+        <p class="auth-switch">
+          ¿Ya tienes cuenta?
+          <button id="show-login" type="button">
+            Iniciar sesión
+          </button>
+        </p>
+
+      </div>
+
+
+      <!-- CUENTA LOGUEADA -->
+
+      <div id="logged-panel" class="hidden">
+
+        <div class="account-info">
+
+          <div class="account-avatar">
+            👤
+          </div>
+
+          <div>
+            <strong id="account-name">
+              Usuario
+            </strong>
+
+            <span id="account-email">
+              correo
+            </span>
+          </div>
+
+        </div>
+
+        <button
+          id="logout-button"
+          class="danger-button full-button"
+          type="button"
+        >
+          Cerrar sesión
+        </button>
+
+      </div>
+
+
+      <p
+        id="auth-message"
+        class="auth-message"
+        aria-live="polite"
+      ></p>
+
+    </div>
+
+  </div>
+
+
+  <!-- MODAL SUGERENCIA -->
+
+  <div
+    id="suggestion-modal"
+    class="modal hidden"
+    aria-hidden="true"
+  >
+
+    <div class="modal-backdrop"></div>
+
+    <div
+      class="modal-box"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="suggestion-modal-title"
+    >
+
+      <button
+        class="modal-close"
+        data-close-modal="suggestion-modal"
+        type="button"
+        aria-label="Cerrar"
+      >
+        ×
+      </button>
+
+      <h2 id="suggestion-modal-title">
+        Sugerir una idea
+      </h2>
+
+      <p class="modal-description">
+        Comparte una idea para mejorar TronkStudios.
+      </p>
+
+      <form id="suggestion-form">
+
+        <label for="suggestion-name">
+          Nombre
+        </label>
+
+        <input
+          id="suggestion-name"
+          type="text"
+          maxlength="30"
+          required
+        />
+
+        <label for="suggestion-category-input">
+          Categoría
+        </label>
+
+        <select
+          id="suggestion-category-input"
+          required
+        >
+          <option value="Roblox">Roblox</option>
+          <option value="Juego">Juego</option>
+          <option value="Aplicación">Aplicación</option>
+        </select>
+
+        <label for="suggestion-text">
+          Idea
+        </label>
+
+        <textarea
+          id="suggestion-text"
+          maxlength="1000"
+          rows="6"
+          required
+          placeholder="Escribe tu idea..."
+        ></textarea>
+
+        <p class="character-counter">
+          <span id="character-count">0</span>/1000
+        </p>
+
+        <button
+          class="primary-button full-button"
+          type="submit"
+        >
+          Enviar idea
+        </button>
+
+      </form>
+
+      <p
+        id="suggestion-message"
+        class="auth-message"
+        aria-live="polite"
+      ></p>
+
+    </div>
+
+  </div>
 
 </body>
 </html>
