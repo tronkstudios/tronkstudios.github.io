@@ -1,1337 +1,1226 @@
-(function () {
-  "use strict";
+"use strict";
 
-  /*
-   * ============================================================
-   * CONFIGURACIÓN SUPABASE
-   * ============================================================
-   *
-   * PON AQUÍ LOS DATOS DE TU PROYECTO DE SUPABASE.
-   *
-   * IMPORTANTE:
-   * - La anon key SÍ puede estar en este archivo.
-   * - NUNCA pongas aquí la service_role key.
-   */
+console.log("SCRIPT NUEVO CARGADO");
 
-  const SUPABASE_URL = "PON_AQUI_TU_SUPABASE_URL";
-const SUPABASE_ANON_KEY = "PON_AQUI_TU_SUPABASE_ANON_KEY";
+const SUPABASE_URL = "";
+const SUPABASE_ANON_KEY = "";
 
 let supabaseClient = null;
+let currentUser = null;
+
+
+/* ============================================================
+   SUPABASE
+   ============================================================ */
 
 if (
-  SUPABASE_URL !== "PON_AQUI_TU_SUPABASE_URL" &&
-  SUPABASE_ANON_KEY !== "PON_AQUI_TU_SUPABASE_ANON_KEY"
+    SUPABASE_URL &&
+    SUPABASE_ANON_KEY &&
+    window.supabase &&
+    typeof window.supabase.createClient === "function"
 ) {
-  supabaseClient = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_ANON_KEY
-  );
+    supabaseClient = window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY
+    );
 }
 
 
-  /*
-   * ============================================================
-   * TEMA
-   * ============================================================
-   */
+/* ============================================================
+   AÑO
+   ============================================================ */
 
-  const root = document.documentElement;
-  const themeToggle = document.getElementById("theme-toggle");
-  const themeIcon = themeToggle.querySelector(".theme-icon");
-  const themeLabel = themeToggle.querySelector(".theme-label");
+const year = document.getElementById("year");
 
-  const STORAGE_KEY = "tronk-theme";
+if (year) {
+    year.textContent = new Date().getFullYear();
+}
 
-  function readStoredTheme() {
-    try {
-      return localStorage.getItem(STORAGE_KEY);
-    } catch {
-      return null;
-    }
-  }
 
-  function saveTheme(theme) {
-    try {
-      localStorage.setItem(STORAGE_KEY, theme);
-    } catch {
-      // Nada
-    }
-  }
+/* ============================================================
+   MODO OSCURO
+   ============================================================ */
 
-  function getSystemTheme() {
-    return window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light";
-  }
+const themeButton =
+    document.getElementById("theme-toggle");
 
-  function applyTheme(theme) {
-    root.setAttribute("data-theme", theme);
-    saveTheme(theme);
+const themeIcon =
+    document.querySelector(".theme-icon");
+
+const themeLabel =
+    document.querySelector(".theme-label");
+
+
+function setTheme(theme) {
+
+    document.documentElement.setAttribute(
+        "data-theme",
+        theme
+    );
+
+    localStorage.setItem(
+        "tronkstudios-theme",
+        theme
+    );
 
     if (theme === "dark") {
-      themeIcon.textContent = "☀️";
-      themeLabel.textContent = "Claro";
-      themeToggle.setAttribute("aria-pressed", "true");
+
+        if (themeIcon) {
+            themeIcon.textContent = "☀️";
+        }
+
+        if (themeLabel) {
+            themeLabel.textContent = "Claro";
+        }
+
+        if (themeButton) {
+            themeButton.setAttribute(
+                "aria-pressed",
+                "true"
+            );
+        }
+
     } else {
-      themeIcon.textContent = "🌙";
-      themeLabel.textContent = "Oscuro";
-      themeToggle.setAttribute("aria-pressed", "false");
+
+        if (themeIcon) {
+            themeIcon.textContent = "🌙";
+        }
+
+        if (themeLabel) {
+            themeLabel.textContent = "Oscuro";
+        }
+
+        if (themeButton) {
+            themeButton.setAttribute(
+                "aria-pressed",
+                "false"
+            );
+        }
     }
-  }
-
-  let currentTheme = readStoredTheme() || getSystemTheme();
-
-  applyTheme(currentTheme);
-
-  themeToggle.addEventListener("click", function () {
-    currentTheme =
-      currentTheme === "dark"
-        ? "light"
-        : "dark";
-
-    applyTheme(currentTheme);
-  });
+}
 
 
-  /*
-   * ============================================================
-   * ELEMENTOS
-   * ============================================================
-   */
+const savedTheme =
+    localStorage.getItem(
+        "tronkstudios-theme"
+    );
 
-  const accountButton =
-    document.getElementById("account-button");
+if (
+    savedTheme === "dark" ||
+    savedTheme === "light"
+) {
 
-  const accountModal =
-    document.getElementById("account-modal");
+    setTheme(savedTheme);
 
-  const suggestionModal =
-    document.getElementById("suggestion-modal");
+} else {
 
-  const loginPanel =
-    document.getElementById("login-panel");
-
-  const registerPanel =
-    document.getElementById("register-panel");
-
-  const loggedPanel =
-    document.getElementById("logged-panel");
-
-  const authMessage =
-    document.getElementById("auth-message");
-
-  const suggestionsList =
-    document.getElementById("suggestions-list");
-
-  const newSuggestionButton =
-    document.getElementById("new-suggestion-button");
-
-  const footerSuggestionButton =
-    document.getElementById("footer-suggestion-button");
-
-  const suggestionMessage =
-    document.getElementById("suggestion-message");
-
-  const suggestionText =
-    document.getElementById("suggestion-text");
-
-  const characterCount =
-    document.getElementById("character-count");
+    setTheme("light");
+}
 
 
-  /*
-   * ============================================================
-   * MODALES
-   * ============================================================
-   */
+if (themeButton) {
 
-  function openModal(modal) {
+    themeButton.addEventListener(
+        "click",
+        function () {
+
+            const current =
+                document.documentElement
+                    .getAttribute("data-theme");
+
+            setTheme(
+                current === "dark"
+                    ? "light"
+                    : "dark"
+            );
+        }
+    );
+}
+
+
+/* ============================================================
+   MODALES
+   ============================================================ */
+
+function openModal(id) {
+
+    const modal =
+        document.getElementById(id);
+
+    if (!modal) {
+        return;
+    }
+
     modal.classList.remove("hidden");
-    modal.setAttribute("aria-hidden", "false");
-    document.body.style.overflow = "hidden";
-  }
 
-  function closeModal(modal) {
-    modal.classList.add("hidden");
-    modal.setAttribute("aria-hidden", "true");
+    modal.setAttribute(
+        "aria-hidden",
+        "false"
+    );
 
-    if (
-      accountModal.classList.contains("hidden") &&
-      suggestionModal.classList.contains("hidden")
-    ) {
-      document.body.style.overflow = "";
+    document.body.style.overflow =
+        "hidden";
+}
+
+
+function closeModal(id) {
+
+    const modal =
+        document.getElementById(id);
+
+    if (!modal) {
+        return;
     }
-  }
 
-  document
-    .querySelectorAll("[data-close-modal]")
+    modal.classList.add("hidden");
+
+    modal.setAttribute(
+        "aria-hidden",
+        "true"
+    );
+
+    document.body.style.overflow =
+        "";
+}
+
+
+/* Cerrar botones X */
+
+document
+    .querySelectorAll(
+        "[data-close-modal]"
+    )
     .forEach(function (button) {
 
-      button.addEventListener("click", function () {
+        button.addEventListener(
+            "click",
+            function () {
 
-        const modal =
-          document.getElementById(
-            button.dataset.closeModal
-          );
+                closeModal(
+                    button.getAttribute(
+                        "data-close-modal"
+                    )
+                );
 
-        closeModal(modal);
-      });
+            }
+        );
+
     });
 
-  document
-    .querySelectorAll(".modal-backdrop")
+
+/* Cerrar haciendo clic fuera */
+
+document
+    .querySelectorAll(
+        ".modal-backdrop"
+    )
     .forEach(function (backdrop) {
 
-      backdrop.addEventListener("click", function () {
+        backdrop.addEventListener(
+            "click",
+            function () {
+
+                const modal =
+                    backdrop.closest(
+                        ".modal"
+                    );
+
+                if (modal) {
+                    closeModal(
+                        modal.id
+                    );
+                }
+
+            }
+        );
+
+    });
+
+
+/* Escape */
+
+document.addEventListener(
+    "keydown",
+    function (event) {
+
+        if (event.key !== "Escape") {
+            return;
+        }
 
         const modal =
-          backdrop.closest(".modal");
-
-        closeModal(modal);
-      });
-    });
-
-  document.addEventListener("keydown", function (event) {
-
-    if (event.key === "Escape") {
-
-      if (!accountModal.classList.contains("hidden")) {
-        closeModal(accountModal);
-      }
-
-      if (!suggestionModal.classList.contains("hidden")) {
-        closeModal(suggestionModal);
-      }
-    }
-  });
-
-
-  /*
-   * ============================================================
-   * CUENTA
-   * ============================================================
-   */
-
-  async function getCurrentUser() {
-
-    const {
-      data: { user }
-    } = await supabaseClient.auth.getUser();
-
-    return user;
-  }
-
-
-  async function updateAccountUI() {
-
-    const user = await getCurrentUser();
-
-    if (!user) {
-
-      accountButton.textContent = "👤 Cuenta";
-
-      loginPanel.classList.remove("hidden");
-      registerPanel.classList.add("hidden");
-      loggedPanel.classList.add("hidden");
-
-      return;
-    }
-
-    accountButton.textContent =
-      "👤 " +
-      (
-        user.user_metadata?.display_name ||
-        user.email ||
-        "Cuenta"
-      );
-
-    loginPanel.classList.add("hidden");
-    registerPanel.classList.add("hidden");
-    loggedPanel.classList.remove("hidden");
-
-    document.getElementById("account-name").textContent =
-      user.user_metadata?.display_name ||
-      "Usuario";
-
-    document.getElementById("account-email").textContent =
-      user.email || "";
-
-    document.getElementById("suggestion-name").value =
-      user.user_metadata?.display_name || "";
-
-    await loadSuggestions();
-  }
-
-
-  accountButton.addEventListener("click", async function () {
-
-    authMessage.textContent = "";
-
-    await updateAccountUI();
-
-    openModal(accountModal);
-  });
-
-
-  document
-    .getElementById("show-register")
-    .addEventListener("click", function () {
-
-      loginPanel.classList.add("hidden");
-      registerPanel.classList.remove("hidden");
-
-      authMessage.textContent = "";
-    });
-
-
-  document
-    .getElementById("show-login")
-    .addEventListener("click", function () {
-
-      registerPanel.classList.add("hidden");
-      loginPanel.classList.remove("hidden");
-
-      authMessage.textContent = "";
-    });
-
-
-  /*
-   * ============================================================
-   * REGISTRO
-   * ============================================================
-   */
-
-  document
-    .getElementById("register-form")
-    .addEventListener("submit", async function (event) {
-
-      event.preventDefault();
-
-      const name =
-        document
-          .getElementById("register-name")
-          .value
-          .trim();
-
-      const email =
-        document
-          .getElementById("register-email")
-          .value
-          .trim();
-
-      const password =
-        document
-          .getElementById("register-password")
-          .value;
-
-      authMessage.textContent =
-        "Creando cuenta...";
-
-      const {
-        data,
-        error
-      } = await supabaseClient.auth.signUp({
-
-        email,
-        password,
-
-        options: {
-          data: {
-            display_name: name
-          }
-        }
-
-      });
-
-      if (error) {
-
-        authMessage.textContent =
-          error.message;
-
-        return;
-      }
-
-      if (data.user && !data.session) {
-
-        authMessage.textContent =
-          "Cuenta creada. Revisa tu correo para confirmar la cuenta.";
-
-        return;
-      }
-
-      authMessage.textContent =
-        "Cuenta creada correctamente.";
-
-      await updateAccountUI();
-
-      setTimeout(function () {
-        closeModal(accountModal);
-      }, 800);
-    });
-
-
-  /*
-   * ============================================================
-   * LOGIN
-   * ============================================================
-   */
-
-  document
-    .getElementById("login-form")
-    .addEventListener("submit", async function (event) {
-
-      event.preventDefault();
-
-      const email =
-        document
-          .getElementById("login-email")
-          .value
-          .trim();
-
-      const password =
-        document
-          .getElementById("login-password")
-          .value;
-
-      authMessage.textContent =
-        "Iniciando sesión...";
-
-      const {
-        error
-      } = await supabaseClient.auth.signInWithPassword({
-
-        email,
-        password
-
-      });
-
-      if (error) {
-
-        authMessage.textContent =
-          "Correo o contraseña incorrectos.";
-
-        return;
-      }
-
-      authMessage.textContent =
-        "Sesión iniciada.";
-
-      await updateAccountUI();
-
-      setTimeout(function () {
-        closeModal(accountModal);
-      }, 500);
-    });
-
-
-  /*
-   * ============================================================
-   * CERRAR SESIÓN
-   * ============================================================
-   */
-
-  document
-    .getElementById("logout-button")
-    .addEventListener("click", async function () {
-
-      await supabaseClient.auth.signOut();
-
-      authMessage.textContent =
-        "Has cerrado sesión.";
-
-      await updateAccountUI();
-
-      await loadSuggestions();
-    });
-
-
-  /*
-   * ============================================================
-   * CAMBIO DE SESIÓN
-   * ============================================================
-   */
-
-  supabaseClient.auth.onAuthStateChange(
-    async function () {
-
-      await updateAccountUI();
-
-    }
-  );
-
-
-  /*
-   * ============================================================
-   * ABRIR SUGERENCIAS
-   * ============================================================
-   */
-
-  async function openSuggestionForm() {
-
-    const user = await getCurrentUser();
-
-    if (!user) {
-
-      loginPanel.classList.remove("hidden");
-      registerPanel.classList.add("hidden");
-      loggedPanel.classList.add("hidden");
-
-      authMessage.textContent =
-        "Necesitas una cuenta para enviar una sugerencia.";
-
-      openModal(accountModal);
-
-      return;
-    }
-
-    suggestionMessage.textContent = "";
-
-    document.getElementById(
-      "suggestion-name"
-    ).value =
-      user.user_metadata?.display_name || "";
-
-    openModal(suggestionModal);
-  }
-
-
-  newSuggestionButton.addEventListener(
-    "click",
-    openSuggestionForm
-  );
-
-  footerSuggestionButton.addEventListener(
-    "click",
-    openSuggestionForm
-  );
-
-
-  /*
-   * ============================================================
-   * CONTADOR
-   * ============================================================
-   */
-
-  suggestionText.addEventListener("input", function () {
-
-    characterCount.textContent =
-      suggestionText.value.length;
-
-  });
-
-
-  /*
-   * ============================================================
-   * MODERACIÓN BÁSICA
-   * ============================================================
-   *
-   * Esto sirve como primera barrera.
-   * La seguridad real también depende de las políticas
-   * de Supabase.
-   */
-
-  const prohibitedWords = [
-
-    "puta",
-    "puto",
-    "mierda",
-    "coño",
-    "joder",
-    "cabron",
-    "cabrón",
-    "gilipollas",
-    "maricon",
-    "maricón",
-    "idiota",
-    "imbecil",
-    "imbécil"
-
-  ];
-
-
-  function containsObsceneContent(text) {
-
-    const normalized =
-      text
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
-
-    return prohibitedWords.some(function (word) {
-
-      return normalized.includes(
-        word
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-      );
-
-    });
-  }
-
-
-  /*
-   * ============================================================
-   * CREAR SUGERENCIA
-   * ============================================================
-   */
-
-  document
-    .getElementById("suggestion-form")
-    .addEventListener("submit", async function (event) {
-
-      event.preventDefault();
-
-      const user = await getCurrentUser();
-
-      if (!user) {
-
-        closeModal(suggestionModal);
-        openSuggestionForm();
-
-        return;
-      }
-
-      const name =
-        document
-          .getElementById("suggestion-name")
-          .value
-          .trim();
-
-      const category =
-        document
-          .getElementById("suggestion-category-input")
-          .value;
-
-      const idea =
-        suggestionText.value.trim();
-
-
-      if (!name || !idea) {
-
-        suggestionMessage.textContent =
-          "Completa todos los campos.";
-
-        return;
-      }
-
-
-      if (containsObsceneContent(name + " " + idea)) {
-
-        suggestionMessage.textContent =
-          "La sugerencia contiene contenido no permitido.";
-
-        return;
-      }
-
-
-      suggestionMessage.textContent =
-        "Enviando sugerencia...";
-
-
-      const {
-        error
-      } = await supabaseClient
-        .from("suggestions")
-        .insert({
-
-          user_id: user.id,
-          name: name,
-          category: category,
-          idea: idea
-
-        });
-
-
-      if (error) {
-
-        console.error(error);
-
-        suggestionMessage.textContent =
-          "No se pudo enviar la sugerencia.";
-
-        return;
-      }
-
-
-      suggestionMessage.textContent =
-        "¡Sugerencia enviada!";
-
-      document
-        .getElementById("suggestion-form")
-        .reset();
-
-      characterCount.textContent = "0";
-
-      await loadSuggestions();
-
-
-      setTimeout(function () {
-        closeModal(suggestionModal);
-      }, 700);
-
-    });
-
-
-  /*
-   * ============================================================
-   * CARGAR SUGERENCIAS
-   * ============================================================
-   */
-
-  let currentTab = "all";
-
-
-  async function loadSuggestions() {
-
-    suggestionsList.innerHTML =
-      '<div class="suggestions-loading">Cargando sugerencias...</div>';
-
-
-    let query = supabaseClient
-      .from("suggestions")
-      .select(`
-        id,
-        user_id,
-        name,
-        category,
-        idea,
-        created_at,
-        suggestion_votes (
-          vote,
-          user_id
-        )
-      `)
-      .order("created_at", {
-        ascending: false
-      });
-
-
-    if (currentTab === "mine") {
-
-      const user = await getCurrentUser();
-
-      if (!user) {
-
-        suggestionsList.innerHTML =
-          '<div class="no-suggestions">Inicia sesión para ver tus sugerencias.</div>';
-
-        return;
-      }
-
-      query = query.eq(
-        "user_id",
-        user.id
-      );
-    }
-
-
-    const {
-      data,
-      error
-    } = await query;
-
-
-    if (error) {
-
-      console.error(error);
-
-      suggestionsList.innerHTML =
-        '<div class="no-suggestions">No se pudieron cargar las sugerencias.</div>';
-
-      return;
-    }
-
-
-    renderSuggestions(data || []);
-  }
-
-
-  /*
-   * ============================================================
-   * RENDERIZAR SUGERENCIAS
-   * ============================================================
-   */
-
-  function renderSuggestions(suggestions) {
-
-    const search =
-      document
-        .getElementById("suggestion-search")
-        .value
-        .trim()
-        .toLowerCase();
-
-    const category =
-      document
-        .getElementById("suggestion-category")
-        .value;
-
-
-    const filtered =
-      suggestions.filter(function (suggestion) {
-
-        const matchesSearch =
-          !search ||
-          suggestion.name
-            .toLowerCase()
-            .includes(search) ||
-          suggestion.idea
-            .toLowerCase()
-            .includes(search);
-
-        const matchesCategory =
-          category === "Todas" ||
-          suggestion.category === category;
-
-        return (
-          matchesSearch &&
-          matchesCategory
-        );
-
-      });
-
-
-    if (!filtered.length) {
-
-      suggestionsList.innerHTML =
-        '<div class="no-suggestions">No hay sugerencias que coincidan.</div>';
-
-      return;
-    }
-
-
-    suggestionsList.innerHTML = "";
-
-
-    filtered.forEach(function (suggestion) {
-
-      const card =
-        document.createElement("article");
-
-      card.className =
-        "suggestion-card";
-
-
-      const header =
-        document.createElement("div");
-
-      header.className =
-        "suggestion-header";
-
-
-      const authorBox =
-        document.createElement("div");
-
-
-      const author =
-        document.createElement("div");
-
-      author.className =
-        "suggestion-author";
-
-      author.textContent =
-        suggestion.name;
-
-
-      const date =
-        document.createElement("div");
-
-      date.className =
-        "suggestion-date";
-
-      date.textContent =
-        formatDate(suggestion.created_at);
-
-
-      const badge =
-        document.createElement("span");
-
-      badge.className =
-        "suggestion-category-badge";
-
-      badge.textContent =
-        suggestion.category;
-
-
-      authorBox.appendChild(author);
-      authorBox.appendChild(date);
-      authorBox.appendChild(badge);
-
-
-      header.appendChild(authorBox);
-
-
-      const text =
-        document.createElement("p");
-
-      text.className =
-        "suggestion-text";
-
-      text.textContent =
-        suggestion.idea;
-
-
-      const actions =
-        document.createElement("div");
-
-      actions.className =
-        "suggestion-actions";
-
-
-      let likes = 0;
-      let dislikes = 0;
-      let myVote = 0;
-
-
-      (suggestion.suggestion_votes || [])
-        .forEach(function (vote) {
-
-          if (vote.vote === 1) {
-            likes++;
-          }
-
-          if (vote.vote === -1) {
-            dislikes++;
-          }
-
-        });
-
-
-      const voteLike =
-        document.createElement("button");
-
-      voteLike.className =
-        "vote-button";
-
-      voteLike.type =
-        "button";
-
-      voteLike.textContent =
-        "👍 " + likes;
-
-
-      const voteDislike =
-        document.createElement("button");
-
-      voteDislike.className =
-        "vote-button";
-
-      voteDislike.type =
-        "button";
-
-      voteDislike.textContent =
-        "👎 " + dislikes;
-
-
-      const userPromise =
-        getCurrentUser();
-
-
-      voteLike.addEventListener(
-        "click",
-        async function () {
-
-          const user =
-            await getCurrentUser();
-
-          if (!user) {
-
-            authMessage.textContent =
-              "Necesitas una cuenta para votar.";
-
-            openModal(accountModal);
-
-            return;
-          }
-
-          await voteSuggestion(
-            suggestion.id,
-            1
-          );
-
-        }
-      );
-
-
-      voteDislike.addEventListener(
-        "click",
-        async function () {
-
-          const user =
-            await getCurrentUser();
-
-          if (!user) {
-
-            authMessage.textContent =
-              "Necesitas una cuenta para votar.";
-
-            openModal(accountModal);
-
-            return;
-          }
-
-          await voteSuggestion(
-            suggestion.id,
-            -1
-          );
-
-        }
-      );
-
-
-      actions.appendChild(voteLike);
-      actions.appendChild(voteDislike);
-
-
-      const currentUser =
-        window.__tronkUser;
-
-
-      if (
-        currentUser &&
-        currentUser.id === suggestion.user_id
-      ) {
-
-        const deleteButton =
-          document.createElement("button");
-
-        deleteButton.className =
-          "delete-suggestion-button";
-
-        deleteButton.type =
-          "button";
-
-        deleteButton.textContent =
-          "🗑️ Borrar";
-
-        deleteButton.addEventListener(
-          "click",
-          async function () {
-
-            if (
-              !confirm(
-                "¿Quieres borrar esta sugerencia?"
-              )
-            ) {
-              return;
-            }
-
-            await deleteSuggestion(
-              suggestion.id
+            document.querySelector(
+                ".modal:not(.hidden)"
             );
 
-          }
+        if (modal) {
+            closeModal(modal.id);
+        }
+
+    }
+);
+
+
+/* ============================================================
+   CUENTA
+   ============================================================ */
+
+const accountButton =
+    document.getElementById(
+        "account-button"
+    );
+
+
+function updateAccountUI() {
+
+    const loginPanel =
+        document.getElementById(
+            "login-panel"
         );
 
-        actions.appendChild(
-          deleteButton
+    const registerPanel =
+        document.getElementById(
+            "register-panel"
         );
-      }
 
+    const loggedPanel =
+        document.getElementById(
+            "logged-panel"
+        );
 
-      card.appendChild(header);
-      card.appendChild(text);
-      card.appendChild(actions);
-
-      suggestionsList.appendChild(card);
-
-    });
-  }
-
-
-  /*
-   * ============================================================
-   * VOTOS
-   * ============================================================
-   */
-
-  async function voteSuggestion(
-    suggestionId,
-    vote
-  ) {
-
-    const user =
-      await getCurrentUser();
-
-    if (!user) {
-      return;
+    if (
+        !loginPanel ||
+        !registerPanel ||
+        !loggedPanel
+    ) {
+        return;
     }
 
 
-    const {
-      data: existing
-    } = await supabaseClient
-      .from("suggestion_votes")
-      .select("id, vote")
-      .eq(
-        "suggestion_id",
-        suggestionId
-      )
-      .eq(
-        "user_id",
-        user.id
-      )
-      .maybeSingle();
+    if (!currentUser) {
 
+        loginPanel.classList.remove(
+            "hidden"
+        );
 
-    if (existing) {
+        registerPanel.classList.add(
+            "hidden"
+        );
 
-      if (existing.vote === vote) {
+        loggedPanel.classList.add(
+            "hidden"
+        );
 
-        await supabaseClient
-          .from("suggestion_votes")
-          .delete()
-          .eq(
-            "id",
-            existing.id
-          );
-
-      } else {
-
-        await supabaseClient
-          .from("suggestion_votes")
-          .update({
-            vote: vote
-          })
-          .eq(
-            "id",
-            existing.id
-          );
-      }
-
-    } else {
-
-      await supabaseClient
-        .from("suggestion_votes")
-        .insert({
-
-          suggestion_id:
-            suggestionId,
-
-          user_id:
-            user.id,
-
-          vote:
-            vote
-
-        });
+        return;
     }
 
 
-    await loadSuggestions();
-  }
+    loginPanel.classList.add(
+        "hidden"
+    );
+
+    registerPanel.classList.add(
+        "hidden"
+    );
+
+    loggedPanel.classList.remove(
+        "hidden"
+    );
 
 
-  /*
-   * ============================================================
-   * BORRAR SUGERENCIA
-   * ============================================================
-   */
-
-  async function deleteSuggestion(id) {
-
-    const {
-      error
-    } = await supabaseClient
-      .from("suggestions")
-      .delete()
-      .eq("id", id);
+    const metadata =
+        currentUser.user_metadata || {};
 
 
-    if (error) {
+    const name =
+        document.getElementById(
+            "account-name"
+        );
 
-      console.error(error);
+    const email =
+        document.getElementById(
+            "account-email"
+        );
 
-      alert(
-        "No tienes permiso para borrar esta sugerencia."
-      );
 
-      return;
+    if (name) {
+
+        name.textContent =
+            metadata.name ||
+            metadata.full_name ||
+            "Usuario";
+
     }
 
 
-    await loadSuggestions();
-  }
+    if (email) {
+
+        email.textContent =
+            currentUser.email || "";
+
+    }
+}
 
 
-  /*
-   * ============================================================
-   * TABS
-   * ============================================================
-   */
+if (accountButton) {
 
-  document
-    .querySelectorAll(".suggestion-tab")
-    .forEach(function (tab) {
+    accountButton.addEventListener(
+        "click",
+        function () {
 
-      tab.addEventListener(
+            openModal(
+                "account-modal"
+            );
+
+            updateAccountUI();
+
+        }
+    );
+}
+
+
+/* ============================================================
+   LOGIN
+   ============================================================ */
+
+const loginForm =
+    document.getElementById(
+        "login-form"
+    );
+
+
+if (loginForm) {
+
+    loginForm.addEventListener(
+        "submit",
+        async function (event) {
+
+            event.preventDefault();
+
+            if (
+                !supabaseClient ||
+                !supabaseClient.auth
+            ) {
+
+                showAuthMessage(
+                    "Supabase todavía no está configurado.",
+                    "error"
+                );
+
+                return;
+            }
+
+
+            const email =
+                document.getElementById(
+                    "login-email"
+                ).value.trim();
+
+
+            const password =
+                document.getElementById(
+                    "login-password"
+                ).value;
+
+
+            try {
+
+                const result =
+                    await supabaseClient.auth
+                        .signInWithPassword({
+                            email: email,
+                            password: password
+                        });
+
+
+                if (result.error) {
+                    throw result.error;
+                }
+
+
+                currentUser =
+                    result.data.user;
+
+
+                updateAccountUI();
+
+
+            } catch (error) {
+
+                showAuthMessage(
+                    error.message ||
+                    "No se pudo iniciar sesión.",
+                    "error"
+                );
+
+            }
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   REGISTRO
+   ============================================================ */
+
+const registerForm =
+    document.getElementById(
+        "register-form"
+    );
+
+
+if (registerForm) {
+
+    registerForm.addEventListener(
+        "submit",
+        async function (event) {
+
+            event.preventDefault();
+
+
+            if (
+                !supabaseClient ||
+                !supabaseClient.auth
+            ) {
+
+                showAuthMessage(
+                    "Supabase todavía no está configurado.",
+                    "error"
+                );
+
+                return;
+            }
+
+
+            const name =
+                document.getElementById(
+                    "register-name"
+                ).value.trim();
+
+
+            const email =
+                document.getElementById(
+                    "register-email"
+                ).value.trim();
+
+
+            const password =
+                document.getElementById(
+                    "register-password"
+                ).value;
+
+
+            try {
+
+                const result =
+                    await supabaseClient.auth
+                        .signUp({
+
+                            email: email,
+
+                            password: password,
+
+                            options: {
+                                data: {
+                                    name: name
+                                }
+                            }
+
+                        });
+
+
+                if (result.error) {
+                    throw result.error;
+                }
+
+
+                showAuthMessage(
+                    "Cuenta creada correctamente.",
+                    "success"
+                );
+
+
+                registerForm.reset();
+
+
+            } catch (error) {
+
+                showAuthMessage(
+                    error.message ||
+                    "No se pudo crear la cuenta.",
+                    "error"
+                );
+
+            }
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   CERRAR SESIÓN
+   ============================================================ */
+
+const logoutButton =
+    document.getElementById(
+        "logout-button"
+    );
+
+
+if (logoutButton) {
+
+    logoutButton.addEventListener(
         "click",
         async function () {
 
-          document
-            .querySelectorAll(".suggestion-tab")
-            .forEach(function (other) {
-              other.classList.remove("active");
-            });
+            if (
+                !supabaseClient ||
+                !supabaseClient.auth
+            ) {
 
-          tab.classList.add("active");
+                currentUser = null;
 
-          currentTab =
-            tab.dataset.tab;
+                updateAccountUI();
 
-          await loadSuggestions();
-
-        }
-      );
-
-    });
-
-
-  /*
-   * ============================================================
-   * BUSCAR / FILTRAR
-   * ============================================================
-   */
-
-  document
-    .getElementById("suggestion-search")
-    .addEventListener(
-      "input",
-      loadSuggestions
-    );
-
-  document
-    .getElementById("suggestion-category")
-    .addEventListener(
-      "change",
-      loadSuggestions
-    );
-
-
-  /*
-   * ============================================================
-   * FECHA
-   * ============================================================
-   */
-
-  function formatDate(dateString) {
-
-    return new Date(dateString)
-      .toLocaleDateString(
-        "es-ES",
-        {
-          day: "numeric",
-          month: "short",
-          year: "numeric"
-        }
-      );
-  }
-
-
-  /*
-   * ============================================================
-   * AÑO
-   * ============================================================
-   */
-
-  document.getElementById("year").textContent =
-    new Date().getFullYear();
-
-
-  /*
-   * ============================================================
-   * ANIMACIÓN
-   * ============================================================
-   */
-
-  const sections =
-    document.querySelectorAll(".section");
-
-  sections.forEach(function (section) {
-    section.classList.add("reveal");
-  });
-
-
-  if ("IntersectionObserver" in window) {
-
-    const observer =
-      new IntersectionObserver(
-        function (entries) {
-
-          entries.forEach(function (entry) {
-
-            if (entry.isIntersecting) {
-
-              entry.target.classList.add(
-                "is-visible"
-              );
-
-              observer.unobserve(
-                entry.target
-              );
+                return;
             }
 
-          });
 
-        },
-        {
-          threshold: 0.15
+            try {
+
+                await supabaseClient.auth
+                    .signOut();
+
+                currentUser = null;
+
+                updateAccountUI();
+
+            } catch (error) {
+
+                console.error(
+                    "Error cerrando sesión:",
+                    error
+                );
+
+            }
+
         }
-      );
+    );
+
+}
 
 
-    sections.forEach(function (section) {
-      observer.observe(section);
-    });
+/* ============================================================
+   CAMBIAR LOGIN / REGISTRO
+   ============================================================ */
 
-  } else {
-
-    sections.forEach(function (section) {
-      section.classList.add("is-visible");
-    });
-
-  }
+const showRegister =
+    document.getElementById(
+        "show-register"
+    );
 
 
-  /*
-   * ============================================================
-   * USUARIO GLOBAL PARA LA INTERFAZ
-   * ============================================================
-   */
-
-  async function refreshGlobalUser() {
-
-    window.__tronkUser =
-      await getCurrentUser();
-
-  }
+const showLogin =
+    document.getElementById(
+        "show-login"
+    );
 
 
-  supabaseClient.auth.onAuthStateChange(
-    async function () {
+if (showRegister) {
 
-      await refreshGlobalUser();
+    showRegister.addEventListener(
+        "click",
+        function () {
 
-      await loadSuggestions();
+            document
+                .getElementById(
+                    "login-panel"
+                )
+                ?.classList.add(
+                    "hidden"
+                );
+
+
+            document
+                .getElementById(
+                    "register-panel"
+                )
+                ?.classList.remove(
+                    "hidden"
+                );
+
+        }
+    );
+
+}
+
+
+if (showLogin) {
+
+    showLogin.addEventListener(
+        "click",
+        function () {
+
+            document
+                .getElementById(
+                    "register-panel"
+                )
+                ?.classList.add(
+                    "hidden"
+                );
+
+
+            document
+                .getElementById(
+                    "login-panel"
+                )
+                ?.classList.remove(
+                    "hidden"
+                );
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   MENSAJES
+   ============================================================ */
+
+function showAuthMessage(
+    message,
+    type
+) {
+
+    const element =
+        document.getElementById(
+            "auth-message"
+        );
+
+    if (!element) {
+        return;
+    }
+
+    element.textContent =
+        message;
+
+    element.className =
+        "auth-message";
+
+    if (type === "error") {
+
+        element.classList.add(
+            "error"
+        );
 
     }
-  );
+
+    if (type === "success") {
+
+        element.classList.add(
+            "success"
+        );
+
+    }
+}
 
 
-  /*
-   * ============================================================
-   * INICIO
-   * ============================================================
-   */
+/* ============================================================
+   SUGERIR IDEA
+   ============================================================ */
 
-  (async function init() {
+const suggestionButton =
+    document.getElementById(
+        "new-suggestion-button"
+    );
 
-    await refreshGlobalUser();
 
-    await updateAccountUI();
+if (suggestionButton) {
 
-    await loadSuggestions();
+    suggestionButton.addEventListener(
+        "click",
+        function () {
 
-  })();
+            openModal(
+                "suggestion-modal"
+            );
 
-})();
+        }
+    );
+
+}
+
+
+/* ============================================================
+   CONTADOR
+   ============================================================ */
+
+const suggestionText =
+    document.getElementById(
+        "suggestion-text"
+    );
+
+
+const characterCount =
+    document.getElementById(
+        "character-count"
+    );
+
+
+if (
+    suggestionText &&
+    characterCount
+) {
+
+    suggestionText.addEventListener(
+        "input",
+        function () {
+
+            characterCount.textContent =
+                suggestionText.value.length;
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   SUGERENCIAS
+   ============================================================ */
+
+async function loadSuggestions() {
+
+    const list =
+        document.getElementById(
+            "suggestions-list"
+        );
+
+
+    if (!list) {
+        return;
+    }
+
+
+    /*
+     * Supabase no está configurado.
+     * No hacemos ninguna petición.
+     */
+
+    if (
+        !supabaseClient ||
+        !supabaseClient.auth
+    ) {
+
+        list.innerHTML = `
+            <div class="suggestions-loading">
+                Las sugerencias estarán disponibles cuando se configure Supabase.
+            </div>
+        `;
+
+        return;
+    }
+
+
+    try {
+
+        const result =
+            await supabaseClient
+                .from("suggestions")
+                .select("*")
+                .order(
+                    "created_at",
+                    {
+                        ascending: false
+                    }
+                );
+
+
+        if (result.error) {
+            throw result.error;
+        }
+
+
+        list.innerHTML = "";
+
+
+        if (
+            !result.data ||
+            result.data.length === 0
+        ) {
+
+            list.innerHTML = `
+                <div class="suggestions-loading">
+                    No hay sugerencias todavía.
+                </div>
+            `;
+
+            return;
+        }
+
+
+        result.data.forEach(
+            function (item) {
+
+                const card =
+                    document.createElement(
+                        "article"
+                    );
+
+                card.className =
+                    "card suggestion-card";
+
+
+                const header =
+                    document.createElement(
+                        "div"
+                    );
+
+                header.className =
+                    "suggestion-header";
+
+
+                const author =
+                    document.createElement(
+                        "strong"
+                    );
+
+                author.className =
+                    "suggestion-author";
+
+                author.textContent =
+                    item.name ||
+                    "Usuario";
+
+
+                const date =
+                    document.createElement(
+                        "span"
+                    );
+
+                date.className =
+                    "suggestion-date";
+
+
+                if (item.created_at) {
+
+                    date.textContent =
+                        new Date(
+                            item.created_at
+                        ).toLocaleDateString(
+                            "es-ES"
+                        );
+
+                }
+
+
+                header.appendChild(
+                    author
+                );
+
+                header.appendChild(
+                    date
+                );
+
+
+                const category =
+                    document.createElement(
+                        "span"
+                    );
+
+                category.className =
+                    "suggestion-category-badge";
+
+                category.textContent =
+                    item.category ||
+                    "General";
+
+
+                const text =
+                    document.createElement(
+                        "p"
+                    );
+
+                text.className =
+                    "suggestion-text";
+
+                text.textContent =
+                    item.text ||
+                    "";
+
+
+                card.appendChild(
+                    header
+                );
+
+                card.appendChild(
+                    category
+                );
+
+                card.appendChild(
+                    text
+                );
+
+
+                list.appendChild(
+                    card
+                );
+
+            }
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Error cargando sugerencias:",
+            error
+        );
+
+    }
+
+}
+
+
+/* ============================================================
+   FORMULARIO DE SUGERENCIAS
+   ============================================================ */
+
+const suggestionForm =
+    document.getElementById(
+        "suggestion-form"
+    );
+
+
+if (suggestionForm) {
+
+    suggestionForm.addEventListener(
+        "submit",
+        async function (event) {
+
+            event.preventDefault();
+
+
+            if (
+                !supabaseClient ||
+                !supabaseClient.auth
+            ) {
+
+                const message =
+                    document.getElementById(
+                        "suggestion-message"
+                    );
+
+
+                if (message) {
+
+                    message.textContent =
+                        "Supabase todavía no está configurado.";
+
+                    message.className =
+                        "auth-message error";
+
+                }
+
+                return;
+            }
+
+
+            if (!currentUser) {
+
+                const message =
+                    document.getElementById(
+                        "suggestion-message"
+                    );
+
+
+                if (message) {
+
+                    message.textContent =
+                        "Debes iniciar sesión para enviar una idea.";
+
+                    message.className =
+                        "auth-message error";
+
+                }
+
+                return;
+            }
+
+
+            const name =
+                document.getElementById(
+                    "suggestion-name"
+                ).value.trim();
+
+
+            const category =
+                document.getElementById(
+                    "suggestion-category-input"
+                ).value;
+
+
+            const text =
+                document.getElementById(
+                    "suggestion-text"
+                ).value.trim();
+
+
+            try {
+
+                const result =
+                    await supabaseClient
+                        .from("suggestions")
+                        .insert({
+
+                            user_id:
+                                currentUser.id,
+
+                            name:
+                                name,
+
+                            category:
+                                category,
+
+                            text:
+                                text,
+
+                            votes:
+                                0
+
+                        });
+
+
+                if (result.error) {
+                    throw result.error;
+                }
+
+
+                suggestionForm.reset();
+
+
+                if (characterCount) {
+                    characterCount.textContent =
+                        "0";
+                }
+
+
+                const message =
+                    document.getElementById(
+                        "suggestion-message"
+                    );
+
+
+                if (message) {
+
+                    message.textContent =
+                        "Idea enviada correctamente.";
+
+                    message.className =
+                        "auth-message success";
+
+                }
+
+
+                loadSuggestions();
+
+
+            } catch (error) {
+
+                console.error(
+                    "Error enviando sugerencia:",
+                    error
+                );
+
+            }
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   PESTAÑAS
+   ============================================================ */
+
+document
+    .querySelectorAll(
+        "[data-tab]"
+    )
+    .forEach(
+        function (tab) {
+
+            tab.addEventListener(
+                "click",
+                function () {
+
+                    document
+                        .querySelectorAll(
+                            "[data-tab]"
+                        )
+                        .forEach(
+                            function (other) {
+
+                                other.classList.remove(
+                                    "active"
+                                );
+
+                            }
+                        );
+
+
+                    tab.classList.add(
+                        "active"
+                    );
+
+                }
+            );
+
+        }
+    );
+
+
+/* ============================================================
+   SUPABASE AUTH
+   ============================================================ */
+
+if (
+    supabaseClient &&
+    supabaseClient.auth &&
+    typeof supabaseClient.auth
+        .onAuthStateChange === "function"
+) {
+
+    supabaseClient.auth.onAuthStateChange(
+        function (
+            event,
+            session
+        ) {
+
+            currentUser =
+                session?.user || null;
+
+            updateAccountUI();
+
+            loadSuggestions();
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   INICIO
+   ============================================================ */
+
+loadSuggestions();
+
+console.log(
+    "TronkStudios: script cargado correctamente."
+);
