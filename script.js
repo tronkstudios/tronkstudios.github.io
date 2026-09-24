@@ -97,7 +97,7 @@ function saveTheme(theme) {
   try {
     localStorage.setItem("tronkstudios-theme", theme);
   } catch {
-    // No hacer nada si localStorage no está disponible.
+    // No hacer nada.
   }
 }
 
@@ -119,7 +119,10 @@ function updateThemeButton(theme) {
     }
 
     themeToggle.setAttribute("aria-pressed", "true");
-    themeToggle.setAttribute("aria-label", "Cambiar a modo claro");
+    themeToggle.setAttribute(
+      "aria-label",
+      "Cambiar a modo claro"
+    );
   } else {
     if (icon) {
       icon.textContent = "🌙";
@@ -130,15 +133,24 @@ function updateThemeButton(theme) {
     }
 
     themeToggle.setAttribute("aria-pressed", "false");
-    themeToggle.setAttribute("aria-label", "Cambiar a modo oscuro");
+    themeToggle.setAttribute(
+      "aria-label",
+      "Cambiar a modo oscuro"
+    );
   }
 }
 
 function applyTheme(theme) {
   if (theme === "dark") {
-    document.documentElement.setAttribute("data-theme", "dark");
+    document.documentElement.setAttribute(
+      "data-theme",
+      "dark"
+    );
   } else {
-    document.documentElement.setAttribute("data-theme", "light");
+    document.documentElement.setAttribute(
+      "data-theme",
+      "light"
+    );
   }
 
   updateThemeButton(theme);
@@ -147,27 +159,36 @@ function applyTheme(theme) {
 function initializeTheme() {
   const savedTheme = getSavedTheme();
 
-  if (savedTheme === "dark" || savedTheme === "light") {
+  if (
+    savedTheme === "dark" ||
+    savedTheme === "light"
+  ) {
     applyTheme(savedTheme);
     return;
   }
 
   const prefersDark =
     window.matchMedia &&
-    window.matchMedia("(prefers-color-scheme: dark)").matches;
+    window.matchMedia(
+      "(prefers-color-scheme: dark)"
+    ).matches;
 
-  const initialTheme = prefersDark ? "dark" : "light";
-
-  applyTheme(initialTheme);
+  applyTheme(
+    prefersDark ? "dark" : "light"
+  );
 }
 
 if (themeToggle) {
   themeToggle.addEventListener("click", () => {
     const currentTheme =
-      document.documentElement.getAttribute("data-theme") || "light";
+      document.documentElement.getAttribute(
+        "data-theme"
+      ) || "light";
 
     const newTheme =
-      currentTheme === "dark" ? "light" : "dark";
+      currentTheme === "dark"
+        ? "light"
+        : "dark";
 
     applyTheme(newTheme);
     saveTheme(newTheme);
@@ -199,46 +220,72 @@ function closeModal(modal) {
   modal.classList.add("hidden");
   modal.setAttribute("aria-hidden", "true");
 
-  if (
-    (!accountModal || accountModal.classList.contains("hidden")) &&
-    (!suggestionModal || suggestionModal.classList.contains("hidden"))
-  ) {
-    document.body.classList.remove("modal-open");
+  const accountClosed =
+    !accountModal ||
+    accountModal.classList.contains("hidden");
+
+  const suggestionClosed =
+    !suggestionModal ||
+    suggestionModal.classList.contains("hidden");
+
+  if (accountClosed && suggestionClosed) {
+    document.body.classList.remove(
+      "modal-open"
+    );
   }
 }
 
-document.querySelectorAll("[data-close-modal]").forEach((button) => {
-  button.addEventListener("click", () => {
-    const modalId = button.getAttribute("data-close-modal");
-    const modal = document.getElementById(modalId);
+document
+  .querySelectorAll("[data-close-modal]")
+  .forEach((button) => {
+    button.addEventListener("click", () => {
+      const modalId =
+        button.getAttribute(
+          "data-close-modal"
+        );
 
-    closeModal(modal);
+      closeModal(
+        document.getElementById(modalId)
+      );
+    });
   });
-});
 
-document.querySelectorAll(".modal-backdrop").forEach((backdrop) => {
-  backdrop.addEventListener("click", () => {
-    const modal = backdrop.closest(".modal");
-    closeModal(modal);
+document
+  .querySelectorAll(".modal-backdrop")
+  .forEach((backdrop) => {
+    backdrop.addEventListener("click", () => {
+      closeModal(
+        backdrop.closest(".modal")
+      );
+    });
   });
-});
 
-document.addEventListener("keydown", (event) => {
-  if (event.key !== "Escape") {
-    return;
-  }
+document.addEventListener(
+  "keydown",
+  (event) => {
+    if (event.key !== "Escape") {
+      return;
+    }
 
-  if (accountModal && !accountModal.classList.contains("hidden")) {
-    closeModal(accountModal);
-  }
+    if (
+      accountModal &&
+      !accountModal.classList.contains(
+        "hidden"
+      )
+    ) {
+      closeModal(accountModal);
+    }
 
-  if (
-    suggestionModal &&
-    !suggestionModal.classList.contains("hidden")
-  ) {
-    closeModal(suggestionModal);
+    if (
+      suggestionModal &&
+      !suggestionModal.classList.contains(
+        "hidden"
+      )
+    ) {
+      closeModal(suggestionModal);
+    }
   }
-});
+);
 
 /* =========================================================
    SUPABASE
@@ -247,7 +294,7 @@ document.addEventListener("keydown", (event) => {
 function isSupabaseConfigured() {
   return Boolean(
     supabaseClient &&
-      supabaseClient.auth
+    supabaseClient.auth
   );
 }
 
@@ -257,15 +304,27 @@ async function getCurrentUser() {
   }
 
   try {
-    const result = await supabaseClient.auth.getUser();
+    const {
+      data,
+      error
+    } = await supabaseClient.auth.getUser();
 
-    if (!result || !result.data) {
+    if (error) {
+      console.error(
+        "Error obteniendo usuario:",
+        error
+      );
+
       return null;
     }
 
-    return result.data.user || null;
+    return data?.user || null;
   } catch (error) {
-    console.error("Error obteniendo usuario:", error);
+    console.error(
+      "Error obteniendo usuario:",
+      error
+    );
+
     return null;
   }
 }
@@ -274,7 +333,10 @@ async function getCurrentUser() {
    MENSAJES
    ========================================================= */
 
-function showAuthMessage(message, type = "") {
+function showAuthMessage(
+  message,
+  type = ""
+) {
   if (!authMessage) {
     return;
   }
@@ -287,7 +349,10 @@ function showAuthMessage(message, type = "") {
   }
 }
 
-function showSuggestionMessage(message, type = "") {
+function showSuggestionMessage(
+  message,
+  type = ""
+) {
   if (!suggestionMessage) {
     return;
   }
@@ -305,45 +370,21 @@ function showSuggestionMessage(message, type = "") {
    ========================================================= */
 
 function showLoginPanel() {
-  if (loginPanel) {
-    loginPanel.classList.remove("hidden");
-  }
-
-  if (registerPanel) {
-    registerPanel.classList.add("hidden");
-  }
-
-  if (loggedPanel) {
-    loggedPanel.classList.add("hidden");
-  }
+  loginPanel?.classList.remove("hidden");
+  registerPanel?.classList.add("hidden");
+  loggedPanel?.classList.add("hidden");
 }
 
 function showRegisterPanel() {
-  if (loginPanel) {
-    loginPanel.classList.add("hidden");
-  }
-
-  if (registerPanel) {
-    registerPanel.classList.remove("hidden");
-  }
-
-  if (loggedPanel) {
-    loggedPanel.classList.add("hidden");
-  }
+  loginPanel?.classList.add("hidden");
+  registerPanel?.classList.remove("hidden");
+  loggedPanel?.classList.add("hidden");
 }
 
 function showLoggedPanel() {
-  if (loginPanel) {
-    loginPanel.classList.add("hidden");
-  }
-
-  if (registerPanel) {
-    registerPanel.classList.add("hidden");
-  }
-
-  if (loggedPanel) {
-    loggedPanel.classList.remove("hidden");
-  }
+  loginPanel?.classList.add("hidden");
+  registerPanel?.classList.add("hidden");
+  loggedPanel?.classList.remove("hidden");
 }
 
 async function updateAccountUI() {
@@ -353,7 +394,8 @@ async function updateAccountUI() {
     showLoginPanel();
 
     if (accountButton) {
-      accountButton.textContent = "👤 Cuenta";
+      accountButton.textContent =
+        "👤 Cuenta";
     }
 
     return;
@@ -361,7 +403,8 @@ async function updateAccountUI() {
 
   showLoggedPanel();
 
-  const metadata = currentUser.user_metadata || {};
+  const metadata =
+    currentUser.user_metadata || {};
 
   const name =
     metadata.name ||
@@ -375,11 +418,13 @@ async function updateAccountUI() {
 
   if (accountEmail) {
     accountEmail.textContent =
-      currentUser.email || "Sin correo";
+      currentUser.email ||
+      "Sin correo";
   }
 
   if (accountButton) {
-    accountButton.textContent = `👤 ${name}`;
+    accountButton.textContent =
+      `👤 ${name}`;
   }
 }
 
@@ -388,31 +433,40 @@ async function updateAccountUI() {
    ========================================================= */
 
 if (accountButton) {
-  accountButton.addEventListener("click", async () => {
-    showAuthMessage("");
+  accountButton.addEventListener(
+    "click",
+    async () => {
+      showAuthMessage("");
 
-    await updateAccountUI();
+      await updateAccountUI();
 
-    openModal(accountModal);
-  });
+      openModal(accountModal);
+    }
+  );
 }
 
 /* =========================================================
-   CAMBIAR LOGIN / REGISTRO
+   LOGIN / REGISTRO
    ========================================================= */
 
 if (showRegisterButton) {
-  showRegisterButton.addEventListener("click", () => {
-    showAuthMessage("");
-    showRegisterPanel();
-  });
+  showRegisterButton.addEventListener(
+    "click",
+    () => {
+      showAuthMessage("");
+      showRegisterPanel();
+    }
+  );
 }
 
 if (showLoginButton) {
-  showLoginButton.addEventListener("click", () => {
-    showAuthMessage("");
-    showLoginPanel();
-  });
+  showLoginButton.addEventListener(
+    "click",
+    () => {
+      showAuthMessage("");
+      showLoginPanel();
+    }
+  );
 }
 
 /* =========================================================
@@ -420,69 +474,88 @@ if (showLoginButton) {
    ========================================================= */
 
 if (loginForm) {
-  loginForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
+  loginForm.addEventListener(
+    "submit",
+    async (event) => {
+      event.preventDefault();
 
-    if (!isSupabaseConfigured()) {
-      showAuthMessage(
-        "La cuenta todavía no está configurada. Primero hay que conectar Supabase.",
-        "error"
-      );
-      return;
-    }
-
-    const emailInput = document.getElementById("login-email");
-    const passwordInput = document.getElementById("login-password");
-
-    const email = emailInput?.value.trim() || "";
-    const password = passwordInput?.value || "";
-
-    if (!email || !password) {
-      showAuthMessage(
-        "Introduce tu correo y contraseña.",
-        "error"
-      );
-      return;
-    }
-
-    showAuthMessage("Iniciando sesión...");
-
-    try {
-      const { data, error } =
-        await supabaseClient.auth.signInWithPassword({
-          email,
-          password
-        });
-
-      if (error) {
+      if (!isSupabaseConfigured()) {
         showAuthMessage(
-          error.message || "No se pudo iniciar sesión.",
+          "La cuenta todavía no está configurada.",
           "error"
         );
+
         return;
       }
 
-      currentUser = data?.user || null;
+      const email =
+        document
+          .getElementById("login-email")
+          ?.value.trim() || "";
+
+      const password =
+        document
+          .getElementById("login-password")
+          ?.value || "";
+
+      if (!email || !password) {
+        showAuthMessage(
+          "Introduce tu correo y contraseña.",
+          "error"
+        );
+
+        return;
+      }
 
       showAuthMessage(
-        "Has iniciado sesión correctamente.",
-        "success"
+        "Iniciando sesión..."
       );
 
-      await updateAccountUI();
+      try {
+        const {
+          data,
+          error
+        } =
+          await supabaseClient.auth.signInWithPassword(
+            {
+              email,
+              password
+            }
+          );
 
-      setTimeout(() => {
-        closeModal(accountModal);
-      }, 700);
-    } catch (error) {
-      console.error(error);
+        if (error) {
+          showAuthMessage(
+            error.message ||
+              "No se pudo iniciar sesión.",
+            "error"
+          );
 
-      showAuthMessage(
-        "Ha ocurrido un error al iniciar sesión.",
-        "error"
-      );
+          return;
+        }
+
+        currentUser =
+          data?.user || null;
+
+        showAuthMessage(
+          "Has iniciado sesión correctamente.",
+          "success"
+        );
+
+        await updateAccountUI();
+
+        setTimeout(() => {
+          closeModal(accountModal);
+        }, 700);
+      } catch (error) {
+        console.error(error);
+
+        showAuthMessage(
+          "Ha ocurrido un error al iniciar sesión.",
+          "error"
+        );
+      }
     }
-  });
+  );
 }
 
 /* =========================================================
@@ -490,81 +563,96 @@ if (loginForm) {
    ========================================================= */
 
 if (registerForm) {
-  registerForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
+  registerForm.addEventListener(
+    "submit",
+    async (event) => {
+      event.preventDefault();
 
-    if (!isSupabaseConfigured()) {
-      showAuthMessage(
-        "La cuenta todavía no está configurada. Primero hay que conectar Supabase.",
-        "error"
-      );
-      return;
-    }
-
-    const nameInput =
-      document.getElementById("register-name");
-
-    const emailInput =
-      document.getElementById("register-email");
-
-    const passwordInput =
-      document.getElementById("register-password");
-
-    const name = nameInput?.value.trim() || "";
-    const email = emailInput?.value.trim() || "";
-    const password = passwordInput?.value || "";
-
-    if (!name || !email || !password) {
-      showAuthMessage(
-        "Completa todos los campos.",
-        "error"
-      );
-      return;
-    }
-
-    showAuthMessage("Creando cuenta...");
-
-    try {
-      const { data, error } =
-        await supabaseClient.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              name
-            }
-          }
-        });
-
-      if (error) {
+      if (!isSupabaseConfigured()) {
         showAuthMessage(
-          error.message || "No se pudo crear la cuenta.",
+          "La cuenta todavía no está configurada.",
           "error"
         );
+
         return;
       }
 
-      currentUser = data?.user || null;
+      const name =
+        document
+          .getElementById("register-name")
+          ?.value.trim() || "";
 
-      showAuthMessage(
-        "Cuenta creada correctamente.",
-        "success"
-      );
+      const email =
+        document
+          .getElementById("register-email")
+          ?.value.trim() || "";
 
-      if (registerForm) {
-        registerForm.reset();
+      const password =
+        document
+          .getElementById("register-password")
+          ?.value || "";
+
+      if (!name || !email || !password) {
+        showAuthMessage(
+          "Completa todos los campos.",
+          "error"
+        );
+
+        return;
       }
 
-      await updateAccountUI();
-    } catch (error) {
-      console.error(error);
-
       showAuthMessage(
-        "Ha ocurrido un error al crear la cuenta.",
-        "error"
+        "Creando cuenta..."
       );
+
+      try {
+        const {
+          data,
+          error
+        } =
+          await supabaseClient.auth.signUp(
+            {
+              email,
+              password,
+              options: {
+                data: {
+                  name
+                }
+              }
+            }
+          );
+
+        if (error) {
+          showAuthMessage(
+            error.message ||
+              "No se pudo crear la cuenta.",
+            "error"
+          );
+
+          return;
+        }
+
+        currentUser =
+          data?.user || null;
+
+        showAuthMessage(
+          "Cuenta creada correctamente.",
+          "success"
+        );
+
+        registerForm.reset();
+
+        await updateAccountUI();
+      } catch (error) {
+        console.error(error);
+
+        showAuthMessage(
+          "Ha ocurrido un error al crear la cuenta.",
+          "error"
+        );
+      }
     }
-  });
+  );
 }
 
 /* =========================================================
@@ -572,46 +660,54 @@ if (registerForm) {
    ========================================================= */
 
 if (logoutButton) {
-  logoutButton.addEventListener("click", async () => {
-    if (!isSupabaseConfigured()) {
-      currentUser = null;
-      showLoginPanel();
-      return;
-    }
-
-    try {
-      const { error } =
-        await supabaseClient.auth.signOut();
-
-      if (error) {
-        showAuthMessage(
-          error.message || "No se pudo cerrar sesión.",
-          "error"
-        );
+  logoutButton.addEventListener(
+    "click",
+    async () => {
+      if (!isSupabaseConfigured()) {
+        currentUser = null;
+        showLoginPanel();
         return;
       }
 
-      currentUser = null;
+      try {
+        const {
+          error
+        } =
+          await supabaseClient.auth.signOut();
 
-      showLoginPanel();
+        if (error) {
+          showAuthMessage(
+            error.message ||
+              "No se pudo cerrar sesión.",
+            "error"
+          );
 
-      showAuthMessage(
-        "Sesión cerrada correctamente.",
-        "success"
-      );
+          return;
+        }
 
-      if (accountButton) {
-        accountButton.textContent = "👤 Cuenta";
+        currentUser = null;
+
+        showLoginPanel();
+
+        showAuthMessage(
+          "Sesión cerrada correctamente.",
+          "success"
+        );
+
+        if (accountButton) {
+          accountButton.textContent =
+            "👤 Cuenta";
+        }
+      } catch (error) {
+        console.error(error);
+
+        showAuthMessage(
+          "Ha ocurrido un error al cerrar sesión.",
+          "error"
+        );
       }
-    } catch (error) {
-      console.error(error);
-
-      showAuthMessage(
-        "Ha ocurrido un error al cerrar sesión.",
-        "error"
-      );
     }
-  });
+  );
 }
 
 /* =========================================================
@@ -620,10 +716,11 @@ if (logoutButton) {
 
 if (isSupabaseConfigured()) {
   supabaseClient.auth.onAuthStateChange(
-    async (event, session) => {
-      currentUser = session?.user || null;
+    (event, session) => {
+      currentUser =
+        session?.user || null;
 
-      await updateAccountUI();
+      updateAccountUI();
     }
   );
 }
@@ -659,11 +756,14 @@ if (footerSuggestionButton) {
 }
 
 /* =========================================================
-   CONTADOR DE CARACTERES
+   CONTADOR
    ========================================================= */
 
 function updateCharacterCounter() {
-  if (!suggestionText || !characterCount) {
+  if (
+    !suggestionText ||
+    !characterCount
+  ) {
     return;
   }
 
@@ -706,12 +806,16 @@ async function loadSuggestions() {
   `;
 
   try {
-    const { data, error } = await supabaseClient
-      .from("suggestions")
-      .select("*")
-      .order("created_at", {
-        ascending: false
-      });
+    const {
+      data,
+      error
+    } =
+      await supabaseClient
+        .from("suggestions")
+        .select("*")
+        .order("created_at", {
+          ascending: false
+        });
 
     if (error) {
       console.error(
@@ -747,14 +851,18 @@ async function loadSuggestions() {
 let allSuggestions = [];
 let currentSuggestionTab = "all";
 
-function renderSuggestions(suggestions) {
+function renderSuggestions(
+  suggestions
+) {
   allSuggestions = suggestions;
 
   if (!suggestionsList) {
     return;
   }
 
-  let filtered = [...allSuggestions];
+  let filtered = [
+    ...allSuggestions
+  ];
 
   const search =
     suggestionSearch?.value
@@ -762,15 +870,20 @@ function renderSuggestions(suggestions) {
       .toLowerCase() || "";
 
   const category =
-    suggestionCategory?.value || "Todas";
+    suggestionCategory?.value ||
+    "Todas";
 
-  if (currentSuggestionTab === "mine") {
+  if (
+    currentSuggestionTab ===
+    "mine"
+  ) {
     if (!currentUser) {
       filtered = [];
     } else {
       filtered = filtered.filter(
         (suggestion) =>
-          suggestion.user_id === currentUser.id
+          suggestion.user_id ===
+          currentUser.id
       );
     }
   }
@@ -778,19 +891,24 @@ function renderSuggestions(suggestions) {
   if (category !== "Todas") {
     filtered = filtered.filter(
       (suggestion) =>
-        suggestion.category === category
+        suggestion.category ===
+        category
     );
   }
 
   if (search) {
-    filtered = filtered.filter((suggestion) => {
-      const text =
-        `${suggestion.name || ""} ${
-          suggestion.idea || ""
-        } ${suggestion.category || ""}`.toLowerCase();
+    filtered = filtered.filter(
+      (suggestion) => {
+        const text =
+          `${suggestion.name || ""} ${
+            suggestion.idea || ""
+          } ${
+            suggestion.category || ""
+          }`.toLowerCase();
 
-      return text.includes(search);
-    });
+        return text.includes(search);
+      }
+    );
   }
 
   if (filtered.length === 0) {
@@ -805,98 +923,168 @@ function renderSuggestions(suggestions) {
 
   suggestionsList.innerHTML = "";
 
-  filtered.forEach((suggestion) => {
-    const card = createSuggestionCard(suggestion);
+  filtered.forEach(
+    (suggestion) => {
+      const card =
+        createSuggestionCard(
+          suggestion
+        );
 
-    suggestionsList.appendChild(card);
-  });
+      suggestionsList.appendChild(
+        card
+      );
+    }
+  );
 }
 
 /* =========================================================
    CREAR TARJETA
    ========================================================= */
 
-function createSuggestionCard(suggestion) {
-  const article = document.createElement("article");
+function createSuggestionCard(
+  suggestion
+) {
+  const article =
+    document.createElement(
+      "article"
+    );
 
-  article.className = "suggestion-card";
+  article.className =
+    "suggestion-card";
 
-  const header = document.createElement("div");
+  const header =
+    document.createElement(
+      "div"
+    );
 
-  header.className = "suggestion-header";
+  header.className =
+    "suggestion-header";
 
-  const author = document.createElement("strong");
+  const author =
+    document.createElement(
+      "strong"
+    );
 
-  author.className = "suggestion-author";
+  author.className =
+    "suggestion-author";
 
   author.textContent =
-    suggestion.name || "Usuario";
+    suggestion.name ||
+    "Usuario";
 
-  const date = document.createElement("span");
+  const date =
+    document.createElement(
+      "span"
+    );
 
-  date.className = "suggestion-date";
+  date.className =
+    "suggestion-date";
 
   date.textContent =
-    formatDate(suggestion.created_at);
+    formatDate(
+      suggestion.created_at
+    );
 
   header.appendChild(author);
   header.appendChild(date);
 
-  const category = document.createElement("span");
+  const category =
+    document.createElement(
+      "span"
+    );
 
   category.className =
     "suggestion-category-badge";
 
   category.textContent =
-    suggestion.category || "Sin categoría";
+    suggestion.category ||
+    "Sin categoría";
 
-  const text = document.createElement("p");
+  const text =
+    document.createElement(
+      "p"
+    );
 
-  text.className = "suggestion-text";
+  text.className =
+    "suggestion-text";
 
   text.textContent =
     suggestion.idea || "";
 
-  const actions = document.createElement("div");
+  const actions =
+    document.createElement(
+      "div"
+    );
 
-  actions.className = "suggestion-actions";
+  actions.className =
+    "suggestion-actions";
 
-  const voteButton = document.createElement("button");
+  /* =====================================================
+     BOTÓN LIKE
+     ===================================================== */
+
+  const voteButton =
+    document.createElement(
+      "button"
+    );
 
   voteButton.type = "button";
-  voteButton.className = "vote-button";
+  voteButton.className =
+    "vote-button";
 
   voteButton.textContent =
-    `👍 ${suggestion.votes || 0}`;
+    `👍 ${Number(
+      suggestion.votes || 0
+    )}`;
 
-  voteButton.addEventListener("click", () => {
-    voteSuggestion(suggestion);
-  });
+  voteButton.addEventListener(
+    "click",
+    () => {
+      voteSuggestion(
+        suggestion,
+        voteButton
+      );
+    }
+  );
 
-  actions.appendChild(voteButton);
+  actions.appendChild(
+    voteButton
+  );
+
+  /* =====================================================
+     BOTÓN ELIMINAR
+     ===================================================== */
 
   if (
     currentUser &&
-    suggestion.user_id === currentUser.id
+    suggestion.user_id ===
+      currentUser.id
   ) {
     const deleteButton =
-      document.createElement("button");
+      document.createElement(
+        "button"
+      );
 
     deleteButton.type = "button";
 
     deleteButton.className =
       "delete-suggestion-button";
 
-    deleteButton.textContent = "Eliminar";
+    deleteButton.textContent =
+      "Eliminar";
 
     deleteButton.addEventListener(
       "click",
       () => {
-        deleteSuggestion(suggestion.id);
+        deleteSuggestion(
+          suggestion.id
+        );
       }
     );
 
-    actions.appendChild(deleteButton);
+    actions.appendChild(
+      deleteButton
+    );
   }
 
   article.appendChild(header);
@@ -911,14 +1099,21 @@ function createSuggestionCard(suggestion) {
    FECHA
    ========================================================= */
 
-function formatDate(dateString) {
+function formatDate(
+  dateString
+) {
   if (!dateString) {
     return "";
   }
 
-  const date = new Date(dateString);
+  const date =
+    new Date(dateString);
 
-  if (Number.isNaN(date.getTime())) {
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
     return "";
   }
 
@@ -942,7 +1137,9 @@ if (suggestionForm) {
     async (event) => {
       event.preventDefault();
 
-      if (!isSupabaseConfigured()) {
+      if (
+        !isSupabaseConfigured()
+      ) {
         showSuggestionMessage(
           "Las sugerencias todavía no están configuradas porque falta conectar Supabase.",
           "error"
@@ -964,7 +1161,8 @@ if (suggestionForm) {
       }
 
       const name =
-        suggestionName?.value.trim() || "";
+        suggestionName?.value.trim() ||
+        "";
 
       const categoryInput =
         document.getElementById(
@@ -972,10 +1170,12 @@ if (suggestionForm) {
         );
 
       const category =
-        categoryInput?.value || "Juego";
+        categoryInput?.value ||
+        "Juego";
 
       const idea =
-        suggestionText?.value.trim() || "";
+        suggestionText?.value.trim() ||
+        "";
 
       if (!name || !idea) {
         showSuggestionMessage(
@@ -991,7 +1191,9 @@ if (suggestionForm) {
       );
 
       try {
-        const { error } =
+        const {
+          error
+        } =
           await supabaseClient
             .from("suggestions")
             .insert({
@@ -1026,7 +1228,9 @@ if (suggestionForm) {
         await loadSuggestions();
 
         setTimeout(() => {
-          closeModal(suggestionModal);
+          closeModal(
+            suggestionModal
+          );
         }, 800);
       } catch (error) {
         console.error(error);
@@ -1041,46 +1245,96 @@ if (suggestionForm) {
 }
 
 /* =========================================================
-   VOTAR
+   VOTAR / LIKE
    ========================================================= */
 
-async function voteSuggestion(suggestion) {
+async function voteSuggestion(
+  suggestion,
+  voteButton
+) {
   if (!isSupabaseConfigured()) {
     return;
   }
 
-  // Comprobar que hay un usuario conectado
-  const user = await getCurrentUser();
+  const user =
+    await getCurrentUser();
 
   if (!user) {
-    alert("Necesitas iniciar sesión para votar.");
+    alert(
+      "Necesitas iniciar sesión para votar."
+    );
+
     return;
   }
 
+  /*
+   * Evita que el usuario pulse varias veces
+   * mientras se está procesando el voto.
+   */
+  if (voteButton) {
+    voteButton.disabled = true;
+  }
+
   try {
-    // Comprobar si este usuario ya ha votado esta sugerencia
-    const { data: existingLike, error: checkError } =
+    /*
+     * COMPROBAR SI YA EXISTE EL LIKE
+     *
+     * La tabla Likes utiliza:
+     * user_id
+     * project_id
+     *
+     * project_id contiene el ID de la sugerencia.
+     */
+
+    const {
+      data: existingLike,
+      error: checkError
+    } =
       await supabaseClient
         .from("Likes")
         .select("id")
-        .eq("user_id", user.id)
-        .eq("project_id", suggestion.id)
+        .eq(
+          "user_id",
+          user.id
+        )
+        .eq(
+          "project_id",
+          suggestion.id
+        )
         .maybeSingle();
 
     if (checkError) {
-      console.error("Error comprobando el voto:", checkError);
-      alert("No se ha podido comprobar tu voto.");
+      console.error(
+        "Error comprobando el voto:",
+        checkError
+      );
+
+      alert(
+        "No se ha podido comprobar tu voto."
+      );
+
       return;
     }
 
-    // Si ya existe un voto, no permitimos otro
+    /*
+     * SI YA EXISTE, NO HACEMOS NADA.
+     */
+
     if (existingLike) {
-      alert("Ya has votado esta sugerencia.");
+      alert(
+        "Ya has votado esta sugerencia."
+      );
+
       return;
     }
 
-    // Crear el voto
-    const { error: likeError } =
+    /*
+     * CREAR EL LIKE
+     */
+
+    const {
+      error: likeError
+    } =
       await supabaseClient
         .from("Likes")
         .insert({
@@ -1089,78 +1343,96 @@ async function voteSuggestion(suggestion) {
         });
 
     if (likeError) {
-      console.error("Error creando el voto:", likeError);
+      console.error(
+        "Error creando el voto:",
+        likeError
+      );
 
-      // Si la base de datos detecta que ya existe,
-      // tampoco permitimos otro voto.
-      if (likeError.code === "23505") {
-        alert("Ya has votado esta sugerencia.");
+      /*
+       * 23505 = violación de UNIQUE
+       *
+       * Esto sirve como segunda protección
+       * contra votos duplicados.
+       */
+
+      if (
+        likeError.code ===
+        "23505"
+      ) {
+        alert(
+          "Ya has votado esta sugerencia."
+        );
       } else {
-        alert("No se ha podido registrar tu voto.");
+        alert(
+          "No se ha podido registrar tu voto."
+        );
       }
 
       return;
     }
 
-    // Aumentar el contador de votos
-    const newVotes =
-      Number(suggestion.votes || 0) + 1;
+    /*
+     * AUMENTAR EL CONTADOR
+     */
 
-    const { error: updateError } =
+    const newVotes =
+      Number(
+        suggestion.votes || 0
+      ) + 1;
+
+    const {
+      error: updateError
+    } =
       await supabaseClient
         .from("suggestions")
         .update({
           votes: newVotes
         })
-        .eq("id", suggestion.id);
+        .eq(
+          "id",
+          suggestion.id
+        );
 
     if (updateError) {
       console.error(
         "Error actualizando los votos:",
         updateError
       );
+
+      /*
+       * El like ya existe aunque el contador
+       * haya fallado.
+       */
+
       return;
     }
 
-    // Recargar las sugerencias
+    /*
+     * RECARGAR LAS SUGERENCIAS
+     */
+
     await loadSuggestions();
 
   } catch (error) {
-    console.error("Error votando:", error);
+    console.error(
+      "Error votando:",
+      error
+    );
+
+  } finally {
+    if (voteButton) {
+      voteButton.disabled = false;
+    }
   }
 }
-  if (!isSupabaseConfigured()) {
-    return;
-  }
-
-  const newVotes =
-    Number(suggestion.votes || 0) + 1;
-
-  try {
-    const { error } =
-      await supabaseClient
-        .from("suggestions")
-        .update({
-          votes: newVotes
-        })
-        .eq("id", suggestion.id);
-
-    if (error) {
-      console.error(error);
-      return;
-    }
-
-    await loadSuggestions();
-  } catch (error) {
-    console.error(error);
-  }
-
 
 /* =========================================================
    ELIMINAR SUGERENCIA
    ========================================================= */
 
-async function deleteSuggestion(id) {
+async function deleteSuggestion(
+  id
+) {
   if (!isSupabaseConfigured()) {
     return;
   }
@@ -1179,12 +1451,20 @@ async function deleteSuggestion(id) {
   }
 
   try {
-    const { error } =
+    const {
+      error
+    } =
       await supabaseClient
         .from("suggestions")
         .delete()
-        .eq("id", id)
-        .eq("user_id", currentUser.id);
+        .eq(
+          "id",
+          id
+        )
+        .eq(
+          "user_id",
+          currentUser.id
+        );
 
     if (error) {
       console.error(error);
@@ -1192,6 +1472,7 @@ async function deleteSuggestion(id) {
     }
 
     await loadSuggestions();
+
   } catch (error) {
     console.error(error);
   }
@@ -1201,20 +1482,34 @@ async function deleteSuggestion(id) {
    PESTAÑAS
    ========================================================= */
 
-suggestionTabs.forEach((tab) => {
-  tab.addEventListener("click", () => {
-    suggestionTabs.forEach((item) => {
-      item.classList.remove("active");
-    });
+suggestionTabs.forEach(
+  (tab) => {
+    tab.addEventListener(
+      "click",
+      () => {
+        suggestionTabs.forEach(
+          (item) => {
+            item.classList.remove(
+              "active"
+            );
+          }
+        );
 
-    tab.classList.add("active");
+        tab.classList.add(
+          "active"
+        );
 
-    currentSuggestionTab =
-      tab.dataset.tab || "all";
+        currentSuggestionTab =
+          tab.dataset.tab ||
+          "all";
 
-    renderSuggestions(allSuggestions);
-  });
-});
+        renderSuggestions(
+          allSuggestions
+        );
+      }
+    );
+  }
+);
 
 /* =========================================================
    BUSCADOR
@@ -1224,7 +1519,9 @@ if (suggestionSearch) {
   suggestionSearch.addEventListener(
     "input",
     () => {
-      renderSuggestions(allSuggestions);
+      renderSuggestions(
+        allSuggestions
+      );
     }
   );
 }
@@ -1237,7 +1534,9 @@ if (suggestionCategory) {
   suggestionCategory.addEventListener(
     "change",
     () => {
-      renderSuggestions(allSuggestions);
+      renderSuggestions(
+        allSuggestions
+      );
     }
   );
 }
@@ -1252,52 +1551,86 @@ function initializeProjects() {
       ".dev-card"
     );
 
-  projectCards.forEach((card) => {
-    card.style.cursor = "pointer";
+  projectCards.forEach(
+    (card) => {
+      card.style.cursor =
+        "pointer";
 
-    card.addEventListener("click", () => {
-      const title =
-        card.querySelector("h3")
-          ?.textContent ||
-        "Proyecto";
+      card.addEventListener(
+        "click",
+        () => {
+          const title =
+            card.querySelector(
+              "h3"
+            )?.textContent ||
+            "Proyecto";
 
-      const description =
-        card.querySelector(
-          "p:not(.dev-card-category)"
-        )?.textContent ||
-        "Sin descripción.";
+          const description =
+            card.querySelector(
+              "p:not(.dev-card-category)"
+            )?.textContent ||
+            "Sin descripción.";
 
-      const existingDetails =
-        card.querySelector(
-          ".project-details"
-        );
+          const existingDetails =
+            card.querySelector(
+              ".project-details"
+            );
 
-      if (existingDetails) {
-        existingDetails.remove();
-        return;
-      }
+          if (existingDetails) {
+            existingDetails.remove();
+            return;
+          }
 
-      const details =
-        document.createElement("div");
+          const details =
+            document.createElement(
+              "div"
+            );
 
-      details.className =
-        "project-details";
+          details.className =
+            "project-details";
 
-      details.innerHTML = `
-        <p><strong>Proyecto:</strong> ${escapeHtml(title)}</p>
-        <p><strong>Descripción:</strong> ${escapeHtml(description)}</p>
-        <p><strong>Lanzamiento previsto:</strong> Por determinar</p>
-        <p><strong>Personas trabajando:</strong> Por determinar</p>
-      `;
+          details.innerHTML = `
+            <p>
+              <strong>Proyecto:</strong>
+              ${escapeHtml(title)}
+            </p>
 
-      card.appendChild(details);
-    });
-  });
+            <p>
+              <strong>Descripción:</strong>
+              ${escapeHtml(description)}
+            </p>
+
+            <p>
+              <strong>Lanzamiento previsto:</strong>
+              Por determinar
+            </p>
+
+            <p>
+              <strong>Personas trabajando:</strong>
+              Por determinar
+            </p>
+          `;
+
+          card.appendChild(
+            details
+          );
+        }
+      );
+    }
+  );
 }
 
-function escapeHtml(value) {
+/* =========================================================
+   ESCAPAR HTML
+   ========================================================= */
+
+function escapeHtml(
+  value
+) {
   const div =
-    document.createElement("div");
+    document.createElement(
+      "div"
+    );
 
   div.textContent = value;
 
@@ -1309,6 +1642,7 @@ function escapeHtml(value) {
    ========================================================= */
 
 initializeProjects();
+
 loadSuggestions();
 
 updateAccountUI();
