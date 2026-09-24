@@ -614,10 +614,18 @@ if (registerForm) {
             {
               email,
               password,
+
               options: {
                 data: {
                   name
-                }
+                },
+
+                /* =================================================
+                   REDIRECCIÓN DESPUÉS DE CONFIRMAR EL EMAIL
+                   ================================================= */
+
+                emailRedirectTo:
+                  "https://tronkstudios.github.io/TronkWeb/"
               }
             }
           );
@@ -632,17 +640,30 @@ if (registerForm) {
           return;
         }
 
-        currentUser =
-          data?.user || null;
+        /*
+         * NO iniciamos sesión aquí.
+         *
+         * El usuario tiene que confirmar primero
+         * el correo electrónico.
+         */
 
-        showAuthMessage(
-          "Cuenta creada correctamente.",
-          "success"
-        );
+        currentUser = null;
+
+        /*
+         * Limpiar formulario.
+         */
 
         registerForm.reset();
 
-        await updateAccountUI();
+        /*
+         * Mostrar mensaje.
+         */
+
+        showAuthMessage(
+          "Se ha enviado un email de confirmación. Revisa tu correo para activar tu cuenta.",
+          "success"
+        );
+
       } catch (error) {
         console.error(error);
 
@@ -1267,25 +1288,11 @@ async function voteSuggestion(
     return;
   }
 
-  /*
-   * Evita que el usuario pulse varias veces
-   * mientras se está procesando el voto.
-   */
   if (voteButton) {
     voteButton.disabled = true;
   }
 
   try {
-    /*
-     * COMPROBAR SI YA EXISTE EL LIKE
-     *
-     * La tabla Likes utiliza:
-     * user_id
-     * project_id
-     *
-     * project_id contiene el ID de la sugerencia.
-     */
-
     const {
       data: existingLike,
       error: checkError
@@ -1316,10 +1323,6 @@ async function voteSuggestion(
       return;
     }
 
-    /*
-     * SI YA EXISTE, NO HACEMOS NADA.
-     */
-
     if (existingLike) {
       alert(
         "Ya has votado esta sugerencia."
@@ -1327,10 +1330,6 @@ async function voteSuggestion(
 
       return;
     }
-
-    /*
-     * CREAR EL LIKE
-     */
 
     const {
       error: likeError
@@ -1348,13 +1347,6 @@ async function voteSuggestion(
         likeError
       );
 
-      /*
-       * 23505 = violación de UNIQUE
-       *
-       * Esto sirve como segunda protección
-       * contra votos duplicados.
-       */
-
       if (
         likeError.code ===
         "23505"
@@ -1370,10 +1362,6 @@ async function voteSuggestion(
 
       return;
     }
-
-    /*
-     * AUMENTAR EL CONTADOR
-     */
 
     const newVotes =
       Number(
@@ -1399,17 +1387,8 @@ async function voteSuggestion(
         updateError
       );
 
-      /*
-       * El like ya existe aunque el contador
-       * haya fallado.
-       */
-
       return;
     }
-
-    /*
-     * RECARGAR LAS SUGERENCIAS
-     */
 
     await loadSuggestions();
 
