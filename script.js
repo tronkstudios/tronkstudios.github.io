@@ -6,8 +6,8 @@ console.log("SCRIPT NUEVO CARGADO");
    CONFIGURACIÓN SUPABASE
    ========================================================= */
 
-const SUPABASE_URL = "";
-const SUPABASE_ANON_KEY = "";
+const SUPABASE_URL = "https://qjjnqhbtovjcbwgcwhgl.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_YPAglgrxaxvaqU8KSS-HkQ_scyeLigm";
 
 let supabaseClient = null;
 let currentUser = null;
