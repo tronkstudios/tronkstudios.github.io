@@ -1,9 +1,9 @@
 "use strict";
 
-console.log("SCRIPT NUEVO CARGADO");
+console.log("TronkStudios: script cargado");
 
 /* =========================================================
-   CONFIGURACIÓN SUPABASE
+   SUPABASE
    ========================================================= */
 
 const SUPABASE_URL =
@@ -16,16 +16,15 @@ let supabaseClient = null;
 let currentUser = null;
 
 if (
+  typeof window.supabase !== "undefined" &&
   SUPABASE_URL &&
-  SUPABASE_ANON_KEY &&
-  typeof window.supabase !== "undefined"
+  SUPABASE_ANON_KEY
 ) {
   supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_ANON_KEY
   );
 }
-
 
 /* =========================================================
    ELEMENTOS
@@ -112,7 +111,6 @@ const suggestionCategory =
 const suggestionTabs =
   document.querySelectorAll(".suggestion-tab");
 
-
 /* =========================================================
    AÑO
    ========================================================= */
@@ -121,7 +119,6 @@ if (yearElement) {
   yearElement.textContent =
     new Date().getFullYear();
 }
-
 
 /* =========================================================
    TEMA
@@ -144,7 +141,7 @@ function saveTheme(theme) {
       theme
     );
   } catch {
-    // localStorage no disponible.
+    // Nada
   }
 }
 
@@ -154,14 +151,10 @@ function updateThemeButton(theme) {
   }
 
   const icon =
-    themeToggle.querySelector(
-      ".theme-icon"
-    );
+    themeToggle.querySelector(".theme-icon");
 
   const label =
-    themeToggle.querySelector(
-      ".theme-label"
-    );
+    themeToggle.querySelector(".theme-label");
 
   if (theme === "dark") {
     if (icon) {
@@ -203,17 +196,12 @@ function updateThemeButton(theme) {
 }
 
 function applyTheme(theme) {
-  if (theme === "dark") {
-    document.documentElement.setAttribute(
-      "data-theme",
-      "dark"
-    );
-  } else {
-    document.documentElement.setAttribute(
-      "data-theme",
-      "light"
-    );
-  }
+  document.documentElement.setAttribute(
+    "data-theme",
+    theme === "dark"
+      ? "dark"
+      : "light"
+  );
 
   updateThemeButton(theme);
 }
@@ -237,7 +225,9 @@ function initializeTheme() {
     ).matches;
 
   applyTheme(
-    prefersDark ? "dark" : "light"
+    prefersDark
+      ? "dark"
+      : "light"
   );
 }
 
@@ -246,9 +236,9 @@ if (themeToggle) {
     "click",
     () => {
       const currentTheme =
-        document.documentElement
-          .getAttribute("data-theme") ||
-        "light";
+        document.documentElement.getAttribute(
+          "data-theme"
+        ) || "light";
 
       const newTheme =
         currentTheme === "dark"
@@ -263,10 +253,16 @@ if (themeToggle) {
 
 initializeTheme();
 
-
 /* =========================================================
-   MODALES GENERALES
+   SISTEMA DE MODALES
    ========================================================= */
+
+/*
+ * IMPORTANTE:
+ * Los modales se controlan directamente con display.
+ * Esto evita que el menú se quede abierto por problemas
+ * con las clases CSS.
+ */
 
 function openModal(modal) {
   if (!modal) {
@@ -274,6 +270,10 @@ function openModal(modal) {
   }
 
   modal.classList.remove("hidden");
+
+  modal.removeAttribute("hidden");
+
+  modal.style.display = "flex";
 
   modal.setAttribute(
     "aria-hidden",
@@ -297,152 +297,102 @@ function closeModal(modal) {
     "true"
   );
 
-  const gameModal =
-    document.getElementById(
-      "game-details-modal"
+  modal.style.display = "none";
+
+  /*
+   * Solo quitamos modal-open si no queda
+   * ningún modal abierto.
+   */
+
+  const openModals =
+    document.querySelectorAll(
+      ".modal:not(.hidden)"
     );
 
-  const emailPopup =
-    document.getElementById(
-      "email-confirmation-popup"
-    );
-
-  const accountClosed =
-    !accountModal ||
-    accountModal.classList.contains(
-      "hidden"
-    );
-
-  const suggestionClosed =
-    !suggestionModal ||
-    suggestionModal.classList.contains(
-      "hidden"
-    );
-
-  const gameClosed =
-    !gameModal ||
-    gameModal.classList.contains(
-      "hidden"
-    );
-
-  const emailClosed =
-    !emailPopup;
-
-  if (
-    accountClosed &&
-    suggestionClosed &&
-    gameClosed &&
-    emailClosed
-  ) {
+  if (openModals.length === 0) {
     document.body.classList.remove(
       "modal-open"
     );
   }
 }
 
-
 /* =========================================================
-   CERRAR MODALES CON BOTONES
+   CERRAR MODALES
    ========================================================= */
 
-document
-  .querySelectorAll("[data-close-modal]")
-  .forEach((button) => {
-    button.addEventListener(
-      "click",
-      () => {
-        const modalId =
-          button.getAttribute(
-            "data-close-modal"
-          );
-
-        const modal =
-          document.getElementById(
-            modalId
-          );
-
-        closeModal(modal);
-      }
-    );
-  });
-
-
-/* =========================================================
-   CERRAR MODALES HACIENDO CLICK FUERA
-   ========================================================= */
-
-document
-  .querySelectorAll(".modal-backdrop")
-  .forEach((backdrop) => {
-    backdrop.addEventListener(
-      "click",
-      () => {
-        const modal =
-          backdrop.closest(".modal");
-
-        closeModal(modal);
-      }
-    );
-  });
-
-
-/* =========================================================
-   ESC
-   ========================================================= */
+/*
+ * Usamos delegación de eventos.
+ * Así funciona incluso aunque algún elemento
+ * haya sido creado posteriormente.
+ */
 
 document.addEventListener(
-  "keydown",
+  "click",
   (event) => {
-    if (event.key !== "Escape") {
+
+    const closeButton =
+      event.target.closest(
+        "[data-close-modal]"
+      );
+
+    if (closeButton) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const modalId =
+        closeButton.getAttribute(
+          "data-close-modal"
+        );
+
+      const modal =
+        document.getElementById(
+          modalId
+        );
+
+      closeModal(modal);
+
       return;
     }
 
-    if (
-      accountModal &&
-      !accountModal.classList.contains(
-        "hidden"
-      )
-    ) {
-      closeModal(accountModal);
-    }
+    /*
+     * Cerrar al pulsar el fondo.
+     */
 
-    if (
-      suggestionModal &&
-      !suggestionModal.classList.contains(
-        "hidden"
-      )
-    ) {
-      closeModal(suggestionModal);
-    }
-
-    const gameModal =
-      document.getElementById(
-        "game-details-modal"
+    const backdrop =
+      event.target.closest(
+        ".modal-backdrop"
       );
 
-    if (
-      gameModal &&
-      !gameModal.classList.contains(
-        "hidden"
-      )
-    ) {
-      closeGameDetails();
-    }
+    if (backdrop) {
+      const modal =
+        backdrop.closest(".modal");
 
-    const emailPopup =
-      document.getElementById(
-        "email-confirmation-popup"
-      );
-
-    if (emailPopup) {
-      emailPopup.remove();
-      document.body.classList.remove(
-        "modal-open"
-      );
+      closeModal(modal);
     }
   }
 );
 
+/*
+ * Escape cierra cualquier modal abierto.
+ */
+
+document.addEventListener(
+  "keydown",
+  (event) => {
+
+    if (event.key !== "Escape") {
+      return;
+    }
+
+    document
+      .querySelectorAll(
+        ".modal:not(.hidden)"
+      )
+      .forEach((modal) => {
+        closeModal(modal);
+      });
+  }
+);
 
 /* =========================================================
    SUPABASE
@@ -461,20 +411,25 @@ async function getCurrentUser() {
   }
 
   try {
-    const result =
+    const {
+      data,
+      error
+    } =
       await supabaseClient.auth.getUser();
 
-    if (
-      !result ||
-      !result.data
-    ) {
+    if (error) {
+      console.error(
+        "Error obteniendo usuario:",
+        error
+      );
+
       return null;
     }
 
-    return (
-      result.data.user || null
-    );
+    return data?.user || null;
+
   } catch (error) {
+
     console.error(
       "Error obteniendo usuario:",
       error
@@ -483,7 +438,6 @@ async function getCurrentUser() {
     return null;
   }
 }
-
 
 /* =========================================================
    MENSAJES
@@ -531,95 +485,61 @@ function showSuggestionMessage(
   }
 }
 
-
 /* =========================================================
-   INTERFAZ DE CUENTA
+   PANELES DE CUENTA
    ========================================================= */
 
 function showLoginPanel() {
-  if (loginPanel) {
-    loginPanel.classList.remove(
-      "hidden"
-    );
-  }
+  loginPanel?.classList.remove(
+    "hidden"
+  );
 
-  if (registerPanel) {
-    registerPanel.classList.add(
-      "hidden"
-    );
-  }
+  registerPanel?.classList.add(
+    "hidden"
+  );
 
-  if (loggedPanel) {
-    loggedPanel.classList.add(
-      "hidden"
-    );
-  }
+  loggedPanel?.classList.add(
+    "hidden"
+  );
 }
 
 function showRegisterPanel() {
-  if (loginPanel) {
-    loginPanel.classList.add(
-      "hidden"
-    );
-  }
+  loginPanel?.classList.add(
+    "hidden"
+  );
 
-  if (registerPanel) {
-    registerPanel.classList.remove(
-      "hidden"
-    );
-  }
+  registerPanel?.classList.remove(
+    "hidden"
+  );
 
-  if (loggedPanel) {
-    loggedPanel.classList.add(
-      "hidden"
-    );
-  }
+  loggedPanel?.classList.add(
+    "hidden"
+  );
 }
 
 function showLoggedPanel() {
-  if (loginPanel) {
-    loginPanel.classList.add(
-      "hidden"
-    );
-  }
+  loginPanel?.classList.add(
+    "hidden"
+  );
 
-  if (registerPanel) {
-    registerPanel.classList.add(
-      "hidden"
-    );
-  }
+  registerPanel?.classList.add(
+    "hidden"
+  );
 
-  if (loggedPanel) {
-    loggedPanel.classList.remove(
-      "hidden"
-    );
-  }
+  loggedPanel?.classList.remove(
+    "hidden"
+  );
 }
+
+/* =========================================================
+   ACTUALIZAR CUENTA
+   ========================================================= */
 
 async function updateAccountUI() {
   currentUser =
     await getCurrentUser();
 
   if (!currentUser) {
-    showLoginPanel();
-
-    if (accountButton) {
-      accountButton.textContent =
-        "👤 Cuenta";
-    }
-
-    return;
-  }
-
-  /*
-   * Solo permitimos usar la cuenta
-   * si el email está confirmado.
-   */
-
-  if (
-    !currentUser.email_confirmed_at
-  ) {
-    currentUser = null;
 
     showLoginPanel();
 
@@ -640,9 +560,8 @@ async function updateAccountUI() {
   const name =
     metadata.name ||
     metadata.full_name ||
-    currentUser.email?.split(
-      "@"
-    )[0] ||
+    currentUser.email
+      ?.split("@")[0] ||
     "Usuario";
 
   if (accountName) {
@@ -662,61 +581,74 @@ async function updateAccountUI() {
   }
 }
 
-
 /* =========================================================
    BOTÓN CUENTA
    ========================================================= */
 
 if (accountButton) {
+
   accountButton.addEventListener(
     "click",
-    async () => {
+    async (event) => {
+
+      event.preventDefault();
+      event.stopPropagation();
+
       showAuthMessage("");
 
       await updateAccountUI();
 
-      openModal(accountModal);
+      openModal(
+        accountModal
+      );
     }
   );
 }
 
-
 /* =========================================================
-   CAMBIAR LOGIN / REGISTRO
+   LOGIN / REGISTRO
    ========================================================= */
 
 if (showRegisterButton) {
+
   showRegisterButton.addEventListener(
     "click",
     () => {
+
       showAuthMessage("");
+
       showRegisterPanel();
     }
   );
 }
 
 if (showLoginButton) {
+
   showLoginButton.addEventListener(
     "click",
     () => {
+
       showAuthMessage("");
+
       showLoginPanel();
     }
   );
 }
 
-
 /* =========================================================
-   INICIAR SESIÓN
+   LOGIN
    ========================================================= */
 
 if (loginForm) {
+
   loginForm.addEventListener(
     "submit",
     async (event) => {
+
       event.preventDefault();
 
       if (!isSupabaseConfigured()) {
+
         showAuthMessage(
           "La cuenta todavía no está configurada.",
           "error"
@@ -725,28 +657,23 @@ if (loginForm) {
         return;
       }
 
-      const emailInput =
-        document.getElementById(
-          "login-email"
-        );
-
-      const passwordInput =
-        document.getElementById(
-          "login-password"
-        );
-
       const email =
-        emailInput?.value.trim() ||
-        "";
+        document
+          .getElementById(
+            "login-email"
+          )
+          ?.value
+          .trim() || "";
 
       const password =
-        passwordInput?.value ||
-        "";
+        document
+          .getElementById(
+            "login-password"
+          )
+          ?.value || "";
 
-      if (
-        !email ||
-        !password
-      ) {
+      if (!email || !password) {
+
         showAuthMessage(
           "Introduce tu correo y contraseña.",
           "error"
@@ -760,6 +687,7 @@ if (loginForm) {
       );
 
       try {
+
         const {
           data,
           error
@@ -771,6 +699,7 @@ if (loginForm) {
             });
 
         if (error) {
+
           showAuthMessage(
             error.message ||
               "No se pudo iniciar sesión.",
@@ -780,46 +709,27 @@ if (loginForm) {
           return;
         }
 
-        if (
-          !data?.user
-        ) {
-          showAuthMessage(
-            "No se pudo obtener la cuenta.",
-            "error"
-          );
-
-          return;
-        }
-
-        if (
-          !data.user.email_confirmed_at
-        ) {
-          await supabaseClient.auth.signOut();
-
-          showAuthMessage(
-            "Debes confirmar tu correo electrónico antes de iniciar sesión.",
-            "error"
-          );
-
-          return;
-        }
-
         currentUser =
-          data.user;
+          data?.user || null;
+
+        await updateAccountUI();
 
         showAuthMessage(
           "Has iniciado sesión correctamente.",
           "success"
         );
 
-        await updateAccountUI();
+        setTimeout(
+          () => {
+            closeModal(
+              accountModal
+            );
+          },
+          700
+        );
 
-        setTimeout(() => {
-          closeModal(
-            accountModal
-          );
-        }, 700);
       } catch (error) {
+
         console.error(error);
 
         showAuthMessage(
@@ -831,92 +741,20 @@ if (loginForm) {
   );
 }
 
-
 /* =========================================================
-   POPUP DE CONFIRMACIÓN DE EMAIL
-   ========================================================= */
-
-function showEmailConfirmationPopup() {
-  const oldPopup =
-    document.getElementById(
-      "email-confirmation-popup"
-    );
-
-  if (oldPopup) {
-    oldPopup.remove();
-  }
-
-  const overlay =
-    document.createElement("div");
-
-  overlay.id =
-    "email-confirmation-popup";
-
-  overlay.className =
-    "email-confirmation-popup";
-
-  overlay.innerHTML = `
-    <div class="email-confirmation-box">
-
-      <h2>
-        Email de confirmación
-      </h2>
-
-      <p>
-        Se ha enviado un email de confirmación.
-        Revisa tu correo y pulsa el enlace
-        para activar tu cuenta.
-      </p>
-
-      <button
-        type="button"
-        id="email-confirmation-ok"
-      >
-        OK
-      </button>
-
-    </div>
-  `;
-
-  document.body.appendChild(
-    overlay
-  );
-
-  const okButton =
-    document.getElementById(
-      "email-confirmation-ok"
-    );
-
-  if (okButton) {
-    okButton.addEventListener(
-      "click",
-      () => {
-        overlay.remove();
-
-        document.body.classList.remove(
-          "modal-open"
-        );
-      }
-    );
-  }
-
-  document.body.classList.add(
-    "modal-open"
-  );
-}
-
-
-/* =========================================================
-   CREAR CUENTA
+   REGISTRO
    ========================================================= */
 
 if (registerForm) {
+
   registerForm.addEventListener(
     "submit",
     async (event) => {
+
       event.preventDefault();
 
       if (!isSupabaseConfigured()) {
+
         showAuthMessage(
           "La cuenta todavía no está configurada.",
           "error"
@@ -925,38 +763,35 @@ if (registerForm) {
         return;
       }
 
-      const nameInput =
-        document.getElementById(
-          "register-name"
-        );
-
-      const emailInput =
-        document.getElementById(
-          "register-email"
-        );
-
-      const passwordInput =
-        document.getElementById(
-          "register-password"
-        );
-
       const name =
-        nameInput?.value.trim() ||
-        "";
+        document
+          .getElementById(
+            "register-name"
+          )
+          ?.value
+          .trim() || "";
 
       const email =
-        emailInput?.value.trim() ||
-        "";
+        document
+          .getElementById(
+            "register-email"
+          )
+          ?.value
+          .trim() || "";
 
       const password =
-        passwordInput?.value ||
-        "";
+        document
+          .getElementById(
+            "register-password"
+          )
+          ?.value || "";
 
       if (
         !name ||
         !email ||
         !password
       ) {
+
         showAuthMessage(
           "Completa todos los campos.",
           "error"
@@ -970,6 +805,7 @@ if (registerForm) {
       );
 
       try {
+
         const {
           data,
           error
@@ -978,7 +814,6 @@ if (registerForm) {
             .signUp({
               email,
               password,
-
               options: {
                 data: {
                   name
@@ -990,6 +825,7 @@ if (registerForm) {
             });
 
         if (error) {
+
           showAuthMessage(
             error.message ||
               "No se pudo crear la cuenta.",
@@ -999,29 +835,22 @@ if (registerForm) {
           return;
         }
 
-        /*
-         * Supabase puede devolver un usuario
-         * aunque el email todavía no esté confirmado.
-         * Lo dejamos sin sesión utilizable.
-         */
+        currentUser =
+          data?.user || null;
 
-        currentUser = null;
+        if (registerForm) {
+          registerForm.reset();
+        }
 
-        registerForm.reset();
-
-        showAuthMessage("");
-
-        closeModal(
-          accountModal
+        showAuthMessage(
+          "Te hemos enviado un correo para confirmar tu cuenta.",
+          "success"
         );
 
-        showEmailConfirmationPopup();
+        await updateAccountUI();
 
-        console.log(
-          "Registro realizado:",
-          data?.user
-        );
       } catch (error) {
+
         console.error(error);
 
         showAuthMessage(
@@ -1033,16 +862,18 @@ if (registerForm) {
   );
 }
 
-
 /* =========================================================
    CERRAR SESIÓN
    ========================================================= */
 
 if (logoutButton) {
+
   logoutButton.addEventListener(
     "click",
     async () => {
+
       if (!isSupabaseConfigured()) {
+
         currentUser = null;
 
         showLoginPanel();
@@ -1051,6 +882,7 @@ if (logoutButton) {
       }
 
       try {
+
         const {
           error
         } =
@@ -1058,6 +890,7 @@ if (logoutButton) {
             .signOut();
 
         if (error) {
+
           showAuthMessage(
             error.message ||
               "No se pudo cerrar sesión.",
@@ -1071,16 +904,18 @@ if (logoutButton) {
 
         showLoginPanel();
 
+        if (accountButton) {
+          accountButton.textContent =
+            "👤 Cuenta";
+        }
+
         showAuthMessage(
           "Sesión cerrada correctamente.",
           "success"
         );
 
-        if (accountButton) {
-          accountButton.textContent =
-            "👤 Cuenta";
-        }
       } catch (error) {
+
         console.error(error);
 
         showAuthMessage(
@@ -1092,14 +927,18 @@ if (logoutButton) {
   );
 }
 
-
 /* =========================================================
-   CAMBIO DE ESTADO DE SUPABASE
+   ESTADO DE AUTENTICACIÓN
    ========================================================= */
 
 if (isSupabaseConfigured()) {
+
   supabaseClient.auth.onAuthStateChange(
-    async (event, session) => {
+    async (
+      event,
+      session
+    ) => {
+
       currentUser =
         session?.user || null;
 
@@ -1108,12 +947,12 @@ if (isSupabaseConfigured()) {
   );
 }
 
-
 /* =========================================================
    SUGERENCIAS
    ========================================================= */
 
 function openSuggestionModal() {
+
   showSuggestionMessage("");
 
   if (suggestionForm) {
@@ -1128,6 +967,7 @@ function openSuggestionModal() {
 }
 
 if (newSuggestionButton) {
+
   newSuggestionButton.addEventListener(
     "click",
     openSuggestionModal
@@ -1135,18 +975,19 @@ if (newSuggestionButton) {
 }
 
 if (footerSuggestionButton) {
+
   footerSuggestionButton.addEventListener(
     "click",
     openSuggestionModal
   );
 }
 
-
 /* =========================================================
-   CONTADOR DE CARACTERES
+   CONTADOR
    ========================================================= */
 
 function updateCharacterCounter() {
+
   if (
     !suggestionText ||
     !characterCount
@@ -1159,6 +1000,7 @@ function updateCharacterCounter() {
 }
 
 if (suggestionText) {
+
   suggestionText.addEventListener(
     "input",
     updateCharacterCounter
@@ -1167,9 +1009,8 @@ if (suggestionText) {
 
 updateCharacterCounter();
 
-
 /* =========================================================
-   SUGERENCIAS
+   VARIABLES SUGERENCIAS
    ========================================================= */
 
 let allSuggestions = [];
@@ -1177,17 +1018,18 @@ let allSuggestions = [];
 let currentSuggestionTab =
   "all";
 
-
 /* =========================================================
    CARGAR SUGERENCIAS
    ========================================================= */
 
 async function loadSuggestions() {
+
   if (!suggestionsList) {
     return;
   }
 
   if (!isSupabaseConfigured()) {
+
     suggestionsList.innerHTML = `
       <div class="suggestions-loading">
         Configura Supabase para mostrar las sugerencias.
@@ -1204,6 +1046,7 @@ async function loadSuggestions() {
   `;
 
   try {
+
     const {
       data,
       error
@@ -1219,6 +1062,7 @@ async function loadSuggestions() {
         );
 
     if (error) {
+
       console.error(
         "Error cargando sugerencias:",
         error
@@ -1236,7 +1080,9 @@ async function loadSuggestions() {
     renderSuggestions(
       data || []
     );
+
   } catch (error) {
+
     console.error(error);
 
     suggestionsList.innerHTML = `
@@ -1247,14 +1093,14 @@ async function loadSuggestions() {
   }
 }
 
-
 /* =========================================================
-   RENDERIZAR SUGERENCIAS
+   RENDER SUGERENCIAS
    ========================================================= */
 
 function renderSuggestions(
   suggestions
 ) {
+
   allSuggestions =
     suggestions;
 
@@ -1266,21 +1112,24 @@ function renderSuggestions(
     [...allSuggestions];
 
   const search =
-    suggestionSearch?.value
+    suggestionSearch
+      ?.value
       .trim()
       .toLowerCase() || "";
 
   const category =
-    suggestionCategory?.value ||
-    "Todas";
+    suggestionCategory
+      ?.value || "Todas";
 
   if (
     currentSuggestionTab ===
     "mine"
   ) {
+
     if (!currentUser) {
       filtered = [];
     } else {
+
       filtered =
         filtered.filter(
           (suggestion) =>
@@ -1293,6 +1142,7 @@ function renderSuggestions(
   if (
     category !== "Todas"
   ) {
+
     filtered =
       filtered.filter(
         (suggestion) =>
@@ -1302,26 +1152,27 @@ function renderSuggestions(
   }
 
   if (search) {
+
     filtered =
       filtered.filter(
         (suggestion) => {
-          const text =
+
+          const content =
             `${suggestion.name || ""} ${
               suggestion.idea || ""
             } ${
               suggestion.category || ""
             }`.toLowerCase();
 
-          return text.includes(
+          return content.includes(
             search
           );
         }
       );
   }
 
-  if (
-    filtered.length === 0
-  ) {
+  if (filtered.length === 0) {
+
     suggestionsList.innerHTML = `
       <div class="suggestions-loading">
         No hay sugerencias para mostrar.
@@ -1336,26 +1187,24 @@ function renderSuggestions(
 
   filtered.forEach(
     (suggestion) => {
-      const card =
-        createSuggestionCard(
-          suggestion
-        );
 
       suggestionsList.appendChild(
-        card
+        createSuggestionCard(
+          suggestion
+        )
       );
     }
   );
 }
 
-
 /* =========================================================
-   CREAR TARJETA DE SUGERENCIA
+   TARJETA DE SUGERENCIA
    ========================================================= */
 
 function createSuggestionCard(
   suggestion
 ) {
+
   const article =
     document.createElement(
       "article"
@@ -1448,9 +1297,7 @@ function createSuggestionCard(
     "vote-button";
 
   voteButton.textContent =
-    `👍 ${
-      suggestion.votes || 0
-    }`;
+    `👍 ${suggestion.votes || 0}`;
 
   voteButton.addEventListener(
     "click",
@@ -1470,6 +1317,7 @@ function createSuggestionCard(
     suggestion.user_id ===
       currentUser.id
   ) {
+
     const deleteButton =
       document.createElement(
         "button"
@@ -1517,14 +1365,14 @@ function createSuggestionCard(
   return article;
 }
 
-
 /* =========================================================
-   FECHA
+   FECHAS
    ========================================================= */
 
 function formatDate(
   dateString
 ) {
+
   if (!dateString) {
     return "";
   }
@@ -1550,22 +1398,22 @@ function formatDate(
   );
 }
 
-
 /* =========================================================
    ENVIAR SUGERENCIA
    ========================================================= */
 
 if (suggestionForm) {
+
   suggestionForm.addEventListener(
     "submit",
     async (event) => {
+
       event.preventDefault();
 
-      if (
-        !isSupabaseConfigured()
-      ) {
+      if (!isSupabaseConfigured()) {
+
         showSuggestionMessage(
-          "Las sugerencias todavía no están configuradas porque falta conectar Supabase.",
+          "Las sugerencias todavía no están configuradas.",
           "error"
         );
 
@@ -1576,6 +1424,7 @@ if (suggestionForm) {
         await getCurrentUser();
 
       if (!user) {
+
         showSuggestionMessage(
           "Necesitas iniciar sesión para enviar una sugerencia.",
           "error"
@@ -1585,26 +1434,25 @@ if (suggestionForm) {
       }
 
       const name =
-        suggestionName?.value.trim() ||
-        "";
-
-      const categoryInput =
-        document.getElementById(
-          "suggestion-category-input"
-        );
+        suggestionName
+          ?.value
+          .trim() || "";
 
       const category =
-        categoryInput?.value ||
+        document
+          .getElementById(
+            "suggestion-category-input"
+          )
+          ?.value ||
         "Juego";
 
       const idea =
-        suggestionText?.value.trim() ||
-        "";
+        suggestionText
+          ?.value
+          .trim() || "";
 
-      if (
-        !name ||
-        !idea
-      ) {
+      if (!name || !idea) {
+
         showSuggestionMessage(
           "Completa todos los campos.",
           "error"
@@ -1618,6 +1466,7 @@ if (suggestionForm) {
       );
 
       try {
+
         const {
           error
         } =
@@ -1626,13 +1475,18 @@ if (suggestionForm) {
             .insert({
               user_id:
                 user.id,
+
               name,
+
               category,
+
               idea,
+
               votes: 0
             });
 
         if (error) {
+
           console.error(error);
 
           showSuggestionMessage(
@@ -1655,12 +1509,17 @@ if (suggestionForm) {
 
         await loadSuggestions();
 
-        setTimeout(() => {
-          closeModal(
-            suggestionModal
-          );
-        }, 800);
+        setTimeout(
+          () => {
+            closeModal(
+              suggestionModal
+            );
+          },
+          800
+        );
+
       } catch (error) {
+
         console.error(error);
 
         showSuggestionMessage(
@@ -1672,7 +1531,6 @@ if (suggestionForm) {
   );
 }
 
-
 /* =========================================================
    VOTAR
    ========================================================= */
@@ -1680,9 +1538,8 @@ if (suggestionForm) {
 async function voteSuggestion(
   suggestion
 ) {
-  if (
-    !isSupabaseConfigured()
-  ) {
+
+  if (!isSupabaseConfigured()) {
     return;
   }
 
@@ -1692,6 +1549,7 @@ async function voteSuggestion(
     ) + 1;
 
   try {
+
     const {
       error
     } =
@@ -1706,16 +1564,19 @@ async function voteSuggestion(
         );
 
     if (error) {
+
       console.error(error);
+
       return;
     }
 
     await loadSuggestions();
+
   } catch (error) {
+
     console.error(error);
   }
 }
-
 
 /* =========================================================
    ELIMINAR SUGERENCIA
@@ -1724,9 +1585,8 @@ async function voteSuggestion(
 async function deleteSuggestion(
   id
 ) {
-  if (
-    !isSupabaseConfigured()
-  ) {
+
+  if (!isSupabaseConfigured()) {
     return;
   }
 
@@ -1744,6 +1604,7 @@ async function deleteSuggestion(
   }
 
   try {
+
     const {
       error
     } =
@@ -1757,26 +1618,31 @@ async function deleteSuggestion(
         );
 
     if (error) {
+
       console.error(error);
+
       return;
     }
 
     await loadSuggestions();
+
   } catch (error) {
+
     console.error(error);
   }
 }
 
-
 /* =========================================================
-   PESTAÑAS DE SUGERENCIAS
+   PESTAÑAS
    ========================================================= */
 
 suggestionTabs.forEach(
   (tab) => {
+
     tab.addEventListener(
       "click",
       () => {
+
         suggestionTabs.forEach(
           (item) => {
             item.classList.remove(
@@ -1801,31 +1667,33 @@ suggestionTabs.forEach(
   }
 );
 
-
 /* =========================================================
    BUSCADOR
    ========================================================= */
 
 if (suggestionSearch) {
+
   suggestionSearch.addEventListener(
     "input",
     () => {
+
       renderSuggestions(
         allSuggestions
       );
     }
   );
 }
-
 
 /* =========================================================
    FILTRO
    ========================================================= */
 
 if (suggestionCategory) {
+
   suggestionCategory.addEventListener(
     "change",
     () => {
+
       renderSuggestions(
         allSuggestions
       );
@@ -1833,9 +1701,8 @@ if (suggestionCategory) {
   );
 }
 
-
 /* =========================================================
-   MINIJUEGOS
+   Z TRONKS
    ========================================================= */
 
 const gameDetailsModal =
@@ -1844,12 +1711,12 @@ const gameDetailsModal =
   );
 
 const gameDetailsClose =
-  document.querySelector(
+  gameDetailsModal?.querySelector(
     ".game-details-close"
   );
 
 const gameDetailsBackdrop =
-  document.querySelector(
+  gameDetailsModal?.querySelector(
     ".game-details-backdrop"
   );
 
@@ -1858,18 +1725,14 @@ const gameCards =
     ".game-card"
   );
 
-
-/* =========================================================
-   ABRIR DETALLES DE JUEGO
-   ========================================================= */
-
 function openGameDetails() {
+
   if (!gameDetailsModal) {
     return;
   }
 
-  gameDetailsModal.classList.remove(
-    "hidden"
+  gameDetailsModal.classList.add(
+    "active"
   );
 
   gameDetailsModal.setAttribute(
@@ -1877,23 +1740,22 @@ function openGameDetails() {
     "false"
   );
 
+  gameDetailsModal.style.display =
+    "flex";
+
   document.body.classList.add(
     "modal-open"
   );
 }
 
-
-/* =========================================================
-   CERRAR DETALLES DE JUEGO
-   ========================================================= */
-
 function closeGameDetails() {
+
   if (!gameDetailsModal) {
     return;
   }
 
-  gameDetailsModal.classList.add(
-    "hidden"
+  gameDetailsModal.classList.remove(
+    "active"
   );
 
   gameDetailsModal.setAttribute(
@@ -1901,43 +1763,13 @@ function closeGameDetails() {
     "true"
   );
 
-  /*
-   * Comprobamos si hay otro modal abierto
-   * antes de quitar modal-open.
-   */
+  gameDetailsModal.style.display =
+    "none";
 
-  const accountOpen =
-    accountModal &&
-    !accountModal.classList.contains(
-      "hidden"
-    );
-
-  const suggestionOpen =
-    suggestionModal &&
-    !suggestionModal.classList.contains(
-      "hidden"
-    );
-
-  const emailPopup =
-    document.getElementById(
-      "email-confirmation-popup"
-    );
-
-  if (
-    !accountOpen &&
-    !suggestionOpen &&
-    !emailPopup
-  ) {
-    document.body.classList.remove(
-      "modal-open"
-    );
-  }
+  document.body.classList.remove(
+    "modal-open"
+  );
 }
-
-
-/* =========================================================
-   EVENTOS DE LAS TARJETAS
-   ========================================================= */
 
 gameCards.forEach(
   (card) => {
@@ -1949,69 +1781,78 @@ gameCards.forEach(
       }
     );
 
-
     card.addEventListener(
       "keydown",
       (event) => {
 
         if (
-          event.key ===
-          "Enter"
+          event.key === "Enter" ||
+          event.key === " "
         ) {
+
           event.preventDefault();
 
           openGameDetails();
         }
-
-        if (
-          event.key ===
-          " "
-        ) {
-          event.preventDefault();
-
-          openGameDetails();
-        }
-
       }
     );
-
   }
 );
 
-
-/* =========================================================
-   BOTÓN X DEL MODAL
-   ========================================================= */
-
 if (gameDetailsClose) {
+
   gameDetailsClose.addEventListener(
     "click",
-    () => {
+    (event) => {
+
+      event.preventDefault();
+      event.stopPropagation();
+
       closeGameDetails();
     }
   );
 }
-
-
-/* =========================================================
-   FONDO DEL MODAL
-   ========================================================= */
 
 if (gameDetailsBackdrop) {
+
   gameDetailsBackdrop.addEventListener(
     "click",
-    () => {
+    (event) => {
+
+      event.preventDefault();
+
       closeGameDetails();
     }
   );
 }
 
+/* =========================================================
+   ESC PARA Z TRONKS
+   ========================================================= */
+
+document.addEventListener(
+  "keydown",
+  (event) => {
+
+    if (
+      event.key === "Escape" &&
+      gameDetailsModal &&
+      gameDetailsModal.classList.contains(
+        "active"
+      )
+    ) {
+
+      closeGameDetails();
+    }
+  }
+);
 
 /* =========================================================
    PROYECTOS EN DESARROLLO
    ========================================================= */
 
 function initializeProjects() {
+
   const projectCards =
     document.querySelectorAll(
       ".dev-card"
@@ -2027,6 +1868,18 @@ function initializeProjects() {
         "click",
         () => {
 
+          const existingDetails =
+            card.querySelector(
+              ".project-details"
+            );
+
+          if (existingDetails) {
+
+            existingDetails.remove();
+
+            return;
+          }
+
           const title =
             card.querySelector(
               "h3"
@@ -2038,19 +1891,6 @@ function initializeProjects() {
               "p:not(.dev-card-category)"
             )?.textContent ||
             "Sin descripción.";
-
-          const existingDetails =
-            card.querySelector(
-              ".project-details"
-            );
-
-          if (
-            existingDetails
-          ) {
-            existingDetails.remove();
-
-            return;
-          }
 
           const details =
             document.createElement(
@@ -2087,11 +1927,9 @@ function initializeProjects() {
           );
         }
       );
-
     }
   );
 }
-
 
 /* =========================================================
    ESCAPAR HTML
@@ -2100,6 +1938,7 @@ function initializeProjects() {
 function escapeHtml(
   value
 ) {
+
   const div =
     document.createElement(
       "div"
@@ -2111,7 +1950,6 @@ function escapeHtml(
   return div.innerHTML;
 }
 
-
 /* =========================================================
    INICIALIZACIÓN
    ========================================================= */
@@ -2122,7 +1960,6 @@ loadSuggestions();
 
 updateAccountUI();
 
-
 console.log(
-  "TronkStudios: script cargado correctamente."
+  "TronkStudios: todo inicializado correctamente."
 );
