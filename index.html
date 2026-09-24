@@ -1,17 +1,28 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
+
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
 
   <meta
     name="description"
     content="TronkStudios es un estudio de videojuegos dedicado a crear juegos, experiencias y proyectos con creatividad y determinación."
   />
 
-  <meta name="robots" content="index, follow" />
+  <meta
+    name="robots"
+    content="index, follow"
+  />
 
-  <title>TronkStudios | Videojuegos y Determinación</title>
+  <title>
+    TronkStudios | Videojuegos y Determinación
+  </title>
 
   <link
     rel="canonical"
@@ -38,968 +49,1175 @@
     content="https://tronkstudios.github.io/TronkWeb/"
   />
 
-  <meta property="og:type" content="website" />
+  <meta
+    property="og:type"
+    content="website"
+  />
 
-  <link rel="stylesheet" href="styles.css" />
+  <link
+    rel="stylesheet"
+    href="styles.css"
+  />
 
   <script
     src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
   ></script>
 
-  <script src="script.js" defer></script>
+  <script
+    src="script.js"
+    defer
+  ></script>
+
 </head>
+
 
 <body>
 
-<header class="site-header">
-  <div class="container header-inner">
 
-    <div class="brand">
-      <h1 class="brand-name">TronkStudios</h1>
-      <p class="brand-tagline">
-        Juegos, creatividad y desarrollo
-      </p>
-    </div>
+  <!-- =====================================================
+       CABECERA
+       ===================================================== -->
 
-    <nav
-      aria-label="Navegación principal"
-      class="main-nav"
-    >
-      <a href="#juegos">Nuestros Juegos</a>
-      <a href="#desarrollo">En desarrollo</a>
-      <a href="#minijuegos">Minijuegos</a>
-      <a href="#aplicaciones">Nuestras Aplicaciones</a>
-      <a href="#roblox">Roblox</a>
-      <a href="#sugerencias">Comunidad</a>
-    </nav>
+  <header class="site-header">
 
-    <div class="header-actions">
+    <div class="container header-inner">
 
-      <button
-        id="account-button"
-        class="account-button"
-        type="button"
+
+      <div class="brand">
+
+        <h1 class="brand-name">
+          TronkStudios
+        </h1>
+
+        <p class="brand-tagline">
+          Juegos, creatividad y desarrollo
+        </p>
+
+      </div>
+
+
+      <nav
+        aria-label="Navegación principal"
+        class="main-nav"
       >
-        👤 Cuenta
-      </button>
 
-      <button
-        id="theme-toggle"
-        class="theme-toggle"
-        type="button"
-        aria-pressed="false"
-        aria-label="Cambiar tema"
-      >
-        <span
-          class="theme-icon"
-          aria-hidden="true"
-        >
-          🌙
-        </span>
-
-        <span class="theme-label">
-          Oscuro
-        </span>
-      </button>
-
-    </div>
-
-  </div>
-</header>
-
-
-<main>
-
-<!-- ========================================================= -->
-<!-- NUESTROS JUEGOS -->
-<!-- ========================================================= -->
-
-<section
-  id="juegos"
-  class="section"
-  aria-labelledby="juegos-title"
->
-
-  <div class="container">
-
-    <div class="section-head">
-
-      <div>
-
-        <h2 id="juegos-title">
+        <a href="#juegos">
           Nuestros Juegos
-        </h2>
+        </a>
 
-        <p>
-          Descubre nuestros juegos :D
-        </p>
+        <a href="#desarrollo">
+          En desarrollo
+        </a>
 
-      </div>
-
-    </div>
-
-    <div class="empty-state">
-
-      <span
-        class="empty-icon"
-        aria-hidden="true"
-      >
-        🎮
-      </span>
-
-      <p class="empty-text">
-        No hay nada todavía.
-      </p>
-
-    </div>
-
-  </div>
-
-</section>
-
-
-<!-- ========================================================= -->
-<!-- JUEGOS EN DESARROLLO -->
-<!-- ========================================================= -->
-
-<section
-  id="desarrollo"
-  class="section alt"
-  aria-labelledby="desarrollo-title"
->
-
-  <div class="container">
-
-    <div class="section-head">
-
-      <div>
-
-        <h2 id="desarrollo-title">
-          Juegos en desarrollo
-        </h2>
-
-        <p>
-          Proyectos que estamos desarrollando actualmente.
-        </p>
-
-      </div>
-
-    </div>
-
-
-    <div class="cards-grid">
-
-      <article class="card dev-card">
-
-        <div class="dev-card-media">
-
-          <img
-            src="z-tronks.png"
-            alt="Z Tronks - juego de zombis para Roblox"
-            loading="lazy"
-          />
-
-        </div>
-
-        <h3>
-          Z Tronks
-        </h3>
-
-        <p>
-          Z Tronks es un juego de zombis en desarrollo
-          para Roblox, creado por TronkStudios.
-        </p>
-
-        <p class="dev-card-category">
-          <span>Categoría:</span>
-          Roblox
-        </p>
-
-      </article>
-
-    </div>
-
-  </div>
-
-</section>
-
-
-<!-- ========================================================= -->
-<!-- MINIJUEGOS -->
-<!-- ========================================================= -->
-
-<section
-  id="minijuegos"
-  class="section"
-  aria-labelledby="minijuegos-title"
->
-
-  <div class="container">
-
-    <div class="section-head">
-
-      <div>
-
-        <h2 id="minijuegos-title">
+        <a href="#minijuegos">
           Minijuegos
-        </h2>
+        </a>
 
-        <p>
-          Descubre nuestros minijuegos.
-        </p>
+        <a href="#aplicaciones">
+          Nuestras Aplicaciones
+        </a>
+
+        <a href="#roblox">
+          Roblox
+        </a>
+
+        <a href="#sugerencias">
+          Comunidad
+        </a>
+
+      </nav>
+
+
+      <div class="header-actions">
+
+
+        <button
+          id="account-button"
+          class="account-button"
+          type="button"
+        >
+          👤 Cuenta
+        </button>
+
+
+        <button
+          id="theme-toggle"
+          class="theme-toggle"
+          type="button"
+          aria-pressed="false"
+          aria-label="Cambiar tema"
+        >
+
+          <span
+            class="theme-icon"
+            aria-hidden="true"
+          >
+            🌙
+          </span>
+
+          <span class="theme-label">
+            Oscuro
+          </span>
+
+        </button>
+
 
       </div>
 
+
     </div>
 
+  </header>
 
-    <div class="games-grid">
 
-      <article
-        class="game-card"
-        data-game="z-tronks"
-        tabindex="0"
-        role="button"
-        aria-label="Ver información de Z Tronks"
-      >
 
-        <div class="game-card-image">
+  <!-- =====================================================
+       CONTENIDO
+       ===================================================== -->
 
-          <img
-            src="z-tronks.png"
-            alt="Z Tronks"
-            loading="lazy"
+  <main>
+
+
+    <!-- ===================================================
+         NUESTROS JUEGOS
+         =================================================== -->
+
+    <section
+      id="juegos"
+      class="section"
+      aria-labelledby="juegos-title"
+    >
+
+      <div class="container">
+
+
+        <div class="section-head">
+
+          <div>
+
+            <h2 id="juegos-title">
+              Nuestros Juegos
+            </h2>
+
+            <p>
+              Descubre los juegos creados por TronkStudios.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div class="empty-state">
+
+          <span
+            class="empty-icon"
+            aria-hidden="true"
+          >
+            🎮
+          </span>
+
+          <p class="empty-text">
+            No hay nada todavía.
+          </p>
+
+        </div>
+
+
+      </div>
+
+    </section>
+
+
+
+    <!-- ===================================================
+         JUEGOS EN DESARROLLO
+         =================================================== -->
+
+    <section
+      id="desarrollo"
+      class="section alt"
+      aria-labelledby="desarrollo-title"
+    >
+
+      <div class="container">
+
+
+        <div class="section-head">
+
+          <div>
+
+            <h2 id="desarrollo-title">
+              Juegos en desarrollo
+            </h2>
+
+            <p>
+              Proyectos que estamos desarrollando actualmente.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div class="cards-grid">
+
+
+          <article
+            class="card dev-card"
+            tabindex="0"
+            role="button"
+            aria-label="Ver información de Z Tronks"
+          >
+
+            <div class="dev-card-media">
+
+              <img
+                src="z-tronks.png"
+                alt="Z Tronks - juego de zombis para Roblox"
+                loading="lazy"
+              />
+
+            </div>
+
+
+            <h3>
+              Z Tronks
+            </h3>
+
+
+            <p>
+              Z Tronks es un juego de zombis en desarrollo
+              para Roblox, creado por TronkStudios.
+            </p>
+
+
+            <p class="dev-card-category">
+
+              <span>
+                Categoría:
+              </span>
+
+              Roblox
+
+            </p>
+
+
+          </article>
+
+
+        </div>
+
+
+      </div>
+
+    </section>
+
+
+
+    <!-- ===================================================
+         MINIJUEGOS
+         =================================================== -->
+
+    <section
+      id="minijuegos"
+      class="section"
+      aria-labelledby="minijuegos-title"
+    >
+
+      <div class="container">
+
+
+        <div class="section-head">
+
+          <div>
+
+            <h2 id="minijuegos-title">
+              Minijuegos
+            </h2>
+
+            <p>
+              Juega directamente desde nuestra página web.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div class="cards-grid">
+
+
+          <article
+            id="antitronks-card"
+            class="card minigame-card"
+            tabindex="0"
+            role="button"
+            aria-label="Jugar a Antitronks"
+          >
+
+
+            <h3>
+              ANTITRONKS
+            </h3>
+
+
+            <div class="minigame-card-media">
+
+              <img
+                src="https://commons.wikimedia.org/wiki/Special:Redirect/file/AK-47.png"
+                alt="AK-47"
+                loading="lazy"
+              />
+
+            </div>
+
+
+          </article>
+
+
+        </div>
+
+
+      </div>
+
+    </section>
+
+
+
+    <!-- ===================================================
+         APLICACIONES
+         =================================================== -->
+
+    <section
+      id="aplicaciones"
+      class="section"
+      aria-labelledby="aplicaciones-title"
+    >
+
+      <div class="container">
+
+
+        <div class="section-head">
+
+          <div>
+
+            <h2 id="aplicaciones-title">
+              Nuestras Aplicaciones
+            </h2>
+
+            <p>
+              Aplicaciones y herramientas desarrolladas
+              por TronkStudios.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div class="empty-state">
+
+          <span
+            class="empty-icon"
+            aria-hidden="true"
+          >
+            📱
+          </span>
+
+          <p class="empty-text">
+            No hay aplicaciones todavía.
+          </p>
+
+        </div>
+
+
+      </div>
+
+    </section>
+
+
+
+    <!-- ===================================================
+         ROBLOX
+         =================================================== -->
+
+    <section
+      id="roblox"
+      class="section alt"
+      aria-labelledby="roblox-title"
+    >
+
+      <div class="container">
+
+
+        <div class="section-head">
+
+          <div>
+
+            <h2 id="roblox-title">
+              Roblox
+            </h2>
+
+            <p>
+              Nuestros proyectos y experiencias en Roblox.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div class="empty-state">
+
+          <span
+            class="empty-icon"
+            aria-hidden="true"
+          >
+            🎮
+          </span>
+
+          <p class="empty-text">
+            No hay experiencias disponibles todavía.
+          </p>
+
+        </div>
+
+
+      </div>
+
+    </section>
+
+
+
+    <!-- ===================================================
+         COMUNIDAD
+         =================================================== -->
+
+    <section
+      id="sugerencias"
+      class="section"
+      aria-labelledby="sugerencias-title"
+    >
+
+      <div class="container">
+
+
+        <div class="section-head">
+
+
+          <div>
+
+            <h2 id="sugerencias-title">
+              Comunidad
+            </h2>
+
+            <p>
+              Mira las ideas propuestas por la comunidad.
+            </p>
+
+          </div>
+
+
+          <button
+            id="new-suggestion-button"
+            class="primary-button"
+            type="button"
+          >
+            💡 Sugerir una idea
+          </button>
+
+
+        </div>
+
+
+        <div class="suggestion-tabs">
+
+
+          <button
+            class="suggestion-tab active"
+            data-tab="all"
+            type="button"
+          >
+            Todas
+          </button>
+
+
+          <button
+            class="suggestion-tab"
+            data-tab="mine"
+            type="button"
+          >
+            Mis sugerencias
+          </button>
+
+
+        </div>
+
+
+        <div class="suggestion-tools">
+
+
+          <input
+            id="suggestion-search"
+            class="suggestion-search"
+            type="search"
+            placeholder="Buscar sugerencias..."
+            aria-label="Buscar sugerencias"
           />
 
+
+          <select
+            id="suggestion-category"
+            class="suggestion-category"
+            aria-label="Filtrar por categoría"
+          >
+
+            <option value="Todas">
+              Todas las categorías
+            </option>
+
+            <option value="Roblox">
+              Roblox
+            </option>
+
+            <option value="Juego">
+              Juego
+            </option>
+
+            <option value="Aplicación">
+              Aplicación
+            </option>
+
+          </select>
+
+
         </div>
 
 
-        <div class="game-card-content">
+        <div
+          id="suggestions-list"
+          class="suggestions-list"
+        >
 
-          <h3>
-            Z Tronks
-          </h3>
-
-          <span class="game-card-category">
-            Roblox
-          </span>
+          <div class="suggestions-loading">
+            Cargando sugerencias...
+          </div>
 
         </div>
 
-      </article>
-
-    </div>
-
-  </div>
-
-</section>
-
-
-<!-- ========================================================= -->
-<!-- APLICACIONES -->
-<!-- ========================================================= -->
-
-<section
-  id="aplicaciones"
-  class="section"
-  aria-labelledby="aplicaciones-title"
->
-
-  <div class="container">
-
-    <div class="section-head">
-
-      <div>
-
-        <h2 id="aplicaciones-title">
-          Nuestras Aplicaciones
-        </h2>
-
-        <p>
-          Aplicaciones y herramientas desarrolladas
-          por TronkStudios.
-        </p>
 
       </div>
 
-    </div>
+    </section>
 
 
-    <div class="empty-state">
+  </main>
 
-      <span
-        class="empty-icon"
-        aria-hidden="true"
-      >
-        📱
-      </span>
 
-      <p class="empty-text">
-        No hay aplicaciones todavía.
+
+  <!-- =====================================================
+       PIE DE PÁGINA
+       ===================================================== -->
+
+  <footer class="site-footer">
+
+    <div class="container footer-inner">
+
+
+      <p>
+        ©
+        <span id="year"></span>
+        TronkStudios
       </p>
 
-    </div>
 
-  </div>
+      <p>
 
-</section>
+        Soporte:
 
+        <a href="mailto:tronkstudios7@gmail.com">
+          tronkstudios7@gmail.com
+        </a>
 
-<!-- ========================================================= -->
-<!-- ROBLOX -->
-<!-- ========================================================= -->
-
-<section
-  id="roblox"
-  class="section alt"
-  aria-labelledby="roblox-title"
->
-
-  <div class="container">
-
-    <div class="section-head">
-
-      <div>
-
-        <h2 id="roblox-title">
-          Roblox
-        </h2>
-
-        <p>
-          Nuestros proyectos y experiencias en Roblox.
-        </p>
-
-      </div>
-
-    </div>
-
-
-    <div class="empty-state">
-
-      <span
-        class="empty-icon"
-        aria-hidden="true"
-      >
-        🎮
-      </span>
-
-      <p class="empty-text">
-        No hay experiencias disponibles todavía.
       </p>
 
-    </div>
-
-  </div>
-
-</section>
-
-
-<!-- ========================================================= -->
-<!-- COMUNIDAD -->
-<!-- ========================================================= -->
-
-<section
-  id="sugerencias"
-  class="section"
-  aria-labelledby="sugerencias-title"
->
-
-  <div class="container">
-
-    <div class="section-head">
-
-      <div>
-
-        <h2 id="sugerencias-title">
-          Comunidad
-        </h2>
-
-        <p>
-          Mira las ideas propuestas por la comunidad.
-        </p>
-
-      </div>
-
-
-      <button
-        id="new-suggestion-button"
-        class="primary-button"
-        type="button"
-      >
-        💡 Sugerir una idea
-      </button>
 
     </div>
 
-
-    <div class="suggestion-tabs">
-
-      <button
-        class="suggestion-tab active"
-        data-tab="all"
-        type="button"
-      >
-        Todas
-      </button>
-
-      <button
-        class="suggestion-tab"
-        data-tab="mine"
-        type="button"
-      >
-        Mis sugerencias
-      </button>
-
-    </div>
+  </footer>
 
 
-    <div class="suggestion-tools">
 
-      <input
-        id="suggestion-search"
-        class="suggestion-search"
-        type="search"
-        placeholder="Buscar sugerencias..."
-        aria-label="Buscar sugerencias"
-      />
+  <!-- =====================================================
+       MODAL DE CUENTA
+       ===================================================== -->
 
+  <div
+    id="account-modal"
+    class="modal hidden"
+    aria-hidden="true"
+  >
 
-      <select
-        id="suggestion-category"
-        class="suggestion-category"
-        aria-label="Filtrar por categoría"
-      >
-
-        <option value="Todas">
-          Todas las categorías
-        </option>
-
-        <option value="Roblox">
-          Roblox
-        </option>
-
-        <option value="Juego">
-          Juego
-        </option>
-
-        <option value="Aplicación">
-          Aplicación
-        </option>
-
-      </select>
-
-    </div>
+    <div class="modal-backdrop"></div>
 
 
     <div
-      id="suggestions-list"
-      class="suggestions-list"
+      class="modal-box"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="account-modal-title"
     >
-
-      <div class="suggestions-loading">
-        Cargando sugerencias...
-      </div>
-
-    </div>
-
-  </div>
-
-</section>
-
-</main>
-
-
-<!-- ========================================================= -->
-<!-- FOOTER -->
-<!-- ========================================================= -->
-
-<footer class="site-footer">
-
-  <div class="container footer-inner">
-
-    <p>
-      © <span id="year"></span> TronkStudios
-    </p>
-
-    <p>
-      Soporte:
-      <a href="mailto:tronkstudios7@gmail.com">
-        tronkstudios7@gmail.com
-      </a>
-    </p>
-
-  </div>
-
-</footer>
-
-
-<!-- ========================================================= -->
-<!-- MODAL DE CUENTA -->
-<!-- ========================================================= -->
-
-<div
-  id="account-modal"
-  class="modal hidden"
-  aria-hidden="true"
->
-
-  <div class="modal-backdrop"></div>
-
-  <div
-    class="modal-box"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="account-modal-title"
-  >
-
-    <button
-      class="modal-close"
-      data-close-modal="account-modal"
-      type="button"
-      aria-label="Cerrar"
-    >
-      ×
-    </button>
-
-
-    <h2 id="account-modal-title">
-      Tu cuenta
-    </h2>
-
-
-    <!-- LOGIN -->
-
-    <div id="login-panel">
-
-      <p class="modal-description">
-        Inicia sesión para participar en la comunidad.
-      </p>
-
-
-      <form id="login-form">
-
-        <label for="login-email">
-          Correo electrónico
-        </label>
-
-        <input
-          id="login-email"
-          type="email"
-          required
-          autocomplete="email"
-        />
-
-
-        <label for="login-password">
-          Contraseña
-        </label>
-
-        <input
-          id="login-password"
-          type="password"
-          required
-          autocomplete="current-password"
-        />
-
-
-        <button
-          class="primary-button full-button"
-          type="submit"
-        >
-          Iniciar sesión
-        </button>
-
-      </form>
-
-
-      <p class="auth-switch">
-
-        ¿No tienes cuenta?
-
-        <button
-          id="show-register"
-          type="button"
-        >
-          Crear cuenta
-        </button>
-
-      </p>
-
-    </div>
-
-
-    <!-- REGISTRO -->
-
-    <div
-      id="register-panel"
-      class="hidden"
-    >
-
-      <p class="modal-description">
-        Crea una cuenta para publicar sugerencias.
-      </p>
-
-
-      <form id="register-form">
-
-        <label for="register-name">
-          Nombre
-        </label>
-
-        <input
-          id="register-name"
-          type="text"
-          maxlength="30"
-          required
-          autocomplete="name"
-        />
-
-
-        <label for="register-email">
-          Correo electrónico
-        </label>
-
-        <input
-          id="register-email"
-          type="email"
-          required
-          autocomplete="email"
-        />
-
-
-        <label for="register-password">
-          Contraseña
-        </label>
-
-        <input
-          id="register-password"
-          type="password"
-          minlength="6"
-          required
-          autocomplete="new-password"
-        />
-
-
-        <button
-          class="primary-button full-button"
-          type="submit"
-        >
-          Crear cuenta
-        </button>
-
-      </form>
-
-
-      <p class="auth-switch">
-
-        ¿Ya tienes cuenta?
-
-        <button
-          id="show-login"
-          type="button"
-        >
-          Iniciar sesión
-        </button>
-
-      </p>
-
-    </div>
-
-
-    <!-- USUARIO LOGUEADO -->
-
-    <div
-      id="logged-panel"
-      class="hidden"
-    >
-
-      <div class="account-info">
-
-        <div class="account-avatar">
-          👤
-        </div>
-
-        <div>
-
-          <strong id="account-name">
-            Usuario
-          </strong>
-
-          <span id="account-email">
-            correo
-          </span>
-
-        </div>
-
-      </div>
 
 
       <button
-        id="logout-button"
-        class="danger-button full-button"
+        class="modal-close"
+        data-close-modal="account-modal"
         type="button"
+        aria-label="Cerrar"
       >
-        Cerrar sesión
+        ×
       </button>
 
-    </div>
 
-
-    <p
-      id="auth-message"
-      class="auth-message"
-      aria-live="polite"
-    ></p>
-
-  </div>
-
-</div>
-
-
-<!-- ========================================================= -->
-<!-- MODAL DE SUGERENCIAS -->
-<!-- ========================================================= -->
-
-<div
-  id="suggestion-modal"
-  class="modal hidden"
-  aria-hidden="true"
->
-
-  <div class="modal-backdrop"></div>
-
-  <div
-    class="modal-box"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="suggestion-modal-title"
-  >
-
-    <button
-      class="modal-close"
-      data-close-modal="suggestion-modal"
-      type="button"
-      aria-label="Cerrar"
-    >
-      ×
-    </button>
-
-
-    <h2 id="suggestion-modal-title">
-      Sugerir una idea
-    </h2>
-
-
-    <p class="modal-description">
-      Comparte una idea para mejorar TronkStudios.
-    </p>
-
-
-    <form id="suggestion-form">
-
-      <label for="suggestion-name">
-        Nombre
-      </label>
-
-      <input
-        id="suggestion-name"
-        type="text"
-        maxlength="30"
-        required
-      />
-
-
-      <label for="suggestion-category-input">
-        Categoría
-      </label>
-
-      <select
-        id="suggestion-category-input"
-        required
-      >
-
-        <option value="Roblox">
-          Roblox
-        </option>
-
-        <option value="Juego">
-          Juego
-        </option>
-
-        <option value="Aplicación">
-          Aplicación
-        </option>
-
-      </select>
-
-
-      <label for="suggestion-text">
-        Idea
-      </label>
-
-      <textarea
-        id="suggestion-text"
-        maxlength="1000"
-        rows="6"
-        required
-        placeholder="Escribe tu idea..."
-      ></textarea>
-
-
-      <p class="character-counter">
-
-        <span id="character-count">
-          0
-        </span>/1000
-
-      </p>
-
-
-      <button
-        class="primary-button full-button"
-        type="submit"
-      >
-        Enviar idea
-      </button>
-
-    </form>
-
-
-    <p
-      id="suggestion-message"
-      class="auth-message"
-      aria-live="polite"
-    ></p>
-
-  </div>
-
-</div>
-
-
-<!-- ========================================================= -->
-<!-- MODAL DE INFORMACIÓN DEL MINIJUEGO -->
-<!-- ========================================================= -->
-
-<div
-  id="game-details-modal"
-  class="game-details-modal hidden"
-  aria-hidden="true"
->
-
-  <div class="game-details-backdrop"></div>
-
-  <div
-    class="game-details-box"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="game-details-title"
-  >
-
-    <button
-      class="game-details-close"
-      type="button"
-      aria-label="Cerrar información del juego"
-    >
-      ×
-    </button>
-
-
-    <div class="game-details-image-container">
-
-      <img
-        id="game-details-image"
-        src="z-tronks.png"
-        alt="Z Tronks"
-      />
-
-    </div>
-
-
-    <div class="game-details-content">
-
-      <h2 id="game-details-title">
-        Z Tronks
+      <h2 id="account-modal-title">
+        Tu cuenta
       </h2>
 
 
-      <span
-        id="game-details-category"
-        class="game-details-category"
-      >
-        Roblox
-      </span>
+
+      <!-- LOGIN -->
+
+      <div id="login-panel">
 
 
-      <div class="game-details-info">
-
-        <div>
-
-          <strong>
-            Lanzamiento previsto
-          </strong>
-
-          <span id="game-details-release">
-            4/1/2027
-          </span>
-
-        </div>
+        <p class="modal-description">
+          Inicia sesión para participar en la comunidad.
+        </p>
 
 
-        <div>
+        <form id="login-form">
 
-          <strong>
-            Personas trabajando
-          </strong>
 
-          <span id="game-details-team">
-            5
-          </span>
+          <label for="login-email">
+            Correo electrónico
+          </label>
 
-        </div>
+
+          <input
+            id="login-email"
+            type="email"
+            required
+            autocomplete="email"
+          />
+
+
+          <label for="login-password">
+            Contraseña
+          </label>
+
+
+          <input
+            id="login-password"
+            type="password"
+            required
+            autocomplete="current-password"
+          />
+
+
+          <button
+            class="primary-button full-button"
+            type="submit"
+          >
+            Iniciar sesión
+          </button>
+
+
+        </form>
+
+
+        <p class="auth-switch">
+
+          ¿No tienes cuenta?
+
+          <button
+            id="show-register"
+            type="button"
+          >
+            Crear cuenta
+          </button>
+
+        </p>
+
 
       </div>
 
 
+
+      <!-- REGISTRO -->
+
       <div
-        id="game-details-description"
-        class="game-details-description"
+        id="register-panel"
+        class="hidden"
       >
 
-        <p>
-          <strong>Z Tronks</strong> es un juego de acción y
-          supervivencia ambientado en un mundo devastado por
-          un apocalipsis zombi. Los jugadores deberán explorar
-          una ciudad abandonada, enfrentarse a diferentes tipos
-          de zombis, completar misiones y conseguir experiencia
-          y recursos para mejorar a su personaje.
+
+        <p class="modal-description">
+          Crea una cuenta para publicar sugerencias.
         </p>
 
 
-        <p>
+        <form id="register-form">
+
+
+          <label for="register-name">
+            Nombre
+          </label>
+
+
+          <input
+            id="register-name"
+            type="text"
+            maxlength="30"
+            required
+            autocomplete="name"
+          />
+
+
+          <label for="register-email">
+            Correo electrónico
+          </label>
+
+
+          <input
+            id="register-email"
+            type="email"
+            required
+            autocomplete="email"
+          />
+
+
+          <label for="register-password">
+            Contraseña
+          </label>
+
+
+          <input
+            id="register-password"
+            type="password"
+            minlength="6"
+            required
+            autocomplete="new-password"
+          />
+
+
+          <button
+            class="primary-button full-button"
+            type="submit"
+          >
+            Crear cuenta
+          </button>
+
+
+        </form>
+
+
+        <p class="auth-switch">
+
+          ¿Ya tienes cuenta?
+
+          <button
+            id="show-login"
+            type="button"
+          >
+            Iniciar sesión
+          </button>
+
+        </p>
+
+
+      </div>
+
+
+
+      <!-- USUARIO CONECTADO -->
+
+      <div
+        id="logged-panel"
+        class="hidden"
+      >
+
+
+        <div class="account-info">
+
+
+          <div class="account-avatar">
+            👤
+          </div>
+
+
+          <div>
+
+            <strong id="account-name">
+              Usuario
+            </strong>
+
+            <span id="account-email">
+              correo
+            </span>
+
+          </div>
+
+
+        </div>
+
+
+        <button
+          id="logout-button"
+          class="danger-button full-button"
+          type="button"
+        >
+          Cerrar sesión
+        </button>
+
+
+      </div>
+
+
+      <p
+        id="auth-message"
+        class="auth-message"
+        aria-live="polite"
+      ></p>
+
+
+    </div>
+
+  </div>
+
+
+
+  <!-- =====================================================
+       MODAL DE SUGERENCIAS
+       ===================================================== -->
+
+  <div
+    id="suggestion-modal"
+    class="modal hidden"
+    aria-hidden="true"
+  >
+
+    <div class="modal-backdrop"></div>
+
+
+    <div
+      class="modal-box"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="suggestion-modal-title"
+    >
+
+
+      <button
+        class="modal-close"
+        data-close-modal="suggestion-modal"
+        type="button"
+        aria-label="Cerrar"
+      >
+        ×
+      </button>
+
+
+      <h2 id="suggestion-modal-title">
+        Sugerir una idea
+      </h2>
+
+
+      <p class="modal-description">
+        Comparte una idea para mejorar TronkStudios.
+      </p>
+
+
+      <form id="suggestion-form">
+
+
+        <label for="suggestion-name">
+          Nombre
+        </label>
+
+
+        <input
+          id="suggestion-name"
+          type="text"
+          maxlength="30"
+          required
+        />
+
+
+        <label for="suggestion-category-input">
+          Categoría
+        </label>
+
+
+        <select
+          id="suggestion-category-input"
+          required
+        >
+
+          <option value="Roblox">
+            Roblox
+          </option>
+
+          <option value="Juego">
+            Juego
+          </option>
+
+          <option value="Aplicación">
+            Aplicación
+          </option>
+
+        </select>
+
+
+        <label for="suggestion-text">
+          Idea
+        </label>
+
+
+        <textarea
+          id="suggestion-text"
+          maxlength="1000"
+          rows="6"
+          required
+          placeholder="Escribe tu idea..."
+        ></textarea>
+
+
+        <p class="character-counter">
+
+          <span id="character-count">
+            0
+          </span>/1000
+
+        </p>
+
+
+        <button
+          class="primary-button full-button"
+          type="submit"
+        >
+          Enviar idea
+        </button>
+
+
+      </form>
+
+
+      <p
+        id="suggestion-message"
+        class="auth-message"
+        aria-live="polite"
+      ></p>
+
+
+    </div>
+
+  </div>
+
+
+
+  <!-- =====================================================
+       MODAL Z TRONKS
+       ===================================================== -->
+
+  <div
+    id="game-details-modal"
+    class="game-details-modal hidden"
+    aria-hidden="true"
+  >
+
+    <div class="game-details-backdrop"></div>
+
+
+    <div
+      class="game-details-box"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="game-details-title"
+    >
+
+
+      <button
+        class="game-details-close"
+        type="button"
+        aria-label="Cerrar información"
+      >
+        ×
+      </button>
+
+
+      <div class="game-details-image">
+
+        <img
+          src="z-tronks.png"
+          alt="Z Tronks"
+        />
+
+      </div>
+
+
+      <div class="game-details-content">
+
+
+        <h2 id="game-details-title">
+          Z Tronks
+        </h2>
+
+
+        <p class="game-details-category">
+          <strong>
+            Categoría:
+          </strong>
+
+          Roblox
+        </p>
+
+
+        <div class="game-details-info">
+
+
+          <p>
+
+            <strong>
+              Lanzamiento previsto:
+            </strong>
+
+            Por determinar
+
+          </p>
+
+
+          <p>
+
+            <strong>
+              Personas trabajando:
+            </strong>
+
+            5
+
+          </p>
+
+
+        </div>
+
+
+        <p class="game-details-description">
+
+          <strong>
+            Descripción:
+          </strong>
+
+          <br /><br />
+
+          <strong>
+            Z Tronks
+          </strong>
+          es un juego de acción y supervivencia ambientado
+          en un mundo devastado por un apocalipsis zombi.
+          Los jugadores deberán explorar una ciudad abandonada,
+          enfrentarse a diferentes tipos de zombis, completar
+          misiones y conseguir experiencia y recursos para
+          mejorar a su personaje.
+
+          <br /><br />
+
           Cada jugador podrá elegir entre distintas clases,
           como <strong>Gunner, Warrior, Rogue y Medic</strong>,
           cada una con sus propias armas, habilidades y estilos
           de combate. A medida que avances, podrás desbloquear
           nuevas habilidades, conseguir mejor equipamiento y
           enfrentarte a enemigos cada vez más peligrosos.
-        </p>
 
+          <br /><br />
 
-        <p>
           <strong>
             Forma un equipo con tus amigos, sobrevive al
-            apocalipsis y conviértete en uno de los supervivientes
-            más poderosos de Z Tronks.
+            apocalipsis y conviértete en uno de los
+            supervivientes más poderosos de Z Tronks.
           </strong>
+
         </p>
 
+
       </div>
+
 
     </div>
 
   </div>
 
-</div>
+
+
+  <!-- =====================================================
+       MODAL ANTITRONKS
+       ===================================================== -->
+
+  <div
+    id="antitronks-modal"
+    class="antitronks-modal hidden"
+    aria-hidden="true"
+  >
+
+
+    <div class="antitronks-backdrop"></div>
+
+
+    <div
+      class="antitronks-window"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="antitronks-title"
+    >
+
+
+      <header class="antitronks-header">
+
+
+        <h2 id="antitronks-title">
+          ANTITRONKS
+        </h2>
+
+
+        <button
+          id="antitronks-close"
+          class="antitronks-close"
+          type="button"
+          aria-label="Cerrar Antitronks"
+        >
+          ×
+        </button>
+
+
+      </header>
+
+
+      <div class="antitronks-game">
+
+
+        <canvas
+          id="antitronks-canvas"
+        ></canvas>
+
+
+      </div>
+
+
+    </div>
+
+
+  </div>
+
 
 </body>
+
 </html>

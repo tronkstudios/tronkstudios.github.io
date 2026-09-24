@@ -1,6 +1,11 @@
 "use strict";
 
-console.log("SCRIPT NUEVO CARGADO");
+/* =========================================================
+   TRONKSTUDIOS
+   SCRIPT PRINCIPAL
+   ========================================================= */
+
+console.log("TronkStudios: script cargando...");
 
 /* =========================================================
    CONFIGURACIÓN SUPABASE
@@ -20,16 +25,14 @@ if (
   SUPABASE_ANON_KEY &&
   typeof window.supabase !== "undefined"
 ) {
-  supabaseClient =
-    window.supabase.createClient(
-      SUPABASE_URL,
-      SUPABASE_ANON_KEY
-    );
+  supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
 }
 
-
 /* =========================================================
-   ELEMENTOS
+   ELEMENTOS GENERALES
    ========================================================= */
 
 const accountButton =
@@ -41,11 +44,12 @@ const themeToggle =
 const yearElement =
   document.getElementById("year");
 
+/* =========================================================
+   MODAL DE CUENTA
+   ========================================================= */
+
 const accountModal =
   document.getElementById("account-modal");
-
-const suggestionModal =
-  document.getElementById("suggestion-modal");
 
 const loginPanel =
   document.getElementById("login-panel");
@@ -80,59 +84,45 @@ const accountName =
 const accountEmail =
   document.getElementById("account-email");
 
+/* =========================================================
+   SUGERENCIAS
+   ========================================================= */
+
+const suggestionModal =
+  document.getElementById("suggestion-modal");
+
 const newSuggestionButton =
-  document.getElementById(
-    "new-suggestion-button"
-  );
+  document.getElementById("new-suggestion-button");
 
 const footerSuggestionButton =
-  document.getElementById(
-    "footer-suggestion-button"
-  );
+  document.getElementById("footer-suggestion-button");
 
 const suggestionForm =
   document.getElementById("suggestion-form");
 
 const suggestionMessage =
-  document.getElementById(
-    "suggestion-message"
-  );
+  document.getElementById("suggestion-message");
 
 const suggestionName =
-  document.getElementById(
-    "suggestion-name"
-  );
+  document.getElementById("suggestion-name");
 
 const suggestionText =
-  document.getElementById(
-    "suggestion-text"
-  );
+  document.getElementById("suggestion-text");
 
 const characterCount =
-  document.getElementById(
-    "character-count"
-  );
+  document.getElementById("character-count");
 
 const suggestionsList =
-  document.getElementById(
-    "suggestions-list"
-  );
+  document.getElementById("suggestions-list");
 
 const suggestionSearch =
-  document.getElementById(
-    "suggestion-search"
-  );
+  document.getElementById("suggestion-search");
 
 const suggestionCategory =
-  document.getElementById(
-    "suggestion-category"
-  );
+  document.getElementById("suggestion-category");
 
 const suggestionTabs =
-  document.querySelectorAll(
-    ".suggestion-tab"
-  );
-
+  document.querySelectorAll(".suggestion-tab");
 
 /* =========================================================
    AÑO
@@ -142,7 +132,6 @@ if (yearElement) {
   yearElement.textContent =
     new Date().getFullYear();
 }
-
 
 /* =========================================================
    TEMA
@@ -158,7 +147,6 @@ function getSavedTheme() {
   }
 }
 
-
 function saveTheme(theme) {
   try {
     localStorage.setItem(
@@ -166,10 +154,9 @@ function saveTheme(theme) {
       theme
     );
   } catch {
-    // Nada
+    // Nada que hacer.
   }
 }
-
 
 function updateThemeButton(theme) {
   if (!themeToggle) {
@@ -177,14 +164,10 @@ function updateThemeButton(theme) {
   }
 
   const icon =
-    themeToggle.querySelector(
-      ".theme-icon"
-    );
+    themeToggle.querySelector(".theme-icon");
 
   const label =
-    themeToggle.querySelector(
-      ".theme-label"
-    );
+    themeToggle.querySelector(".theme-label");
 
   if (theme === "dark") {
     if (icon) {
@@ -225,23 +208,16 @@ function updateThemeButton(theme) {
   }
 }
 
-
 function applyTheme(theme) {
-  if (theme === "dark") {
-    document.documentElement.setAttribute(
-      "data-theme",
-      "dark"
-    );
-  } else {
-    document.documentElement.setAttribute(
-      "data-theme",
-      "light"
-    );
-  }
+  document.documentElement.setAttribute(
+    "data-theme",
+    theme === "dark"
+      ? "dark"
+      : "light"
+  );
 
   updateThemeButton(theme);
 }
-
 
 function initializeTheme() {
   const savedTheme =
@@ -268,7 +244,6 @@ function initializeTheme() {
   );
 }
 
-
 if (themeToggle) {
   themeToggle.addEventListener(
     "click",
@@ -289,9 +264,7 @@ if (themeToggle) {
   );
 }
 
-
 initializeTheme();
-
 
 /* =========================================================
    MODALES GENERALES
@@ -314,7 +287,6 @@ function openModal(modal) {
   );
 }
 
-
 function closeModal(modal) {
   if (!modal) {
     return;
@@ -327,37 +299,34 @@ function closeModal(modal) {
     "true"
   );
 
-  const accountClosed =
-    !accountModal ||
-    accountModal.classList.contains(
+  const accountOpen =
+    accountModal &&
+    !accountModal.classList.contains(
       "hidden"
     );
 
-  const suggestionClosed =
-    !suggestionModal ||
-    suggestionModal.classList.contains(
+  const suggestionOpen =
+    suggestionModal &&
+    !suggestionModal.classList.contains(
       "hidden"
     );
 
-  const gameClosed =
-    !gameDetailsModal ||
-    !gameDetailsModal.classList.contains(
-      "active"
+  const antitronksOpen =
+    antitronksModal &&
+    !antitronksModal.classList.contains(
+      "hidden"
     );
 
   if (
-    accountClosed &&
-    suggestionClosed &&
-    gameClosed
+    !accountOpen &&
+    !suggestionOpen &&
+    !antitronksOpen
   ) {
     document.body.classList.remove(
       "modal-open"
     );
   }
 }
-
-
-/* Botones generales de cerrar */
 
 document
   .querySelectorAll("[data-close-modal]")
@@ -380,9 +349,6 @@ document
     );
   });
 
-
-/* Fondos de los modales */
-
 document
   .querySelectorAll(".modal-backdrop")
   .forEach((backdrop) => {
@@ -390,45 +356,12 @@ document
       "click",
       () => {
         const modal =
-          backdrop.closest(
-            ".modal"
-          );
+          backdrop.closest(".modal");
 
         closeModal(modal);
       }
     );
   });
-
-
-/* ESC para modales generales */
-
-document.addEventListener(
-  "keydown",
-  (event) => {
-    if (event.key !== "Escape") {
-      return;
-    }
-
-    if (
-      accountModal &&
-      !accountModal.classList.contains(
-        "hidden"
-      )
-    ) {
-      closeModal(accountModal);
-    }
-
-    if (
-      suggestionModal &&
-      !suggestionModal.classList.contains(
-        "hidden"
-      )
-    ) {
-      closeModal(suggestionModal);
-    }
-  }
-);
-
 
 /* =========================================================
    SUPABASE
@@ -440,7 +373,6 @@ function isSupabaseConfigured() {
     supabaseClient.auth
   );
 }
-
 
 async function getCurrentUser() {
   if (!isSupabaseConfigured()) {
@@ -458,10 +390,7 @@ async function getCurrentUser() {
       return null;
     }
 
-    return (
-      result.data.user ||
-      null
-    );
+    return result.data.user || null;
   } catch (error) {
     console.error(
       "Error obteniendo usuario:",
@@ -471,7 +400,6 @@ async function getCurrentUser() {
     return null;
   }
 }
-
 
 /* =========================================================
    MENSAJES
@@ -492,12 +420,9 @@ function showAuthMessage(
     "auth-message";
 
   if (type) {
-    authMessage.classList.add(
-      type
-    );
+    authMessage.classList.add(type);
   }
 }
-
 
 function showSuggestionMessage(
   message,
@@ -514,79 +439,55 @@ function showSuggestionMessage(
     "auth-message";
 
   if (type) {
-    suggestionMessage.classList.add(
-      type
-    );
+    suggestionMessage.classList.add(type);
   }
 }
 
-
 /* =========================================================
-   CUENTA
+   INTERFAZ DE CUENTA
    ========================================================= */
 
 function showLoginPanel() {
-  if (loginPanel) {
-    loginPanel.classList.remove(
-      "hidden"
-    );
-  }
+  loginPanel?.classList.remove(
+    "hidden"
+  );
 
-  if (registerPanel) {
-    registerPanel.classList.add(
-      "hidden"
-    );
-  }
+  registerPanel?.classList.add(
+    "hidden"
+  );
 
-  if (loggedPanel) {
-    loggedPanel.classList.add(
-      "hidden"
-    );
-  }
+  loggedPanel?.classList.add(
+    "hidden"
+  );
 }
-
 
 function showRegisterPanel() {
-  if (loginPanel) {
-    loginPanel.classList.add(
-      "hidden"
-    );
-  }
+  loginPanel?.classList.add(
+    "hidden"
+  );
 
-  if (registerPanel) {
-    registerPanel.classList.remove(
-      "hidden"
-    );
-  }
+  registerPanel?.classList.remove(
+    "hidden"
+  );
 
-  if (loggedPanel) {
-    loggedPanel.classList.add(
-      "hidden"
-    );
-  }
+  loggedPanel?.classList.add(
+    "hidden"
+  );
 }
-
 
 function showLoggedPanel() {
-  if (loginPanel) {
-    loginPanel.classList.add(
-      "hidden"
-    );
-  }
+  loginPanel?.classList.add(
+    "hidden"
+  );
 
-  if (registerPanel) {
-    registerPanel.classList.add(
-      "hidden"
-    );
-  }
+  registerPanel?.classList.add(
+    "hidden"
+  );
 
-  if (loggedPanel) {
-    loggedPanel.classList.remove(
-      "hidden"
-    );
-  }
+  loggedPanel?.classList.remove(
+    "hidden"
+  );
 }
-
 
 async function updateAccountUI() {
   currentUser =
@@ -633,7 +534,6 @@ async function updateAccountUI() {
   }
 }
 
-
 /* =========================================================
    BOTÓN CUENTA
    ========================================================= */
@@ -646,13 +546,10 @@ if (accountButton) {
 
       await updateAccountUI();
 
-      openModal(
-        accountModal
-      );
+      openModal(accountModal);
     }
   );
 }
-
 
 /* =========================================================
    CAMBIAR LOGIN / REGISTRO
@@ -663,27 +560,23 @@ if (showRegisterButton) {
     "click",
     () => {
       showAuthMessage("");
-
       showRegisterPanel();
     }
   );
 }
-
 
 if (showLoginButton) {
   showLoginButton.addEventListener(
     "click",
     () => {
       showAuthMessage("");
-
       showLoginPanel();
     }
   );
 }
 
-
 /* =========================================================
-   INICIAR SESIÓN
+   LOGIN
    ========================================================= */
 
 if (loginForm) {
@@ -692,9 +585,7 @@ if (loginForm) {
     async (event) => {
       event.preventDefault();
 
-      if (
-        !isSupabaseConfigured()
-      ) {
+      if (!isSupabaseConfigured()) {
         showAuthMessage(
           "La cuenta todavía no está configurada.",
           "error"
@@ -738,7 +629,10 @@ if (loginForm) {
       );
 
       try {
-        const { data, error } =
+        const {
+          data,
+          error
+        } =
           await supabaseClient.auth.signInWithPassword(
             {
               email,
@@ -771,7 +665,6 @@ if (loginForm) {
             accountModal
           );
         }, 700);
-
       } catch (error) {
         console.error(error);
 
@@ -784,9 +677,8 @@ if (loginForm) {
   );
 }
 
-
 /* =========================================================
-   CREAR CUENTA
+   REGISTRO
    ========================================================= */
 
 if (registerForm) {
@@ -795,9 +687,7 @@ if (registerForm) {
     async (event) => {
       event.preventDefault();
 
-      if (
-        !isSupabaseConfigured()
-      ) {
+      if (!isSupabaseConfigured()) {
         showAuthMessage(
           "La cuenta todavía no está configurada.",
           "error"
@@ -851,19 +741,18 @@ if (registerForm) {
       );
 
       try {
-        const { data, error } =
+        const {
+          data,
+          error
+        } =
           await supabaseClient.auth.signUp(
             {
               email,
               password,
-
               options: {
                 data: {
                   name
-                },
-
-                emailRedirectTo:
-                  "https://tronkstudios.github.io/TronkWeb/"
+                }
               }
             }
           );
@@ -882,14 +771,13 @@ if (registerForm) {
           data?.user || null;
 
         showAuthMessage(
-          "Cuenta creada correctamente. Revisa tu correo para confirmar la cuenta.",
+          "Cuenta creada correctamente.",
           "success"
         );
 
         registerForm.reset();
 
         await updateAccountUI();
-
       } catch (error) {
         console.error(error);
 
@@ -902,7 +790,6 @@ if (registerForm) {
   );
 }
 
-
 /* =========================================================
    CERRAR SESIÓN
    ========================================================= */
@@ -911,14 +798,9 @@ if (logoutButton) {
   logoutButton.addEventListener(
     "click",
     async () => {
-
-      if (
-        !isSupabaseConfigured()
-      ) {
+      if (!isSupabaseConfigured()) {
         currentUser = null;
-
         showLoginPanel();
-
         return;
       }
 
@@ -949,7 +831,6 @@ if (logoutButton) {
           accountButton.textContent =
             "👤 Cuenta";
         }
-
       } catch (error) {
         console.error(error);
 
@@ -962,14 +843,16 @@ if (logoutButton) {
   );
 }
 
-
 /* =========================================================
    CAMBIO DE ESTADO SUPABASE
    ========================================================= */
 
 if (isSupabaseConfigured()) {
   supabaseClient.auth.onAuthStateChange(
-    async (event, session) => {
+    async (
+      event,
+      session
+    ) => {
       currentUser =
         session?.user || null;
 
@@ -978,7 +861,6 @@ if (isSupabaseConfigured()) {
   );
 }
 
-
 /* =========================================================
    SUGERENCIAS
    ========================================================= */
@@ -986,9 +868,7 @@ if (isSupabaseConfigured()) {
 function openSuggestionModal() {
   showSuggestionMessage("");
 
-  if (suggestionForm) {
-    suggestionForm.reset();
-  }
+  suggestionForm?.reset();
 
   updateCharacterCounter();
 
@@ -997,14 +877,12 @@ function openSuggestionModal() {
   );
 }
 
-
 if (newSuggestionButton) {
   newSuggestionButton.addEventListener(
     "click",
     openSuggestionModal
   );
 }
-
 
 if (footerSuggestionButton) {
   footerSuggestionButton.addEventListener(
@@ -1013,9 +891,8 @@ if (footerSuggestionButton) {
   );
 }
 
-
 /* =========================================================
-   CONTADOR DE CARACTERES
+   CONTADOR
    ========================================================= */
 
 function updateCharacterCounter() {
@@ -1030,7 +907,6 @@ function updateCharacterCounter() {
     suggestionText.value.length;
 }
 
-
 if (suggestionText) {
   suggestionText.addEventListener(
     "input",
@@ -1038,22 +914,22 @@ if (suggestionText) {
   );
 }
 
-
 updateCharacterCounter();
-
 
 /* =========================================================
    CARGAR SUGERENCIAS
    ========================================================= */
+
+let allSuggestions = [];
+let currentSuggestionTab =
+  "all";
 
 async function loadSuggestions() {
   if (!suggestionsList) {
     return;
   }
 
-  if (
-    !isSupabaseConfigured()
-  ) {
+  if (!isSupabaseConfigured()) {
     suggestionsList.innerHTML = `
       <div class="suggestions-loading">
         Configura Supabase para mostrar las sugerencias.
@@ -1070,13 +946,19 @@ async function loadSuggestions() {
   `;
 
   try {
-    const { data, error } =
+    const {
+      data,
+      error
+    } =
       await supabaseClient
         .from("suggestions")
         .select("*")
-        .order("created_at", {
-          ascending: false
-        });
+        .order(
+          "created_at",
+          {
+            ascending: false
+          }
+        );
 
     if (error) {
       console.error(
@@ -1096,7 +978,6 @@ async function loadSuggestions() {
     renderSuggestions(
       data || []
     );
-
   } catch (error) {
     console.error(error);
 
@@ -1108,16 +989,9 @@ async function loadSuggestions() {
   }
 }
 
-
 /* =========================================================
-   RENDERIZAR SUGERENCIAS
+   RENDER SUGERENCIAS
    ========================================================= */
-
-let allSuggestions = [];
-
-let currentSuggestionTab =
-  "all";
-
 
 function renderSuggestions(
   suggestions
@@ -1157,9 +1031,7 @@ function renderSuggestions(
     }
   }
 
-  if (
-    category !== "Todas"
-  ) {
+  if (category !== "Todas") {
     filtered =
       filtered.filter(
         (suggestion) =>
@@ -1186,9 +1058,7 @@ function renderSuggestions(
       );
   }
 
-  if (
-    filtered.length === 0
-  ) {
+  if (filtered.length === 0) {
     suggestionsList.innerHTML = `
       <div class="suggestions-loading">
         No hay sugerencias para mostrar.
@@ -1198,26 +1068,21 @@ function renderSuggestions(
     return;
   }
 
-  suggestionsList.innerHTML =
-    "";
+  suggestionsList.innerHTML = "";
 
   filtered.forEach(
     (suggestion) => {
-      const card =
+      suggestionsList.appendChild(
         createSuggestionCard(
           suggestion
-        );
-
-      suggestionsList.appendChild(
-        card
+        )
       );
     }
   );
 }
 
-
 /* =========================================================
-   CREAR TARJETA DE SUGERENCIA
+   TARJETA DE SUGERENCIA
    ========================================================= */
 
 function createSuggestionCard(
@@ -1264,13 +1129,8 @@ function createSuggestionCard(
       suggestion.created_at
     );
 
-  header.appendChild(
-    author
-  );
-
-  header.appendChild(
-    date
-  );
+  header.appendChild(author);
+  header.appendChild(date);
 
   const category =
     document.createElement(
@@ -1308,16 +1168,13 @@ function createSuggestionCard(
       "button"
     );
 
-  voteButton.type =
-    "button";
+  voteButton.type = "button";
 
   voteButton.className =
     "vote-button";
 
   voteButton.textContent =
-    `👍 ${
-      suggestion.votes || 0
-    }`;
+    `👍 ${suggestion.votes || 0}`;
 
   voteButton.addEventListener(
     "click",
@@ -1365,25 +1222,13 @@ function createSuggestionCard(
     );
   }
 
-  article.appendChild(
-    header
-  );
-
-  article.appendChild(
-    category
-  );
-
-  article.appendChild(
-    text
-  );
-
-  article.appendChild(
-    actions
-  );
+  article.appendChild(header);
+  article.appendChild(category);
+  article.appendChild(text);
+  article.appendChild(actions);
 
   return article;
 }
-
 
 /* =========================================================
    FECHA
@@ -1417,7 +1262,6 @@ function formatDate(
   );
 }
 
-
 /* =========================================================
    ENVIAR SUGERENCIA
    ========================================================= */
@@ -1428,9 +1272,7 @@ if (suggestionForm) {
     async (event) => {
       event.preventDefault();
 
-      if (
-        !isSupabaseConfigured()
-      ) {
+      if (!isSupabaseConfigured()) {
         showSuggestionMessage(
           "Las sugerencias todavía no están configuradas.",
           "error"
@@ -1485,7 +1327,9 @@ if (suggestionForm) {
       );
 
       try {
-        const { error } =
+        const {
+          error
+        } =
           await supabaseClient
             .from("suggestions")
             .insert({
@@ -1524,7 +1368,6 @@ if (suggestionForm) {
             suggestionModal
           );
         }, 800);
-
       } catch (error) {
         console.error(error);
 
@@ -1537,7 +1380,6 @@ if (suggestionForm) {
   );
 }
 
-
 /* =========================================================
    VOTAR
    ========================================================= */
@@ -1545,9 +1387,7 @@ if (suggestionForm) {
 async function voteSuggestion(
   suggestion
 ) {
-  if (
-    !isSupabaseConfigured()
-  ) {
+  if (!isSupabaseConfigured()) {
     return;
   }
 
@@ -1557,7 +1397,9 @@ async function voteSuggestion(
     ) + 1;
 
   try {
-    const { error } =
+    const {
+      error
+    } =
       await supabaseClient
         .from("suggestions")
         .update({
@@ -1574,12 +1416,10 @@ async function voteSuggestion(
     }
 
     await loadSuggestions();
-
   } catch (error) {
     console.error(error);
   }
 }
-
 
 /* =========================================================
    ELIMINAR SUGERENCIA
@@ -1589,12 +1429,9 @@ async function deleteSuggestion(
   id
 ) {
   if (
-    !isSupabaseConfigured()
+    !isSupabaseConfigured() ||
+    !currentUser
   ) {
-    return;
-  }
-
-  if (!currentUser) {
     return;
   }
 
@@ -1608,7 +1445,9 @@ async function deleteSuggestion(
   }
 
   try {
-    const { error } =
+    const {
+      error
+    } =
       await supabaseClient
         .from("suggestions")
         .delete()
@@ -1624,12 +1463,10 @@ async function deleteSuggestion(
     }
 
     await loadSuggestions();
-
   } catch (error) {
     console.error(error);
   }
 }
-
 
 /* =========================================================
    PESTAÑAS DE SUGERENCIAS
@@ -1640,7 +1477,6 @@ suggestionTabs.forEach(
     tab.addEventListener(
       "click",
       () => {
-
         suggestionTabs.forEach(
           (item) => {
             item.classList.remove(
@@ -1665,7 +1501,6 @@ suggestionTabs.forEach(
   }
 );
 
-
 /* =========================================================
    BUSCADOR
    ========================================================= */
@@ -1680,7 +1515,6 @@ if (suggestionSearch) {
     }
   );
 }
-
 
 /* =========================================================
    FILTRO
@@ -1697,504 +1531,73 @@ if (suggestionCategory) {
   );
 }
 
-
 /* =========================================================
-   Z TRONKS - MENÚ DE INFORMACIÓN
-   ========================================================= */
-
-/*
-   Este modal NO es el modal de cuenta
-   ni el de sugerencias.
-
-   Solo controla Z Tronks.
-*/
-
-const gameDetailsModal =
-  document.getElementById(
-    "game-details-modal"
-  );
-
-
-function openGameDetails() {
-  if (!gameDetailsModal) {
-    console.warn(
-      "No se encontró #game-details-modal"
-    );
-
-    return;
-  }
-
-  /*
-   * Quitamos hidden por si el modal
-   * utiliza la misma clase que los
-   * otros modales.
-   */
-
-  gameDetailsModal.classList.remove(
-    "hidden"
-  );
-
-  /*
-   * Añadimos active para el CSS
-   * del menú de Z Tronks.
-   */
-
-  gameDetailsModal.classList.add(
-    "active"
-  );
-
-  gameDetailsModal.setAttribute(
-    "aria-hidden",
-    "false"
-  );
-
-  document.body.classList.add(
-    "modal-open"
-  );
-}
-
-
-function closeGameDetails() {
-  if (!gameDetailsModal) {
-    return;
-  }
-
-  gameDetailsModal.classList.remove(
-    "active"
-  );
-
-  gameDetailsModal.classList.add(
-    "hidden"
-  );
-
-  gameDetailsModal.setAttribute(
-    "aria-hidden",
-    "true"
-  );
-
-  /*
-   * Solo quitamos modal-open si no
-   * queda ningún otro modal abierto.
-   */
-
-  const accountOpen =
-    accountModal &&
-    !accountModal.classList.contains(
-      "hidden"
-    );
-
-  const suggestionOpen =
-    suggestionModal &&
-    !suggestionModal.classList.contains(
-      "hidden"
-    );
-
-  if (
-    !accountOpen &&
-    !suggestionOpen
-  ) {
-    document.body.classList.remove(
-      "modal-open"
-    );
-  }
-}
-
-
-/* =========================================================
-   TARJETA Z TRONKS
-   ========================================================= */
-
-function initializeZTronks() {
-
-  /*
-   * Primero buscamos tarjetas que
-   * tengan data-game="z-tronks".
-   */
-
-  let zTronksCards =
-    document.querySelectorAll(
-      '.dev-card[data-game="z-tronks"], .game-card[data-game="z-tronks"]'
-    );
-
-
-  /*
-   * Si la tarjeta todavía no tiene
-   * data-game, buscamos por el título.
-   */
-
-  if (
-    zTronksCards.length === 0
-  ) {
-
-    const developmentCards =
-      document.querySelectorAll(
-        ".dev-card"
-      );
-
-    const matchingCards = [];
-
-    developmentCards.forEach(
-      (card) => {
-
-        const title =
-          card
-            .querySelector("h3")
-            ?.textContent
-            .trim()
-            .toLowerCase();
-
-        if (
-          title ===
-          "z tronks"
-        ) {
-          matchingCards.push(
-            card
-          );
-        }
-      }
-    );
-
-    zTronksCards =
-      matchingCards;
-  }
-
-
-  zTronksCards.forEach(
-    (card) => {
-
-      card.style.cursor =
-        "pointer";
-
-      /*
-       * Evitamos que se añada
-       * el evento dos veces.
-       */
-
-      if (
-        card.dataset.ztronksReady ===
-        "true"
-      ) {
-        return;
-      }
-
-      card.dataset.ztronksReady =
-        "true";
-
-
-      card.addEventListener(
-        "click",
-        (event) => {
-
-          /*
-           * Si se pulsa un botón
-           * dentro de la tarjeta,
-           * no hacemos nada.
-           */
-
-          if (
-            event.target.closest(
-              "button, a"
-            )
-          ) {
-            return;
-          }
-
-          openGameDetails();
-        }
-      );
-
-
-      card.addEventListener(
-        "keydown",
-        (event) => {
-
-          if (
-            event.key ===
-              "Enter" ||
-            event.key ===
-              " "
-          ) {
-            event.preventDefault();
-
-            openGameDetails();
-          }
-        }
-      );
-
-    }
-  );
-}
-
-
-/* =========================================================
-   ELIMINAR Z TRONKS DE MINIJUEGOS
-   ========================================================= */
-
-/*
-   Z Tronks NO debe estar en Minijuegos.
-   Tampoco dejamos Zetratronix ahí.
-*/
-
-function cleanMinigames() {
-
-  const minigamesSection =
-    document.getElementById(
-      "minijuegos"
-    );
-
-  if (!minigamesSection) {
-    return;
-  }
-
-
-  const cards =
-    minigamesSection.querySelectorAll(
-      ".game-card, .card"
-    );
-
-
-  cards.forEach(
-    (card) => {
-
-      const title =
-        card
-          .querySelector(
-            "h3, h2"
-          )
-          ?.textContent
-          .trim()
-          .toLowerCase() ||
-        "";
-
-
-      /*
-       * Eliminamos Z Tronks
-       * de Minijuegos.
-       */
-
-      if (
-        title ===
-          "z tronks" ||
-        title ===
-          "zetratronix"
-      ) {
-        card.remove();
-      }
-
-    }
-  );
-}
-
-
-/* =========================================================
-   BOTÓN X DEL MENÚ DE Z TRONKS
-   ========================================================= */
-
-function initializeGameDetailsModal() {
-
-  if (!gameDetailsModal) {
-    return;
-  }
-
-
-  const closeButton =
-    gameDetailsModal.querySelector(
-      ".game-details-close"
-    );
-
-
-  if (closeButton) {
-
-    closeButton.addEventListener(
-      "click",
-      (event) => {
-
-        event.preventDefault();
-        event.stopPropagation();
-
-        closeGameDetails();
-      }
-    );
-
-  }
-
-
-  /*
-   * Fondo del modal.
-   */
-
-  const backdrop =
-    gameDetailsModal.querySelector(
-      ".game-details-backdrop"
-    );
-
-
-  if (backdrop) {
-
-    backdrop.addEventListener(
-      "click",
-      (event) => {
-
-        event.preventDefault();
-        event.stopPropagation();
-
-        closeGameDetails();
-      }
-    );
-
-  }
-
-
-  /*
-   * También permitimos cerrar
-   * haciendo clic directamente
-   * sobre el fondo del modal.
-   */
-
-  gameDetailsModal.addEventListener(
-    "click",
-    (event) => {
-
-      if (
-        event.target ===
-        gameDetailsModal
-      ) {
-        closeGameDetails();
-      }
-
-    }
-  );
-
-}
-
-
-/* =========================================================
-   ESC PARA Z TRONKS
-   ========================================================= */
-
-document.addEventListener(
-  "keydown",
-  (event) => {
-
-    if (
-      event.key !== "Escape"
-    ) {
-      return;
-    }
-
-    if (
-      gameDetailsModal &&
-      gameDetailsModal.classList.contains(
-        "active"
-      )
-    ) {
-      closeGameDetails();
-    }
-
-  }
-);
-
-
-/* =========================================================
-   PROYECTOS EN DESARROLLO
+   PROYECTOS
    ========================================================= */
 
 function initializeProjects() {
-
   const projectCards =
     document.querySelectorAll(
       ".dev-card"
     );
 
-
   projectCards.forEach(
     (card) => {
-
-      /*
-       * Si es Z Tronks,
-       * lo controla exclusivamente
-       * el menú de información.
-       */
-
-      const title =
-        card
-          .querySelector("h3")
-          ?.textContent
-          .trim()
-          .toLowerCase() ||
-        "";
-
-
-      if (
-        title ===
-        "z tronks"
-      ) {
-        return;
-      }
-
-
       card.style.cursor =
         "pointer";
-
 
       card.addEventListener(
         "click",
         () => {
-
-          const projectTitle =
-            card
-              .querySelector("h3")
-              ?.textContent ||
+          const title =
+            card.querySelector(
+              "h3"
+            )?.textContent ||
             "Proyecto";
 
-
           const description =
-            card
-              .querySelector(
-                "p:not(.dev-card-category)"
-              )
-              ?.textContent ||
+            card.querySelector(
+              "p:not(.dev-card-category)"
+            )?.textContent ||
             "Sin descripción.";
-
 
           const existingDetails =
             card.querySelector(
               ".project-details"
             );
 
-
-          if (
-            existingDetails
-          ) {
+          if (existingDetails) {
             existingDetails.remove();
-
             return;
           }
-
 
           const details =
             document.createElement(
               "div"
             );
 
-
           details.className =
             "project-details";
 
+          const safeTitle =
+            escapeHtml(
+              title
+            );
+
+          const safeDescription =
+            escapeHtml(
+              description
+            );
 
           details.innerHTML = `
             <p>
               <strong>Proyecto:</strong>
-              ${escapeHtml(
-                projectTitle
-              )}
+              ${safeTitle}
             </p>
 
             <p>
               <strong>Descripción:</strong>
-              ${escapeHtml(
-                description
-              )}
+              ${safeDescription}
             </p>
 
             <p>
@@ -2204,29 +1607,22 @@ function initializeProjects() {
 
             <p>
               <strong>Personas trabajando:</strong>
-              Por determinar
+              5
             </p>
           `;
-
 
           card.appendChild(
             details
           );
-
         }
       );
-
     }
   );
 }
 
-
-/* =========================================================
-   ESCAPAR HTML
-   ========================================================= */
-
-function escapeHtml(value) {
-
+function escapeHtml(
+  value
+) {
   const div =
     document.createElement(
       "div"
@@ -2238,23 +1634,2631 @@ function escapeHtml(value) {
   return div.innerHTML;
 }
 
+/* =========================================================
+   ANTITRONKS
+   ========================================================= */
+
+const antitronksCard =
+  document.getElementById(
+    "antitronks-card"
+  );
+
+const antitronksModal =
+  document.getElementById(
+    "antitronks-modal"
+  );
+
+const antitronksClose =
+  document.getElementById(
+    "antitronks-close"
+  );
+
+const antitronksBackdrop =
+  document.querySelector(
+    ".antitronks-backdrop"
+  );
+
+const antitronksGame =
+  document.querySelector(
+    ".antitronks-game"
+  );
+
+const antitronksCanvas =
+  document.getElementById(
+    "antitronks-canvas"
+  );
+
+/* =========================================================
+   VARIABLES DEL JUEGO
+   ========================================================= */
+
+let antitronksAnimationFrame =
+  null;
+
+let antitronksRunning =
+  false;
+
+let antitronksStarted =
+  false;
+
+let antitronksScore =
+  0;
+
+let antitronksLives =
+  3;
+
+let antitronksCamera =
+  0;
+
+let antitronksTargetCamera =
+  0;
+
+let antitronksLastTime =
+  0;
+
+let antitronksWidth =
+  0;
+
+let antitronksHeight =
+  0;
+
+let antitronksFlash =
+  0;
+
+let antitronksSpawnTimer =
+  null;
+
+let antitronksNextSpawn =
+  0;
+
+let antitronksMessageTimer =
+  null;
+
+/*
+ * IMPORTANTE:
+ * Ahora no existe "currentTarget".
+ *
+ * Puede haber varios objetivos al mismo tiempo.
+ */
+
+let antitronksTargets =
+  [];
+
+let antitronksTargetId =
+  0;
+
+/* =========================================================
+   CONFIGURACIÓN DEL JUEGO
+   ========================================================= */
+
+const ANTITRONKS_MAX_TARGETS =
+  4;
+
+const ANTITRONKS_FOV =
+  Math.PI * 0.72;
+
+const ANTITRONKS_CAMERA_LIMIT =
+  Math.PI * 0.9;
+
+const ANTITRONKS_PLAYER_HEIGHT =
+  1.7;
+
+const ANTITRONKS_BOXES = [
+  {
+    x: -6,
+    y: 10,
+    size: 1.6
+  },
+  {
+    x: 4,
+    y: 14,
+    size: 1.8
+  },
+  {
+    x: -4,
+    y: 19,
+    size: 1.7
+  },
+  {
+    x: 6,
+    y: 24,
+    size: 1.9
+  },
+  {
+    x: -7,
+    y: 29,
+    size: 1.7
+  },
+  {
+    x: 3,
+    y: 34,
+    size: 1.8
+  },
+  {
+    x: -5,
+    y: 40,
+    size: 1.9
+  },
+  {
+    x: 7,
+    y: 46,
+    size: 1.8
+  },
+  {
+    x: -3,
+    y: 52,
+    size: 1.7
+  },
+  {
+    x: 5,
+    y: 59,
+    size: 2
+  },
+  {
+    x: -7,
+    y: 66,
+    size: 1.8
+  },
+  {
+    x: 4,
+    y: 74,
+    size: 1.9
+  }
+];
+
+/* =========================================================
+   UTILIDADES ANTITRONKS
+   ========================================================= */
+
+function antitronksRandom(
+  min,
+  max
+) {
+  return (
+    Math.random() *
+      (max - min) +
+    min
+  );
+}
+
+function antitronksClamp(
+  value,
+  min,
+  max
+) {
+  return Math.max(
+    min,
+    Math.min(
+      max,
+      value
+    )
+  );
+}
+
+function antitronksDistance(
+  x1,
+  y1,
+  x2,
+  y2
+) {
+  return Math.sqrt(
+    (x2 - x1) ** 2 +
+    (y2 - y1) ** 2
+  );
+}
+
+/* =========================================================
+   ABRIR ANTITRONKS
+   ========================================================= */
+
+function openAntitronks() {
+  if (!antitronksModal) {
+    return;
+  }
+
+  antitronksModal.classList.remove(
+    "hidden"
+  );
+
+  antitronksModal.setAttribute(
+    "aria-hidden",
+    "false"
+  );
+
+  document.body.classList.add(
+    "antitronks-open"
+  );
+
+  startAntitronks();
+}
+
+/* =========================================================
+   CERRAR ANTITRONKS
+   ========================================================= */
+
+function closeAntitronks() {
+  stopAntitronks();
+
+  if (antitronksModal) {
+    antitronksModal.classList.add(
+      "hidden"
+    );
+
+    antitronksModal.setAttribute(
+      "aria-hidden",
+      "true"
+    );
+  }
+
+  document.body.classList.remove(
+    "antitronks-open"
+  );
+}
+
+if (antitronksCard) {
+  antitronksCard.addEventListener(
+    "click",
+    openAntitronks
+  );
+
+  antitronksCard.addEventListener(
+    "keydown",
+    (event) => {
+      if (
+        event.key === "Enter" ||
+        event.key === " "
+      ) {
+        event.preventDefault();
+        openAntitronks();
+      }
+    }
+  );
+}
+
+if (antitronksClose) {
+  antitronksClose.addEventListener(
+    "click",
+    closeAntitronks
+  );
+}
+
+if (antitronksBackdrop) {
+  antitronksBackdrop.addEventListener(
+    "click",
+    closeAntitronks
+  );
+}
+
+/* =========================================================
+   INICIAR ANTITRONKS
+   ========================================================= */
+
+function startAntitronks() {
+  stopAntitronks();
+
+  antitronksScore = 0;
+  antitronksLives = 3;
+
+  antitronksCamera = 0;
+  antitronksTargetCamera = 0;
+
+  antitronksLastTime =
+    performance.now();
+
+  antitronksFlash = 0;
+
+  antitronksTargets = [];
+
+  antitronksTargetId = 0;
+
+  antitronksStarted = true;
+  antitronksRunning = true;
+
+  resizeAntitronksCanvas();
+
+  createAntitronksInterface();
+
+  scheduleAntitronksSpawn(
+    900
+  );
+
+  antitronksAnimationFrame =
+    requestAnimationFrame(
+      antitronksLoop
+    );
+}
+
+/* =========================================================
+   PARAR ANTITRONKS
+   ========================================================= */
+
+function stopAntitronks() {
+  antitronksRunning = false;
+
+  antitronksStarted = false;
+
+  if (
+    antitronksAnimationFrame
+  ) {
+    cancelAnimationFrame(
+      antitronksAnimationFrame
+    );
+
+    antitronksAnimationFrame =
+      null;
+  }
+
+  if (
+    antitronksSpawnTimer
+  ) {
+    clearTimeout(
+      antitronksSpawnTimer
+    );
+
+    antitronksSpawnTimer =
+      null;
+  }
+
+  if (
+    antitronksMessageTimer
+  ) {
+    clearTimeout(
+      antitronksMessageTimer
+    );
+
+    antitronksMessageTimer =
+      null;
+  }
+
+  antitronksTargets = [];
+
+  removeAntitronksInterface();
+}
+
+/* =========================================================
+   INTERFAZ DEL JUEGO
+   ========================================================= */
+
+function createAntitronksInterface() {
+  if (!antitronksGame) {
+    return;
+  }
+
+  removeAntitronksInterface();
+
+  const hud =
+    document.createElement(
+      "div"
+    );
+
+  hud.className =
+    "antitronks-hud";
+
+  hud.id =
+    "antitronks-hud";
+
+  hud.innerHTML = `
+    <div class="antitronks-score">
+      Score: <span id="antitronks-score">0</span>
+    </div>
+
+    <div class="antitronks-lives">
+      Lives: <span id="antitronks-lives">❤️❤️❤️</span>
+    </div>
+
+    <div
+      class="antitronks-message"
+      id="antitronks-message"
+    ></div>
+
+    <div
+      class="antitronks-offscreen-enemies"
+      id="antitronks-offscreen-enemies"
+    ></div>
+  `;
+
+  antitronksGame.appendChild(
+    hud
+  );
+}
+
+function removeAntitronksInterface() {
+  const hud =
+    document.getElementById(
+      "antitronks-hud"
+    );
+
+  if (hud) {
+    hud.remove();
+  }
+}
+
+/* =========================================================
+   ACTUALIZAR HUD
+   ========================================================= */
+
+function updateAntitronksHUD() {
+  const score =
+    document.getElementById(
+      "antitronks-score"
+    );
+
+  const lives =
+    document.getElementById(
+      "antitronks-lives"
+    );
+
+  if (score) {
+    score.textContent =
+      antitronksScore;
+  }
+
+  if (lives) {
+    lives.textContent =
+      "❤️".repeat(
+        Math.max(
+          0,
+          antitronksLives
+        )
+      );
+  }
+}
+
+/* =========================================================
+   MENSAJES
+   ========================================================= */
+
+function showAntitronksMessage(
+  message
+) {
+  const element =
+    document.getElementById(
+      "antitronks-message"
+    );
+
+  if (!element) {
+    return;
+  }
+
+  element.textContent =
+    message;
+
+  if (
+    antitronksMessageTimer
+  ) {
+    clearTimeout(
+      antitronksMessageTimer
+    );
+  }
+
+  if (message) {
+    antitronksMessageTimer =
+      setTimeout(
+        () => {
+          element.textContent =
+            "";
+        },
+        900
+      );
+  }
+}
+
+/* =========================================================
+   REDIMENSIONAR CANVAS
+   ========================================================= */
+
+function resizeAntitronksCanvas() {
+  if (
+    !antitronksCanvas ||
+    !antitronksGame
+  ) {
+    return;
+  }
+
+  const rect =
+    antitronksGame.getBoundingClientRect();
+
+  const width =
+    Math.max(
+      1,
+      Math.floor(rect.width)
+    );
+
+  const height =
+    Math.max(
+      1,
+      Math.floor(rect.height)
+    );
+
+  const dpr =
+    Math.min(
+      window.devicePixelRatio ||
+        1,
+      2
+    );
+
+  antitronksWidth =
+    width;
+
+  antitronksHeight =
+    height;
+
+  antitronksCanvas.width =
+    Math.floor(
+      width * dpr
+    );
+
+  antitronksCanvas.height =
+    Math.floor(
+      height * dpr
+    );
+
+  antitronksCanvas.style.width =
+    `${width}px`;
+
+  antitronksCanvas.style.height =
+    `${height}px`;
+
+  const ctx =
+    antitronksCanvas.getContext(
+      "2d"
+    );
+
+  if (ctx) {
+    ctx.setTransform(
+      dpr,
+      0,
+      0,
+      dpr,
+      0,
+      0
+    );
+  }
+}
+
+window.addEventListener(
+  "resize",
+  () => {
+    if (
+      antitronksRunning
+    ) {
+      resizeAntitronksCanvas();
+    }
+  }
+);
+
+/* =========================================================
+   CREAR OBJETIVO
+   ========================================================= */
+
+function spawnAntitronksTarget() {
+  if (
+    !antitronksRunning
+  ) {
+    return;
+  }
+
+  if (
+    antitronksTargets.length >=
+    ANTITRONKS_MAX_TARGETS
+  ) {
+    return;
+  }
+
+  let box = null;
+
+  for (
+    let attempt = 0;
+    attempt < 20;
+    attempt++
+  ) {
+    const candidate =
+      ANTITRONKS_BOXES[
+        Math.floor(
+          Math.random() *
+            ANTITRONKS_BOXES.length
+        )
+      ];
+
+    const occupied =
+      antitronksTargets.some(
+        (target) =>
+          target.boxY ===
+          candidate.y
+      );
+
+    if (!occupied) {
+      box = candidate;
+      break;
+    }
+  }
+
+  if (!box) {
+    return;
+  }
+
+  const civilianChance =
+    0.18;
+
+  const isCivilian =
+    Math.random() <
+    civilianChance;
+
+  const reactionTime =
+    getAntitronksReactionTime();
+
+  const target = {
+    id:
+      ++antitronksTargetId,
+
+    type:
+      isCivilian
+        ? "civilian"
+        : "enemy",
+
+    x:
+      box.x +
+      antitronksRandom(
+        -0.35,
+        0.35
+      ),
+
+    y:
+      box.y -
+
+      antitronksRandom(
+        0.1,
+        0.8
+      ),
+
+    boxY:
+      box.y,
+
+    born:
+      performance.now(),
+
+    reactionTime,
+
+    maxLife:
+      isCivilian
+        ? antitronksRandom(
+            2600,
+            4200
+          )
+        : null,
+
+    hit:
+      false,
+
+    attack:
+      false
+  };
+
+  antitronksTargets.push(
+    target
+  );
+}
+
+/* =========================================================
+   TIEMPO DE REACCIÓN
+   ========================================================= */
+
+function getAntitronksReactionTime() {
+  const base =
+    2400;
+
+  /*
+   * Cuantos más puntos:
+   * menos tiempo tiene el jugador.
+   */
+
+  const reduction =
+    antitronksScore * 45;
+
+  const minimum =
+    550;
+
+  return Math.max(
+    minimum,
+    base - reduction
+  );
+}
+
+/* =========================================================
+   TIEMPO DE APARICIÓN
+   ========================================================= */
+
+function getAntitronksSpawnDelay() {
+  const minimum =
+    Math.max(
+      280,
+      1150 -
+        antitronksScore *
+          25
+    );
+
+  const maximum =
+    Math.max(
+      650,
+      2200 -
+        antitronksScore *
+          35
+    );
+
+  return antitronksRandom(
+    minimum,
+    maximum
+  );
+}
+
+/* =========================================================
+   PROGRAMAR APARICIÓN
+   ========================================================= */
+
+function scheduleAntitronksSpawn(
+  delay = null
+) {
+  if (
+    !antitronksRunning
+  ) {
+    return;
+  }
+
+  if (
+    antitronksSpawnTimer
+  ) {
+    clearTimeout(
+      antitronksSpawnTimer
+    );
+  }
+
+  const spawnDelay =
+    delay === null
+      ? getAntitronksSpawnDelay()
+      : delay;
+
+  antitronksSpawnTimer =
+    setTimeout(
+      () => {
+        if (
+          !antitronksRunning
+        ) {
+          return;
+        }
+
+        spawnAntitronksTarget();
+
+        /*
+         * Con más puntuación puede haber
+         * varios objetivos simultáneamente.
+         */
+
+        if (
+          antitronksTargets.length <
+            ANTITRONKS_MAX_TARGETS &&
+          antitronksScore >= 3
+        ) {
+          const extraChance =
+            Math.min(
+              0.55,
+              0.15 +
+                antitronksScore *
+                  0.025
+            );
+
+          if (
+            Math.random() <
+            extraChance
+          ) {
+            setTimeout(
+              () => {
+                spawnAntitronksTarget();
+              },
+              antitronksRandom(
+                120,
+                350
+              )
+            );
+          }
+        }
+
+        scheduleAntitronksSpawn();
+      },
+      spawnDelay
+    );
+}
+
+/* =========================================================
+   ACTUALIZAR OBJETIVOS
+   ========================================================= */
+
+function updateAntitronksTargets(
+  now
+) {
+  for (
+    let i =
+      antitronksTargets.length -
+      1;
+    i >= 0;
+    i--
+  ) {
+    const target =
+      antitronksTargets[i];
+
+    const elapsed =
+      now - target.born;
+
+    /*
+     * Los civiles desaparecen después
+     * de un tiempo si no reciben un disparo.
+     */
+
+    if (
+      target.type ===
+        "civilian" &&
+      elapsed >=
+        target.maxLife
+    ) {
+      antitronksTargets.splice(
+        i,
+        1
+      );
+
+      continue;
+    }
+
+    /*
+     * Los enemigos disparan automáticamente
+     * cuando se acaba su tiempo.
+     */
+
+    if (
+      target.type ===
+        "enemy" &&
+      !target.attack &&
+      elapsed >=
+        target.reactionTime
+    ) {
+      target.attack = true;
+
+      antitronksPlayerHit();
+
+      antitronksTargets.splice(
+        i,
+        1
+      );
+    }
+  }
+}
+
+/* =========================================================
+   DAÑO AL JUGADOR
+   ========================================================= */
+
+function antitronksPlayerHit() {
+  antitronksLives--;
+
+  antitronksFlash =
+    180;
+
+  showAntitronksMessage(
+    "¡TE HAN DISPARADO!"
+  );
+
+  updateAntitronksHUD();
+
+  if (
+    antitronksLives <= 0
+  ) {
+    endAntitronksGame();
+  }
+}
+
+/* =========================================================
+   FIN DEL JUEGO
+   ========================================================= */
+
+function endAntitronksGame() {
+  antitronksRunning =
+    false;
+
+  if (
+    antitronksSpawnTimer
+  ) {
+    clearTimeout(
+      antitronksSpawnTimer
+    );
+
+    antitronksSpawnTimer =
+      null;
+  }
+
+  antitronksTargets = [];
+
+  showAntitronksGameOver();
+}
+
+function showAntitronksGameOver() {
+  if (!antitronksGame) {
+    return;
+  }
+
+  const existing =
+    document.getElementById(
+      "antitronks-game-over"
+    );
+
+  if (existing) {
+    existing.remove();
+  }
+
+  const overlay =
+    document.createElement(
+      "div"
+    );
+
+  overlay.id =
+    "antitronks-game-over";
+
+  overlay.className =
+    "antitronks-overlay";
+
+  overlay.innerHTML = `
+    <div class="antitronks-overlay-box">
+
+      <h3>
+        Game Over
+      </h3>
+
+      <p>
+        Score: <strong>${antitronksScore}</strong>
+      </p>
+
+      <button
+        type="button"
+        class="antitronks-start-button"
+        id="antitronks-restart"
+      >
+        Jugar de nuevo
+      </button>
+
+    </div>
+  `;
+
+  antitronksGame.appendChild(
+    overlay
+  );
+
+  document
+    .getElementById(
+      "antitronks-restart"
+    )
+    ?.addEventListener(
+      "click",
+      () => {
+        overlay.remove();
+        startAntitronks();
+      }
+    );
+}
+
+/* =========================================================
+   PROYECCIÓN 3D SIMPLE
+   ========================================================= */
+
+function projectAntitronks(
+  worldX,
+  worldY
+) {
+  const relativeX =
+    worldX;
+
+  const relativeY =
+    worldY;
+
+  const dx =
+    relativeX;
+
+  const dz =
+    relativeY;
+
+  const angle =
+    Math.atan2(
+      dx,
+      dz
+    );
+
+  let relativeAngle =
+    angle -
+    antitronksCamera;
+
+  while (
+    relativeAngle >
+    Math.PI
+  ) {
+    relativeAngle -=
+      Math.PI * 2;
+  }
+
+  while (
+    relativeAngle <
+    -Math.PI
+  ) {
+    relativeAngle +=
+      Math.PI * 2;
+  }
+
+  const distance =
+    Math.sqrt(
+      dx * dx +
+      dz * dz
+    );
+
+  if (
+    Math.abs(
+      relativeAngle
+    ) >
+    ANTITRONKS_FOV / 2
+  ) {
+    return {
+      visible: false,
+      distance,
+      relativeAngle
+    };
+  }
+
+  const horizontal =
+    Math.tan(
+      relativeAngle
+    ) /
+    Math.tan(
+      ANTITRONKS_FOV / 2
+    );
+
+  const screenX =
+    antitronksWidth / 2 +
+    horizontal *
+      (antitronksWidth / 2);
+
+  const depth =
+    Math.max(
+      1,
+      distance
+    );
+
+  const scale =
+    240 /
+    (depth + 5);
+
+  const horizon =
+    antitronksHeight *
+    0.47;
+
+  const groundY =
+    horizon +
+    250 *
+      (1 / (depth + 2));
+
+  return {
+    visible: true,
+    x: screenX,
+    y: groundY,
+    scale,
+    distance,
+    relativeAngle
+  };
+}
+
+/* =========================================================
+   DIBUJAR CIELO
+   ========================================================= */
+
+function drawAntitronksSky(
+  ctx
+) {
+  const gradient =
+    ctx.createLinearGradient(
+      0,
+      0,
+      0,
+      antitronksHeight
+    );
+
+  gradient.addColorStop(
+    0,
+    "#111827"
+  );
+
+  gradient.addColorStop(
+    0.5,
+    "#374151"
+  );
+
+  gradient.addColorStop(
+    1,
+    "#6b7280"
+  );
+
+  ctx.fillStyle =
+    gradient;
+
+  ctx.fillRect(
+    0,
+    0,
+    antitronksWidth,
+    antitronksHeight
+  );
+}
+
+/* =========================================================
+   DIBUJAR CALLE
+   ========================================================= */
+
+function drawAntitronksStreet(
+  ctx
+) {
+  const horizon =
+    antitronksHeight *
+    0.47;
+
+  ctx.fillStyle =
+    "#171717";
+
+  ctx.fillRect(
+    0,
+    horizon,
+    antitronksWidth,
+    antitronksHeight -
+      horizon
+  );
+
+  ctx.fillStyle =
+    "#252525";
+
+  ctx.beginPath();
+
+  ctx.moveTo(
+    antitronksWidth *
+      0.36,
+    horizon
+  );
+
+  ctx.lineTo(
+    antitronksWidth *
+      0.64,
+    horizon
+  );
+
+  ctx.lineTo(
+    antitronksWidth,
+    antitronksHeight
+  );
+
+  ctx.lineTo(
+    0,
+    antitronksHeight
+  );
+
+  ctx.closePath();
+
+  ctx.fill();
+
+  /*
+   * Línea central de la carretera.
+   */
+
+  ctx.strokeStyle =
+    "#d4d4d4";
+
+  ctx.lineWidth =
+    4;
+
+  ctx.setLineDash([
+    35,
+    35
+  ]);
+
+  ctx.beginPath();
+
+  ctx.moveTo(
+    antitronksWidth / 2,
+    horizon
+  );
+
+  ctx.lineTo(
+    antitronksWidth / 2,
+    antitronksHeight
+  );
+
+  ctx.stroke();
+
+  ctx.setLineDash([]);
+}
+
+/* =========================================================
+   DIBUJAR EDIFICIOS
+   ========================================================= */
+
+function drawAntitronksBuildings(
+  ctx
+) {
+  const horizon =
+    antitronksHeight *
+    0.47;
+
+  ctx.fillStyle =
+    "#111111";
+
+  ctx.fillRect(
+    0,
+    horizon - 110,
+    antitronksWidth *
+      0.25,
+    110
+  );
+
+  ctx.fillRect(
+    antitronksWidth *
+      0.75,
+    horizon - 135,
+    antitronksWidth *
+      0.25,
+    135
+  );
+
+  ctx.fillStyle =
+    "#1f2937";
+
+  for (
+    let i = 0;
+    i < 7;
+    i++
+  ) {
+    const left =
+      i *
+      (antitronksWidth /
+        7);
+
+    const h =
+      35 +
+      (i % 3) *
+        25;
+
+    ctx.fillRect(
+      left,
+      horizon - h,
+      antitronksWidth /
+        7 -
+        4,
+      h
+    );
+  }
+}
+
+/* =========================================================
+   DIBUJAR CAJAS
+   ========================================================= */
+
+function drawAntitronksBoxes(
+  ctx
+) {
+  ANTITRONKS_BOXES.forEach(
+    (box) => {
+      const projected =
+        projectAntitronks(
+          box.x,
+          box.y
+        );
+
+      if (
+        !projected.visible
+      ) {
+        return;
+      }
+
+      const size =
+        Math.max(
+          8,
+          projected.scale *
+            box.size
+        );
+
+      const x =
+        projected.x -
+        size / 2;
+
+      const y =
+        projected.y -
+        size;
+
+      ctx.fillStyle =
+        "#7c4a21";
+
+      ctx.fillRect(
+        x,
+        y,
+        size,
+        size
+      );
+
+      ctx.strokeStyle =
+        "#3f2412";
+
+      ctx.lineWidth =
+        2;
+
+      ctx.strokeRect(
+        x,
+        y,
+        size,
+        size
+      );
+
+      ctx.strokeStyle =
+        "#a66b35";
+
+      ctx.beginPath();
+
+      ctx.moveTo(
+        x,
+        y
+      );
+
+      ctx.lineTo(
+        x + size,
+        y + size
+      );
+
+      ctx.moveTo(
+        x + size,
+        y
+      );
+
+      ctx.lineTo(
+        x,
+        y + size
+      );
+
+      ctx.stroke();
+    }
+  );
+}
+
+/* =========================================================
+   DIBUJAR ENEMIGO
+   ========================================================= */
+
+function drawAntitronksEnemy(
+  ctx,
+  target,
+  projected
+) {
+  const scale =
+    projected.scale;
+
+  const x =
+    projected.x;
+
+  const y =
+    projected.y;
+
+  const bodyWidth =
+    Math.max(
+      14,
+      30 * scale
+    );
+
+  const bodyHeight =
+    Math.max(
+      25,
+      55 * scale
+    );
+
+  const headRadius =
+    Math.max(
+      7,
+      12 * scale
+    );
+
+  /*
+   * Cuerpo.
+   */
+
+  ctx.fillStyle =
+    "#1f2937";
+
+  ctx.fillRect(
+    x -
+      bodyWidth / 2,
+    y -
+      bodyHeight,
+    bodyWidth,
+    bodyHeight
+  );
+
+  /*
+   * Chaleco antibalas.
+   */
+
+  ctx.fillStyle =
+    "#374151";
+
+  ctx.fillRect(
+    x -
+      bodyWidth / 2 +
+      3 * scale,
+    y -
+      bodyHeight +
+      14 * scale,
+    bodyWidth -
+      6 * scale,
+    27 * scale
+  );
+
+  /*
+   * Cabeza.
+   */
+
+  ctx.fillStyle =
+    "#111827";
+
+  ctx.beginPath();
+
+  ctx.arc(
+    x,
+    y -
+      bodyHeight -
+      headRadius,
+    headRadius,
+    0,
+    Math.PI * 2
+  );
+
+  ctx.fill();
+
+  /*
+   * Visor / máscara.
+   */
+
+  ctx.fillStyle =
+    "#050505";
+
+  ctx.fillRect(
+    x -
+      headRadius *
+        0.75,
+    y -
+      bodyHeight -
+      headRadius *
+        1.15,
+    headRadius *
+      1.5,
+    headRadius *
+      0.45
+  );
+
+  /*
+   * Brazos.
+   */
+
+  ctx.strokeStyle =
+    "#1f2937";
+
+  ctx.lineWidth =
+    Math.max(
+      3,
+      8 * scale
+    );
+
+  ctx.beginPath();
+
+  ctx.moveTo(
+    x -
+      bodyWidth / 2,
+    y -
+      bodyHeight +
+      15 * scale
+  );
+
+  ctx.lineTo(
+    x -
+      bodyWidth *
+        1.25,
+    y -
+      bodyHeight *
+        0.55
+  );
+
+  ctx.moveTo(
+    x +
+      bodyWidth / 2,
+    y -
+      bodyHeight +
+      15 * scale
+  );
+
+  ctx.lineTo(
+    x +
+      bodyWidth *
+        1.25,
+    y -
+      bodyHeight *
+        0.55
+  );
+
+  ctx.stroke();
+
+  /*
+   * M4.
+   */
+
+  ctx.strokeStyle =
+    "#080808";
+
+  ctx.lineWidth =
+    Math.max(
+      2,
+      5 * scale
+    );
+
+  ctx.beginPath();
+
+  ctx.moveTo(
+    x +
+      bodyWidth *
+        0.55,
+    y -
+      bodyHeight *
+        0.58
+  );
+
+  ctx.lineTo(
+    x +
+      bodyWidth *
+        1.65,
+    y -
+      bodyHeight *
+        0.82
+  );
+
+  ctx.stroke();
+
+  /*
+   * Nombre visual.
+   */
+
+  ctx.font =
+    `${Math.max(
+      9,
+      12 * scale
+    )}px Arial`;
+
+  ctx.textAlign =
+    "center";
+
+  ctx.fillStyle =
+    "#ef4444";
+
+  ctx.fillText(
+    "ENEMY",
+    x,
+    y -
+      bodyHeight -
+      headRadius *
+        2.1
+  );
+}
+
+/* =========================================================
+   DIBUJAR CIVIL
+   ========================================================= */
+
+function drawAntitronksCivilian(
+  ctx,
+  target,
+  projected
+) {
+  const scale =
+    projected.scale;
+
+  const x =
+    projected.x;
+
+  const y =
+    projected.y;
+
+  const bodyWidth =
+    Math.max(
+      13,
+      27 * scale
+    );
+
+  const bodyHeight =
+    Math.max(
+      24,
+      50 * scale
+    );
+
+  const headRadius =
+    Math.max(
+      7,
+      11 * scale
+    );
+
+  ctx.fillStyle =
+    "#2563eb";
+
+  ctx.fillRect(
+    x -
+      bodyWidth / 2,
+    y -
+      bodyHeight,
+    bodyWidth,
+    bodyHeight
+  );
+
+  ctx.fillStyle =
+    "#d1a37c";
+
+  ctx.beginPath();
+
+  ctx.arc(
+    x,
+    y -
+      bodyHeight -
+      headRadius,
+    headRadius,
+    0,
+    Math.PI * 2
+  );
+
+  ctx.fill();
+
+  ctx.strokeStyle =
+    "#2563eb";
+
+  ctx.lineWidth =
+    Math.max(
+      3,
+      7 * scale
+    );
+
+  ctx.beginPath();
+
+  ctx.moveTo(
+    x -
+      bodyWidth / 2,
+    y -
+      bodyHeight +
+      12 * scale
+  );
+
+  ctx.lineTo(
+    x -
+      bodyWidth,
+    y -
+      bodyHeight *
+        0.45
+  );
+
+  ctx.moveTo(
+    x +
+      bodyWidth / 2,
+    y -
+      bodyHeight +
+      12 * scale
+  );
+
+  ctx.lineTo(
+    x +
+      bodyWidth,
+    y -
+      bodyHeight *
+        0.45
+  );
+
+  ctx.stroke();
+
+  ctx.font =
+    `${Math.max(
+      9,
+      12 * scale
+    )}px Arial`;
+
+  ctx.textAlign =
+    "center";
+
+  ctx.fillStyle =
+    "#60a5fa";
+
+  ctx.fillText(
+    "CIVILIAN",
+    x,
+    y -
+      bodyHeight -
+      headRadius *
+        2
+  );
+}
+
+/* =========================================================
+   DIBUJAR OBJETIVOS
+   ========================================================= */
+
+function drawAntitronksTargets(
+  ctx
+) {
+  antitronksTargets.forEach(
+    (target) => {
+      const projected =
+        projectAntitronks(
+          target.x,
+          target.y
+        );
+
+      if (
+        !projected.visible
+      ) {
+        return;
+      }
+
+      if (
+        target.type ===
+        "enemy"
+      ) {
+        drawAntitronksEnemy(
+          ctx,
+          target,
+          projected
+        );
+      } else {
+        drawAntitronksCivilian(
+          ctx,
+          target,
+          projected
+        );
+      }
+    }
+  );
+}
+
+/* =========================================================
+   FLECHAS FUERA DE CÁMARA
+   ========================================================= */
+
+function updateAntitronksOffscreenArrows() {
+  const container =
+    document.getElementById(
+      "antitronks-offscreen-enemies"
+    );
+
+  if (!container) {
+    return;
+  }
+
+  container.innerHTML = "";
+
+  const offscreenTargets =
+    antitronksTargets.filter(
+      (target) => {
+        const projected =
+          projectAntitronks(
+            target.x,
+            target.y
+          );
+
+        return (
+          !projected.visible
+        );
+      }
+    );
+
+  offscreenTargets.forEach(
+    (target, index) => {
+      createAntitronksArrow(
+        container,
+        target,
+        index,
+        offscreenTargets.length
+      );
+    }
+  );
+}
+
+/* =========================================================
+   CREAR FLECHA
+   ========================================================= */
+
+function createAntitronksArrow(
+  container,
+  target,
+  index,
+  total
+) {
+  const arrow =
+    document.createElement(
+      "div"
+    );
+
+  arrow.className =
+    "antitronks-offscreen-arrow";
+
+  /*
+   * Calculamos hacia qué lado
+   * está el objetivo.
+   */
+
+  let relativeAngle =
+    Math.atan2(
+      target.x,
+      target.y
+    ) -
+    antitronksCamera;
+
+  while (
+    relativeAngle >
+    Math.PI
+  ) {
+    relativeAngle -=
+      Math.PI * 2;
+  }
+
+  while (
+    relativeAngle <
+    -Math.PI
+  ) {
+    relativeAngle +=
+      Math.PI * 2;
+  }
+
+  const isLeft =
+    relativeAngle < 0;
+
+  const verticalSpacing =
+    42;
+
+  const totalHeight =
+    (total - 1) *
+    verticalSpacing;
+
+  const top =
+    antitronksHeight /
+      2 -
+    totalHeight / 2 +
+    index *
+      verticalSpacing;
+
+  arrow.style.top =
+    `${antitronksClamp(
+      top,
+      80,
+      antitronksHeight -
+        80
+    )}px`;
+
+  /*
+   * Flecha apuntando a izquierda/derecha.
+   */
+
+  arrow.style.left =
+    isLeft
+      ? "28px"
+      : `${antitronksWidth - 28}px`;
+
+  arrow.style.transform =
+    isLeft
+      ? "translateY(-50%) rotate(-90deg)"
+      : "translateY(-50%) rotate(90deg)";
+
+  container.appendChild(
+    arrow
+  );
+}
+
+/* =========================================================
+   DIBUJAR PUNTERO / MIRA
+   ========================================================= */
+
+function drawAntitronksCrosshair(
+  ctx
+) {
+  const centerX =
+    antitronksWidth / 2;
+
+  const centerY =
+    antitronksHeight / 2;
+
+  ctx.strokeStyle =
+    "#ffffff";
+
+  ctx.lineWidth =
+    2;
+
+  ctx.beginPath();
+
+  ctx.moveTo(
+    centerX - 14,
+    centerY
+  );
+
+  ctx.lineTo(
+    centerX - 4,
+    centerY
+  );
+
+  ctx.moveTo(
+    centerX + 4,
+    centerY
+  );
+
+  ctx.lineTo(
+    centerX + 14,
+    centerY
+  );
+
+  ctx.moveTo(
+    centerX,
+    centerY - 14
+  );
+
+  ctx.lineTo(
+    centerX,
+    centerY - 4
+  );
+
+  ctx.moveTo(
+    centerX,
+    centerY + 4
+  );
+
+  ctx.lineTo(
+    centerX,
+    centerY + 14
+  );
+
+  ctx.stroke();
+
+  ctx.beginPath();
+
+  ctx.arc(
+    centerX,
+    centerY,
+    3,
+    0,
+    Math.PI * 2
+  );
+
+  ctx.fillStyle =
+    "#ffffff";
+
+  ctx.fill();
+}
+
+/* =========================================================
+   DIBUJAR ARMA
+   ========================================================= */
+
+function drawAntitronksWeapon(
+  ctx
+) {
+  const centerX =
+    antitronksWidth / 2;
+
+  const bottom =
+    antitronksHeight;
+
+  const weaponWidth =
+    Math.min(
+      190,
+      antitronksWidth *
+        0.28
+    );
+
+  const weaponHeight =
+    Math.min(
+      130,
+      antitronksHeight *
+        0.25
+    );
+
+  /*
+   * Culata / cuerpo.
+   */
+
+  ctx.fillStyle =
+    "#111111";
+
+  ctx.beginPath();
+
+  ctx.moveTo(
+    centerX -
+      weaponWidth / 2,
+    bottom
+  );
+
+  ctx.lineTo(
+    centerX -
+      weaponWidth *
+        0.22,
+    bottom -
+      weaponHeight
+  );
+
+  ctx.lineTo(
+    centerX +
+      weaponWidth *
+        0.20,
+    bottom -
+      weaponHeight
+  );
+
+  ctx.lineTo(
+    centerX +
+      weaponWidth / 2,
+    bottom
+  );
+
+  ctx.closePath();
+
+  ctx.fill();
+
+  /*
+   * Cargador.
+   */
+
+  ctx.fillStyle =
+    "#262626";
+
+  ctx.beginPath();
+
+  ctx.moveTo(
+    centerX -
+      weaponWidth *
+        0.08,
+    bottom -
+      weaponHeight *
+        0.5
+  );
+
+  ctx.lineTo(
+    centerX +
+      weaponWidth *
+        0.06,
+    bottom -
+      weaponHeight *
+        0.5
+  );
+
+  ctx.lineTo(
+    centerX +
+      weaponWidth *
+        0.16,
+    bottom
+  );
+
+  ctx.lineTo(
+    centerX -
+      weaponWidth *
+        0.02,
+    bottom
+  );
+
+  ctx.closePath();
+
+  ctx.fill();
+
+  /*
+   * Cañón.
+   */
+
+  ctx.fillStyle =
+    "#090909";
+
+  ctx.fillRect(
+    centerX -
+      5,
+    bottom -
+      weaponHeight *
+        1.25,
+    10,
+    weaponHeight *
+      0.65
+  );
+}
+
+/* =========================================================
+   BUCLE DEL JUEGO
+   ========================================================= */
+
+function antitronksLoop(
+  now
+) {
+  if (
+    !antitronksRunning
+  ) {
+    return;
+  }
+
+  const delta =
+    now -
+    antitronksLastTime;
+
+  antitronksLastTime =
+    now;
+
+  updateAntitronksCamera();
+
+  updateAntitronksTargets(
+    now
+  );
+
+  if (
+    antitronksFlash > 0
+  ) {
+    antitronksFlash -=
+      delta;
+  }
+
+  drawAntitronks();
+
+  updateAntitronksOffscreenArrows();
+
+  updateAntitronksHUD();
+
+  antitronksAnimationFrame =
+    requestAnimationFrame(
+      antitronksLoop
+    );
+}
+
+/* =========================================================
+   ACTUALIZAR CÁMARA
+   ========================================================= */
+
+function updateAntitronksCamera() {
+  const difference =
+    antitronksTargetCamera -
+    antitronksCamera;
+
+  antitronksCamera +=
+    difference *
+    0.12;
+
+  antitronksCamera =
+    antitronksClamp(
+      antitronksCamera,
+      -ANTITRONKS_CAMERA_LIMIT,
+      ANTITRONKS_CAMERA_LIMIT
+    );
+}
+
+/* =========================================================
+   DIBUJAR TODO
+   ========================================================= */
+
+function drawAntitronks() {
+  if (!antitronksCanvas) {
+    return;
+  }
+
+  const ctx =
+    antitronksCanvas.getContext(
+      "2d"
+    );
+
+  if (!ctx) {
+    return;
+  }
+
+  ctx.clearRect(
+    0,
+    0,
+    antitronksWidth,
+    antitronksHeight
+  );
+
+  drawAntitronksSky(
+    ctx
+  );
+
+  drawAntitronksBuildings(
+    ctx
+  );
+
+  drawAntitronksStreet(
+    ctx
+  );
+
+  drawAntitronksBoxes(
+    ctx
+  );
+
+  drawAntitronksTargets(
+    ctx
+  );
+
+  drawAntitronksWeapon(
+    ctx
+  );
+
+  drawAntitronksCrosshair(
+    ctx
+  );
+
+  if (
+    antitronksFlash > 0
+  ) {
+    ctx.fillStyle =
+      `rgba(
+        255,
+        40,
+        40,
+        ${Math.min(
+          0.35,
+          antitronksFlash /
+            500
+        )}
+      )`;
+
+    ctx.fillRect(
+      0,
+      0,
+      antitronksWidth,
+      antitronksHeight
+    );
+  }
+}
+
+/* =========================================================
+   DISPARAR
+   ========================================================= */
+
+function shootAntitronks() {
+  if (
+    !antitronksRunning
+  ) {
+    return;
+  }
+
+  antitronksFlash =
+    80;
+
+  const centerX =
+    antitronksWidth / 2;
+
+  const centerY =
+    antitronksHeight / 2;
+
+  let bestTarget =
+    null;
+
+  let bestDistance =
+    Infinity;
+
+  antitronksTargets.forEach(
+    (target) => {
+      const projected =
+        projectAntitronks(
+          target.x,
+          target.y
+        );
+
+      if (
+        !projected.visible
+      ) {
+        return;
+      }
+
+      const dx =
+        projected.x -
+        centerX;
+
+      const dy =
+        projected.y -
+        centerY;
+
+      const distance =
+        Math.sqrt(
+          dx * dx +
+          dy * dy
+        );
+
+      /*
+       * Zona de impacto.
+       */
+
+      const hitRadius =
+        Math.max(
+          35,
+          projected.scale *
+            55
+        );
+
+      if (
+        distance <=
+          hitRadius &&
+        distance <
+          bestDistance
+      ) {
+        bestTarget =
+          target;
+
+        bestDistance =
+          distance;
+      }
+    }
+  );
+
+  if (!bestTarget) {
+    return;
+  }
+
+  /*
+   * Civilian:
+   * perder una vida.
+   */
+
+  if (
+    bestTarget.type ===
+    "civilian"
+  ) {
+    antitronksLives--;
+
+    showAntitronksMessage(
+      "¡HAS DISPARADO A UN CIVIL!"
+    );
+
+    antitronksTargets =
+      antitronksTargets.filter(
+        (target) =>
+          target.id !==
+          bestTarget.id
+      );
+
+    updateAntitronksHUD();
+
+    if (
+      antitronksLives <= 0
+    ) {
+      endAntitronksGame();
+    }
+
+    return;
+  }
+
+  /*
+   * Enemy:
+   * sumar punto.
+   */
+
+  antitronksScore++;
+
+  showAntitronksMessage(
+    "+1"
+  );
+
+  antitronksTargets =
+    antitronksTargets.filter(
+      (target) =>
+        target.id !==
+        bestTarget.id
+    );
+
+  updateAntitronksHUD();
+}
+
+/* =========================================================
+   CONTROL DE RATÓN
+   ========================================================= */
+
+if (antitronksCanvas) {
+  antitronksCanvas.addEventListener(
+    "mousemove",
+    (event) => {
+      if (
+        !antitronksRunning
+      ) {
+        return;
+      }
+
+      const rect =
+        antitronksCanvas.getBoundingClientRect();
+
+      const x =
+        event.clientX -
+        rect.left;
+
+      const normalized =
+        x /
+        rect.width;
+
+      antitronksTargetCamera =
+        (normalized -
+          0.5) *
+        2 *
+        ANTITRONKS_CAMERA_LIMIT;
+    }
+  );
+
+  antitronksCanvas.addEventListener(
+    "mousedown",
+    (event) => {
+      if (
+        event.button === 0
+      ) {
+        event.preventDefault();
+        shootAntitronks();
+      }
+    }
+  );
+
+  antitronksCanvas.addEventListener(
+    "contextmenu",
+    (event) => {
+      event.preventDefault();
+    }
+  );
+}
+
+/* =========================================================
+   TECLADO
+   ========================================================= */
+
+const antitronksKeys = {
+  left: false,
+  right: false
+};
+
+document.addEventListener(
+  "keydown",
+  (event) => {
+    if (
+      !antitronksRunning
+    ) {
+      return;
+    }
+
+    if (
+      event.code ===
+      "ArrowLeft"
+    ) {
+      antitronksKeys.left =
+        true;
+
+      event.preventDefault();
+    }
+
+    if (
+      event.code ===
+        "ArrowRight" ||
+      event.code === "d" ||
+      event.code === "D"
+    ) {
+      antitronksKeys.right =
+        true;
+
+      event.preventDefault();
+    }
+
+    if (
+      event.code === "a" ||
+      event.code === "A"
+    ) {
+      antitronksKeys.left =
+        true;
+
+      event.preventDefault();
+    }
+
+    if (
+      event.code === "Space"
+    ) {
+      event.preventDefault();
+
+      shootAntitronks();
+    }
+
+    if (
+      event.key === "Escape" &&
+      antitronksModal &&
+      !antitronksModal.classList.contains(
+        "hidden"
+      )
+    ) {
+      closeAntitronks();
+    }
+  }
+);
+
+document.addEventListener(
+  "keyup",
+  (event) => {
+    if (
+      event.code ===
+        "ArrowLeft" ||
+      event.code === "a" ||
+      event.code === "A"
+    ) {
+      antitronksKeys.left =
+        false;
+    }
+
+    if (
+      event.code ===
+        "ArrowRight" ||
+      event.code === "d" ||
+      event.code === "D"
+    ) {
+      antitronksKeys.right =
+        false;
+    }
+  }
+);
+
+/* =========================================================
+   MOVIMIENTO DE CÁMARA CON TECLADO
+   ========================================================= */
+
+setInterval(
+  () => {
+    if (
+      !antitronksRunning
+    ) {
+      return;
+    }
+
+    if (
+      antitronksKeys.left
+    ) {
+      antitronksTargetCamera -=
+        0.035;
+    }
+
+    if (
+      antitronksKeys.right
+    ) {
+      antitronksTargetCamera +=
+        0.035;
+    }
+
+    antitronksTargetCamera =
+      antitronksClamp(
+        antitronksTargetCamera,
+        -ANTITRONKS_CAMERA_LIMIT,
+        ANTITRONKS_CAMERA_LIMIT
+      );
+  },
+  16
+);
+
+/* =========================================================
+   CERRAR ANTITRONKS CON ESC
+   ========================================================= */
+
+document.addEventListener(
+  "keydown",
+  (event) => {
+    if (
+      event.key === "Escape" &&
+      antitronksModal &&
+      !antitronksModal.classList.contains(
+        "hidden"
+      )
+    ) {
+      closeAntitronks();
+    }
+  }
+);
 
 /* =========================================================
    INICIALIZACIÓN
    ========================================================= */
-
-cleanMinigames();
-
-initializeGameDetailsModal();
-
-initializeZTronks();
 
 initializeProjects();
 
 loadSuggestions();
 
 updateAccountUI();
-
 
 console.log(
   "TronkStudios: script cargado correctamente."

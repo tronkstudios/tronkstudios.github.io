@@ -2424,3 +2424,585 @@ textarea:focus-visible {
   border-radius:
     999px;
 }
+/* =========================================================
+   ANTITRONKS
+   ========================================================= */
+
+/* =========================================================
+   TARJETA DE ANTITRONKS
+   ========================================================= */
+
+.minigame-card {
+
+  width: 100%;
+
+  min-width: 0;
+
+  padding: 1.1rem;
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap:
+    0.9rem;
+
+  background:
+    var(--surface);
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:
+    var(--radius);
+
+  box-shadow:
+    var(--shadow);
+
+  cursor:
+    pointer;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+
+.minigame-card:hover {
+
+  transform:
+    translateY(-5px);
+
+  border-color:
+    var(--accent);
+
+  box-shadow:
+    0 15px 35px
+    rgba(
+      15,
+      23,
+      42,
+      0.14
+    );
+}
+
+
+.minigame-card:focus-visible {
+
+  outline:
+    3px solid
+    var(--accent);
+
+  outline-offset:
+    3px;
+}
+
+
+/* =========================================================
+   NOMBRE DE ANTITRONKS
+   ========================================================= */
+
+.minigame-card h3 {
+
+  order:
+    1;
+
+  margin:
+    0;
+
+  color:
+    var(--text);
+
+  font-size:
+    clamp(
+      1.2rem,
+      2vw,
+      1.45rem
+    );
+
+  line-height:
+    1.2;
+
+  font-weight:
+    900;
+}
+
+
+/* =========================================================
+   IMAGEN DE ANTITRONKS
+   ========================================================= */
+
+.minigame-card-media {
+
+  order:
+    2;
+
+  width:
+    100%;
+
+  aspect-ratio:
+    16 / 9;
+
+  overflow:
+    hidden;
+
+  background:
+    var(--surface-2);
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:
+    12px;
+}
+
+
+.minigame-card-media img {
+
+  width:
+    100%;
+
+  height:
+    100%;
+
+  display:
+    block;
+
+  object-fit:
+    cover;
+
+  transition:
+    transform 0.3s ease;
+}
+
+
+.minigame-card:hover
+.minigame-card-media img {
+
+  transform:
+    scale(1.04);
+}
+
+
+/* =========================================================
+   MODAL / PANTALLA DE ANTITRONKS
+   ========================================================= */
+
+.antitronks-modal {
+
+  position:
+    fixed;
+
+  inset:
+    0;
+
+  z-index:
+    7000;
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  padding:
+    1rem;
+}
+
+
+.antitronks-modal.hidden {
+  display:
+    none;
+}
+
+
+/* =========================================================
+   FONDO OSCURO
+   ========================================================= */
+
+.antitronks-backdrop {
+
+  position:
+    absolute;
+
+  inset:
+    0;
+
+  background:
+    rgba(
+      0,
+      0,
+      0,
+      0.82
+    );
+
+  backdrop-filter:
+    blur(4px);
+}
+
+
+/* =========================================================
+   VENTANA PRINCIPAL
+   ========================================================= */
+
+.antitronks-window {
+
+  position:
+    relative;
+
+  z-index:
+    1;
+
+  width:
+    100%;
+
+  height:
+    100%;
+
+  max-width:
+    1600px;
+
+  max-height:
+    95vh;
+
+  display:
+    flex;
+
+  flex-direction:
+    column;
+
+  overflow:
+    hidden;
+
+  background:
+    var(--surface);
+
+  color:
+    var(--text);
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:
+    18px;
+
+  box-shadow:
+    0 25px 80px
+    rgba(
+      0,
+      0,
+      0,
+      0.5
+    );
+}
+
+
+/* =========================================================
+   CABECERA DE ANTITRONKS
+   ========================================================= */
+
+.antitronks-header {
+
+  position:
+    relative;
+
+  flex:
+    0 0 58px;
+
+  min-height:
+    58px;
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  padding:
+    0 4.5rem;
+
+  background:
+    var(--surface);
+
+  border-bottom:
+    1px solid
+    var(--border);
+}
+
+
+/* =========================================================
+   TÍTULO ANTITRONKS
+   ========================================================= */
+
+.antitronks-header h2 {
+
+  margin:
+    0;
+
+  color:
+    var(--text);
+
+  font-size:
+    clamp(
+      1.3rem,
+      3vw,
+      1.8rem
+    );
+
+  font-weight:
+    900;
+
+  letter-spacing:
+    0.08em;
+
+  line-height:
+    1;
+
+  text-align:
+    center;
+}
+
+
+/* =========================================================
+   BOTÓN X
+   ========================================================= */
+
+.antitronks-close {
+
+  position:
+    absolute;
+
+  top:
+    50%;
+
+  right:
+    0.8rem;
+
+  transform:
+    translateY(-50%);
+
+  width:
+    40px;
+
+  height:
+    40px;
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  padding:
+    0;
+
+  border:
+    0;
+
+  border-radius:
+    50%;
+
+  background:
+    var(--surface-2);
+
+  color:
+    var(--text);
+
+  font-size:
+    1.7rem;
+
+  font-weight:
+    700;
+
+  line-height:
+    1;
+
+  cursor:
+    pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+
+.antitronks-close:hover {
+
+  background:
+    var(--danger);
+
+  color:
+    #ffffff;
+
+  transform:
+    translateY(-50%)
+    scale(1.05);
+}
+
+
+.antitronks-close:focus-visible {
+
+  outline:
+    3px solid
+    var(--accent);
+
+  outline-offset:
+    2px;
+}
+
+
+/* =========================================================
+   ÁREA DEL JUEGO
+   ========================================================= */
+
+.antitronks-game {
+
+  flex:
+    1 1 auto;
+
+  min-height:
+    0;
+
+  width:
+    100%;
+
+  overflow:
+    hidden;
+
+  background:
+    #000000;
+}
+
+
+/* =========================================================
+   BLOQUEAR SCROLL DE LA PÁGINA
+   ========================================================= */
+
+body.antitronks-open {
+
+  overflow:
+    hidden;
+}
+
+
+/* =========================================================
+   ANTITRONKS EN MÓVIL
+   ========================================================= */
+
+@media (max-width: 700px) {
+
+  .antitronks-modal {
+
+    padding:
+      0;
+  }
+
+
+  .antitronks-window {
+
+    width:
+      100%;
+
+    height:
+      100%;
+
+    max-width:
+      none;
+
+    max-height:
+      100vh;
+
+    border:
+      0;
+
+    border-radius:
+      0;
+  }
+
+
+  .antitronks-header {
+
+    flex:
+      0 0 52px;
+
+    min-height:
+      52px;
+
+    padding:
+      0 3.5rem;
+  }
+
+
+  .antitronks-header h2 {
+
+    font-size:
+      1.25rem;
+  }
+
+
+  .antitronks-close {
+
+    right:
+      0.5rem;
+
+    width:
+      36px;
+
+    height:
+      36px;
+
+    font-size:
+      1.5rem;
+  }
+
+}
+
+
+/* =========================================================
+   ANTITRONKS EN PANTALLAS GRANDES
+   ========================================================= */
+
+@media (min-width: 1400px) {
+
+  .antitronks-window {
+
+    max-width:
+      1700px;
+
+    max-height:
+      96vh;
+  }
+
+}
+
+
+/* =========================================================
+   ANTITRONKS EN PANTALLAS MUY GRANDES
+   ========================================================= */
+
+@media (min-width: 1800px) {
+
+  .antitronks-window {
+
+    max-width:
+      1800px;
+
+    max-height:
+      97vh;
+  }
+
+}
