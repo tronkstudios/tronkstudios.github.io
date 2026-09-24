@@ -1,11 +1,10 @@
 "use strict";
 
 /* =========================================================
-   TRONKSTUDIOS
-   SCRIPT PRINCIPAL
+   TRONKSTUDIOS - SCRIPT PRINCIPAL
    ========================================================= */
 
-console.log("TronkStudios: script cargando...");
+console.log("TronkStudios: script cargado correctamente.");
 
 /* =========================================================
    CONFIGURACIÓN SUPABASE
@@ -45,11 +44,18 @@ const yearElement =
   document.getElementById("year");
 
 /* =========================================================
-   MODAL DE CUENTA
+   MODALES
    ========================================================= */
 
 const accountModal =
   document.getElementById("account-modal");
+
+const suggestionModal =
+  document.getElementById("suggestion-modal");
+
+/* =========================================================
+   CUENTA
+   ========================================================= */
 
 const loginPanel =
   document.getElementById("login-panel");
@@ -87,9 +93,6 @@ const accountEmail =
 /* =========================================================
    SUGERENCIAS
    ========================================================= */
-
-const suggestionModal =
-  document.getElementById("suggestion-modal");
 
 const newSuggestionButton =
   document.getElementById("new-suggestion-button");
@@ -154,7 +157,7 @@ function saveTheme(theme) {
       theme
     );
   } catch {
-    // Nada que hacer.
+    // LocalStorage no disponible.
   }
 }
 
@@ -209,12 +212,17 @@ function updateThemeButton(theme) {
 }
 
 function applyTheme(theme) {
-  document.documentElement.setAttribute(
-    "data-theme",
-    theme === "dark"
-      ? "dark"
-      : "light"
-  );
+  if (theme === "dark") {
+    document.documentElement.setAttribute(
+      "data-theme",
+      "dark"
+    );
+  } else {
+    document.documentElement.setAttribute(
+      "data-theme",
+      "light"
+    );
+  }
 
   updateThemeButton(theme);
 }
@@ -238,9 +246,7 @@ function initializeTheme() {
     ).matches;
 
   applyTheme(
-    prefersDark
-      ? "dark"
-      : "light"
+    prefersDark ? "dark" : "light"
   );
 }
 
@@ -299,28 +305,21 @@ function closeModal(modal) {
     "true"
   );
 
-  const accountOpen =
-    accountModal &&
-    !accountModal.classList.contains(
+  const accountClosed =
+    !accountModal ||
+    accountModal.classList.contains(
       "hidden"
     );
 
-  const suggestionOpen =
-    suggestionModal &&
-    !suggestionModal.classList.contains(
-      "hidden"
-    );
-
-  const antitronksOpen =
-    antitronksModal &&
-    !antitronksModal.classList.contains(
+  const suggestionsClosed =
+    !suggestionModal ||
+    suggestionModal.classList.contains(
       "hidden"
     );
 
   if (
-    !accountOpen &&
-    !suggestionOpen &&
-    !antitronksOpen
+    accountClosed &&
+    suggestionsClosed
   ) {
     document.body.classList.remove(
       "modal-open"
@@ -439,12 +438,14 @@ function showSuggestionMessage(
     "auth-message";
 
   if (type) {
-    suggestionMessage.classList.add(type);
+    suggestionMessage.classList.add(
+      type
+    );
   }
 }
 
 /* =========================================================
-   INTERFAZ DE CUENTA
+   PANELES DE CUENTA
    ========================================================= */
 
 function showLoginPanel() {
@@ -489,6 +490,10 @@ function showLoggedPanel() {
   );
 }
 
+/* =========================================================
+   ACTUALIZAR CUENTA
+   ========================================================= */
+
 async function updateAccountUI() {
   currentUser =
     await getCurrentUser();
@@ -507,14 +512,14 @@ async function updateAccountUI() {
   showLoggedPanel();
 
   const metadata =
-    currentUser.user_metadata ||
-    {};
+    currentUser.user_metadata || {};
 
   const name =
     metadata.name ||
     metadata.full_name ||
-    currentUser.email
-      ?.split("@")[0] ||
+    currentUser.email?.split(
+      "@"
+    )[0] ||
     "Usuario";
 
   if (accountName) {
@@ -587,7 +592,7 @@ if (loginForm) {
 
       if (!isSupabaseConfigured()) {
         showAuthMessage(
-          "La cuenta todavía no está configurada.",
+          "La cuenta todavía no está configurada. Primero hay que conectar Supabase.",
           "error"
         );
 
@@ -612,10 +617,7 @@ if (loginForm) {
         passwordInput?.value ||
         "";
 
-      if (
-        !email ||
-        !password
-      ) {
+      if (!email || !password) {
         showAuthMessage(
           "Introduce tu correo y contraseña.",
           "error"
@@ -689,7 +691,7 @@ if (registerForm) {
 
       if (!isSupabaseConfigured()) {
         showAuthMessage(
-          "La cuenta todavía no está configurada.",
+          "La cuenta todavía no está configurada. Primero hay que conectar Supabase.",
           "error"
         );
 
@@ -805,7 +807,9 @@ if (logoutButton) {
       }
 
       try {
-        const { error } =
+        const {
+          error
+        } =
           await supabaseClient.auth.signOut();
 
         if (error) {
@@ -857,6 +861,15 @@ if (isSupabaseConfigured()) {
         session?.user || null;
 
       await updateAccountUI();
+
+      if (
+        typeof renderSuggestions ===
+        "function"
+      ) {
+        renderSuggestions(
+          allSuggestions
+        );
+      }
     }
   );
 }
@@ -868,7 +881,9 @@ if (isSupabaseConfigured()) {
 function openSuggestionModal() {
   showSuggestionMessage("");
 
-  suggestionForm?.reset();
+  if (suggestionForm) {
+    suggestionForm.reset();
+  }
 
   updateCharacterCounter();
 
@@ -990,21 +1005,22 @@ async function loadSuggestions() {
 }
 
 /* =========================================================
-   RENDER SUGERENCIAS
+   RENDERIZAR SUGERENCIAS
    ========================================================= */
 
 function renderSuggestions(
   suggestions
 ) {
   allSuggestions =
-    suggestions;
+    suggestions || [];
 
   if (!suggestionsList) {
     return;
   }
 
-  let filtered =
-    [...allSuggestions];
+  let filtered = [
+    ...allSuggestions
+  ];
 
   const search =
     suggestionSearch?.value
@@ -1031,7 +1047,9 @@ function renderSuggestions(
     }
   }
 
-  if (category !== "Todas") {
+  if (
+    category !== "Todas"
+  ) {
     filtered =
       filtered.filter(
         (suggestion) =>
@@ -1048,7 +1066,8 @@ function renderSuggestions(
             `${suggestion.name || ""} ${
               suggestion.idea || ""
             } ${
-              suggestion.category || ""
+              suggestion.category ||
+              ""
             }`.toLowerCase();
 
           return text.includes(
@@ -1058,7 +1077,9 @@ function renderSuggestions(
       );
   }
 
-  if (filtered.length === 0) {
+  if (
+    filtered.length === 0
+  ) {
     suggestionsList.innerHTML = `
       <div class="suggestions-loading">
         No hay sugerencias para mostrar.
@@ -1068,7 +1089,8 @@ function renderSuggestions(
     return;
   }
 
-  suggestionsList.innerHTML = "";
+  suggestionsList.innerHTML =
+    "";
 
   filtered.forEach(
     (suggestion) => {
@@ -1129,8 +1151,13 @@ function createSuggestionCard(
       suggestion.created_at
     );
 
-  header.appendChild(author);
-  header.appendChild(date);
+  header.appendChild(
+    author
+  );
+
+  header.appendChild(
+    date
+  );
 
   const category =
     document.createElement(
@@ -1168,13 +1195,16 @@ function createSuggestionCard(
       "button"
     );
 
-  voteButton.type = "button";
+  voteButton.type =
+    "button";
 
   voteButton.className =
     "vote-button";
 
   voteButton.textContent =
-    `👍 ${suggestion.votes || 0}`;
+    `👍 ${
+      suggestion.votes || 0
+    }`;
 
   voteButton.addEventListener(
     "click",
@@ -1222,10 +1252,21 @@ function createSuggestionCard(
     );
   }
 
-  article.appendChild(header);
-  article.appendChild(category);
-  article.appendChild(text);
-  article.appendChild(actions);
+  article.appendChild(
+    header
+  );
+
+  article.appendChild(
+    category
+  );
+
+  article.appendChild(
+    text
+  );
+
+  article.appendChild(
+    actions
+  );
 
   return article;
 }
@@ -1274,7 +1315,7 @@ if (suggestionForm) {
 
       if (!isSupabaseConfigured()) {
         showSuggestionMessage(
-          "Las sugerencias todavía no están configuradas.",
+          "Las sugerencias todavía no están configuradas porque falta conectar Supabase.",
           "error"
         );
 
@@ -1310,10 +1351,7 @@ if (suggestionForm) {
         suggestionText?.value.trim() ||
         "";
 
-      if (
-        !name ||
-        !idea
-      ) {
+      if (!name || !idea) {
         showSuggestionMessage(
           "Completa todos los campos.",
           "error"
@@ -1411,7 +1449,11 @@ async function voteSuggestion(
         );
 
     if (error) {
-      console.error(error);
+      console.error(
+        "Error votando:",
+        error
+      );
+
       return;
     }
 
@@ -1428,10 +1470,11 @@ async function voteSuggestion(
 async function deleteSuggestion(
   id
 ) {
-  if (
-    !isSupabaseConfigured() ||
-    !currentUser
-  ) {
+  if (!isSupabaseConfigured()) {
+    return;
+  }
+
+  if (!currentUser) {
     return;
   }
 
@@ -1538,7 +1581,7 @@ if (suggestionCategory) {
 function initializeProjects() {
   const projectCards =
     document.querySelectorAll(
-      ".dev-card"
+      ".dev-card:not(.minigame-card)"
     );
 
   projectCards.forEach(
@@ -1566,7 +1609,9 @@ function initializeProjects() {
               ".project-details"
             );
 
-          if (existingDetails) {
+          if (
+            existingDetails
+          ) {
             existingDetails.remove();
             return;
           }
@@ -1579,25 +1624,15 @@ function initializeProjects() {
           details.className =
             "project-details";
 
-          const safeTitle =
-            escapeHtml(
-              title
-            );
-
-          const safeDescription =
-            escapeHtml(
-              description
-            );
-
           details.innerHTML = `
             <p>
               <strong>Proyecto:</strong>
-              ${safeTitle}
+              ${escapeHtml(title)}
             </p>
 
             <p>
               <strong>Descripción:</strong>
-              ${safeDescription}
+              ${escapeHtml(description)}
             </p>
 
             <p>
@@ -1607,7 +1642,7 @@ function initializeProjects() {
 
             <p>
               <strong>Personas trabajando:</strong>
-              5
+              Por determinar
             </p>
           `;
 
@@ -1628,8 +1663,7 @@ function escapeHtml(
       "div"
     );
 
-  div.textContent =
-    value;
+  div.textContent = value;
 
   return div.innerHTML;
 }
@@ -1638,573 +1672,328 @@ function escapeHtml(
    ANTITRONKS
    ========================================================= */
 
-const antitronksCard =
-  document.getElementById(
-    "antitronks-card"
-  );
-
-const antitronksModal =
-  document.getElementById(
-    "antitronks-modal"
-  );
-
-const antitronksClose =
-  document.getElementById(
-    "antitronks-close"
-  );
-
-const antitronksBackdrop =
-  document.querySelector(
-    ".antitronks-backdrop"
-  );
-
-const antitronksGame =
-  document.querySelector(
-    ".antitronks-game"
-  );
-
-const antitronksCanvas =
-  document.getElementById(
-    "antitronks-canvas"
-  );
-
-/* =========================================================
-   VARIABLES DEL JUEGO
-   ========================================================= */
-
-let antitronksAnimationFrame =
-  null;
-
-let antitronksRunning =
-  false;
-
-let antitronksStarted =
-  false;
-
-let antitronksScore =
-  0;
-
-let antitronksLives =
-  3;
-
-let antitronksCamera =
-  0;
-
-let antitronksTargetCamera =
-  0;
-
-let antitronksLastTime =
-  0;
-
-let antitronksWidth =
-  0;
-
-let antitronksHeight =
-  0;
-
-let antitronksFlash =
-  0;
-
-let antitronksSpawnTimer =
-  null;
-
-let antitronksNextSpawn =
-  0;
-
-let antitronksMessageTimer =
-  null;
-
-/*
- * IMPORTANTE:
- * Ahora no existe "currentTarget".
- *
- * Puede haber varios objetivos al mismo tiempo.
- */
-
-let antitronksTargets =
-  [];
-
-let antitronksTargetId =
-  0;
-
-/* =========================================================
-   CONFIGURACIÓN DEL JUEGO
-   ========================================================= */
-
-const ANTITRONKS_MAX_TARGETS =
-  4;
-
-const ANTITRONKS_FOV =
-  Math.PI * 0.72;
-
-const ANTITRONKS_CAMERA_LIMIT =
-  Math.PI * 0.9;
-
-const ANTITRONKS_PLAYER_HEIGHT =
-  1.7;
-
-const ANTITRONKS_BOXES = [
-  {
-    x: -6,
-    y: 10,
-    size: 1.6
-  },
-  {
-    x: 4,
-    y: 14,
-    size: 1.8
-  },
-  {
-    x: -4,
-    y: 19,
-    size: 1.7
-  },
-  {
-    x: 6,
-    y: 24,
-    size: 1.9
-  },
-  {
-    x: -7,
-    y: 29,
-    size: 1.7
-  },
-  {
-    x: 3,
-    y: 34,
-    size: 1.8
-  },
-  {
-    x: -5,
-    y: 40,
-    size: 1.9
-  },
-  {
-    x: 7,
-    y: 46,
-    size: 1.8
-  },
-  {
-    x: -3,
-    y: 52,
-    size: 1.7
-  },
-  {
-    x: 5,
-    y: 59,
-    size: 2
-  },
-  {
-    x: -7,
-    y: 66,
-    size: 1.8
-  },
-  {
-    x: 4,
-    y: 74,
-    size: 1.9
-  }
-];
-
-/* =========================================================
-   UTILIDADES ANTITRONKS
-   ========================================================= */
-
-function antitronksRandom(
-  min,
-  max
-) {
-  return (
-    Math.random() *
-      (max - min) +
-    min
-  );
-}
-
-function antitronksClamp(
-  value,
-  min,
-  max
-) {
-  return Math.max(
-    min,
-    Math.min(
-      max,
-      value
-    )
-  );
-}
-
-function antitronksDistance(
-  x1,
-  y1,
-  x2,
-  y2
-) {
-  return Math.sqrt(
-    (x2 - x1) ** 2 +
-    (y2 - y1) ** 2
-  );
-}
-
-/* =========================================================
-   ABRIR ANTITRONKS
-   ========================================================= */
-
-function openAntitronks() {
-  if (!antitronksModal) {
-    return;
-  }
-
-  antitronksModal.classList.remove(
-    "hidden"
-  );
-
-  antitronksModal.setAttribute(
-    "aria-hidden",
-    "false"
-  );
-
-  document.body.classList.add(
-    "antitronks-open"
-  );
-
-  startAntitronks();
-}
-
-/* =========================================================
-   CERRAR ANTITRONKS
-   ========================================================= */
-
-function closeAntitronks() {
-  stopAntitronks();
-
-  if (antitronksModal) {
-    antitronksModal.classList.add(
-      "hidden"
+function initializeAntitronksGame() {
+  const card =
+    document.querySelector(
+      '[data-minigame="antitronks"]'
     );
 
-    antitronksModal.setAttribute(
-      "aria-hidden",
-      "true"
-    );
-  }
-
-  document.body.classList.remove(
-    "antitronks-open"
-  );
-}
-
-if (antitronksCard) {
-  antitronksCard.addEventListener(
-    "click",
-    openAntitronks
-  );
-
-  antitronksCard.addEventListener(
-    "keydown",
-    (event) => {
-      if (
-        event.key === "Enter" ||
-        event.key === " "
-      ) {
-        event.preventDefault();
-        openAntitronks();
-      }
-    }
-  );
-}
-
-if (antitronksClose) {
-  antitronksClose.addEventListener(
-    "click",
-    closeAntitronks
-  );
-}
-
-if (antitronksBackdrop) {
-  antitronksBackdrop.addEventListener(
-    "click",
-    closeAntitronks
-  );
-}
-
-/* =========================================================
-   INICIAR ANTITRONKS
-   ========================================================= */
-
-function startAntitronks() {
-  stopAntitronks();
-
-  antitronksScore = 0;
-  antitronksLives = 3;
-
-  antitronksCamera = 0;
-  antitronksTargetCamera = 0;
-
-  antitronksLastTime =
-    performance.now();
-
-  antitronksFlash = 0;
-
-  antitronksTargets = [];
-
-  antitronksTargetId = 0;
-
-  antitronksStarted = true;
-  antitronksRunning = true;
-
-  resizeAntitronksCanvas();
-
-  createAntitronksInterface();
-
-  scheduleAntitronksSpawn(
-    900
-  );
-
-  antitronksAnimationFrame =
-    requestAnimationFrame(
-      antitronksLoop
-    );
-}
-
-/* =========================================================
-   PARAR ANTITRONKS
-   ========================================================= */
-
-function stopAntitronks() {
-  antitronksRunning = false;
-
-  antitronksStarted = false;
-
-  if (
-    antitronksAnimationFrame
-  ) {
-    cancelAnimationFrame(
-      antitronksAnimationFrame
-    );
-
-    antitronksAnimationFrame =
-      null;
-  }
-
-  if (
-    antitronksSpawnTimer
-  ) {
-    clearTimeout(
-      antitronksSpawnTimer
-    );
-
-    antitronksSpawnTimer =
-      null;
-  }
-
-  if (
-    antitronksMessageTimer
-  ) {
-    clearTimeout(
-      antitronksMessageTimer
-    );
-
-    antitronksMessageTimer =
-      null;
-  }
-
-  antitronksTargets = [];
-
-  removeAntitronksInterface();
-}
-
-/* =========================================================
-   INTERFAZ DEL JUEGO
-   ========================================================= */
-
-function createAntitronksInterface() {
-  if (!antitronksGame) {
-    return;
-  }
-
-  removeAntitronksInterface();
-
-  const hud =
-    document.createElement(
-      "div"
-    );
-
-  hud.className =
-    "antitronks-hud";
-
-  hud.id =
-    "antitronks-hud";
-
-  hud.innerHTML = `
-    <div class="antitronks-score">
-      Score: <span id="antitronks-score">0</span>
-    </div>
-
-    <div class="antitronks-lives">
-      Lives: <span id="antitronks-lives">❤️❤️❤️</span>
-    </div>
-
-    <div
-      class="antitronks-message"
-      id="antitronks-message"
-    ></div>
-
-    <div
-      class="antitronks-offscreen-enemies"
-      id="antitronks-offscreen-enemies"
-    ></div>
-  `;
-
-  antitronksGame.appendChild(
-    hud
-  );
-}
-
-function removeAntitronksInterface() {
-  const hud =
+  const modal =
     document.getElementById(
-      "antitronks-hud"
+      "antitronks-modal"
     );
 
-  if (hud) {
-    hud.remove();
-  }
-}
+  const closeButton =
+    document.getElementById(
+      "antitronks-close"
+    );
 
-/* =========================================================
-   ACTUALIZAR HUD
-   ========================================================= */
+  const backdrop =
+    modal?.querySelector(
+      ".antitronks-backdrop"
+    );
 
-function updateAntitronksHUD() {
-  const score =
+  const game =
+    document.getElementById(
+      "antitronks-game"
+    );
+
+  const canvas =
+    document.getElementById(
+      "antitronks-canvas"
+    );
+
+  const ctx =
+    canvas?.getContext(
+      "2d"
+    );
+
+  const startButton =
+    document.getElementById(
+      "antitronks-start"
+    );
+
+  const overlay =
+    document.getElementById(
+      "antitronks-overlay"
+    );
+
+  const overlayTitle =
+    document.getElementById(
+      "antitronks-overlay-title"
+    );
+
+  const overlayText =
+    document.getElementById(
+      "antitronks-overlay-text"
+    );
+
+  const scoreElement =
     document.getElementById(
       "antitronks-score"
     );
 
-  const lives =
+  const livesElement =
     document.getElementById(
       "antitronks-lives"
     );
 
-  if (score) {
-    score.textContent =
-      antitronksScore;
-  }
+  const arrowContainer =
+    document.getElementById(
+      "antitronks-offscreen-enemies"
+    );
 
-  if (lives) {
-    lives.textContent =
-      "❤️".repeat(
-        Math.max(
-          0,
-          antitronksLives
-        )
-      );
-  }
-}
+  const flash =
+    document.getElementById(
+      "antitronks-hit-flash"
+    );
 
-/* =========================================================
-   MENSAJES
-   ========================================================= */
-
-function showAntitronksMessage(
-  message
-) {
-  const element =
+  const message =
     document.getElementById(
       "antitronks-message"
     );
 
-  if (!element) {
-    return;
-  }
-
-  element.textContent =
-    message;
-
-  if (
-    antitronksMessageTimer
-  ) {
-    clearTimeout(
-      antitronksMessageTimer
+  const messageText =
+    document.getElementById(
+      "antitronks-message-text"
     );
-  }
 
-  if (message) {
-    antitronksMessageTimer =
-      setTimeout(
-        () => {
-          element.textContent =
-            "";
-        },
-        900
-      );
-  }
-}
-
-/* =========================================================
-   REDIMENSIONAR CANVAS
-   ========================================================= */
-
-function resizeAntitronksCanvas() {
   if (
-    !antitronksCanvas ||
-    !antitronksGame
+    !card ||
+    !modal ||
+    !game ||
+    !canvas ||
+    !ctx
   ) {
     return;
   }
 
-  const rect =
-    antitronksGame.getBoundingClientRect();
+  /* =======================================================
+     CONFIGURACIÓN DEL JUEGO
+     ======================================================= */
 
-  const width =
-    Math.max(
-      1,
-      Math.floor(rect.width)
+  const TAU =
+    Math.PI * 2;
+
+  const FOV =
+    Math.PI * 0.78;
+
+  const MAX_DISTANCE =
+    90;
+
+  const PLAYER_HEIGHT =
+    1.65;
+
+  /*
+   * La calle utiliza X como eje largo.
+   * Z representa el ancho de la calle.
+   */
+  const BOXES = [
+    {
+      x: -58,
+      z: -7.2,
+      w: 4.2,
+      h: 3.5,
+      d: 4.0
+    },
+    {
+      x: -45,
+      z: 7.0,
+      w: 3.8,
+      h: 3.2,
+      d: 3.7
+    },
+    {
+      x: -31,
+      z: -7.5,
+      w: 4.5,
+      h: 3.7,
+      d: 4.2
+    },
+    {
+      x: -17,
+      z: 6.8,
+      w: 3.7,
+      h: 3.3,
+      d: 3.8
+    },
+    {
+      x: -3,
+      z: -7.2,
+      w: 4.4,
+      h: 3.6,
+      d: 4.1
+    },
+    {
+      x: 11,
+      z: 7.0,
+      w: 4.0,
+      h: 3.4,
+      d: 3.9
+    },
+    {
+      x: 25,
+      z: -7.3,
+      w: 4.6,
+      h: 3.8,
+      d: 4.3
+    },
+    {
+      x: 39,
+      z: 6.8,
+      w: 3.9,
+      h: 3.4,
+      d: 3.8
+    },
+    {
+      x: 53,
+      z: -7.0,
+      w: 4.2,
+      h: 3.5,
+      d: 4.0
+    },
+    {
+      x: 65,
+      z: 7.1,
+      w: 4.5,
+      h: 3.7,
+      d: 4.2
+    }
+  ];
+
+  let width = 1;
+  let height = 1;
+  let dpr = 1;
+
+  let running = false;
+  let animationFrame = 0;
+  let lastTime = 0;
+
+  let score = 0;
+  let lives = 3;
+
+  let cameraAngle = 0;
+  let cameraTargetAngle = 0;
+
+  let spawnTimer = 0;
+  let nextSpawn = 800;
+
+  let targets = [];
+
+  let keys = new Set();
+
+  let mouseX = 0.5;
+
+  let flashTimer = 0;
+  let messageTimer = 0;
+
+  /* =======================================================
+     UTILIDADES
+     ======================================================= */
+
+  function clamp(
+    value,
+    min,
+    max
+  ) {
+    return Math.max(
+      min,
+      Math.min(max, value)
     );
+  }
 
-  const height =
-    Math.max(
-      1,
-      Math.floor(rect.height)
+  function rand(
+    min,
+    max
+  ) {
+    return (
+      min +
+      Math.random() *
+        (max - min)
     );
+  }
 
-  const dpr =
-    Math.min(
-      window.devicePixelRatio ||
+  function normalizeAngle(
+    angle
+  ) {
+    while (
+      angle > Math.PI
+    ) {
+      angle -= TAU;
+    }
+
+    while (
+      angle < -Math.PI
+    ) {
+      angle += TAU;
+    }
+
+    return angle;
+  }
+
+  function getSpawnInterval() {
+    return Math.max(
+      360,
+      1450 -
+        score * 42
+    );
+  }
+
+  function getReactionTime() {
+    return Math.max(
+      620,
+      2700 -
+        score * 48
+    );
+  }
+
+  function getMaxTargets() {
+    return Math.min(
+      5,
+      2 +
+        Math.floor(
+          score / 5
+        )
+    );
+  }
+
+  /* =======================================================
+     RESIZE
+     ======================================================= */
+
+  function resize() {
+    const rect =
+      game.getBoundingClientRect();
+
+    width =
+      Math.max(
         1,
-      2
-    );
+        rect.width
+      );
 
-  antitronksWidth =
-    width;
+    height =
+      Math.max(
+        1,
+        rect.height
+      );
 
-  antitronksHeight =
-    height;
+    dpr =
+      Math.min(
+        window.devicePixelRatio ||
+          1,
+        2
+      );
 
-  antitronksCanvas.width =
-    Math.floor(
-      width * dpr
-    );
+    canvas.width =
+      Math.floor(
+        width * dpr
+      );
 
-  antitronksCanvas.height =
-    Math.floor(
-      height * dpr
-    );
+    canvas.height =
+      Math.floor(
+        height * dpr
+      );
 
-  antitronksCanvas.style.width =
-    `${width}px`;
-
-  antitronksCanvas.style.height =
-    `${height}px`;
-
-  const ctx =
-    antitronksCanvas.getContext(
-      "2d"
-    );
-
-  if (ctx) {
     ctx.setTransform(
       dpr,
       0,
@@ -2214,2038 +2003,2885 @@ function resizeAntitronksCanvas() {
       0
     );
   }
-}
 
-window.addEventListener(
-  "resize",
-  () => {
-    if (
-      antitronksRunning
-    ) {
-      resizeAntitronksCanvas();
+  /* =======================================================
+     HUD
+     ======================================================= */
+
+  function updateHud() {
+    if (scoreElement) {
+      scoreElement.textContent =
+        `PUNTOS: ${score}`;
+    }
+
+    if (livesElement) {
+      livesElement.textContent =
+        `VIDAS: ${lives}`;
     }
   }
-);
 
-/* =========================================================
-   CREAR OBJETIVO
-   ========================================================= */
-
-function spawnAntitronksTarget() {
-  if (
-    !antitronksRunning
+  function showMessage(
+    text,
+    duration = 400
   ) {
-    return;
+    if (
+      !message ||
+      !messageText
+    ) {
+      return;
+    }
+
+    messageText.textContent =
+      text;
+
+    message.classList.add(
+      "visible"
+    );
+
+    messageTimer =
+      duration;
   }
 
-  if (
-    antitronksTargets.length >=
-    ANTITRONKS_MAX_TARGETS
-  ) {
-    return;
+  function damageFlash() {
+    if (!flash) {
+      return;
+    }
+
+    flash.classList.add(
+      "active"
+    );
+
+    flashTimer = 160;
   }
 
-  let box = null;
+  /* =======================================================
+     TARGETS
+     ======================================================= */
 
-  for (
-    let attempt = 0;
-    attempt < 20;
-    attempt++
-  ) {
-    const candidate =
-      ANTITRONKS_BOXES[
+  function clearTargets() {
+    targets = [];
+
+    if (arrowContainer) {
+      arrowContainer.innerHTML =
+        "";
+    }
+  }
+
+  function spawnTarget() {
+    if (
+      !running ||
+      targets.length >=
+        getMaxTargets()
+    ) {
+      return;
+    }
+
+    const availableBoxes =
+      BOXES.filter(
+        (box) =>
+          !targets.some(
+            (target) =>
+              target.box === box
+          )
+      );
+
+    if (
+      availableBoxes.length ===
+      0
+    ) {
+      return;
+    }
+
+    const box =
+      availableBoxes[
         Math.floor(
           Math.random() *
-            ANTITRONKS_BOXES.length
+            availableBoxes.length
         )
       ];
 
-    const occupied =
-      antitronksTargets.some(
-        (target) =>
-          target.boxY ===
-          candidate.y
-      );
-
-    if (!occupied) {
-      box = candidate;
-      break;
-    }
-  }
-
-  if (!box) {
-    return;
-  }
-
-  const civilianChance =
-    0.18;
-
-  const isCivilian =
-    Math.random() <
-    civilianChance;
-
-  const reactionTime =
-    getAntitronksReactionTime();
-
-  const target = {
-    id:
-      ++antitronksTargetId,
-
-    type:
-      isCivilian
-        ? "civilian"
-        : "enemy",
-
-    x:
-      box.x +
-      antitronksRandom(
-        -0.35,
-        0.35
-      ),
-
-    y:
-      box.y -
-
-      antitronksRandom(
-        0.1,
-        0.8
-      ),
-
-    boxY:
-      box.y,
-
-    born:
-      performance.now(),
-
-    reactionTime,
-
-    maxLife:
-      isCivilian
-        ? antitronksRandom(
-            2600,
-            4200
-          )
-        : null,
-
-    hit:
-      false,
-
-    attack:
-      false
-  };
-
-  antitronksTargets.push(
-    target
-  );
-}
-
-/* =========================================================
-   TIEMPO DE REACCIÓN
-   ========================================================= */
-
-function getAntitronksReactionTime() {
-  const base =
-    2400;
-
-  /*
-   * Cuantos más puntos:
-   * menos tiempo tiene el jugador.
-   */
-
-  const reduction =
-    antitronksScore * 45;
-
-  const minimum =
-    550;
-
-  return Math.max(
-    minimum,
-    base - reduction
-  );
-}
-
-/* =========================================================
-   TIEMPO DE APARICIÓN
-   ========================================================= */
-
-function getAntitronksSpawnDelay() {
-  const minimum =
-    Math.max(
-      280,
-      1150 -
-        antitronksScore *
-          25
-    );
-
-  const maximum =
-    Math.max(
-      650,
-      2200 -
-        antitronksScore *
-          35
-    );
-
-  return antitronksRandom(
-    minimum,
-    maximum
-  );
-}
-
-/* =========================================================
-   PROGRAMAR APARICIÓN
-   ========================================================= */
-
-function scheduleAntitronksSpawn(
-  delay = null
-) {
-  if (
-    !antitronksRunning
-  ) {
-    return;
-  }
-
-  if (
-    antitronksSpawnTimer
-  ) {
-    clearTimeout(
-      antitronksSpawnTimer
-    );
-  }
-
-  const spawnDelay =
-    delay === null
-      ? getAntitronksSpawnDelay()
-      : delay;
-
-  antitronksSpawnTimer =
-    setTimeout(
-      () => {
-        if (
-          !antitronksRunning
-        ) {
-          return;
-        }
-
-        spawnAntitronksTarget();
-
-        /*
-         * Con más puntuación puede haber
-         * varios objetivos simultáneamente.
-         */
-
-        if (
-          antitronksTargets.length <
-            ANTITRONKS_MAX_TARGETS &&
-          antitronksScore >= 3
-        ) {
-          const extraChance =
-            Math.min(
-              0.55,
-              0.15 +
-                antitronksScore *
-                  0.025
-            );
-
-          if (
-            Math.random() <
-            extraChance
-          ) {
-            setTimeout(
-              () => {
-                spawnAntitronksTarget();
-              },
-              antitronksRandom(
-                120,
-                350
-              )
-            );
-          }
-        }
-
-        scheduleAntitronksSpawn();
-      },
-      spawnDelay
-    );
-}
-
-/* =========================================================
-   ACTUALIZAR OBJETIVOS
-   ========================================================= */
-
-function updateAntitronksTargets(
-  now
-) {
-  for (
-    let i =
-      antitronksTargets.length -
-      1;
-    i >= 0;
-    i--
-  ) {
-    const target =
-      antitronksTargets[i];
-
-    const elapsed =
-      now - target.born;
-
     /*
-     * Los civiles desaparecen después
-     * de un tiempo si no reciben un disparo.
+     * 82% enemigos
+     * 18% civiles
+     */
+    const type =
+      Math.random() < 0.82
+        ? "enemy"
+        : "civilian";
+
+    const target = {
+      id:
+        `${Date.now()}-${Math.random()}`,
+
+      box,
+
+      x:
+        box.x +
+        rand(
+          -box.w * 0.22,
+          box.w * 0.22
+        ),
+
+      z:
+        box.z +
+        (
+          box.z < 0
+            ? box.d * 0.58
+            : -box.d * 0.58
+        ),
+
+      type,
+
+      born:
+        performance.now(),
+
+      reaction:
+        type === "enemy"
+          ? getReactionTime() +
+            rand(
+              -170,
+              180
+            )
+          : rand(
+              2400,
+              3900
+            ),
+
+      scale:
+        rand(
+          0.94,
+          1.08
+        ),
+
+      animation:
+        Math.random() *
+        TAU
+    };
+
+    targets.push(
+      target
+    );
+  }
+
+  /* =======================================================
+     PROYECCIÓN 3D
+     ======================================================= */
+
+  function projectPoint(
+    worldX,
+    worldZ,
+    worldY = 0
+  ) {
+    /*
+     * La cámara está en el origen.
+     *
+     * X = dirección de la calle.
+     * Z = anchura de la calle.
      */
 
-    if (
-      target.type ===
-        "civilian" &&
-      elapsed >=
-        target.maxLife
-    ) {
-      antitronksTargets.splice(
-        i,
-        1
+    const dx =
+      worldX;
+
+    const dz =
+      worldZ;
+
+    const cos =
+      Math.cos(
+        cameraAngle
       );
 
-      continue;
-    }
+    const sin =
+      Math.sin(
+        cameraAngle
+      );
 
-    /*
-     * Los enemigos disparan automáticamente
-     * cuando se acaba su tiempo.
-     */
+    const side =
+      dx * cos -
+      dz * sin;
+
+    const depth =
+      dx * sin +
+      dz * cos;
 
     if (
-      target.type ===
-        "enemy" &&
-      !target.attack &&
-      elapsed >=
-        target.reactionTime
+      depth <= 0.25
     ) {
-      target.attack = true;
-
-      antitronksPlayerHit();
-
-      antitronksTargets.splice(
-        i,
-        1
-      );
+      return {
+        visible: false,
+        behind: true,
+        depth,
+        x: width / 2,
+        y: height / 2,
+        scale: 0
+      };
     }
-  }
-}
 
-/* =========================================================
-   DAÑO AL JUGADOR
-   ========================================================= */
+    const focal =
+      width /
+      (
+        2 *
+        Math.tan(
+          FOV / 2
+        )
+      );
 
-function antitronksPlayerHit() {
-  antitronksLives--;
+    const screenX =
+      width / 2 +
+      (
+        side /
+        depth
+      ) *
+        focal;
 
-  antitronksFlash =
-    180;
+    const screenY =
+      height * 0.53 -
+      (
+        (
+          worldY -
+          PLAYER_HEIGHT *
+            0.45
+        ) /
+        depth
+      ) *
+        focal;
 
-  showAntitronksMessage(
-    "¡TE HAN DISPARADO!"
-  );
-
-  updateAntitronksHUD();
-
-  if (
-    antitronksLives <= 0
-  ) {
-    endAntitronksGame();
-  }
-}
-
-/* =========================================================
-   FIN DEL JUEGO
-   ========================================================= */
-
-function endAntitronksGame() {
-  antitronksRunning =
-    false;
-
-  if (
-    antitronksSpawnTimer
-  ) {
-    clearTimeout(
-      antitronksSpawnTimer
-    );
-
-    antitronksSpawnTimer =
-      null;
-  }
-
-  antitronksTargets = [];
-
-  showAntitronksGameOver();
-}
-
-function showAntitronksGameOver() {
-  if (!antitronksGame) {
-    return;
-  }
-
-  const existing =
-    document.getElementById(
-      "antitronks-game-over"
-    );
-
-  if (existing) {
-    existing.remove();
-  }
-
-  const overlay =
-    document.createElement(
-      "div"
-    );
-
-  overlay.id =
-    "antitronks-game-over";
-
-  overlay.className =
-    "antitronks-overlay";
-
-  overlay.innerHTML = `
-    <div class="antitronks-overlay-box">
-
-      <h3>
-        Game Over
-      </h3>
-
-      <p>
-        Score: <strong>${antitronksScore}</strong>
-      </p>
-
-      <button
-        type="button"
-        class="antitronks-start-button"
-        id="antitronks-restart"
-      >
-        Jugar de nuevo
-      </button>
-
-    </div>
-  `;
-
-  antitronksGame.appendChild(
-    overlay
-  );
-
-  document
-    .getElementById(
-      "antitronks-restart"
-    )
-    ?.addEventListener(
-      "click",
-      () => {
-        overlay.remove();
-        startAntitronks();
-      }
-    );
-}
-
-/* =========================================================
-   PROYECCIÓN 3D SIMPLE
-   ========================================================= */
-
-function projectAntitronks(
-  worldX,
-  worldY
-) {
-  const relativeX =
-    worldX;
-
-  const relativeY =
-    worldY;
-
-  const dx =
-    relativeX;
-
-  const dz =
-    relativeY;
-
-  const angle =
-    Math.atan2(
-      dx,
-      dz
-    );
-
-  let relativeAngle =
-    angle -
-    antitronksCamera;
-
-  while (
-    relativeAngle >
-    Math.PI
-  ) {
-    relativeAngle -=
-      Math.PI * 2;
-  }
-
-  while (
-    relativeAngle <
-    -Math.PI
-  ) {
-    relativeAngle +=
-      Math.PI * 2;
-  }
-
-  const distance =
-    Math.sqrt(
-      dx * dx +
-      dz * dz
-    );
-
-  if (
-    Math.abs(
-      relativeAngle
-    ) >
-    ANTITRONKS_FOV / 2
-  ) {
     return {
-      visible: false,
-      distance,
-      relativeAngle
+      visible:
+        screenX >
+          -width * 0.15 &&
+        screenX <
+          width * 1.15 &&
+        depth <
+          MAX_DISTANCE,
+
+      behind: false,
+
+      depth,
+
+      x: screenX,
+
+      y: screenY,
+
+      scale:
+        focal /
+        depth
     };
   }
 
-  const horizontal =
-    Math.tan(
-      relativeAngle
-    ) /
-    Math.tan(
-      ANTITRONKS_FOV / 2
+  /* =======================================================
+     CIELO Y CALLE
+     ======================================================= */
+
+  function drawEnvironment() {
+    const horizon =
+      height * 0.47;
+
+    /*
+     * Cielo
+     */
+
+    const sky =
+      ctx.createLinearGradient(
+        0,
+        0,
+        0,
+        horizon
+      );
+
+    sky.addColorStop(
+      0,
+      "#53687d"
     );
 
-  const screenX =
-    antitronksWidth / 2 +
-    horizontal *
-      (antitronksWidth / 2);
-
-  const depth =
-    Math.max(
+    sky.addColorStop(
       1,
-      distance
+      "#c4bba9"
     );
 
-  const scale =
-    240 /
-    (depth + 5);
-
-  const horizon =
-    antitronksHeight *
-    0.47;
-
-  const groundY =
-    horizon +
-    250 *
-      (1 / (depth + 2));
-
-  return {
-    visible: true,
-    x: screenX,
-    y: groundY,
-    scale,
-    distance,
-    relativeAngle
-  };
-}
-
-/* =========================================================
-   DIBUJAR CIELO
-   ========================================================= */
-
-function drawAntitronksSky(
-  ctx
-) {
-  const gradient =
-    ctx.createLinearGradient(
-      0,
-      0,
-      0,
-      antitronksHeight
-    );
-
-  gradient.addColorStop(
-    0,
-    "#111827"
-  );
-
-  gradient.addColorStop(
-    0.5,
-    "#374151"
-  );
-
-  gradient.addColorStop(
-    1,
-    "#6b7280"
-  );
-
-  ctx.fillStyle =
-    gradient;
-
-  ctx.fillRect(
-    0,
-    0,
-    antitronksWidth,
-    antitronksHeight
-  );
-}
-
-/* =========================================================
-   DIBUJAR CALLE
-   ========================================================= */
-
-function drawAntitronksStreet(
-  ctx
-) {
-  const horizon =
-    antitronksHeight *
-    0.47;
-
-  ctx.fillStyle =
-    "#171717";
-
-  ctx.fillRect(
-    0,
-    horizon,
-    antitronksWidth,
-    antitronksHeight -
-      horizon
-  );
-
-  ctx.fillStyle =
-    "#252525";
-
-  ctx.beginPath();
-
-  ctx.moveTo(
-    antitronksWidth *
-      0.36,
-    horizon
-  );
-
-  ctx.lineTo(
-    antitronksWidth *
-      0.64,
-    horizon
-  );
-
-  ctx.lineTo(
-    antitronksWidth,
-    antitronksHeight
-  );
-
-  ctx.lineTo(
-    0,
-    antitronksHeight
-  );
-
-  ctx.closePath();
-
-  ctx.fill();
-
-  /*
-   * Línea central de la carretera.
-   */
-
-  ctx.strokeStyle =
-    "#d4d4d4";
-
-  ctx.lineWidth =
-    4;
-
-  ctx.setLineDash([
-    35,
-    35
-  ]);
-
-  ctx.beginPath();
-
-  ctx.moveTo(
-    antitronksWidth / 2,
-    horizon
-  );
-
-  ctx.lineTo(
-    antitronksWidth / 2,
-    antitronksHeight
-  );
-
-  ctx.stroke();
-
-  ctx.setLineDash([]);
-}
-
-/* =========================================================
-   DIBUJAR EDIFICIOS
-   ========================================================= */
-
-function drawAntitronksBuildings(
-  ctx
-) {
-  const horizon =
-    antitronksHeight *
-    0.47;
-
-  ctx.fillStyle =
-    "#111111";
-
-  ctx.fillRect(
-    0,
-    horizon - 110,
-    antitronksWidth *
-      0.25,
-    110
-  );
-
-  ctx.fillRect(
-    antitronksWidth *
-      0.75,
-    horizon - 135,
-    antitronksWidth *
-      0.25,
-    135
-  );
-
-  ctx.fillStyle =
-    "#1f2937";
-
-  for (
-    let i = 0;
-    i < 7;
-    i++
-  ) {
-    const left =
-      i *
-      (antitronksWidth /
-        7);
-
-    const h =
-      35 +
-      (i % 3) *
-        25;
+    ctx.fillStyle =
+      sky;
 
     ctx.fillRect(
-      left,
-      horizon - h,
-      antitronksWidth /
-        7 -
-        4,
-      h
+      0,
+      0,
+      width,
+      horizon
     );
-  }
-}
 
-/* =========================================================
-   DIBUJAR CAJAS
-   ========================================================= */
+    /*
+     * Suelo
+     */
 
-function drawAntitronksBoxes(
-  ctx
-) {
-  ANTITRONKS_BOXES.forEach(
-    (box) => {
-      const projected =
-        projectAntitronks(
-          box.x,
-          box.y
-        );
-
-      if (
-        !projected.visible
-      ) {
-        return;
-      }
-
-      const size =
-        Math.max(
-          8,
-          projected.scale *
-            box.size
-        );
-
-      const x =
-        projected.x -
-        size / 2;
-
-      const y =
-        projected.y -
-        size;
-
-      ctx.fillStyle =
-        "#7c4a21";
-
-      ctx.fillRect(
-        x,
-        y,
-        size,
-        size
+    const ground =
+      ctx.createLinearGradient(
+        0,
+        horizon,
+        0,
+        height
       );
 
-      ctx.strokeStyle =
-        "#3f2412";
+    ground.addColorStop(
+      0,
+      "#555555"
+    );
 
-      ctx.lineWidth =
-        2;
+    ground.addColorStop(
+      1,
+      "#1d1d1d"
+    );
 
-      ctx.strokeRect(
-        x,
-        y,
-        size,
-        size
+    ctx.fillStyle =
+      ground;
+
+    ctx.fillRect(
+      0,
+      horizon,
+      width,
+      height -
+        horizon
+    );
+
+    /*
+     * CALLE HORIZONTAL
+     */
+
+    const roadLeftFar =
+      projectPoint(
+        -70,
+        -8.5,
+        0
       );
 
-      ctx.strokeStyle =
-        "#a66b35";
+    const roadRightFar =
+      projectPoint(
+        70,
+        -8.5,
+        0
+      );
+
+    const roadRightNear =
+      projectPoint(
+        70,
+        8.5,
+        0
+      );
+
+    const roadLeftNear =
+      projectPoint(
+        -70,
+        8.5,
+        0
+      );
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      roadLeftFar.x,
+      roadLeftFar.y
+    );
+
+    ctx.lineTo(
+      roadRightFar.x,
+      roadRightFar.y
+    );
+
+    ctx.lineTo(
+      roadRightNear.x,
+      roadRightNear.y
+    );
+
+    ctx.lineTo(
+      roadLeftNear.x,
+      roadLeftNear.y
+    );
+
+    ctx.closePath();
+
+    ctx.fillStyle =
+      "#494949";
+
+    ctx.fill();
+
+    /*
+     * Aceras.
+     */
+
+    for (
+      const side of [-1, 1]
+    ) {
+      const zOuter =
+        side * 15;
+
+      const zInner =
+        side * 8.5;
+
+      const a =
+        projectPoint(
+          -70,
+          zOuter,
+          0
+        );
+
+      const b =
+        projectPoint(
+          70,
+          zOuter,
+          0
+        );
+
+      const c =
+        projectPoint(
+          70,
+          zInner,
+          0
+        );
+
+      const d =
+        projectPoint(
+          -70,
+          zInner,
+          0
+        );
 
       ctx.beginPath();
 
       ctx.moveTo(
-        x,
-        y
+        a.x,
+        a.y
       );
 
       ctx.lineTo(
-        x + size,
-        y + size
+        b.x,
+        b.y
       );
+
+      ctx.lineTo(
+        c.x,
+        c.y
+      );
+
+      ctx.lineTo(
+        d.x,
+        d.y
+      );
+
+      ctx.closePath();
+
+      ctx.fillStyle =
+        "#3b3b3b";
+
+      ctx.fill();
+    }
+
+    /*
+     * Línea central.
+     */
+
+    for (
+      let x = -70;
+      x < 70;
+      x += 9
+    ) {
+      const a =
+        projectPoint(
+          x,
+          0,
+          0.04
+        );
+
+      const b =
+        projectPoint(
+          x + 4.5,
+          0,
+          0.04
+        );
+
+      if (
+        a.depth <= 0 ||
+        b.depth <= 0
+      ) {
+        continue;
+      }
+
+      ctx.strokeStyle =
+        "rgba(240,240,240,.78)";
+
+      ctx.lineWidth =
+        3;
+
+      ctx.beginPath();
 
       ctx.moveTo(
-        x + size,
-        y
+        a.x,
+        a.y
       );
 
       ctx.lineTo(
-        x,
-        y + size
+        b.x,
+        b.y
       );
 
       ctx.stroke();
     }
-  );
-}
 
-/* =========================================================
-   DIBUJAR ENEMIGO
-   ========================================================= */
+    /*
+     * Edificios al fondo.
+     */
 
-function drawAntitronksEnemy(
-  ctx,
-  target,
-  projected
-) {
-  const scale =
-    projected.scale;
+    for (
+      const side of [-1, 1]
+    ) {
+      const baseZ =
+        side * 16;
 
-  const x =
-    projected.x;
+      for (
+        let x = -70;
+        x < 70;
+        x += 18
+      ) {
+        const heightBuilding =
+          5 +
+          (
+            Math.abs(x) %
+            12
+          ) *
+            0.12;
 
-  const y =
-    projected.y;
+        const p1 =
+          projectPoint(
+            x,
+            baseZ,
+            0
+          );
 
-  const bodyWidth =
-    Math.max(
-      14,
-      30 * scale
+        const p2 =
+          projectPoint(
+            x + 14,
+            baseZ,
+            0
+          );
+
+        const p3 =
+          projectPoint(
+            x + 14,
+            baseZ,
+            heightBuilding
+          );
+
+        const p4 =
+          projectPoint(
+            x,
+            baseZ,
+            heightBuilding
+          );
+
+        if (
+          p1.depth <= 0 &&
+          p2.depth <= 0
+        ) {
+          continue;
+        }
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+          p1.x,
+          p1.y
+        );
+
+        ctx.lineTo(
+          p2.x,
+          p2.y
+        );
+
+        ctx.lineTo(
+          p3.x,
+          p3.y
+        );
+
+        ctx.lineTo(
+          p4.x,
+          p4.y
+        );
+
+        ctx.closePath();
+
+        ctx.fillStyle =
+          side < 0
+            ? "#484a4d"
+            : "#55575a";
+
+        ctx.fill();
+
+        ctx.strokeStyle =
+          "rgba(0,0,0,.3)";
+
+        ctx.stroke();
+      }
+    }
+  }
+
+  /* =======================================================
+     CAJAS 3D
+     ======================================================= */
+
+  function drawBox(
+    box
+  ) {
+    const projection =
+      projectPoint(
+        box.x,
+        box.z,
+        box.h * 0.5
+      );
+
+    if (
+      projection.depth <= 0 ||
+      projection.depth >
+        MAX_DISTANCE
+    ) {
+      return;
+    }
+
+    const focal =
+      width /
+      (
+        2 *
+        Math.tan(
+          FOV / 2
+        )
+      );
+
+    const scale =
+      focal /
+      projection.depth;
+
+    const boxWidth =
+      box.w *
+      scale;
+
+    const boxHeight =
+      box.h *
+      scale;
+
+    const x =
+      projection.x;
+
+    const y =
+      projection.y;
+
+    if (
+      x <
+        -boxWidth * 2 ||
+      x >
+        width +
+          boxWidth * 2
+    ) {
+      return;
+    }
+
+    ctx.save();
+
+    ctx.translate(
+      x,
+      y
     );
 
-  const bodyHeight =
-    Math.max(
-      25,
-      55 * scale
+    /*
+     * Sombra
+     */
+
+    ctx.fillStyle =
+      "rgba(0,0,0,.38)";
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+      0,
+      boxHeight *
+        0.55,
+      boxWidth *
+        0.7,
+      Math.max(
+        2,
+        boxHeight *
+          0.11
+      ),
+      0,
+      0,
+      TAU
     );
 
-  const headRadius =
-    Math.max(
-      7,
-      12 * scale
+    ctx.fill();
+
+    /*
+     * Cara derecha
+     */
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      boxWidth *
+        0.5,
+      -boxHeight *
+        0.5
     );
 
-  /*
-   * Cuerpo.
-   */
+    ctx.lineTo(
+      boxWidth *
+        0.78,
+      -boxHeight *
+        0.38
+    );
 
-  ctx.fillStyle =
-    "#1f2937";
+    ctx.lineTo(
+      boxWidth *
+        0.78,
+      boxHeight *
+        0.48
+    );
 
-  ctx.fillRect(
-    x -
-      bodyWidth / 2,
-    y -
-      bodyHeight,
-    bodyWidth,
-    bodyHeight
-  );
+    ctx.lineTo(
+      boxWidth *
+        0.5,
+      boxHeight *
+        0.5
+    );
 
-  /*
-   * Chaleco antibalas.
-   */
+    ctx.closePath();
 
-  ctx.fillStyle =
-    "#374151";
+    ctx.fillStyle =
+      "#715033";
 
-  ctx.fillRect(
-    x -
-      bodyWidth / 2 +
-      3 * scale,
-    y -
-      bodyHeight +
-      14 * scale,
-    bodyWidth -
-      6 * scale,
-    27 * scale
-  );
+    ctx.fill();
 
-  /*
-   * Cabeza.
-   */
+    /*
+     * Parte superior
+     */
 
-  ctx.fillStyle =
-    "#111827";
+    ctx.beginPath();
 
-  ctx.beginPath();
+    ctx.moveTo(
+      -boxWidth *
+        0.5,
+      -boxHeight *
+        0.5
+    );
 
-  ctx.arc(
-    x,
-    y -
-      bodyHeight -
+    ctx.lineTo(
+      -boxWidth *
+        0.2,
+      -boxHeight *
+        0.64
+    );
+
+    ctx.lineTo(
+      boxWidth *
+        0.78,
+      -boxHeight *
+        0.38
+    );
+
+    ctx.lineTo(
+      boxWidth *
+        0.5,
+      -boxHeight *
+        0.5
+    );
+
+    ctx.closePath();
+
+    ctx.fillStyle =
+      "#9a7048";
+
+    ctx.fill();
+
+    /*
+     * Cara frontal
+     */
+
+    ctx.beginPath();
+
+    ctx.rect(
+      -boxWidth *
+        0.5,
+      -boxHeight *
+        0.5,
+      boxWidth,
+      boxHeight
+    );
+
+    ctx.fillStyle =
+      "#8a633f";
+
+    ctx.fill();
+
+    ctx.strokeStyle =
+      "#2b1b10";
+
+    ctx.lineWidth =
+      Math.max(
+        1,
+        scale *
+          0.035
+      );
+
+    ctx.stroke();
+
+    /*
+     * Tablones
+     */
+
+    ctx.strokeStyle =
+      "rgba(50,28,15,.5)";
+
+    ctx.lineWidth =
+      Math.max(
+        1,
+        scale *
+          0.025
+      );
+
+    for (
+      let i = 1;
+      i < 5;
+      i++
+    ) {
+      const yy =
+        -boxHeight *
+          0.5 +
+        boxHeight *
+          i /
+          5;
+
+      ctx.beginPath();
+
+      ctx.moveTo(
+        -boxWidth *
+          0.47,
+        yy
+      );
+
+      ctx.lineTo(
+        boxWidth *
+          0.47,
+        yy
+      );
+
+      ctx.stroke();
+    }
+
+    /*
+     * Separación vertical
+     */
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      0,
+      -boxHeight *
+        0.48
+    );
+
+    ctx.lineTo(
+      0,
+      boxHeight *
+        0.48
+    );
+
+    ctx.stroke();
+
+    /*
+     * Bandas metálicas
+     */
+
+    ctx.strokeStyle =
+      "rgba(25,25,25,.8)";
+
+    ctx.lineWidth =
+      Math.max(
+        1.5,
+        scale *
+          0.045
+      );
+
+    ctx.strokeRect(
+      -boxWidth *
+        0.46,
+      -boxHeight *
+        0.46,
+      boxWidth *
+        0.92,
+      boxHeight *
+        0.92
+    );
+
+    ctx.restore();
+  }
+
+  /* =======================================================
+     ENEMIGO / CIVIL
+     ======================================================= */
+
+  function drawPerson(
+    target,
+    projection
+  ) {
+    if (
+      projection.depth <= 0 ||
+      projection.depth >
+        MAX_DISTANCE
+    ) {
+      return;
+    }
+
+    const focal =
+      width /
+      (
+        2 *
+        Math.tan(
+          FOV / 2
+        )
+      );
+
+    const scale =
+      focal /
+      projection.depth *
+      target.scale;
+
+    const personHeight =
+      clamp(
+        4.9 * scale,
+        16,
+        height *
+          0.9
+      );
+
+    const personWidth =
+      personHeight *
+      0.34;
+
+    const x =
+      projection.x;
+
+    const y =
+      projection.y +
+      personHeight *
+        0.42;
+
+    if (
+      x <
+        -personWidth * 2 ||
+      x >
+        width +
+          personWidth * 2
+    ) {
+      return;
+    }
+
+    ctx.save();
+
+    ctx.translate(
+      x,
+      y
+    );
+
+    /*
+     * Sombra
+     */
+
+    ctx.fillStyle =
+      "rgba(0,0,0,.42)";
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+      0,
+      personHeight *
+        0.53,
+      personWidth *
+        0.7,
+      personHeight *
+        0.12,
+      0,
+      0,
+      TAU
+    );
+
+    ctx.fill();
+
+    const headRadius =
+      personHeight *
+      0.105;
+
+    const headY =
+      -personHeight *
+      0.36;
+
+    const bodyTop =
+      -personHeight *
+      0.23;
+
+    const bodyBottom =
+      personHeight *
+      0.2;
+
+    /*
+     * Piernas
+     */
+
+    ctx.strokeStyle =
+      target.type ===
+      "enemy"
+        ? "#17191b"
+        : "#444";
+
+    ctx.lineWidth =
+      Math.max(
+        2,
+        personWidth *
+          0.23
+      );
+
+    ctx.lineCap =
+      "round";
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      -personWidth *
+        0.14,
+      bodyBottom
+    );
+
+    ctx.lineTo(
+      -personWidth *
+        0.28,
+      personHeight *
+        0.48
+    );
+
+    ctx.moveTo(
+      personWidth *
+        0.14,
+      bodyBottom
+    );
+
+    ctx.lineTo(
+      personWidth *
+        0.28,
+      personHeight *
+        0.48
+    );
+
+    ctx.stroke();
+
+    /*
+     * Botas
+     */
+
+    ctx.strokeStyle =
+      "#101010";
+
+    ctx.lineWidth =
+      Math.max(
+        2,
+        personWidth *
+          0.26
+      );
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      -personWidth *
+        0.28,
+      personHeight *
+        0.48
+    );
+
+    ctx.lineTo(
+      -personWidth *
+        0.4,
+      personHeight *
+        0.5
+    );
+
+    ctx.moveTo(
+      personWidth *
+        0.28,
+      personHeight *
+        0.48
+    );
+
+    ctx.lineTo(
+      personWidth *
+        0.4,
+      personHeight *
+        0.5
+    );
+
+    ctx.stroke();
+
+    /*
+     * Torso
+     */
+
+    ctx.fillStyle =
+      target.type ===
+      "enemy"
+        ? "#252a2e"
+        : "#6b6b6b";
+
+    ctx.strokeStyle =
+      "#101214";
+
+    ctx.lineWidth =
+      Math.max(
+        1,
+        personWidth *
+          0.055
+      );
+
+    ctx.beginPath();
+
+    ctx.roundRect(
+      -personWidth *
+        0.43,
+      bodyTop,
+      personWidth *
+        0.86,
+      bodyBottom -
+        bodyTop,
+      personWidth *
+        0.13
+    );
+
+    ctx.fill();
+
+    ctx.stroke();
+
+    /*
+     * Chaleco táctico
+     */
+
+    if (
+      target.type ===
+      "enemy"
+    ) {
+      ctx.fillStyle =
+        "#394147";
+
+      ctx.fillRect(
+        -personWidth *
+          0.31,
+        bodyTop +
+          personHeight *
+            0.035,
+        personWidth *
+          0.62,
+        personHeight *
+          0.18
+      );
+
+      ctx.strokeStyle =
+        "#16191b";
+
+      ctx.lineWidth =
+        Math.max(
+          1,
+          personWidth *
+            0.035
+        );
+
+      ctx.strokeRect(
+        -personWidth *
+          0.31,
+        bodyTop +
+          personHeight *
+            0.035,
+        personWidth *
+          0.62,
+        personHeight *
+          0.18
+      );
+
+      /*
+       * Bolsillos
+       */
+
+      ctx.fillStyle =
+        "#17191b";
+
+      ctx.fillRect(
+        -personWidth *
+          0.25,
+        bodyTop +
+          personHeight *
+            0.065,
+        personWidth *
+          0.14,
+        personHeight *
+          0.08
+      );
+
+      ctx.fillRect(
+        personWidth *
+          0.11,
+        bodyTop +
+          personHeight *
+            0.065,
+        personWidth *
+          0.14,
+        personHeight *
+          0.08
+      );
+    }
+
+    /*
+     * Brazos
+     */
+
+    ctx.strokeStyle =
+      target.type ===
+      "enemy"
+        ? "#30363a"
+        : "#686868";
+
+    ctx.lineWidth =
+      Math.max(
+        2,
+        personWidth *
+          0.18
+      );
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      -personWidth *
+        0.34,
+      bodyTop +
+        personHeight *
+          0.04
+    );
+
+    ctx.lineTo(
+      -personWidth *
+        0.62,
+      bodyTop +
+        personHeight *
+          0.23
+    );
+
+    ctx.moveTo(
+      personWidth *
+        0.34,
+      bodyTop +
+        personHeight *
+          0.04
+    );
+
+    ctx.lineTo(
+      personWidth *
+        0.6,
+      bodyTop +
+        personHeight *
+          0.18
+    );
+
+    ctx.stroke();
+
+    /*
+     * Manos
+     */
+
+    ctx.fillStyle =
+      "#a77b5e";
+
+    ctx.beginPath();
+
+    ctx.arc(
+      -personWidth *
+        0.62,
+      bodyTop +
+        personHeight *
+          0.23,
+      Math.max(
+        2,
+        personWidth *
+          0.08
+      ),
+      0,
+      TAU
+    );
+
+    ctx.arc(
+      personWidth *
+        0.6,
+      bodyTop +
+        personHeight *
+          0.18,
+      Math.max(
+        2,
+        personWidth *
+          0.08
+      ),
+      0,
+      TAU
+    );
+
+    ctx.fill();
+
+    /*
+     * Arma enemiga
+     */
+
+    if (
+      target.type ===
+      "enemy"
+    ) {
+      drawM4(
+        personWidth,
+        personHeight
+      );
+    }
+
+    /*
+     * Cuello
+     */
+
+    ctx.fillStyle =
+      "#9d7358";
+
+    ctx.fillRect(
+      -personWidth *
+        0.11,
+      headY +
+        headRadius *
+          0.65,
+      personWidth *
+        0.22,
+      personHeight *
+        0.09
+    );
+
+    /*
+     * Cabeza
+     */
+
+    ctx.fillStyle =
+      "#a77a5e";
+
+    ctx.beginPath();
+
+    ctx.arc(
+      0,
+      headY,
       headRadius,
-    headRadius,
-    0,
-    Math.PI * 2
-  );
+      0,
+      TAU
+    );
 
-  ctx.fill();
+    ctx.fill();
 
-  /*
-   * Visor / máscara.
-   */
+    ctx.strokeStyle =
+      "#111";
 
-  ctx.fillStyle =
-    "#050505";
+    ctx.lineWidth =
+      Math.max(
+        1,
+        headRadius *
+          0.12
+      );
 
-  ctx.fillRect(
-    x -
-      headRadius *
-        0.75,
-    y -
-      bodyHeight -
-      headRadius *
-        1.15,
-    headRadius *
-      1.5,
-    headRadius *
-      0.45
-  );
+    ctx.stroke();
 
-  /*
-   * Brazos.
-   */
+    /*
+     * Casco + máscara
+     */
 
-  ctx.strokeStyle =
-    "#1f2937";
+    if (
+      target.type ===
+      "enemy"
+    ) {
+      ctx.fillStyle =
+        "#252b2f";
 
-  ctx.lineWidth =
-    Math.max(
-      3,
+      ctx.beginPath();
+
+      ctx.arc(
+        0,
+        headY -
+          headRadius *
+            0.1,
+        headRadius *
+          1.08,
+        Math.PI,
+        TAU
+      );
+
+      ctx.lineTo(
+        headRadius *
+          0.95,
+        headY
+      );
+
+      ctx.lineTo(
+        -headRadius *
+          0.95,
+        headY
+      );
+
+      ctx.closePath();
+
+      ctx.fill();
+
+      ctx.fillStyle =
+        "#202426";
+
+      ctx.fillRect(
+        -headRadius *
+          0.86,
+        headY -
+          headRadius *
+            0.02,
+        headRadius *
+          1.72,
+        headRadius *
+          0.55
+      );
+
+      /*
+       * Visor
+       */
+
+      ctx.fillStyle =
+        "#8c959a";
+
+      ctx.fillRect(
+        -headRadius *
+          0.56,
+        headY +
+          headRadius *
+            0.05,
+        headRadius *
+          1.12,
+        Math.max(
+          1,
+          headRadius *
+            0.13
+        )
+      );
+    }
+
+    ctx.restore();
+  }
+
+  /* =======================================================
+     M4 DETALLADA
+     ======================================================= */
+
+  function drawM4(
+    w,
+    h
+  ) {
+    const length =
+      w * 1.15;
+
+    const y =
+      -h * 0.02;
+
+    ctx.save();
+
+    ctx.translate(
+      w * 0.15,
+      y
+    );
+
+    ctx.rotate(
+      -0.18
+    );
+
+    /*
+     * Cañón
+     */
+
+    ctx.strokeStyle =
+      "#151718";
+
+    ctx.lineWidth =
+      Math.max(
+        2,
+        w * 0.075
+      );
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      length * 0.1,
+      0
+    );
+
+    ctx.lineTo(
+      length * 0.72,
+      0
+    );
+
+    ctx.stroke();
+
+    /*
+     * Flash hider
+     */
+
+    ctx.lineWidth =
+      Math.max(
+        1,
+        w * 0.1
+      );
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      length * 0.69,
+      0
+    );
+
+    ctx.lineTo(
+      length * 0.82,
+      0
+    );
+
+    ctx.stroke();
+
+    /*
+     * Receiver
+     */
+
+    ctx.fillStyle =
+      "#1b1e20";
+
+    ctx.strokeStyle =
+      "#080909";
+
+    ctx.lineWidth =
+      Math.max(
+        1,
+        w * 0.035
+      );
+
+    ctx.beginPath();
+
+    ctx.roundRect(
+      -length *
+        0.12,
+      -w * 0.1,
+      length *
+        0.42,
+      w * 0.2,
+      w * 0.04
+    );
+
+    ctx.fill();
+
+    ctx.stroke();
+
+    /*
+     * Cargador
+     */
+
+    ctx.fillStyle =
+      "#24282a";
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      length * 0.04,
+      w * 0.1
+    );
+
+    ctx.lineTo(
+      length * 0.17,
+      w * 0.1
+    );
+
+    ctx.lineTo(
+      length * 0.22,
+      w * 0.38
+    );
+
+    ctx.lineTo(
+      length * 0.09,
+      w * 0.4
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+
+    /*
+     * Empuñadura
+     */
+
+    ctx.fillStyle =
+      "#121415";
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      -length *
+        0.02,
+      w * 0.08
+    );
+
+    ctx.lineTo(
+      length * 0.1,
+      w * 0.08
+    );
+
+    ctx.lineTo(
+      length * 0.03,
+      w * 0.34
+    );
+
+    ctx.lineTo(
+      -length *
+        0.08,
+      w * 0.3
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+
+    /*
+     * Culata
+     */
+
+    ctx.strokeStyle =
+      "#17191a";
+
+    ctx.lineWidth =
+      Math.max(
+        2,
+        w * 0.12
+      );
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      -length *
+        0.13,
+      0
+    );
+
+    ctx.lineTo(
+      -length *
+        0.42,
+      -w * 0.05
+    );
+
+    ctx.lineTo(
+      -length *
+        0.55,
+      -w * 0.17
+    );
+
+    ctx.stroke();
+
+    /*
+     * Mira
+     */
+
+    ctx.lineWidth =
+      Math.max(
+        1,
+        w * 0.055
+      );
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      length * 0.02,
+      -w * 0.1
+    );
+
+    ctx.lineTo(
+      length * 0.07,
+      -w * 0.24
+    );
+
+    ctx.lineTo(
+      length * 0.16,
+      -w * 0.24
+    );
+
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  /* =======================================================
+     PROYECCIÓN DE TARGET
+     ======================================================= */
+
+  function getTargetProjection(
+    target
+  ) {
+    return projectPoint(
+      target.x,
+      target.z,
+      1.55 *
+        target.scale
+    );
+  }
+
+  /* =======================================================
+     TARGETS EN PANTALLA
+     ======================================================= */
+
+  function drawTargets() {
+    const sorted =
+      [...targets].sort(
+        (a, b) => {
+          const pa =
+            getTargetProjection(
+              a
+            );
+
+          const pb =
+            getTargetProjection(
+              b
+            );
+
+          return (
+            pb.depth -
+            pa.depth
+          );
+        }
+      );
+
+    sorted.forEach(
+      (target) => {
+        const projection =
+          getTargetProjection(
+            target
+          );
+
+        if (
+          projection.depth >
+            0 &&
+          projection.depth <
+            MAX_DISTANCE
+        ) {
+          drawPerson(
+            target,
+            projection
+          );
+        }
+      }
+    );
+  }
+
+  /* =======================================================
+     FLECHAS DE ENEMIGOS FUERA DE PANTALLA
+     ======================================================= */
+
+  function updateOffscreenArrows() {
+    if (
+      !arrowContainer
+    ) {
+      return;
+    }
+
+    arrowContainer.innerHTML =
+      "";
+
+    targets.forEach(
+      (target) => {
+        const projection =
+          getTargetProjection(
+            target
+          );
+
+        const relative =
+          normalizeAngle(
+            Math.atan2(
+              target.x,
+              target.z
+            ) -
+              cameraAngle
+          );
+
+        const offscreen =
+          projection.depth <=
+            0 ||
+          Math.abs(
+            relative
+          ) >
+            FOV * 0.49 ||
+          projection.x < 0 ||
+          projection.x > width;
+
+        if (!offscreen) {
+          return;
+        }
+
+        const arrow =
+          document.createElement(
+            "div"
+          );
+
+        arrow.className =
+          "antitronks-offscreen-arrow";
+
+        const right =
+          relative > 0;
+
+        arrow.style.left =
+          right
+            ? `${width - 30}px`
+            : "30px";
+
+        arrow.style.top =
+          `${height / 2}px`;
+
+        arrow.style.transform =
+          `translate(-50%, -50%) rotate(${
+            right
+              ? 90
+              : -90
+          }deg)`;
+
+        arrowContainer.appendChild(
+          arrow
+        );
+      }
+    );
+  }
+
+  /* =======================================================
+     ARMA DEL JUGADOR
+     ======================================================= */
+
+  function drawPlayerWeapon() {
+    const scale =
+      clamp(
+        width / 1100,
+        0.7,
+        1.2
+      );
+
+    const baseY =
+      height * 0.94;
+
+    ctx.save();
+
+    ctx.translate(
+      width * 0.5,
+      baseY
+    );
+
+    /*
+     * Brazo / arma
+     */
+
+    ctx.strokeStyle =
+      "#111315";
+
+    ctx.lineWidth =
+      18 * scale;
+
+    ctx.lineCap =
+      "round";
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      -42 * scale,
       8 * scale
     );
 
-  ctx.beginPath();
-
-  ctx.moveTo(
-    x -
-      bodyWidth / 2,
-    y -
-      bodyHeight +
-      15 * scale
-  );
-
-  ctx.lineTo(
-    x -
-      bodyWidth *
-        1.25,
-    y -
-      bodyHeight *
-        0.55
-  );
-
-  ctx.moveTo(
-    x +
-      bodyWidth / 2,
-    y -
-      bodyHeight +
-      15 * scale
-  );
-
-  ctx.lineTo(
-    x +
-      bodyWidth *
-        1.25,
-    y -
-      bodyHeight *
-        0.55
-  );
-
-  ctx.stroke();
-
-  /*
-   * M4.
-   */
-
-  ctx.strokeStyle =
-    "#080808";
-
-  ctx.lineWidth =
-    Math.max(
-      2,
-      5 * scale
+    ctx.lineTo(
+      58 * scale,
+      -38 * scale
     );
 
-  ctx.beginPath();
+    ctx.stroke();
 
-  ctx.moveTo(
-    x +
-      bodyWidth *
-        0.55,
-    y -
-      bodyHeight *
-        0.58
-  );
+    /*
+     * Cuerpo del arma
+     */
 
-  ctx.lineTo(
-    x +
-      bodyWidth *
-        1.65,
-    y -
-      bodyHeight *
-        0.82
-  );
-
-  ctx.stroke();
-
-  /*
-   * Nombre visual.
-   */
-
-  ctx.font =
-    `${Math.max(
-      9,
-      12 * scale
-    )}px Arial`;
-
-  ctx.textAlign =
-    "center";
-
-  ctx.fillStyle =
-    "#ef4444";
-
-  ctx.fillText(
-    "ENEMY",
-    x,
-    y -
-      bodyHeight -
-      headRadius *
-        2.1
-  );
-}
-
-/* =========================================================
-   DIBUJAR CIVIL
-   ========================================================= */
-
-function drawAntitronksCivilian(
-  ctx,
-  target,
-  projected
-) {
-  const scale =
-    projected.scale;
-
-  const x =
-    projected.x;
-
-  const y =
-    projected.y;
-
-  const bodyWidth =
-    Math.max(
-      13,
-      27 * scale
-    );
-
-  const bodyHeight =
-    Math.max(
-      24,
-      50 * scale
-    );
-
-  const headRadius =
-    Math.max(
-      7,
-      11 * scale
-    );
-
-  ctx.fillStyle =
-    "#2563eb";
-
-  ctx.fillRect(
-    x -
-      bodyWidth / 2,
-    y -
-      bodyHeight,
-    bodyWidth,
-    bodyHeight
-  );
-
-  ctx.fillStyle =
-    "#d1a37c";
-
-  ctx.beginPath();
-
-  ctx.arc(
-    x,
-    y -
-      bodyHeight -
-      headRadius,
-    headRadius,
-    0,
-    Math.PI * 2
-  );
-
-  ctx.fill();
-
-  ctx.strokeStyle =
-    "#2563eb";
-
-  ctx.lineWidth =
-    Math.max(
-      3,
-      7 * scale
-    );
-
-  ctx.beginPath();
-
-  ctx.moveTo(
-    x -
-      bodyWidth / 2,
-    y -
-      bodyHeight +
-      12 * scale
-  );
-
-  ctx.lineTo(
-    x -
-      bodyWidth,
-    y -
-      bodyHeight *
-        0.45
-  );
-
-  ctx.moveTo(
-    x +
-      bodyWidth / 2,
-    y -
-      bodyHeight +
-      12 * scale
-  );
-
-  ctx.lineTo(
-    x +
-      bodyWidth,
-    y -
-      bodyHeight *
-        0.45
-  );
-
-  ctx.stroke();
-
-  ctx.font =
-    `${Math.max(
-      9,
-      12 * scale
-    )}px Arial`;
-
-  ctx.textAlign =
-    "center";
-
-  ctx.fillStyle =
-    "#60a5fa";
-
-  ctx.fillText(
-    "CIVILIAN",
-    x,
-    y -
-      bodyHeight -
-      headRadius *
-        2
-  );
-}
-
-/* =========================================================
-   DIBUJAR OBJETIVOS
-   ========================================================= */
-
-function drawAntitronksTargets(
-  ctx
-) {
-  antitronksTargets.forEach(
-    (target) => {
-      const projected =
-        projectAntitronks(
-          target.x,
-          target.y
-        );
-
-      if (
-        !projected.visible
-      ) {
-        return;
-      }
-
-      if (
-        target.type ===
-        "enemy"
-      ) {
-        drawAntitronksEnemy(
-          ctx,
-          target,
-          projected
-        );
-      } else {
-        drawAntitronksCivilian(
-          ctx,
-          target,
-          projected
-        );
-      }
-    }
-  );
-}
-
-/* =========================================================
-   FLECHAS FUERA DE CÁMARA
-   ========================================================= */
-
-function updateAntitronksOffscreenArrows() {
-  const container =
-    document.getElementById(
-      "antitronks-offscreen-enemies"
-    );
-
-  if (!container) {
-    return;
-  }
-
-  container.innerHTML = "";
-
-  const offscreenTargets =
-    antitronksTargets.filter(
-      (target) => {
-        const projected =
-          projectAntitronks(
-            target.x,
-            target.y
-          );
-
-        return (
-          !projected.visible
-        );
-      }
-    );
-
-  offscreenTargets.forEach(
-    (target, index) => {
-      createAntitronksArrow(
-        container,
-        target,
-        index,
-        offscreenTargets.length
-      );
-    }
-  );
-}
-
-/* =========================================================
-   CREAR FLECHA
-   ========================================================= */
-
-function createAntitronksArrow(
-  container,
-  target,
-  index,
-  total
-) {
-  const arrow =
-    document.createElement(
-      "div"
-    );
-
-  arrow.className =
-    "antitronks-offscreen-arrow";
-
-  /*
-   * Calculamos hacia qué lado
-   * está el objetivo.
-   */
-
-  let relativeAngle =
-    Math.atan2(
-      target.x,
-      target.y
-    ) -
-    antitronksCamera;
-
-  while (
-    relativeAngle >
-    Math.PI
-  ) {
-    relativeAngle -=
-      Math.PI * 2;
-  }
-
-  while (
-    relativeAngle <
-    -Math.PI
-  ) {
-    relativeAngle +=
-      Math.PI * 2;
-  }
-
-  const isLeft =
-    relativeAngle < 0;
-
-  const verticalSpacing =
-    42;
-
-  const totalHeight =
-    (total - 1) *
-    verticalSpacing;
-
-  const top =
-    antitronksHeight /
-      2 -
-    totalHeight / 2 +
-    index *
-      verticalSpacing;
-
-  arrow.style.top =
-    `${antitronksClamp(
-      top,
-      80,
-      antitronksHeight -
-        80
-    )}px`;
-
-  /*
-   * Flecha apuntando a izquierda/derecha.
-   */
-
-  arrow.style.left =
-    isLeft
-      ? "28px"
-      : `${antitronksWidth - 28}px`;
-
-  arrow.style.transform =
-    isLeft
-      ? "translateY(-50%) rotate(-90deg)"
-      : "translateY(-50%) rotate(90deg)";
-
-  container.appendChild(
-    arrow
-  );
-}
-
-/* =========================================================
-   DIBUJAR PUNTERO / MIRA
-   ========================================================= */
-
-function drawAntitronksCrosshair(
-  ctx
-) {
-  const centerX =
-    antitronksWidth / 2;
-
-  const centerY =
-    antitronksHeight / 2;
-
-  ctx.strokeStyle =
-    "#ffffff";
-
-  ctx.lineWidth =
-    2;
-
-  ctx.beginPath();
-
-  ctx.moveTo(
-    centerX - 14,
-    centerY
-  );
-
-  ctx.lineTo(
-    centerX - 4,
-    centerY
-  );
-
-  ctx.moveTo(
-    centerX + 4,
-    centerY
-  );
-
-  ctx.lineTo(
-    centerX + 14,
-    centerY
-  );
-
-  ctx.moveTo(
-    centerX,
-    centerY - 14
-  );
-
-  ctx.lineTo(
-    centerX,
-    centerY - 4
-  );
-
-  ctx.moveTo(
-    centerX,
-    centerY + 4
-  );
-
-  ctx.lineTo(
-    centerX,
-    centerY + 14
-  );
-
-  ctx.stroke();
-
-  ctx.beginPath();
-
-  ctx.arc(
-    centerX,
-    centerY,
-    3,
-    0,
-    Math.PI * 2
-  );
-
-  ctx.fillStyle =
-    "#ffffff";
-
-  ctx.fill();
-}
-
-/* =========================================================
-   DIBUJAR ARMA
-   ========================================================= */
-
-function drawAntitronksWeapon(
-  ctx
-) {
-  const centerX =
-    antitronksWidth / 2;
-
-  const bottom =
-    antitronksHeight;
-
-  const weaponWidth =
-    Math.min(
-      190,
-      antitronksWidth *
-        0.28
-    );
-
-  const weaponHeight =
-    Math.min(
-      130,
-      antitronksHeight *
-        0.25
-    );
-
-  /*
-   * Culata / cuerpo.
-   */
-
-  ctx.fillStyle =
-    "#111111";
-
-  ctx.beginPath();
-
-  ctx.moveTo(
-    centerX -
-      weaponWidth / 2,
-    bottom
-  );
-
-  ctx.lineTo(
-    centerX -
-      weaponWidth *
-        0.22,
-    bottom -
-      weaponHeight
-  );
-
-  ctx.lineTo(
-    centerX +
-      weaponWidth *
-        0.20,
-    bottom -
-      weaponHeight
-  );
-
-  ctx.lineTo(
-    centerX +
-      weaponWidth / 2,
-    bottom
-  );
-
-  ctx.closePath();
-
-  ctx.fill();
-
-  /*
-   * Cargador.
-   */
-
-  ctx.fillStyle =
-    "#262626";
-
-  ctx.beginPath();
-
-  ctx.moveTo(
-    centerX -
-      weaponWidth *
-        0.08,
-    bottom -
-      weaponHeight *
-        0.5
-  );
-
-  ctx.lineTo(
-    centerX +
-      weaponWidth *
-        0.06,
-    bottom -
-      weaponHeight *
-        0.5
-  );
-
-  ctx.lineTo(
-    centerX +
-      weaponWidth *
-        0.16,
-    bottom
-  );
-
-  ctx.lineTo(
-    centerX -
-      weaponWidth *
-        0.02,
-    bottom
-  );
-
-  ctx.closePath();
-
-  ctx.fill();
-
-  /*
-   * Cañón.
-   */
-
-  ctx.fillStyle =
-    "#090909";
-
-  ctx.fillRect(
-    centerX -
-      5,
-    bottom -
-      weaponHeight *
-        1.25,
-    10,
-    weaponHeight *
-      0.65
-  );
-}
-
-/* =========================================================
-   BUCLE DEL JUEGO
-   ========================================================= */
-
-function antitronksLoop(
-  now
-) {
-  if (
-    !antitronksRunning
-  ) {
-    return;
-  }
-
-  const delta =
-    now -
-    antitronksLastTime;
-
-  antitronksLastTime =
-    now;
-
-  updateAntitronksCamera();
-
-  updateAntitronksTargets(
-    now
-  );
-
-  if (
-    antitronksFlash > 0
-  ) {
-    antitronksFlash -=
-      delta;
-  }
-
-  drawAntitronks();
-
-  updateAntitronksOffscreenArrows();
-
-  updateAntitronksHUD();
-
-  antitronksAnimationFrame =
-    requestAnimationFrame(
-      antitronksLoop
-    );
-}
-
-/* =========================================================
-   ACTUALIZAR CÁMARA
-   ========================================================= */
-
-function updateAntitronksCamera() {
-  const difference =
-    antitronksTargetCamera -
-    antitronksCamera;
-
-  antitronksCamera +=
-    difference *
-    0.12;
-
-  antitronksCamera =
-    antitronksClamp(
-      antitronksCamera,
-      -ANTITRONKS_CAMERA_LIMIT,
-      ANTITRONKS_CAMERA_LIMIT
-    );
-}
-
-/* =========================================================
-   DIBUJAR TODO
-   ========================================================= */
-
-function drawAntitronks() {
-  if (!antitronksCanvas) {
-    return;
-  }
-
-  const ctx =
-    antitronksCanvas.getContext(
-      "2d"
-    );
-
-  if (!ctx) {
-    return;
-  }
-
-  ctx.clearRect(
-    0,
-    0,
-    antitronksWidth,
-    antitronksHeight
-  );
-
-  drawAntitronksSky(
-    ctx
-  );
-
-  drawAntitronksBuildings(
-    ctx
-  );
-
-  drawAntitronksStreet(
-    ctx
-  );
-
-  drawAntitronksBoxes(
-    ctx
-  );
-
-  drawAntitronksTargets(
-    ctx
-  );
-
-  drawAntitronksWeapon(
-    ctx
-  );
-
-  drawAntitronksCrosshair(
-    ctx
-  );
-
-  if (
-    antitronksFlash > 0
-  ) {
     ctx.fillStyle =
-      `rgba(
-        255,
-        40,
-        40,
-        ${Math.min(
-          0.35,
-          antitronksFlash /
-            500
-        )}
-      )`;
+      "#272b2e";
 
     ctx.fillRect(
-      0,
-      0,
-      antitronksWidth,
-      antitronksHeight
+      22 * scale,
+      -54 * scale,
+      115 * scale,
+      24 * scale
     );
+
+    /*
+     * Cañón
+     */
+
+    ctx.fillStyle =
+      "#151719";
+
+    ctx.fillRect(
+      122 * scale,
+      -51 * scale,
+      70 * scale,
+      9 * scale
+    );
+
+    /*
+     * Cargador
+     */
+
+    ctx.fillRect(
+      55 * scale,
+      -25 * scale,
+      15 * scale,
+      52 * scale
+    );
+
+    /*
+     * Manos
+     */
+
+    ctx.fillStyle =
+      "#a9795e";
+
+    ctx.beginPath();
+
+    ctx.arc(
+      -15 * scale,
+      -4 * scale,
+      22 * scale,
+      0,
+      TAU
+    );
+
+    ctx.arc(
+      50 * scale,
+      -30 * scale,
+      20 * scale,
+      0,
+      TAU
+    );
+
+    ctx.fill();
+
+    ctx.restore();
   }
-}
 
-/* =========================================================
-   DISPARAR
-   ========================================================= */
+  /* =======================================================
+     DISPARAR
+     ======================================================= */
 
-function shootAntitronks() {
-  if (
-    !antitronksRunning
-  ) {
-    return;
-  }
+  function shoot() {
+    if (!running) {
+      return;
+    }
 
-  antitronksFlash =
-    80;
+    let selected =
+      null;
 
-  const centerX =
-    antitronksWidth / 2;
+    let selectedDistance =
+      Infinity;
 
-  const centerY =
-    antitronksHeight / 2;
+    const centerX =
+      width / 2;
 
-  let bestTarget =
-    null;
+    const centerY =
+      height * 0.53;
 
-  let bestDistance =
-    Infinity;
-
-  antitronksTargets.forEach(
-    (target) => {
-      const projected =
-        projectAntitronks(
-          target.x,
-          target.y
+    for (
+      const target of targets
+    ) {
+      const projection =
+        getTargetProjection(
+          target
         );
 
       if (
-        !projected.visible
+        !projection.visible
       ) {
-        return;
+        continue;
       }
 
       const dx =
-        projected.x -
+        projection.x -
         centerX;
 
       const dy =
-        projected.y -
+        projection.y -
         centerY;
 
       const distance =
-        Math.sqrt(
-          dx * dx +
-          dy * dy
+        Math.hypot(
+          dx,
+          dy
         );
 
-      /*
-       * Zona de impacto.
-       */
-
-      const hitRadius =
-        Math.max(
-          35,
-          projected.scale *
-            55
+      const radius =
+        clamp(
+          55 *
+            (
+              projection.scale ||
+              1
+            ),
+          24,
+          85
         );
 
       if (
         distance <=
-          hitRadius &&
+          radius &&
         distance <
-          bestDistance
+          selectedDistance
       ) {
-        bestTarget =
+        selected =
           target;
 
-        bestDistance =
+        selectedDistance =
           distance;
+      }
+    }
+
+    if (!selected) {
+      showMessage(
+        "FALLO",
+        250
+      );
+
+      return;
+    }
+
+    const index =
+      targets.indexOf(
+        selected
+      );
+
+    if (
+      index !== -1
+    ) {
+      targets.splice(
+        index,
+        1
+      );
+    }
+
+    if (
+      selected.type ===
+      "enemy"
+    ) {
+      score += 1;
+
+      updateHud();
+
+      showMessage(
+        "ENEMIGO ELIMINADO",
+        350
+      );
+    } else {
+      damagePlayer(
+        "¡HAS DISPARADO A UN CIVIL!"
+      );
+    }
+  }
+
+  /* =======================================================
+     DAÑO
+     ======================================================= */
+
+  function damagePlayer(
+    reason
+  ) {
+    lives -= 1;
+
+    updateHud();
+
+    damageFlash();
+
+    showMessage(
+      reason,
+      600
+    );
+
+    if (
+      lives <= 0
+    ) {
+      gameOver();
+    }
+  }
+
+  /* =======================================================
+     GAME OVER
+     ======================================================= */
+
+  function gameOver() {
+    running =
+      false;
+
+    cancelAnimationFrame(
+      animationFrame
+    );
+
+    clearTargets();
+
+    if (overlay) {
+      overlay.classList.remove(
+        "hidden"
+      );
+    }
+
+    if (overlayTitle) {
+      overlayTitle.textContent =
+        "GAME OVER";
+    }
+
+    if (overlayText) {
+      overlayText.textContent =
+        `Has conseguido ${score} punto${
+          score === 1
+            ? ""
+            : "s"
+        }.`;
+    }
+
+    if (startButton) {
+      startButton.textContent =
+        "REINTENTAR";
+    }
+
+    draw();
+  }
+
+  /* =======================================================
+     REINICIAR
+     ======================================================= */
+
+  function resetGame() {
+    running =
+      false;
+
+    cancelAnimationFrame(
+      animationFrame
+    );
+
+    score = 0;
+
+    lives = 3;
+
+    cameraAngle = 0;
+
+    cameraTargetAngle = 0;
+
+    spawnTimer = 0;
+
+    nextSpawn = 700;
+
+    lastTime = 0;
+
+    mouseX = 0.5;
+
+    clearTargets();
+
+    updateHud();
+
+    if (overlay) {
+      overlay.classList.remove(
+        "hidden"
+      );
+    }
+
+    if (overlayTitle) {
+      overlayTitle.textContent =
+        "ANTITRONKS";
+    }
+
+    if (overlayText) {
+      overlayText.textContent =
+        "Gira la cámara, localiza a los enemigos y dispara antes de que ellos disparen.";
+    }
+
+    if (startButton) {
+      startButton.textContent =
+        "JUGAR";
+    }
+
+    if (message) {
+      message.classList.remove(
+        "visible"
+      );
+    }
+
+    resize();
+
+    draw();
+  }
+
+  /* =======================================================
+     INICIAR
+     ======================================================= */
+
+  function startGame() {
+    score = 0;
+
+    lives = 3;
+
+    cameraAngle = 0;
+
+    cameraTargetAngle = 0;
+
+    spawnTimer = 0;
+
+    nextSpawn = 600;
+
+    clearTargets();
+
+    updateHud();
+
+    running =
+      true;
+
+    if (overlay) {
+      overlay.classList.add(
+        "hidden"
+      );
+    }
+
+    lastTime =
+      performance.now();
+
+    cancelAnimationFrame(
+      animationFrame
+    );
+
+    animationFrame =
+      requestAnimationFrame(
+        loop
+      );
+  }
+
+  /* =======================================================
+     ABRIR JUEGO
+     ======================================================= */
+
+  function openGame() {
+    modal.classList.remove(
+      "hidden"
+    );
+
+    modal.setAttribute(
+      "aria-hidden",
+      "false"
+    );
+
+    document.body.classList.add(
+      "antitronks-open"
+    );
+
+    resize();
+
+    resetGame();
+  }
+
+  /* =======================================================
+     CERRAR JUEGO
+     ======================================================= */
+
+  function closeGame() {
+    running =
+      false;
+
+    cancelAnimationFrame(
+      animationFrame
+    );
+
+    clearTargets();
+
+    modal.classList.add(
+      "hidden"
+    );
+
+    modal.setAttribute(
+      "aria-hidden",
+      "true"
+    );
+
+    document.body.classList.remove(
+      "antitronks-open"
+    );
+
+    keys.clear();
+  }
+
+  /* =======================================================
+     ACTUALIZACIÓN DEL JUEGO
+     ======================================================= */
+
+  function update(
+    delta,
+    now
+  ) {
+    /*
+     * A / D y flechas
+     */
+
+    if (
+      keys.has("a") ||
+      keys.has("arrowleft")
+    ) {
+      cameraTargetAngle -=
+        delta *
+        0.00155;
+    }
+
+    if (
+      keys.has("d") ||
+      keys.has("arrowright")
+    ) {
+      cameraTargetAngle +=
+        delta *
+        0.00155;
+    }
+
+    /*
+     * Ratón:
+     * mueve la cámara según la posición
+     * horizontal del ratón.
+     */
+
+    const mouseOffset =
+      (mouseX - 0.5) *
+      2;
+
+    cameraTargetAngle +=
+      mouseOffset *
+      delta *
+      0.00042;
+
+    cameraTargetAngle =
+      clamp(
+        cameraTargetAngle,
+        -Math.PI *
+          0.82,
+        Math.PI *
+          0.82
+      );
+
+    cameraAngle +=
+      (
+        cameraTargetAngle -
+        cameraAngle
+      ) *
+      Math.min(
+        1,
+        delta *
+          0.012
+      );
+
+    /*
+     * Aparición de enemigos.
+     */
+
+    spawnTimer +=
+      delta;
+
+    if (
+      spawnTimer >=
+        nextSpawn &&
+      targets.length <
+        getMaxTargets()
+    ) {
+      spawnTarget();
+
+      spawnTimer = 0;
+
+      nextSpawn =
+        getSpawnInterval() *
+        rand(
+          0.72,
+          1.15
+        );
+    }
+
+    /*
+     * Enemigos y civiles.
+     */
+
+    for (
+      let i =
+        targets.length -
+        1;
+      i >= 0;
+      i--
+    ) {
+      const target =
+        targets[i];
+
+      target.animation +=
+        delta *
+        0.003;
+
+      const age =
+        now -
+        target.born;
+
+      if (
+        age >=
+        target.reaction
+      ) {
+        if (
+          target.type ===
+          "enemy"
+        ) {
+          targets.splice(
+            i,
+            1
+          );
+
+          damagePlayer(
+            "¡TE HAN DISPARADO!"
+          );
+
+          if (!running) {
+            break;
+          }
+        } else {
+          /*
+           * Los civiles simplemente
+           * desaparecen si no les disparas.
+           */
+
+          targets.splice(
+            i,
+            1
+          );
+        }
+      }
+    }
+
+    /*
+     * Flash de daño.
+     */
+
+    if (
+      flashTimer > 0
+    ) {
+      flashTimer -=
+        delta;
+
+      if (
+        flashTimer <=
+        0
+      ) {
+        flash?.classList.remove(
+          "active"
+        );
+      }
+    }
+
+    /*
+     * Mensajes.
+     */
+
+    if (
+      messageTimer > 0
+    ) {
+      messageTimer -=
+        delta;
+
+      if (
+        messageTimer <=
+        0
+      ) {
+        message?.classList.remove(
+          "visible"
+        );
+      }
+    }
+
+    updateOffscreenArrows();
+  }
+
+  /* =======================================================
+     DIBUJAR TODO
+     ======================================================= */
+
+  function draw() {
+    if (
+      width <= 0 ||
+      height <= 0
+    ) {
+      return;
+    }
+
+    ctx.clearRect(
+      0,
+      0,
+      width,
+      height
+    );
+
+    drawEnvironment();
+
+    /*
+     * Cajas.
+     */
+
+    const sortedBoxes =
+      [...BOXES].sort(
+        (a, b) => {
+          const pa =
+            projectPoint(
+              a.x,
+              a.z,
+              a.h / 2
+            );
+
+          const pb =
+            projectPoint(
+              b.x,
+              b.z,
+              b.h / 2
+            );
+
+          return (
+            pb.depth -
+            pa.depth
+          );
+        }
+      );
+
+    sortedBoxes.forEach(
+      drawBox
+    );
+
+    /*
+     * Personas.
+     */
+
+    drawTargets();
+
+    /*
+     * Arma del jugador.
+     */
+
+    drawPlayerWeapon();
+  }
+
+  /* =======================================================
+     BUCLE
+     ======================================================= */
+
+  function loop(
+    now
+  ) {
+    if (!running) {
+      draw();
+      return;
+    }
+
+    const delta =
+      Math.min(
+        40,
+        now -
+          lastTime ||
+          16
+      );
+
+    lastTime =
+      now;
+
+    update(
+      delta,
+      now
+    );
+
+    draw();
+
+    animationFrame =
+      requestAnimationFrame(
+        loop
+      );
+  }
+
+  /* =======================================================
+     CONTROLES - TARJETA
+     ======================================================= */
+
+  card.addEventListener(
+    "click",
+    openGame
+  );
+
+  card.addEventListener(
+    "keydown",
+    (event) => {
+      if (
+        event.key ===
+          "Enter" ||
+        event.key ===
+          " "
+      ) {
+        event.preventDefault();
+
+        openGame();
       }
     }
   );
 
-  if (!bestTarget) {
-    return;
-  }
+  /* =======================================================
+     CONTROLES - CERRAR
+     ======================================================= */
 
-  /*
-   * Civilian:
-   * perder una vida.
-   */
-
-  if (
-    bestTarget.type ===
-    "civilian"
-  ) {
-    antitronksLives--;
-
-    showAntitronksMessage(
-      "¡HAS DISPARADO A UN CIVIL!"
-    );
-
-    antitronksTargets =
-      antitronksTargets.filter(
-        (target) =>
-          target.id !==
-          bestTarget.id
-      );
-
-    updateAntitronksHUD();
-
-    if (
-      antitronksLives <= 0
-    ) {
-      endAntitronksGame();
-    }
-
-    return;
-  }
-
-  /*
-   * Enemy:
-   * sumar punto.
-   */
-
-  antitronksScore++;
-
-  showAntitronksMessage(
-    "+1"
+  closeButton?.addEventListener(
+    "click",
+    closeGame
   );
 
-  antitronksTargets =
-    antitronksTargets.filter(
-      (target) =>
-        target.id !==
-        bestTarget.id
-    );
+  backdrop?.addEventListener(
+    "click",
+    closeGame
+  );
 
-  updateAntitronksHUD();
-}
+  /* =======================================================
+     BOTÓN JUGAR
+     ======================================================= */
 
-/* =========================================================
-   CONTROL DE RATÓN
-   ========================================================= */
+  startButton?.addEventListener(
+    "click",
+    startGame
+  );
 
-if (antitronksCanvas) {
-  antitronksCanvas.addEventListener(
+  /* =======================================================
+     RATÓN - CÁMARA
+     ======================================================= */
+
+  game.addEventListener(
     "mousemove",
     (event) => {
+      const rect =
+        game.getBoundingClientRect();
+
+      mouseX =
+        clamp(
+          (
+            event.clientX -
+            rect.left
+          ) /
+            rect.width,
+          0,
+          1
+        );
+    }
+  );
+
+  game.addEventListener(
+    "mouseleave",
+    () => {
+      mouseX = 0.5;
+    }
+  );
+
+  /* =======================================================
+     RATÓN - DISPARO
+     ======================================================= */
+
+  game.addEventListener(
+    "mousedown",
+    (event) => {
       if (
-        !antitronksRunning
+        event.button ===
+          0 &&
+        running
       ) {
+        shoot();
+      }
+    }
+  );
+
+  /* =======================================================
+     TOUCH
+     ======================================================= */
+
+  game.addEventListener(
+    "touchstart",
+    (event) => {
+      if (!running) {
+        return;
+      }
+
+      const touch =
+        event.changedTouches[0];
+
+      if (!touch) {
         return;
       }
 
       const rect =
-        antitronksCanvas.getBoundingClientRect();
+        game.getBoundingClientRect();
 
-      const x =
-        event.clientX -
-        rect.left;
+      mouseX =
+        clamp(
+          (
+            touch.clientX -
+            rect.left
+          ) /
+            rect.width,
+          0,
+          1
+        );
 
-      const normalized =
-        x /
-        rect.width;
-
-      antitronksTargetCamera =
-        (normalized -
-          0.5) *
-        2 *
-        ANTITRONKS_CAMERA_LIMIT;
+      shoot();
+    },
+    {
+      passive: true
     }
   );
 
-  antitronksCanvas.addEventListener(
-    "mousedown",
+  game.addEventListener(
+    "touchmove",
+    (event) => {
+      const touch =
+        event.changedTouches[0];
+
+      if (!touch) {
+        return;
+      }
+
+      const rect =
+        game.getBoundingClientRect();
+
+      mouseX =
+        clamp(
+          (
+            touch.clientX -
+            rect.left
+          ) /
+            rect.width,
+          0,
+          1
+        );
+    },
+    {
+      passive: true
+    }
+  );
+
+  /* =======================================================
+     TECLADO
+     ======================================================= */
+
+  window.addEventListener(
+    "keydown",
     (event) => {
       if (
-        event.button === 0
+        modal.classList.contains(
+          "hidden"
+        )
+      ) {
+        return;
+      }
+
+      const key =
+        event.key.toLowerCase();
+
+      if (
+        key === "a" ||
+        key === "d" ||
+        key ===
+          "arrowleft" ||
+        key ===
+          "arrowright"
+      ) {
+        keys.add(key);
+
+        event.preventDefault();
+      }
+
+      if (
+        key ===
+        "escape"
+      ) {
+        closeGame();
+      }
+
+      if (
+        event.code ===
+          "Space" &&
+        running
       ) {
         event.preventDefault();
-        shootAntitronks();
+
+        shoot();
       }
     }
   );
 
-  antitronksCanvas.addEventListener(
-    "contextmenu",
+  window.addEventListener(
+    "keyup",
     (event) => {
-      event.preventDefault();
+      keys.delete(
+        event.key.toLowerCase()
+      );
     }
   );
+
+  /* =======================================================
+     RESIZE
+     ======================================================= */
+
+  window.addEventListener(
+    "resize",
+    resize
+  );
+
+  /* =======================================================
+     INICIO DEL JUEGO
+     ======================================================= */
+
+  resetGame();
 }
 
 /* =========================================================
-   TECLADO
+   ESCAPE PARA MODALES GENERALES
    ========================================================= */
-
-const antitronksKeys = {
-  left: false,
-  right: false
-};
 
 document.addEventListener(
   "keydown",
   (event) => {
     if (
-      !antitronksRunning
+      event.key !==
+      "Escape"
     ) {
       return;
     }
 
     if (
-      event.code ===
-      "ArrowLeft"
-    ) {
-      antitronksKeys.left =
-        true;
-
-      event.preventDefault();
-    }
-
-    if (
-      event.code ===
-        "ArrowRight" ||
-      event.code === "d" ||
-      event.code === "D"
-    ) {
-      antitronksKeys.right =
-        true;
-
-      event.preventDefault();
-    }
-
-    if (
-      event.code === "a" ||
-      event.code === "A"
-    ) {
-      antitronksKeys.left =
-        true;
-
-      event.preventDefault();
-    }
-
-    if (
-      event.code === "Space"
-    ) {
-      event.preventDefault();
-
-      shootAntitronks();
-    }
-
-    if (
-      event.key === "Escape" &&
-      antitronksModal &&
-      !antitronksModal.classList.contains(
+      accountModal &&
+      !accountModal.classList.contains(
         "hidden"
       )
     ) {
-      closeAntitronks();
-    }
-  }
-);
-
-document.addEventListener(
-  "keyup",
-  (event) => {
-    if (
-      event.code ===
-        "ArrowLeft" ||
-      event.code === "a" ||
-      event.code === "A"
-    ) {
-      antitronksKeys.left =
-        false;
-    }
-
-    if (
-      event.code ===
-        "ArrowRight" ||
-      event.code === "d" ||
-      event.code === "D"
-    ) {
-      antitronksKeys.right =
-        false;
-    }
-  }
-);
-
-/* =========================================================
-   MOVIMIENTO DE CÁMARA CON TECLADO
-   ========================================================= */
-
-setInterval(
-  () => {
-    if (
-      !antitronksRunning
-    ) {
-      return;
-    }
-
-    if (
-      antitronksKeys.left
-    ) {
-      antitronksTargetCamera -=
-        0.035;
-    }
-
-    if (
-      antitronksKeys.right
-    ) {
-      antitronksTargetCamera +=
-        0.035;
-    }
-
-    antitronksTargetCamera =
-      antitronksClamp(
-        antitronksTargetCamera,
-        -ANTITRONKS_CAMERA_LIMIT,
-        ANTITRONKS_CAMERA_LIMIT
+      closeModal(
+        accountModal
       );
-  },
-  16
-);
+    }
 
-/* =========================================================
-   CERRAR ANTITRONKS CON ESC
-   ========================================================= */
-
-document.addEventListener(
-  "keydown",
-  (event) => {
     if (
-      event.key === "Escape" &&
-      antitronksModal &&
-      !antitronksModal.classList.contains(
+      suggestionModal &&
+      !suggestionModal.classList.contains(
         "hidden"
       )
     ) {
-      closeAntitronks();
+      closeModal(
+        suggestionModal
+      );
     }
   }
 );
@@ -4260,6 +4896,8 @@ loadSuggestions();
 
 updateAccountUI();
 
+initializeAntitronksGame();
+
 console.log(
-  "TronkStudios: script cargado correctamente."
+  "TronkStudios: inicialización completada."
 );
