@@ -1049,6 +1049,90 @@ async function voteSuggestion(suggestion) {
     return;
   }
 
+  // Comprobar que hay un usuario conectado
+  const user = await getCurrentUser();
+
+  if (!user) {
+    alert("Necesitas iniciar sesión para votar.");
+    return;
+  }
+
+  try {
+    // Comprobar si este usuario ya ha votado esta sugerencia
+    const { data: existingLike, error: checkError } =
+      await supabaseClient
+        .from("Likes")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("project_id", suggestion.id)
+        .maybeSingle();
+
+    if (checkError) {
+      console.error("Error comprobando el voto:", checkError);
+      alert("No se ha podido comprobar tu voto.");
+      return;
+    }
+
+    // Si ya existe un voto, no permitimos otro
+    if (existingLike) {
+      alert("Ya has votado esta sugerencia.");
+      return;
+    }
+
+    // Crear el voto
+    const { error: likeError } =
+      await supabaseClient
+        .from("Likes")
+        .insert({
+          user_id: user.id,
+          project_id: suggestion.id
+        });
+
+    if (likeError) {
+      console.error("Error creando el voto:", likeError);
+
+      // Si la base de datos detecta que ya existe,
+      // tampoco permitimos otro voto.
+      if (likeError.code === "23505") {
+        alert("Ya has votado esta sugerencia.");
+      } else {
+        alert("No se ha podido registrar tu voto.");
+      }
+
+      return;
+    }
+
+    // Aumentar el contador de votos
+    const newVotes =
+      Number(suggestion.votes || 0) + 1;
+
+    const { error: updateError } =
+      await supabaseClient
+        .from("suggestions")
+        .update({
+          votes: newVotes
+        })
+        .eq("id", suggestion.id);
+
+    if (updateError) {
+      console.error(
+        "Error actualizando los votos:",
+        updateError
+      );
+      return;
+    }
+
+    // Recargar las sugerencias
+    await loadSuggestions();
+
+  } catch (error) {
+    console.error("Error votando:", error);
+  }
+}
+  if (!isSupabaseConfigured()) {
+    return;
+  }
+
   const newVotes =
     Number(suggestion.votes || 0) + 1;
 
@@ -1070,7 +1154,7 @@ async function voteSuggestion(suggestion) {
   } catch (error) {
     console.error(error);
   }
-}
+
 
 /* =========================================================
    ELIMINAR SUGERENCIA
