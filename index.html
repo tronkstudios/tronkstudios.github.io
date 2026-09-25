@@ -40,6 +40,15 @@
 
   <meta property="og:type" content="website" />
 
+  <!--
+    Icono de la web: es el que sale en la pestaña del navegador y
+    al lado del nombre cuando buscas "TronkStudios" en Google.
+    Sube tu imagen al repositorio con el nombre favicon.png
+    (cuadrada, mejor de 512x512 píxeles).
+  -->
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="apple-touch-icon" href="favicon.png" />
+
   <link rel="stylesheet" href="styles.css" />
 
   <script
@@ -216,19 +225,19 @@
             data-minigame="antininja"
             tabindex="0"
             role="button"
-            aria-label="Abrir Antininja"
+            aria-label="Abrir Protect Mogos"
           >
 
             <div class="dev-card-media">
               <img
-                src="antininja.png"
-                alt="Antininja - minijuego de ninjas"
+                src="protect-mogos.png"
+                alt="Protect Mogos - minijuego de ninjas"
                 loading="lazy"
-                data-fallback-label="Antininja"
+                data-fallback-label="Protect Mogos"
               />
             </div>
 
-            <h3>Antininja</h3>
+            <h3>Protect Mogos</h3>
 
           </article>
 
@@ -913,6 +922,15 @@
         <h2 id="antitronks-title">ANTITRONKS</h2>
 
         <button
+          class="antitronks-sound game-sound-toggle"
+          type="button"
+          aria-label="Silenciar"
+          aria-pressed="false"
+        >
+          🔊
+        </button>
+
+        <button
           id="antitronks-close"
           class="antitronks-close"
           type="button"
@@ -957,7 +975,7 @@
   </div>
 
   <!-- =====================================================
-       MINIJUEGO ANTININJA
+       MINIJUEGO PROTECT MOGOS
        ===================================================== -->
 
   <div
@@ -976,13 +994,22 @@
     >
 
       <header class="antitronks-header">
-        <h2 id="antininja-title">ANTININJA</h2>
+        <h2 id="antininja-title">PROTECT MOGOS</h2>
+
+        <button
+          class="antitronks-sound game-sound-toggle"
+          type="button"
+          aria-label="Silenciar"
+          aria-pressed="false"
+        >
+          🔊
+        </button>
 
         <button
           id="antininja-close"
           class="antitronks-close"
           type="button"
-          aria-label="Cerrar Antininja"
+          aria-label="Cerrar Protect Mogos"
         >
           ×
         </button>
@@ -1004,7 +1031,7 @@
 
           <div class="antitronks-overlay" id="antininja-overlay">
             <div class="antitronks-overlay-box">
-              <h3 id="antininja-overlay-title">ANTININJA</h3>
+              <h3 id="antininja-overlay-title">PROTECT MOGOS</h3>
               <p id="antininja-overlay-text">
                 Haz clic en los ninjas antes de que lleguen al castillo del rey.
               </p>

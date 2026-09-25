@@ -1758,6 +1758,484 @@ function initializeCardImageFallbacks() {
 }
 
 /* =========================================================
+   SONIDO DE LOS MINIJUEGOS (música de piano + efectos)
+   Todo se genera con Web Audio: no hace falta subir archivos
+   de audio al repositorio.
+   ========================================================= */
+
+const TronkSound = (() => {
+  const MUTE_KEY = "tronk-sound-muted";
+
+  let ctx = null;
+  let master = null;
+  let sfxBus = null;
+  let musicBus = null;
+  let reverb = null;
+  let noiseBuffer = null;
+
+  let muted = false;
+
+  try {
+    muted = localStorage.getItem(MUTE_KEY) === "1";
+  } catch {
+    muted = false;
+  }
+
+  /* ---------------- Inicialización ---------------- */
+
+  // Se llama al hacer clic (los navegadores no dejan sonar nada antes).
+  function ensure() {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+
+    if (!AudioCtx) {
+      return null;
+    }
+
+    if (!ctx) {
+      ctx = new AudioCtx();
+
+      master = ctx.createGain();
+      master.gain.value = muted ? 0 : 0.85;
+      master.connect(ctx.destination);
+
+      sfxBus = ctx.createGain();
+      sfxBus.gain.value = 0.9;
+      sfxBus.connect(master);
+
+      musicBus = ctx.createGain();
+      musicBus.gain.value = 0.0;
+      musicBus.connect(master);
+
+      // Reverb suave para el piano.
+      reverb = ctx.createConvolver();
+      reverb.buffer = makeImpulse(2.6);
+      const wet = ctx.createGain();
+      wet.gain.value = 0.35;
+      reverb.connect(wet);
+      wet.connect(musicBus);
+
+      noiseBuffer = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+      const data = noiseBuffer.getChannelData(0);
+
+      for (let i = 0; i < data.length; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+    }
+
+    if (ctx.state === "suspended") {
+      ctx.resume().catch(() => {});
+    }
+
+    return ctx;
+  }
+
+  function makeImpulse(seconds) {
+    const length = Math.floor(ctx.sampleRate * seconds);
+    const impulse = ctx.createBuffer(2, length, ctx.sampleRate);
+
+    for (let ch = 0; ch < 2; ch++) {
+      const data = impulse.getChannelData(ch);
+
+      for (let i = 0; i < length; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 3);
+      }
+    }
+
+    return impulse;
+  }
+
+  /* ---------------- Silenciar ---------------- */
+
+  function setMuted(value) {
+    muted = value;
+
+    try {
+      localStorage.setItem(MUTE_KEY, muted ? "1" : "0");
+    } catch {
+      // LocalStorage no disponible.
+    }
+
+    if (master && ctx) {
+      master.gain.setTargetAtTime(muted ? 0 : 0.85, ctx.currentTime, 0.05);
+    }
+
+    document.querySelectorAll(".game-sound-toggle").forEach((button) => {
+      button.textContent = muted ? "🔇" : "🔊";
+      button.setAttribute("aria-label", muted ? "Activar sonido" : "Silenciar");
+      button.setAttribute("aria-pressed", muted ? "true" : "false");
+    });
+  }
+
+  function isMuted() {
+    return muted;
+  }
+
+  /* ---------------- Piezas básicas ---------------- */
+
+  function tone({
+    freq = 440,
+    to = null,
+    type = "sine",
+    dur = 0.2,
+    vol = 0.2,
+    attack = 0.005,
+    delay = 0,
+    filter = null
+  }) {
+    if (!ensure()) {
+      return;
+    }
+
+    const t = ctx.currentTime + delay;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t);
+
+    if (to) {
+      osc.frequency.exponentialRampToValueAtTime(Math.max(20, to), t + dur);
+    }
+
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(vol, t + attack);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+
+    let node = osc;
+
+    if (filter) {
+      const f = ctx.createBiquadFilter();
+      f.type = "lowpass";
+      f.frequency.value = filter;
+      osc.connect(f);
+      node = f;
+    }
+
+    node.connect(gain);
+    gain.connect(sfxBus);
+
+    osc.start(t);
+    osc.stop(t + dur + 0.05);
+  }
+
+  function noise({
+    dur = 0.2,
+    vol = 0.2,
+    type = "lowpass",
+    freq = 1000,
+    to = null,
+    q = 1,
+    delay = 0,
+    attack = 0.003
+  }) {
+    if (!ensure()) {
+      return;
+    }
+
+    const t = ctx.currentTime + delay;
+    const src = ctx.createBufferSource();
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+
+    src.buffer = noiseBuffer;
+    src.loop = true;
+
+    filter.type = type;
+    filter.Q.value = q;
+    filter.frequency.setValueAtTime(freq, t);
+
+    if (to) {
+      filter.frequency.exponentialRampToValueAtTime(Math.max(20, to), t + dur);
+    }
+
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(vol, t + attack);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(sfxBus);
+
+    src.start(t, Math.random() * 0.5);
+    src.stop(t + dur + 0.05);
+  }
+
+  /* ---------------- Efectos de sonido ---------------- */
+
+  const SFX = {
+    // ---- Antitronks ----
+    gunshot() {
+      noise({ dur: 0.14, vol: 0.55, type: "bandpass", freq: 2200, to: 500, q: 0.7 });
+      tone({ freq: 160, to: 45, type: "sine", dur: 0.16, vol: 0.6 });
+      noise({ dur: 0.5, vol: 0.08, type: "lowpass", freq: 900, to: 200, delay: 0.03, attack: 0.02 });
+    },
+
+    enemyShot() {
+      noise({ dur: 0.2, vol: 0.35, type: "lowpass", freq: 1500, to: 300 });
+      tone({ freq: 120, to: 40, dur: 0.2, vol: 0.4 });
+      noise({ dur: 0.6, vol: 0.06, type: "lowpass", freq: 600, delay: 0.05, attack: 0.03 });
+    },
+
+    hitBody() {
+      tone({ freq: 210, to: 80, dur: 0.14, vol: 0.4 });
+      noise({ dur: 0.09, vol: 0.25, type: "lowpass", freq: 700 });
+    },
+
+    headshot() {
+      SFX.hitBody();
+      tone({ freq: 1320, dur: 0.35, vol: 0.12, type: "triangle", delay: 0.04 });
+      tone({ freq: 1980, dur: 0.3, vol: 0.07, type: "sine", delay: 0.07 });
+    },
+
+    woodHit() {
+      tone({ freq: 340, to: 170, type: "triangle", dur: 0.09, vol: 0.35 });
+      noise({ dur: 0.06, vol: 0.2, type: "bandpass", freq: 1100, q: 2 });
+    },
+
+    ricochet() {
+      tone({ freq: 2600, to: 900, type: "sine", dur: 0.18, vol: 0.05 });
+      noise({ dur: 0.06, vol: 0.08, type: "highpass", freq: 3000 });
+    },
+
+    enemyAppear() {
+      noise({ dur: 0.18, vol: 0.05, type: "bandpass", freq: 500, to: 1400, q: 1.5, attack: 0.05 });
+    },
+
+    warning() {
+      tone({ freq: 880, dur: 0.07, vol: 0.08, type: "square", filter: 2000 });
+    },
+
+    playerHurt() {
+      tone({ freq: 95, to: 55, type: "sawtooth", dur: 0.4, vol: 0.22, filter: 500 });
+      noise({ dur: 0.25, vol: 0.2, type: "lowpass", freq: 400 });
+    },
+
+    civilian() {
+      tone({ freq: 440, to: 330, type: "triangle", dur: 0.22, vol: 0.14 });
+      tone({ freq: 330, to: 220, type: "triangle", dur: 0.3, vol: 0.14, delay: 0.22 });
+    },
+
+    // ---- Protect Mogos ----
+    pop() {
+      tone({ freq: 420, to: 1100, type: "sine", dur: 0.09, vol: 0.3 });
+      noise({ dur: 0.22, vol: 0.12, type: "lowpass", freq: 1200, to: 300, delay: 0.03 });
+    },
+
+    clank() {
+      tone({ freq: 820, type: "square", dur: 0.16, vol: 0.08, filter: 3000 });
+      tone({ freq: 1230, type: "triangle", dur: 0.22, vol: 0.1 });
+      noise({ dur: 0.05, vol: 0.15, type: "highpass", freq: 2500 });
+    },
+
+    flip() {
+      noise({ dur: 0.35, vol: 0.12, type: "bandpass", freq: 400, to: 2600, q: 2, attack: 0.05 });
+      tone({ freq: 260, to: 720, type: "sine", dur: 0.3, vol: 0.12 });
+    },
+
+    escaped() {
+      tone({ freq: 1047, type: "triangle", dur: 0.18, vol: 0.12 });
+      tone({ freq: 1319, type: "triangle", dur: 0.25, vol: 0.12, delay: 0.1 });
+    },
+
+    castleHit() {
+      tone({ freq: 130, to: 45, dur: 0.45, vol: 0.55 });
+      noise({ dur: 0.35, vol: 0.25, type: "lowpass", freq: 350 });
+      tone({ freq: 640, to: 300, type: "triangle", dur: 0.28, vol: 0.12, delay: 0.1 });
+    },
+
+    swish() {
+      noise({ dur: 0.07, vol: 0.05, type: "bandpass", freq: 2200, q: 1 });
+    },
+
+    // ---- Comunes ----
+    start() {
+      tone({ freq: 523, type: "triangle", dur: 0.12, vol: 0.12 });
+      tone({ freq: 784, type: "triangle", dur: 0.2, vol: 0.12, delay: 0.1 });
+    },
+
+    gameOver() {
+      [523, 440, 349, 262].forEach((f, i) => {
+        tone({ freq: f, type: "triangle", dur: 0.35, vol: 0.14, delay: i * 0.18 });
+      });
+    },
+
+    record() {
+      [523, 659, 784, 1047, 1319].forEach((f, i) => {
+        tone({ freq: f, type: "triangle", dur: 0.3, vol: 0.13, delay: i * 0.1 });
+      });
+      tone({ freq: 2093, type: "sine", dur: 0.6, vol: 0.06, delay: 0.5 });
+    }
+  };
+
+  function play(name) {
+    if (muted || !SFX[name]) {
+      return;
+    }
+
+    try {
+      SFX[name]();
+    } catch (error) {
+      console.warn("TronkSound:", error);
+    }
+  }
+
+  /* ---------------- Música de piano ---------------- */
+
+  const midi = (m) => 440 * Math.pow(2, (m - 69) / 12);
+
+  /*
+   * calm: tranquila y alegre (Protect Mogos), Do mayor.
+   * night: suave y algo misteriosa (Antitronks), La menor.
+   * Cada acorde: [bajo, notas del arpegio...].
+   */
+  const SONGS = {
+    calm: {
+      bpm: 72,
+      volume: 0.5,
+      chords: [
+        [48, 60, 64, 67, 71],
+        [45, 57, 60, 64, 67],
+        [41, 57, 60, 64, 69],
+        [43, 59, 62, 67, 71]
+      ],
+      pattern: [1, 2, 3, 4, 3, 2, 3, 2]
+    },
+    night: {
+      bpm: 66,
+      volume: 0.35,
+      chords: [
+        [45, 57, 60, 64, 69],
+        [41, 57, 60, 64, 65],
+        [48, 55, 60, 64, 67],
+        [40, 56, 59, 62, 64]
+      ],
+      pattern: [1, 3, 2, 4, 1, 3, 2, 3]
+    }
+  };
+
+  let song = null;
+  let songTimer = null;
+  let step = 0;
+  let nextTime = 0;
+
+  function pianoNote(freq, time, velocity, length) {
+    const out = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(2800, time);
+    filter.frequency.exponentialRampToValueAtTime(900, time + length);
+
+    out.gain.setValueAtTime(0.0001, time);
+    out.gain.exponentialRampToValueAtTime(velocity, time + 0.008);
+    out.gain.exponentialRampToValueAtTime(velocity * 0.35, time + 0.25);
+    out.gain.exponentialRampToValueAtTime(0.0001, time + length);
+
+    // Mezcla de parciales para que suene a piano suave.
+    [
+      [1, "triangle", 1],
+      [2, "sine", 0.35],
+      [3, "sine", 0.12],
+      [1.003, "sine", 0.5]
+    ].forEach(([mult, type, level]) => {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = type;
+      osc.frequency.value = freq * mult;
+      g.gain.value = level;
+      osc.connect(g);
+      g.connect(filter);
+      osc.start(time);
+      osc.stop(time + length + 0.05);
+    });
+
+    filter.connect(out);
+    out.connect(musicBus);
+    out.connect(reverb);
+  }
+
+  function scheduleMusic() {
+    if (!song || !ctx) {
+      return;
+    }
+
+    const eighth = 60 / song.bpm / 2;
+
+    while (nextTime < ctx.currentTime + 0.3) {
+      const chord = song.chords[Math.floor(step / 8) % song.chords.length];
+      const inBar = step % 8;
+      const human = 0.85 + Math.random() * 0.3;
+
+      if (inBar === 0) {
+        pianoNote(midi(chord[0]), nextTime, 0.22 * human, eighth * 7);
+      }
+
+      pianoNote(midi(chord[song.pattern[inBar]]), nextTime, 0.11 * human, eighth * 4);
+
+      // De vez en cuando, una nota aguda de melodía.
+      if ((inBar === 0 || inBar === 5) && Math.random() < 0.45) {
+        const top = chord[1 + Math.floor(Math.random() * 4)] + 12;
+        pianoNote(midi(top), nextTime + 0.01, 0.07 * human, eighth * 6);
+      }
+
+      nextTime += eighth;
+      step++;
+    }
+  }
+
+  function startMusic(name) {
+    if (!ensure() || !SONGS[name]) {
+      return;
+    }
+
+    if (song === SONGS[name] && songTimer) {
+      return;
+    }
+
+    stopMusic(true);
+
+    song = SONGS[name];
+    step = 0;
+    nextTime = ctx.currentTime + 0.1;
+
+    musicBus.gain.cancelScheduledValues(ctx.currentTime);
+    musicBus.gain.setValueAtTime(0.0001, ctx.currentTime);
+    musicBus.gain.linearRampToValueAtTime(song.volume, ctx.currentTime + 1.5);
+
+    scheduleMusic();
+    songTimer = setInterval(scheduleMusic, 60);
+  }
+
+  function stopMusic(immediate = false) {
+    if (songTimer) {
+      clearInterval(songTimer);
+      songTimer = null;
+    }
+
+    song = null;
+
+    if (ctx && musicBus) {
+      musicBus.gain.cancelScheduledValues(ctx.currentTime);
+      musicBus.gain.setTargetAtTime(0, ctx.currentTime, immediate ? 0.02 : 0.3);
+    }
+  }
+
+  // Botones de silenciar de las ventanas de juego.
+  document.addEventListener("click", (event) => {
+    const button = event.target.closest?.(".game-sound-toggle");
+
+    if (button) {
+      ensure();
+      setMuted(!muted);
+    }
+  });
+
+  setMuted(muted);
+
+  return { ensure, play, startMusic, stopMusic, setMuted, isMuted };
+})();
+
+/* =========================================================
    ANTITRONKS
    ========================================================= */
 
@@ -3234,6 +3712,8 @@ function initializeAntitronksGame() {
     const type = Math.random() < 0.84 ? "enemy" : "civilian";
     const spread = Math.max(0, box.w / 2 - 0.45);
 
+    TronkSound.play("enemyAppear");
+
     targets.push({
       box,
       type,
@@ -3268,6 +3748,7 @@ function initializeAntitronksGame() {
 
     recoil = 1;
     muzzleFlash = 60;
+    TronkSound.play("gunshot");
 
     const m = getMuzzle();
     tracers.push({ x0: m.x, y0: m.y, x1: sx, y1: sy, life: 80, max: 80 });
@@ -3276,11 +3757,13 @@ function initializeAntitronksGame() {
 
     if (!hit) {
       spawnParticles(sx, sy, "#a39d92", 6, 0.6);
+      TronkSound.play("ricochet");
       return;
     }
 
     if (hit.kind === "box") {
       spawnParticles(sx, sy, "#d2a46a", 9, 0.8);
+      TronkSound.play("woodHit");
       return;
     }
 
@@ -3293,12 +3776,14 @@ function initializeAntitronksGame() {
 
     if (t.type === "enemy") {
       const headshot = hit.part === "head";
+      TronkSound.play(headshot ? "headshot" : "hitBody");
       score += headshot ? 2 : 1;
       updateHud();
       addFloater(sx, sy - 14, headshot ? "¡A LA CABEZA! +2" : "+1", headshot ? "#ffd24a" : "#ffffff");
       showMessage(headshot ? "¡DISPARO A LA CABEZA!" : "ENEMIGO ELIMINADO", 450);
     } else {
       addFloater(sx, sy - 14, "¡CIVIL!", "#ff5252");
+      TronkSound.play("civilian");
       damagePlayer("¡HAS DISPARADO A UN CIVIL!");
     }
   }
@@ -3308,6 +3793,7 @@ function initializeAntitronksGame() {
      ======================================================= */
 
   function damagePlayer(reason) {
+    TronkSound.play("playerHurt");
     lives -= 1;
     updateHud();
     damageFlash();
@@ -3341,6 +3827,8 @@ function initializeAntitronksGame() {
       record = score;
       saveRecord(record);
     }
+
+    TronkSound.play(newRecord ? "record" : "gameOver");
 
     updateHud();
 
@@ -3413,6 +3901,7 @@ function initializeAntitronksGame() {
 
     running = true;
     overlay?.classList.add("hidden");
+    TronkSound.play("start");
 
     lastTime = performance.now();
     cancelAnimationFrame(animationFrame);
@@ -3427,6 +3916,8 @@ function initializeAntitronksGame() {
     modal.classList.remove("hidden");
     modal.setAttribute("aria-hidden", "false");
     document.body.classList.add("antitronks-open");
+
+    TronkSound.startMusic("night");
 
     resize();
     resetGame();
@@ -3443,6 +3934,8 @@ function initializeAntitronksGame() {
 
     keys.clear();
     mouseInside = false;
+
+    TronkSound.stopMusic();
   }
 
   /* =======================================================
@@ -3486,11 +3979,18 @@ function initializeAntitronksGame() {
       const t = targets[i];
       t.stateTime += delta;
 
+      // Pitido de aviso justo antes de que el enemigo dispare.
+      if (t.type === "enemy" && t.state === "up" && !t.warned && t.reaction - t.stateTime < 500) {
+        t.warned = true;
+        TronkSound.play("warning");
+      }
+
       if (t.state === "rising" && t.stateTime >= RISE_TIME) {
         setState(t, "up");
       } else if (t.state === "up" && t.stateTime >= t.reaction) {
         if (t.type === "enemy") {
           setState(t, "firing");
+          TronkSound.play("enemyShot");
           damagePlayer("¡TE HAN DISPARADO!");
 
           if (!running) {
@@ -3733,7 +4233,7 @@ function initializeAntitronksGame() {
 }
 
 /* =========================================================
-   ANTININJA - DIBUJOS (bolas ninja, rey, árboles, castillo)
+   PROTECT MOGOS - DIBUJOS (bolas ninja, rey, árboles, castillo)
    Están fuera del juego para poder reutilizarlos (por ejemplo,
    para la imagen de la tarjeta).
    ========================================================= */
@@ -3770,7 +4270,7 @@ function antininjaRoundRect(g, x, y, w, h, r) {
  * Ninja bola clásico: bola negra, rendija de la cara con los
  * ojos y cinta en la cabeza con las colas del nudo al viento.
  *  - normal:  cinta roja (1 clic)
- *  - flipper: cinta morada (voltereta hacia atrás)
+ *  - flipper: cinta morada (voltereta hacia delante, 3 clics)
  *  - tank:    cinta dorada y armadura (2 clics)
  */
 function drawNinjaBall(g, x, y, r, opts = {}) {
@@ -4226,7 +4726,7 @@ function drawNinjaCastle(g, w, h, top) {
 }
 
 /* =========================================================
-   ANTININJA - JUEGO
+   PROTECT MOGOS - JUEGO
    ========================================================= */
 
 function initializeAntininjaGame() {
@@ -4263,11 +4763,13 @@ function initializeAntininjaGame() {
   const CASTLE_TOP = 0.8;
 
   const FLIP_TIME = 520;
-  const FLIP_PUSH = 0.3;
+  // Cuánto avanza hacia el castillo el ninja morado en cada voltereta.
+  const FLIP_PUSH = 0.14;
+  const FLIPPER_HP = 3;
   const DEATH_TIME = 380;
 
   const INTRO_TEXT =
-    "Haz clic en los ninjas antes de que lleguen al castillo del rey. Cinta roja: 1 clic. Cinta dorada: 2 clics. Cinta morada: da una voltereta hacia atrás, ¡échalo del bosque!";
+    "Haz clic en los ninjas antes de que lleguen al castillo del rey. Cinta roja: 1 clic. Cinta dorada: 2 clics. Cinta morada: 3 clics, ¡pero con cada clic da una voltereta hacia delante y se acerca al castillo!";
 
   /* =======================================================
      ESTADO
@@ -4344,7 +4846,9 @@ function initializeAntininjaGame() {
    *   ~5 s con 30 puntos y nunca en menos de ~3,5 s.
    * - Nuevo ninja: cada 1,5 s al empezar, 1,08 s con 30 puntos
    *   y nunca menos de 0,5 s.
-   * - Ninjas a la vez: 3 al empezar, 1 más cada 10 puntos, máx. 7.
+   * - Ninjas a la vez: 3 al empezar y 1 más cada 5 puntos (máx. 12).
+   * - Salen en grupos: 1 ninja al empezar, 2 a la vez desde 10 puntos,
+   *   3 desde 20 y 4 desde 30.
    */
   function getSpeed() {
     return Math.min(0.28, 0.14 + score * 0.002);
@@ -4355,7 +4859,11 @@ function initializeAntininjaGame() {
   }
 
   function getMaxNinjas() {
-    return Math.min(7, 3 + Math.floor(score / 10));
+    return Math.min(12, 3 + Math.floor(score / 5));
+  }
+
+  function getGroupSize() {
+    return Math.min(4, 1 + Math.floor(score / 10));
   }
 
   /* =======================================================
@@ -4477,7 +4985,7 @@ function initializeAntininjaGame() {
     return "normal";
   }
 
-  function spawnNinja() {
+  function spawnNinja(x = rand(0.18, 0.82), y = -0.02) {
     if (!running || aliveCount() >= getMaxNinjas()) {
       return;
     }
@@ -4486,9 +4994,9 @@ function initializeAntininjaGame() {
 
     ninjas.push({
       type,
-      x: rand(0.18, 0.82),
-      y: -0.02,
-      hp: type === "tank" ? 2 : 1,
+      x,
+      y,
+      hp: type === "tank" ? 2 : type === "flipper" ? FLIPPER_HP : 1,
       state: "run",
       stateTime: 0,
       phase: rand(0, TAU),
@@ -4574,6 +5082,7 @@ function initializeAntininjaGame() {
 
     if (!n) {
       spawnParticles(px, py, "#2f6b27", 5, 0.5, 3);
+      TronkSound.play("swish");
       return;
     }
 
@@ -4585,14 +5094,17 @@ function initializeAntininjaGame() {
     const p = ninjaPos(n);
 
     if (n.type === "normal") {
+      TronkSound.play("pop");
       kill(n, 1, p);
       return;
     }
 
     if (n.type === "tank") {
       n.hp -= 1;
+      TronkSound.play("clank");
 
       if (n.hp <= 0) {
+        TronkSound.play("pop");
         kill(n, 2, p);
       } else {
         n.flash = 1;
@@ -4605,10 +5117,20 @@ function initializeAntininjaGame() {
       return;
     }
 
-    // Ninja morado: voltereta hacia atrás, no muere.
+    // Ninja morado: 3 clics. Con los dos primeros da una voltereta
+    // HACIA DELANTE y se acerca al castillo; al tercero muere.
+    n.hp -= 1;
+
+    if (n.hp <= 0) {
+      TronkSound.play("pop");
+      kill(n, 3, p);
+      return;
+    }
+
     n.flipFrom = n.y;
-    n.flipTo = n.y - FLIP_PUSH;
+    n.flipTo = n.y + FLIP_PUSH;
     setState(n, "flipping");
+    TronkSound.play("flip");
     spawnParticles(p.x, p.y + ninjaRadius(n), "#8fcf6a", 6, 0.7, 4);
     addFloater(p.x, p.y - 22, "¡VOLTERETA!", "#d9a6ff");
   }
@@ -4622,6 +5144,7 @@ function initializeAntininjaGame() {
 
     lives -= 1;
     updateHud();
+    TronkSound.play("castleHit");
 
     kingHurt = 900;
     shake = 280;
@@ -4656,6 +5179,8 @@ function initializeAntininjaGame() {
       record = score;
       saveRecord(record);
     }
+
+    TronkSound.play(newRecord ? "record" : "gameOver");
 
     updateHud();
 
@@ -4704,7 +5229,7 @@ function initializeAntininjaGame() {
     overlay?.classList.remove("hidden");
 
     if (overlayTitle) {
-      overlayTitle.textContent = "ANTININJA";
+      overlayTitle.textContent = "PROTECT MOGOS";
     }
 
     if (overlayText) {
@@ -4733,6 +5258,7 @@ function initializeAntininjaGame() {
 
     running = true;
     overlay?.classList.add("hidden");
+    TronkSound.play("start");
 
     lastTime = performance.now();
     cancelAnimationFrame(animationFrame);
@@ -4744,6 +5270,8 @@ function initializeAntininjaGame() {
     modal.setAttribute("aria-hidden", "false");
     document.body.classList.add("antitronks-open");
 
+    TronkSound.startMusic("calm");
+
     resetGame();
   }
 
@@ -4751,6 +5279,8 @@ function initializeAntininjaGame() {
     running = false;
     cancelAnimationFrame(animationFrame);
     ninjas = [];
+
+    TronkSound.stopMusic();
 
     modal.classList.add("hidden");
     modal.setAttribute("aria-hidden", "true");
@@ -4767,7 +5297,14 @@ function initializeAntininjaGame() {
     spawnTimer += delta;
 
     if (spawnTimer >= nextSpawn) {
-      spawnNinja();
+      // Cuantos más puntos, más ninjas salen a la vez (en grupo).
+      const group = getGroupSize();
+
+      for (let k = 0; k < group; k++) {
+        const x = group === 1 ? rand(0.18, 0.82) : 0.18 + ((k + rand(0.15, 0.85)) / group) * 0.64;
+        spawnNinja(x, -0.02 - k * 0.03);
+      }
+
       spawnTimer = 0;
       nextSpawn = getSpawnInterval() * rand(0.75, 1.2);
     }
@@ -4794,20 +5331,21 @@ function initializeAntininjaGame() {
       } else if (n.state === "flipping") {
         const t = n.stateTime / FLIP_TIME;
         n.y = n.flipFrom + (n.flipTo - n.flipFrom) * easeOut(t);
-        n.rotation = -TAU * clamp(t, 0, 1);
+        // Voltereta hacia delante (gira hacia el castillo).
+        n.rotation = TAU * clamp(t, 0, 1);
 
         if (t >= 1) {
           n.rotation = 0;
+          setState(n, "run");
+        }
 
-          // Si la voltereta lo saca del bosque, se va y cuenta punto.
-          if (n.y < -0.04) {
-            const p = ninjaPos(n);
-            ninjas.splice(i, 1);
-            score += 1;
-            updateHud();
-            addFloater(p.x, Math.max(40, p.y + 40), "¡FUERA! +1", "#d9a6ff");
-          } else {
-            setState(n, "run");
+        // Si la voltereta le lleva hasta el castillo, cuenta como que ha llegado.
+        if (n.y * fh + ninjaRadius(n) * 0.9 >= fh) {
+          ninjas.splice(i, 1);
+          ninjaReachedCastle(n);
+
+          if (!running) {
+            return;
           }
         }
       } else if (n.state === "dying" && n.stateTime >= DEATH_TIME) {
@@ -4892,12 +5430,15 @@ function initializeAntininjaGame() {
       flash: n.flash
     });
 
-    // Puntos de vida del ninja de 2 clics.
-    if (n.type === "tank") {
-      for (let i = 0; i < 2; i++) {
-        ctx.fillStyle = i < n.hp ? "#ffd24a" : "rgba(0,0,0,.4)";
+    // Puntos de vida de los ninjas de varios clics.
+    if (n.type === "tank" || n.type === "flipper") {
+      const max = n.type === "tank" ? 2 : FLIPPER_HP;
+      const color = n.type === "tank" ? "#ffd24a" : "#d9a6ff";
+
+      for (let i = 0; i < max; i++) {
+        ctx.fillStyle = i < n.hp ? color : "rgba(0,0,0,.4)";
         ctx.beginPath();
-        ctx.arc(p.x - 6 + i * 12, p.y - r - 12, 4, 0, TAU);
+        ctx.arc(p.x - ((max - 1) * 12) / 2 + i * 12, p.y - r - 12, 4, 0, TAU);
         ctx.fill();
       }
     }

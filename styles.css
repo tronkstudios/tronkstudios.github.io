@@ -1092,7 +1092,7 @@ body.antitronks-open {
 }
 
 /* =========================================
-   ANTININJA
+   PROTECT MOGOS
    ========================================= */
 
 /* Ventana estrecha: un tercio de la de Antitronks, centrada. */
@@ -1128,4 +1128,30 @@ body.antitronks-open {
 
 .antininja-hud .antitronks-overlay-box h3 {
   font-size: 1.6rem;
+}
+
+/* =========================================
+   BOTÓN DE SONIDO DE LOS MINIJUEGOS
+   ========================================= */
+
+.antitronks-sound {
+  position: absolute;
+  left: .7rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #1d1d1d;
+  color: #fff;
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.antitronks-sound:hover {
+  background: #333;
 }
