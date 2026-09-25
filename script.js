@@ -317,9 +317,17 @@ function closeModal(modal) {
       "hidden"
     );
 
+  const projectModal =
+    document.getElementById("project-modal");
+
+  const projectClosed =
+    !projectModal ||
+    projectModal.classList.contains("hidden");
+
   if (
     accountClosed &&
-    suggestionsClosed
+    suggestionsClosed &&
+    projectClosed
   ) {
     document.body.classList.remove(
       "modal-open"
@@ -1620,81 +1628,106 @@ if (suggestionCategory) {
    PROYECTOS
    ========================================================= */
 
+/*
+ * Datos de los juegos en desarrollo. Para añadir otro juego:
+ * copia el bloque de "z-tronks", cambia los datos y pon
+ * data-project="su-id" en su tarjeta del index.html.
+ */
+const PROJECTS = {
+  "z-tronks": {
+    title: "Z Tronks",
+    image: "z-tronks.png",
+    category: "Roblox",
+    people: 5,
+    // Año, mes (1-12), día
+    release: [2027, 1, 4],
+    description: [
+      "Z Tronks es un juego de acción y supervivencia ambientado en un mundo devastado por un apocalipsis zombi. Los jugadores deberán explorar una ciudad abandonada, enfrentarse a diferentes tipos de zombis, completar misiones y conseguir experiencia y recursos para mejorar a su personaje.",
+      "Cada jugador podrá elegir entre distintas clases, como Gunner, Warrior, Rogue y Medic, cada una con sus propias armas, habilidades y estilos de combate. A medida que avances, podrás desbloquear nuevas habilidades, conseguir mejor equipamiento y enfrentarte a enemigos cada vez más peligrosos.",
+      "Forma un equipo con tus amigos, sobrevive al apocalipsis y conviértete en uno de los supervivientes más poderosos de Z Tronks."
+    ]
+  }
+};
+
+function formatReleaseDate([year, month, day]) {
+  return new Date(year, month - 1, day).toLocaleDateString("es-ES", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  });
+}
+
+function daysUntil([year, month, day]) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(year, month - 1, day);
+  return Math.round((target - today) / 86400000);
+}
+
+function openProjectModal(id) {
+  const project = PROJECTS[id];
+  const modal = document.getElementById("project-modal");
+
+  if (!project || !modal) {
+    return;
+  }
+
+  const days = daysUntil(project.release);
+
+  let countdown;
+
+  if (days > 1) {
+    countdown = `¡Faltan ${days} días!`;
+  } else if (days === 1) {
+    countdown = "¡Sale mañana!";
+  } else if (days === 0) {
+    countdown = "¡Sale hoy!";
+  } else {
+    countdown = "¡Ya disponible!";
+  }
+
+  const image = modal.querySelector("#project-modal-image");
+
+  if (image) {
+    image.src = project.image;
+    image.alt = project.title;
+  }
+
+  modal.querySelector("#project-modal-title").textContent = project.title;
+  modal.querySelector("#project-modal-category").textContent = project.category;
+  modal.querySelector("#project-modal-people").textContent =
+    `${project.people} ${project.people === 1 ? "persona" : "personas"}`;
+  modal.querySelector("#project-modal-release").textContent =
+    formatReleaseDate(project.release);
+  modal.querySelector("#project-modal-countdown").textContent = countdown;
+
+  const description = modal.querySelector("#project-modal-description");
+  description.innerHTML = "";
+
+  project.description.forEach((paragraph) => {
+    const p = document.createElement("p");
+    p.textContent = paragraph;
+    description.appendChild(p);
+  });
+
+  openModal(modal);
+}
+
 function initializeProjects() {
-  const projectCards =
-    document.querySelectorAll(
-      ".dev-card:not(.minigame-card)"
-    );
+  document
+    .querySelectorAll(".dev-card[data-project]")
+    .forEach((card) => {
+      const id = card.dataset.project;
 
-  projectCards.forEach(
-    (card) => {
-      card.style.cursor =
-        "pointer";
+      card.addEventListener("click", () => openProjectModal(id));
 
-      card.addEventListener(
-        "click",
-        () => {
-          const title =
-            card.querySelector(
-              "h3"
-            )?.textContent ||
-            "Proyecto";
-
-          const description =
-            card.querySelector(
-              "p:not(.dev-card-category)"
-            )?.textContent ||
-            "Sin descripción.";
-
-          const existingDetails =
-            card.querySelector(
-              ".project-details"
-            );
-
-          if (
-            existingDetails
-          ) {
-            existingDetails.remove();
-            return;
-          }
-
-          const details =
-            document.createElement(
-              "div"
-            );
-
-          details.className =
-            "project-details";
-
-          details.innerHTML = `
-            <p>
-              <strong>Proyecto:</strong>
-              ${escapeHtml(title)}
-            </p>
-
-            <p>
-              <strong>Descripción:</strong>
-              ${escapeHtml(description)}
-            </p>
-
-            <p>
-              <strong>Lanzamiento previsto:</strong>
-              Por determinar
-            </p>
-
-            <p>
-              <strong>Personas trabajando:</strong>
-              Por determinar
-            </p>
-          `;
-
-          card.appendChild(
-            details
-          );
+      card.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openProjectModal(id);
         }
-      );
-    }
-  );
+      });
+    });
 }
 
 function escapeHtml(
@@ -6877,6 +6910,16 @@ document.addEventListener(
       closeModal(
         suggestionModal
       );
+    }
+
+    const projectModal =
+      document.getElementById("project-modal");
+
+    if (
+      projectModal &&
+      !projectModal.classList.contains("hidden")
+    ) {
+      closeModal(projectModal);
     }
   }
 );

@@ -82,13 +82,13 @@
     }
   </script>
 
-  <link rel="stylesheet" href="styles.css?v=9" />
+  <link rel="stylesheet" href="styles.css?v=10" />
 
   <script
     src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
   ></script>
 
-  <script src="script.js?v=9" defer></script>
+  <script src="script.js?v=10" defer></script>
 </head>
 
 <body>
@@ -333,7 +333,13 @@
 
         <div class="cards-grid">
 
-          <article class="card dev-card">
+          <article
+            class="card dev-card project-card"
+            data-project="z-tronks"
+            tabindex="0"
+            role="button"
+            aria-label="Ver detalles de Z Tronks"
+          >
 
             <div class="dev-card-media">
 
@@ -349,11 +355,6 @@
             <h3>
               Z Tronks
             </h3>
-
-            <p>
-              Z Tronks es un juego de zombis en desarrollo
-              para Roblox, creado por TronkStudios.
-            </p>
 
             <p class="dev-card-category">
 
@@ -952,6 +953,67 @@
 
   </div>
 
+
+  <!-- =====================================================
+       MODAL DE JUEGO EN DESARROLLO
+       ===================================================== -->
+
+  <div
+    id="project-modal"
+    class="modal hidden"
+    aria-hidden="true"
+  >
+
+    <div class="modal-backdrop"></div>
+
+    <div
+      class="modal-box project-modal-box"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="project-modal-title"
+    >
+
+      <button
+        class="modal-close"
+        data-close-modal="project-modal"
+        type="button"
+        aria-label="Cerrar"
+      >
+        ×
+      </button>
+
+      <div class="project-modal-media">
+        <img id="project-modal-image" src="" alt="" />
+      </div>
+
+      <div class="project-modal-head">
+        <h2 id="project-modal-title">Juego</h2>
+        <span class="project-badge">En desarrollo</span>
+      </div>
+
+      <div class="project-stats">
+        <div class="project-stat">
+          <span class="project-stat-label">Categoría</span>
+          <strong id="project-modal-category"></strong>
+        </div>
+
+        <div class="project-stat">
+          <span class="project-stat-label">👥 Equipo</span>
+          <strong id="project-modal-people"></strong>
+        </div>
+
+        <div class="project-stat">
+          <span class="project-stat-label">🚀 Lanzamiento</span>
+          <strong id="project-modal-release"></strong>
+          <span id="project-modal-countdown" class="project-countdown"></span>
+        </div>
+      </div>
+
+      <div id="project-modal-description" class="project-description"></div>
+
+    </div>
+
+  </div>
 
   <!-- =====================================================
        MINIJUEGO ANTITRONKS
