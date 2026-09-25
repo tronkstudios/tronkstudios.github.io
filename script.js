@@ -423,6 +423,34 @@ function showAuthMessage(
   }
 }
 
+function showVerificationSentMessage(email) {
+  if (!authMessage) {
+    return;
+  }
+
+  authMessage.className = "verification-message";
+
+  authMessage.innerHTML = `
+    <div class="verification-card">
+      <div class="verification-heading">
+        <span class="verification-icon">✉️</span>
+        <span>¡Revisa tu correo!</span>
+      </div>
+
+      <p>
+        Te hemos enviado un correo de verificación a
+        <strong>${escapeHtml(email)}</strong>.
+        Confirma tu cuenta haciendo clic en el enlace
+        antes de iniciar sesión.
+      </p>
+
+      <span class="verification-badge">
+        Correo enviado
+      </span>
+    </div>
+  `;
+}
+
 function showSuggestionMessage(
   message,
   type = ""
@@ -772,10 +800,19 @@ if (registerForm) {
         currentUser =
           data?.user || null;
 
-        showAuthMessage(
-          "Cuenta creada correctamente.",
-          "success"
-        );
+        if (data?.session) {
+          // Si el proyecto de Supabase NO exige
+          // confirmación de correo, el usuario
+          // queda logueado al instante.
+          showAuthMessage(
+            "Cuenta creada correctamente.",
+            "success"
+          );
+        } else {
+          // Caso normal: hay que verificar el
+          // correo antes de poder iniciar sesión.
+          showVerificationSentMessage(email);
+        }
 
         registerForm.reset();
 
