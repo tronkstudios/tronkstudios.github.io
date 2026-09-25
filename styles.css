@@ -1080,3 +1080,52 @@ body.antitronks-open {
   font-size: 13px;
   font-weight: 600;
 }
+
+/* =========================================
+   TARJETAS DE MINIJUEGOS (una al lado de otra)
+   ========================================= */
+
+.cards-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+/* =========================================
+   ANTININJA
+   ========================================= */
+
+/* Ventana estrecha: un tercio de la de Antitronks, centrada. */
+.antitronks-window.antininja-window {
+  width: min(540px, 100%);
+}
+
+#antininja-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+}
+
+.antininja-hud .antitronks-score,
+.antininja-hud .antitronks-lives,
+.antininja-hud .antitronks-record {
+  font-size: .8rem;
+  padding: .4rem .55rem;
+  top: 10px;
+}
+
+.antininja-hud .antitronks-score { left: 10px; }
+.antininja-hud .antitronks-lives { right: 10px; }
+
+.antininja-hud .antitronks-message {
+  bottom: 24%;
+  width: 90%;
+  text-align: center;
+}
+
+.antininja-hud .antitronks-overlay-box h3 {
+  font-size: 1.6rem;
+}
