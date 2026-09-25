@@ -900,7 +900,8 @@ textarea:focus-visible {
 }
 
 .antitronks-score,
-.antitronks-lives {
+.antitronks-lives,
+.antitronks-record {
   position: absolute;
   top: 14px;
   padding: .5rem .75rem;
@@ -912,6 +913,11 @@ textarea:focus-visible {
 
 .antitronks-score { left: 14px; }
 .antitronks-lives { right: 14px; }
+.antitronks-record {
+  left: 50%;
+  transform: translateX(-50%);
+  color: #ffd24a;
+}
 
 .antitronks-hit-flash {
   position: absolute;

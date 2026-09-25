@@ -1775,6 +1775,7 @@ function initializeAntitronksGame() {
   const overlayText = document.getElementById("antitronks-overlay-text");
   const scoreElement = document.getElementById("antitronks-score");
   const livesElement = document.getElementById("antitronks-lives");
+  const recordElement = document.getElementById("antitronks-record");
   const flash = document.getElementById("antitronks-hit-flash");
   const message = document.getElementById("antitronks-message");
   const messageText = document.getElementById("antitronks-message-text");
@@ -1802,12 +1803,8 @@ function initializeAntitronksGame() {
   // Cuánto puede girar la cámara a cada lado (radianes, ~35°).
   const CAMERA_LIMIT = 0.62;
 
-  // Velocidades de giro (radianes por segundo). Antes ~1.5, ahora mucho más rápido.
+  // Velocidad de giro con A / D (radianes por segundo).
   const KEY_TURN_SPEED = 2.8;
-  const EDGE_TURN_SPEED = 3.2;
-
-  // Franja del borde de la pantalla que gira la cámara al poner el ratón ahí.
-  const EDGE_ZONE = 0.07;
 
   const PERSON_H = 1.85;
   const RISE_TIME = 200;
@@ -1821,7 +1818,9 @@ function initializeAntitronksGame() {
   const FACADE_Z = 27;
 
   const INTRO_TEXT =
-    "Apunta con el ratón y haz clic para disparar. Gira la cámara con A/D, las flechas o llevando el ratón al borde. ¡No dispares a los civiles (manos arriba)!";
+    "Apunta con el ratón y haz clic para disparar. Gira la cámara con A (izquierda) y D (derecha). ¡No dispares a los civiles (manos arriba)!";
+
+  const RECORD_KEY = "antitronks-record";
 
   /*
    * Cajas: más pequeñas que antes y de tamaños distintos.
@@ -1966,6 +1965,7 @@ function initializeAntitronksGame() {
 
   let score = 0;
   let lives = 3;
+  let record = loadRecord();
 
   let cameraAngle = 0;
 
@@ -2013,16 +2013,25 @@ function initializeAntitronksGame() {
     return 1 - (1 - t) * (1 - t);
   }
 
+  /*
+   * Dificultad: sube poco a poco.
+   * - Tiempo hasta que el enemigo dispara: 2,6 s al empezar,
+   *   2,0 s con 30 puntos y nunca menos de 1,3 s.
+   * - Nuevo enemigo: cada 1,4 s al empezar, 1,04 s con 30 puntos
+   *   y nunca menos de 0,65 s.
+   * - Enemigos a la vez: 2 al empezar, 3 desde 15 puntos,
+   *   4 como máximo desde 30.
+   */
   function getSpawnInterval() {
-    return Math.max(450, 1200 - score * 30);
+    return Math.max(650, 1400 - score * 12);
   }
 
   function getReactionTime() {
-    return Math.max(850, 2000 - score * 45);
+    return Math.max(1300, 2600 - score * 20);
   }
 
   function getMaxTargets() {
-    return Math.min(5, 2 + Math.floor(score / 6));
+    return Math.min(4, 2 + Math.floor(score / 15));
   }
 
   function roundRect(x, y, w, h, r) {
@@ -2216,7 +2225,31 @@ function initializeAntitronksGame() {
      HUD
      ======================================================= */
 
+  /* =======================================================
+     RÉCORD (se guarda en este navegador)
+     ======================================================= */
+
+  function loadRecord() {
+    try {
+      return Math.max(0, parseInt(localStorage.getItem(RECORD_KEY), 10) || 0);
+    } catch {
+      return 0;
+    }
+  }
+
+  function saveRecord(value) {
+    try {
+      localStorage.setItem(RECORD_KEY, String(value));
+    } catch {
+      // LocalStorage no disponible.
+    }
+  }
+
   function updateHud() {
+    if (recordElement) {
+      recordElement.textContent = `RÉCORD: ${Math.max(record, score)}`;
+    }
+
     if (scoreElement) {
       scoreElement.textContent = `PUNTOS: ${score}`;
     }
@@ -3170,32 +3203,6 @@ function initializeAntitronksGame() {
     ctx.restore();
   }
 
-  function drawEdgeHints() {
-    if (!running || !mouseInside) {
-      return;
-    }
-
-    const zone = width * EDGE_ZONE;
-    let side = 0;
-
-    if (mouseX < zone) {
-      side = -1;
-    } else if (mouseX > width - zone) {
-      side = 1;
-    }
-
-    if (!side) {
-      return;
-    }
-
-    const x0 = side < 0 ? 0 : width - zone;
-    const g = ctx.createLinearGradient(side < 0 ? 0 : width, 0, side < 0 ? zone : width - zone, 0);
-    g.addColorStop(0, "rgba(255,255,255,.18)");
-    g.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.fillStyle = g;
-    ctx.fillRect(x0, 0, zone, height);
-  }
-
   /* =======================================================
      GENERAR ENEMIGOS (SIEMPRE DETRÁS DE UNA CAJA)
      ======================================================= */
@@ -3316,14 +3323,35 @@ function initializeAntitronksGame() {
     cancelAnimationFrame(animationFrame);
     clearTargets();
 
+    // Quitamos el destello rojo y el mensaje para que no se queden fijos.
+    flashTimer = 0;
+    messageTimer = 0;
+    flash?.classList.remove("active");
+    message?.classList.remove("visible");
+
     overlay?.classList.remove("hidden");
 
     if (overlayTitle) {
       overlayTitle.textContent = "GAME OVER";
     }
 
+    const newRecord = score > record;
+
+    if (newRecord) {
+      record = score;
+      saveRecord(record);
+    }
+
+    updateHud();
+
+    if (overlayTitle && newRecord) {
+      overlayTitle.textContent = "¡NUEVO RÉCORD!";
+    }
+
     if (overlayText) {
-      overlayText.textContent = `Has conseguido ${score} punto${score === 1 ? "" : "s"}.`;
+      overlayText.textContent = newRecord
+        ? `Has conseguido ${score} punto${score === 1 ? "" : "s"}. ¡Es tu mejor marca!`
+        : `Has conseguido ${score} punto${score === 1 ? "" : "s"}. Tu récord es ${record}.`;
     }
 
     if (startButton) {
@@ -3358,7 +3386,7 @@ function initializeAntitronksGame() {
     }
 
     if (overlayText) {
-      overlayText.textContent = INTRO_TEXT;
+      overlayText.textContent = record > 0 ? `${INTRO_TEXT} Tu récord: ${record} puntos.` : INTRO_TEXT;
     }
 
     if (startButton) {
@@ -3366,6 +3394,8 @@ function initializeAntitronksGame() {
     }
 
     message?.classList.remove("visible");
+    flash?.classList.remove("active");
+    flashTimer = 0;
 
     resize();
     draw();
@@ -3423,26 +3453,17 @@ function initializeAntitronksGame() {
     gameTime += delta;
 
     /*
-     * Giro de cámara: rápido y directo (sin retraso).
+     * Giro de cámara con A / D: rápido y directo (sin retraso).
      */
     let turn = 0;
 
-    if (keys.has("a") || keys.has("arrowleft")) {
+    // La cámara solo gira con A (izquierda) y D (derecha).
+    if (keys.has("a")) {
       turn -= KEY_TURN_SPEED;
     }
 
-    if (keys.has("d") || keys.has("arrowright")) {
+    if (keys.has("d")) {
       turn += KEY_TURN_SPEED;
-    }
-
-    if (mouseInside && !touchInfo) {
-      const fx = mouseX / width;
-
-      if (fx < EDGE_ZONE) {
-        turn -= EDGE_TURN_SPEED * (0.5 + 0.5 * (1 - fx / EDGE_ZONE));
-      } else if (fx > 1 - EDGE_ZONE) {
-        turn += EDGE_TURN_SPEED * (0.5 + 0.5 * (1 - (1 - fx) / EDGE_ZONE));
-      }
     }
 
     cameraAngle = clamp(cameraAngle + (turn * delta) / 1000, -CAMERA_LIMIT, CAMERA_LIMIT);
@@ -3530,7 +3551,6 @@ function initializeAntitronksGame() {
     drawIndicators();
     drawEffects();
     drawPlayerWeapon();
-    drawEdgeHints();
     drawOffscreenArrows();
     drawCrosshair();
   }
@@ -3675,7 +3695,7 @@ function initializeAntitronksGame() {
 
     const key = event.key.toLowerCase();
 
-    if (key === "a" || key === "d" || key === "arrowleft" || key === "arrowright") {
+    if (key === "a" || key === "d") {
       keys.add(key);
       event.preventDefault();
     }
