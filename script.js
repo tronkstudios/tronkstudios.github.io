@@ -1762,315 +1762,434 @@ function initializeCardImageFallbacks() {
    ========================================================= */
 
 function initializeAntitronksGame() {
-  const card =
-    document.querySelector(
-      '[data-minigame="antitronks"]'
-    );
+  const card = document.querySelector('[data-minigame="antitronks"]');
+  const modal = document.getElementById("antitronks-modal");
+  const closeButton = document.getElementById("antitronks-close");
+  const backdrop = modal?.querySelector(".antitronks-backdrop");
+  const game = document.getElementById("antitronks-game");
+  const canvas = document.getElementById("antitronks-canvas");
+  const ctx = canvas?.getContext("2d");
+  const startButton = document.getElementById("antitronks-start");
+  const overlay = document.getElementById("antitronks-overlay");
+  const overlayTitle = document.getElementById("antitronks-overlay-title");
+  const overlayText = document.getElementById("antitronks-overlay-text");
+  const scoreElement = document.getElementById("antitronks-score");
+  const livesElement = document.getElementById("antitronks-lives");
+  const flash = document.getElementById("antitronks-hit-flash");
+  const message = document.getElementById("antitronks-message");
+  const messageText = document.getElementById("antitronks-message-text");
 
-  const modal =
-    document.getElementById(
-      "antitronks-modal"
-    );
-
-  const closeButton =
-    document.getElementById(
-      "antitronks-close"
-    );
-
-  const backdrop =
-    modal?.querySelector(
-      ".antitronks-backdrop"
-    );
-
-  const game =
-    document.getElementById(
-      "antitronks-game"
-    );
-
-  const canvas =
-    document.getElementById(
-      "antitronks-canvas"
-    );
-
-  const ctx =
-    canvas?.getContext(
-      "2d"
-    );
-
-  const startButton =
-    document.getElementById(
-      "antitronks-start"
-    );
-
-  const overlay =
-    document.getElementById(
-      "antitronks-overlay"
-    );
-
-  const overlayTitle =
-    document.getElementById(
-      "antitronks-overlay-title"
-    );
-
-  const overlayText =
-    document.getElementById(
-      "antitronks-overlay-text"
-    );
-
-  const scoreElement =
-    document.getElementById(
-      "antitronks-score"
-    );
-
-  const livesElement =
-    document.getElementById(
-      "antitronks-lives"
-    );
-
-  const arrowContainer =
-    document.getElementById(
-      "antitronks-offscreen-enemies"
-    );
-
-  const flash =
-    document.getElementById(
-      "antitronks-hit-flash"
-    );
-
-  const message =
-    document.getElementById(
-      "antitronks-message"
-    );
-
-  const messageText =
-    document.getElementById(
-      "antitronks-message-text"
-    );
-
-  if (
-    !card ||
-    !modal ||
-    !game ||
-    !canvas ||
-    !ctx
-  ) {
+  if (!card || !modal || !game || !canvas || !ctx) {
     return;
   }
 
   /* =======================================================
-     CONFIGURACIÓN DEL JUEGO
+     CONFIGURACIÓN
      ======================================================= */
 
-  const TAU =
-    Math.PI * 2;
+  const TAU = Math.PI * 2;
+  const FOV = (78 * Math.PI) / 180;
+
+  // Altura de la línea del horizonte en pantalla (0 = arriba, 1 = abajo).
+  const HORIZON_Y = 0.42;
+
+  // Altura de los ojos del jugador (metros).
+  const CAM_H = 1.6;
+
+  // Plano de recorte cercano: nada con profundidad menor se dibuja.
+  const NEAR = 0.15;
+
+  // Cuánto puede girar la cámara a cada lado (radianes, ~35°).
+  const CAMERA_LIMIT = 0.62;
+
+  // Velocidades de giro (radianes por segundo). Antes ~1.5, ahora mucho más rápido.
+  const KEY_TURN_SPEED = 2.8;
+  const EDGE_TURN_SPEED = 3.2;
+
+  // Franja del borde de la pantalla que gira la cámara al poner el ratón ahí.
+  const EDGE_ZONE = 0.07;
+
+  const PERSON_H = 1.85;
+  const RISE_TIME = 200;
+  const HIDE_TIME = 200;
+  const FIRE_TIME = 160;
+  const DEATH_TIME = 550;
+
+  // Distribución de la calle (Z = distancia hacia delante).
+  const NEAR_CURB_Z = 3.6;
+  const FAR_CURB_Z = 22;
+  const FACADE_Z = 27;
+
+  const INTRO_TEXT =
+    "Apunta con el ratón y haz clic para disparar. Gira la cámara con A/D, las flechas o llevando el ratón al borde. ¡No dispares a los civiles (manos arriba)!";
 
   /*
-   * FOV de ~92°. Antes era ~140°, lo que
-   * obligaba a un mapa enorme para que
-   * tuviera sentido.
-   */
-  const FOV =
-    Math.PI * 0.51;
-
-  /*
-   * Medio-ángulo máximo que el jugador
-   * puede girar la cámara hacia cada
-   * lado. Combinado con el FOV, esto es
-   * lo que limita el campo de combate a
-   * ~90° por delante del jugador en vez
-   * de casi 360°.
-   */
-  const CAMERA_TURN_LIMIT =
-    Math.PI * 0.22;
-
-  /*
-   * Fracción vertical de la pantalla que
-   * actúa como "línea de mira". Se usa
-   * EN LOS TRES SITIOS que deben
-   * coincidir: la proyección 3D
-   * (dónde se dibuja todo), el disparo
-   * (qué se considera "apuntado") y la
-   * mira visual (ver antitronks-crosshair
-   * en styles.css, colocada al mismo
-   * 53%). Si alguno de los tres usa un
-   * valor distinto, la mira deja de
-   * coincidir con lo que realmente se
-   * dispara.
-   */
-  const HORIZON_Y =
-    0.53;
-
-  const MAX_DISTANCE =
-    26;
-
-  const PLAYER_HEIGHT =
-    1.65;
-
-  /*
-   * La calle utiliza X como eje largo.
-   * Z representa el ancho de la calle.
-   */
-  /*
-   * IMPORTANTE: todas las cajas tienen
-   * "z" POSITIVA (delante del jugador).
-   * En este motor, "z" negativa
-   * significa "detrás de la cámara", así
-   * que mezclar signos -como antes- es
-   * lo que obligaba a girar la cámara
-   * casi 180° para llegar a algunas
-   * cajas. Con "z" siempre positiva, las
-   * 7 cajas quedan repartidas en un
-   * único arco compacto delante del
-   * jugador, tal y como en el dibujo de
-   * referencia (calle horizontal con
-   * cobertura a lo largo).
+   * Cajas: más pequeñas que antes y de tamaños distintos.
+   * Todas son más bajas que los ojos del jugador, así que los
+   * enemigos se esconden detrás y "asoman" por encima.
    */
   const BOXES = [
-    {
-      x: -9,
-      z: 6.4,
-      w: 2.1,
-      h: 1.9,
-      d: 2.0
-    },
-    {
-      x: -6,
-      z: 4.8,
-      w: 1.9,
-      h: 1.7,
-      d: 1.9
-    },
-    {
-      x: -3,
-      z: 6.2,
-      w: 2.2,
-      h: 2.0,
-      d: 2.1
-    },
-    {
-      x: 0,
-      z: 4.6,
-      w: 2.0,
-      h: 1.8,
-      d: 2.0
-    },
-    {
-      x: 3,
-      z: 6.3,
-      w: 2.1,
-      h: 1.9,
-      d: 2.0
-    },
-    {
-      x: 6,
-      z: 4.7,
-      w: 1.9,
-      h: 1.7,
-      d: 1.9
-    },
-    {
-      x: 9,
-      z: 6.1,
-      w: 2.2,
-      h: 2.0,
-      d: 2.1
-    }
+    { x: -12.5, z: 10.2, w: 1.7, h: 1.1, d: 1.4, style: 0 },
+    { x: -8.6, z: 7.6, w: 1.1, h: 0.8, d: 1.0, style: 1 },
+    { x: -4.8, z: 12.6, w: 2.4, h: 1.15, d: 1.6, style: 2 },
+    { x: -1.4, z: 8.8, w: 1.3, h: 0.95, d: 1.2, style: 0 },
+    { x: 2.4, z: 13.8, w: 1.6, h: 1.05, d: 1.3, style: 1 },
+    { x: 5.4, z: 8.2, w: 1.0, h: 0.75, d: 0.95, style: 2 },
+    { x: 9.0, z: 11.2, w: 2.1, h: 1.12, d: 1.6, style: 0 },
+    { x: 13.2, z: 9.0, w: 1.35, h: 0.9, d: 1.2, style: 1 }
   ];
+
+  const BOX_STYLES = [
+    { front: "#9b6b3d", side: "#74502c", top: "#b8864f", line: "#4a2f18" },
+    { front: "#7d6a45", side: "#5c4e33", top: "#978158", line: "#3b3020" },
+    { front: "#5d6b3b", side: "#45502c", top: "#72824a", line: "#2b3319" }
+  ];
+
+  const SHIRTS = ["#e74c3c", "#3498db", "#f1c40f", "#9b59b6", "#1abc9c", "#e67e22", "#ecf0f1"];
+  const PANTS = ["#34495e", "#3b5b8a", "#5d4037", "#2c3e50"];
+  const SKINS = ["#f1c7a5", "#d9a47c", "#b98a6a", "#8d5a3b", "#6b4430"];
+  const HAIRS = ["#2b1b12", "#5a3a22", "#c9a15a", "#111111", "#7a2e1c"];
+
+  /* =======================================================
+     CIUDAD (generada una vez, siempre igual)
+     ======================================================= */
+
+  function mulberry32(seed) {
+    return function () {
+      seed |= 0;
+      seed = (seed + 0x6d2b79f5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function buildCity() {
+    const rnd = mulberry32(1337);
+
+    const palette = [
+      { wall: "#8e4b3a", trim: "#5e2f24" },
+      { wall: "#c9b48f", trim: "#8a7657" },
+      { wall: "#6f7f8f", trim: "#46525e" },
+      { wall: "#b86f4b", trim: "#7a452d" },
+      { wall: "#d9cfc0", trim: "#9d9383" },
+      { wall: "#556b5d", trim: "#364539" },
+      { wall: "#a3564f", trim: "#6b3530" },
+      { wall: "#d8b25a", trim: "#8f7431" }
+    ];
+
+    const awnings = ["#c0392b", "#2e86c1", "#27ae60", "#d68910", "#8e44ad", "#16a085"];
+
+    const facades = [];
+    let x = -120;
+
+    while (x < 120) {
+      const w = 7 + rnd() * 7;
+      const h = 8 + rnd() * 14;
+      const cols = Math.max(2, Math.floor(w / 2.3));
+      const lit = [];
+
+      for (let i = 0; i < 40; i++) {
+        lit.push(rnd() < 0.35);
+      }
+
+      facades.push({
+        x0: x,
+        x1: x + w,
+        h,
+        cols,
+        lit,
+        colors: palette[Math.floor(rnd() * palette.length)],
+        awning: awnings[Math.floor(rnd() * awnings.length)]
+      });
+
+      x += w + (rnd() < 0.25 ? 1.2 : 0);
+    }
+
+    const sky = [];
+    let a = -1.95;
+
+    while (a < 1.95) {
+      const aw = 0.05 + rnd() * 0.09;
+      const elev = 0.1 + rnd() * 0.3;
+      const cols = 3 + Math.floor(rnd() * 4);
+      const rows = 8 + Math.floor(elev * 50);
+      const windows = [];
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (rnd() < 0.22) {
+            windows.push([c / cols, r / rows, 1 / cols, 1 / rows]);
+          }
+        }
+      }
+
+      sky.push({
+        a0: a,
+        a1: a + aw,
+        elev,
+        antenna: rnd() < 0.25,
+        color: rnd() < 0.5 ? "#2a3650" : "#34425c",
+        windows
+      });
+
+      a += aw + rnd() * 0.02;
+    }
+
+    const lamps = [];
+
+    for (let lx = -64; lx <= 64; lx += 16) {
+      lamps.push(lx);
+    }
+
+    return { facades, sky, lamps };
+  }
+
+  const CITY = buildCity();
+
+  /* =======================================================
+     ESTADO
+     ======================================================= */
 
   let width = 1;
   let height = 1;
   let dpr = 1;
+  let focal = 1;
+
+  let camCos = 1;
+  let camSin = 0;
 
   let running = false;
   let animationFrame = 0;
   let lastTime = 0;
+  let gameTime = 0;
 
   let score = 0;
   let lives = 3;
 
   let cameraAngle = 0;
-  let cameraTargetAngle = 0;
 
   let spawnTimer = 0;
-  let nextSpawn = 800;
+  let nextSpawn = 600;
 
   let targets = [];
+  let particles = [];
+  let floaters = [];
+  let tracers = [];
+  let indicators = [];
 
-  let keys = new Set();
+  const keys = new Set();
 
-  let mouseX = 0.5;
+  let mouseX = 0;
+  let mouseY = 0;
+  let mouseInside = false;
+
+  let recoil = 0;
+  let muzzleFlash = 0;
 
   let flashTimer = 0;
   let messageTimer = 0;
+
+  let touchInfo = null;
 
   /* =======================================================
      UTILIDADES
      ======================================================= */
 
-  function clamp(
-    value,
-    min,
-    max
-  ) {
-    return Math.max(
-      min,
-      Math.min(max, value)
-    );
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
   }
 
-  function rand(
-    min,
-    max
-  ) {
-    return (
-      min +
-      Math.random() *
-        (max - min)
-    );
+  function rand(min, max) {
+    return min + Math.random() * (max - min);
   }
 
-  function normalizeAngle(
-    angle
-  ) {
-    while (
-      angle > Math.PI
-    ) {
-      angle -= TAU;
-    }
+  function pick(list) {
+    return list[Math.floor(Math.random() * list.length)];
+  }
 
-    while (
-      angle < -Math.PI
-    ) {
-      angle += TAU;
-    }
-
-    return angle;
+  function easeOut(t) {
+    t = clamp(t, 0, 1);
+    return 1 - (1 - t) * (1 - t);
   }
 
   function getSpawnInterval() {
-    return Math.max(
-      360,
-      1450 -
-        score * 42
-    );
+    return Math.max(450, 1200 - score * 30);
   }
 
   function getReactionTime() {
-    return Math.max(
-      620,
-      2700 -
-        score * 48
-    );
+    return Math.max(850, 2000 - score * 45);
   }
 
   function getMaxTargets() {
-    return Math.min(
-      5,
-      2 +
-        Math.floor(
-          score / 5
-        )
+    return Math.min(5, 2 + Math.floor(score / 6));
+  }
+
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+
+    if (typeof ctx.roundRect === "function") {
+      ctx.roundRect(x, y, w, h, r);
+    } else {
+      ctx.rect(x, y, w, h);
+    }
+  }
+
+  /* =======================================================
+     PROYECCIÓN 3D
+     ======================================================= */
+
+  function toCam(x, y, z) {
+    return {
+      rx: x * camCos - z * camSin,
+      ry: y - CAM_H,
+      rz: x * camSin + z * camCos
+    };
+  }
+
+  function camToScreen(p) {
+    return {
+      x: width / 2 + (p.rx / p.rz) * focal,
+      y: height * HORIZON_Y - (p.ry / p.rz) * focal
+    };
+  }
+
+  function project(x, y, z) {
+    const p = toCam(x, y, z);
+
+    if (p.rz < NEAR) {
+      return null;
+    }
+
+    const s = camToScreen(p);
+    s.rz = p.rz;
+    return s;
+  }
+
+  // Recorta un polígono contra el plano cercano para que nada
+  // "detrás de la cámara" se dibuje deformado.
+  function clipNear(poly) {
+    const out = [];
+
+    for (let i = 0; i < poly.length; i++) {
+      const a = poly[i];
+      const b = poly[(i + 1) % poly.length];
+      const aIn = a.rz >= NEAR;
+      const bIn = b.rz >= NEAR;
+
+      if (aIn) {
+        out.push(a);
+      }
+
+      if (aIn !== bIn) {
+        const t = (NEAR - a.rz) / (b.rz - a.rz);
+
+        out.push({
+          rx: a.rx + (b.rx - a.rx) * t,
+          ry: a.ry + (b.ry - a.ry) * t,
+          rz: NEAR
+        });
+      }
+    }
+
+    return out;
+  }
+
+  function projectPoly(points) {
+    const cam = points.map((p) => toCam(p[0], p[1], p[2]));
+    const clipped = clipNear(cam);
+
+    if (clipped.length < 3) {
+      return null;
+    }
+
+    return clipped.map(camToScreen);
+  }
+
+  function fillPoly(poly, fill, stroke, lineWidth) {
+    if (!poly) {
+      return;
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(poly[0].x, poly[0].y);
+
+    for (let i = 1; i < poly.length; i++) {
+      ctx.lineTo(poly[i].x, poly[i].y);
+    }
+
+    ctx.closePath();
+
+    if (fill) {
+      ctx.fillStyle = fill;
+      ctx.fill();
+    }
+
+    if (stroke) {
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = lineWidth || 1;
+      ctx.stroke();
+    }
+  }
+
+  function polyOnScreen(poly) {
+    if (!poly) {
+      return false;
+    }
+
+    let minX = Infinity;
+    let maxX = -Infinity;
+
+    for (const p of poly) {
+      minX = Math.min(minX, p.x);
+      maxX = Math.max(maxX, p.x);
+    }
+
+    return maxX >= 0 && minX <= width;
+  }
+
+  function groundQuad(x0, x1, z0, z1, color, y = 0) {
+    fillPoly(
+      projectPoly([
+        [x0, y, z0],
+        [x1, y, z0],
+        [x1, y, z1],
+        [x0, y, z1]
+      ]),
+      color
     );
+  }
+
+  function wallQuad(x0, x1, y0, y1, z, color, stroke) {
+    const poly = projectPoly([
+      [x0, y0, z],
+      [x1, y0, z],
+      [x1, y1, z],
+      [x0, y1, z]
+    ]);
+
+    if (polyOnScreen(poly)) {
+      fillPoly(poly, color, stroke, 1);
+    }
+
+    return poly;
+  }
+
+  function pointInPoly(x, y, poly) {
+    let inside = false;
+
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const xi = poly[i].x;
+      const yi = poly[i].y;
+      const xj = poly[j].x;
+      const yj = poly[j].y;
+
+      if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) {
+        inside = !inside;
+      }
+    }
+
+    return inside;
   }
 
   /* =======================================================
@@ -2078,46 +2197,19 @@ function initializeAntitronksGame() {
      ======================================================= */
 
   function resize() {
-    const rect =
-      game.getBoundingClientRect();
+    const rect = game.getBoundingClientRect();
 
-    width =
-      Math.max(
-        1,
-        rect.width
-      );
+    width = Math.max(1, rect.width);
+    height = Math.max(1, rect.height);
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-    height =
-      Math.max(
-        1,
-        rect.height
-      );
+    canvas.width = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
 
-    dpr =
-      Math.min(
-        window.devicePixelRatio ||
-          1,
-        2
-      );
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    canvas.width =
-      Math.floor(
-        width * dpr
-      );
-
-    canvas.height =
-      Math.floor(
-        height * dpr
-      );
-
-    ctx.setTransform(
-      dpr,
-      0,
-      0,
-      dpr,
-      0,
-      0
-    );
+    // En pantallas verticales (móvil) evitamos que todo se vea diminuto.
+    focal = Math.max(width, height * 1.3) / (2 * Math.tan(FOV / 2));
   }
 
   /* =======================================================
@@ -2126,36 +2218,22 @@ function initializeAntitronksGame() {
 
   function updateHud() {
     if (scoreElement) {
-      scoreElement.textContent =
-        `PUNTOS: ${score}`;
+      scoreElement.textContent = `PUNTOS: ${score}`;
     }
 
     if (livesElement) {
-      livesElement.textContent =
-        `VIDAS: ${lives}`;
+      livesElement.textContent = `VIDAS: ${lives}`;
     }
   }
 
-  function showMessage(
-    text,
-    duration = 400
-  ) {
-    if (
-      !message ||
-      !messageText
-    ) {
+  function showMessage(text, duration = 400) {
+    if (!message || !messageText) {
       return;
     }
 
-    messageText.textContent =
-      text;
-
-    message.classList.add(
-      "visible"
-    );
-
-    messageTimer =
-      duration;
+    messageText.textContent = text;
+    message.classList.add("visible");
+    messageTimer = duration;
   }
 
   function damageFlash() {
@@ -2163,577 +2241,207 @@ function initializeAntitronksGame() {
       return;
     }
 
-    flash.classList.add(
-      "active"
-    );
-
-    flashTimer = 160;
+    flash.classList.add("active");
+    flashTimer = 180;
   }
 
   /* =======================================================
-     TARGETS
+     FONDO: CIELO + CIUDAD
      ======================================================= */
 
-  function clearTargets() {
-    targets = [];
+  function drawSky() {
+    const hy = height * HORIZON_Y;
 
-    if (arrowContainer) {
-      arrowContainer.innerHTML =
-        "";
+    const sky = ctx.createLinearGradient(0, 0, 0, hy);
+    sky.addColorStop(0, "#1c2a4a");
+    sky.addColorStop(0.55, "#5a6f95");
+    sky.addColorStop(1, "#f0a868");
+
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, width, hy + 1);
+
+    // Sol del atardecer.
+    const rel = 0.3 - cameraAngle;
+
+    if (Math.abs(rel) < 1.2) {
+      const sx = width / 2 + Math.tan(rel) * focal;
+      const sy = hy - Math.tan(0.09) * focal;
+      const r = focal * 0.28;
+
+      const glow = ctx.createRadialGradient(sx, sy, 0, sx, sy, r);
+      glow.addColorStop(0, "rgba(255,236,190,.95)");
+      glow.addColorStop(0.12, "rgba(255,200,130,.75)");
+      glow.addColorStop(1, "rgba(255,160,90,0)");
+
+      ctx.fillStyle = glow;
+      ctx.fillRect(sx - r, sy - r, r * 2, r * 2);
     }
   }
 
-  function spawnTarget() {
-    if (
-      !running ||
-      targets.length >=
-        getMaxTargets()
-    ) {
-      return;
-    }
+  function drawSkyline() {
+    const hy = height * HORIZON_Y;
 
-    const availableBoxes =
-      BOXES.filter(
-        (box) =>
-          !targets.some(
-            (target) =>
-              target.box === box
-          )
-      );
+    for (const b of CITY.sky) {
+      const r0 = b.a0 - cameraAngle;
+      const r1 = b.a1 - cameraAngle;
 
-    if (
-      availableBoxes.length ===
-      0
-    ) {
-      return;
-    }
-
-    const box =
-      availableBoxes[
-        Math.floor(
-          Math.random() *
-            availableBoxes.length
-        )
-      ];
-
-    /*
-     * 82% enemigos
-     * 18% civiles
-     */
-    const type =
-      Math.random() < 0.82
-        ? "enemy"
-        : "civilian";
-
-    const target = {
-      id:
-        `${Date.now()}-${Math.random()}`,
-
-      box,
-
-      x:
-        box.x +
-        rand(
-          -box.w * 0.22,
-          box.w * 0.22
-        ),
-
-      z:
-        box.z +
-        (
-          box.z < 0
-            ? box.d * 0.58
-            : -box.d * 0.58
-        ),
-
-      type,
-
-      born:
-        performance.now(),
-
-      reaction:
-        type === "enemy"
-          ? getReactionTime() +
-            rand(
-              -170,
-              180
-            )
-          : rand(
-              2400,
-              3900
-            ),
-
-      scale:
-        rand(
-          0.94,
-          1.08
-        ),
-
-      animation:
-        Math.random() *
-        TAU
-    };
-
-    targets.push(
-      target
-    );
-  }
-
-  /* =======================================================
-     PROYECCIÓN 3D
-     ======================================================= */
-
-  function projectPoint(
-    worldX,
-    worldZ,
-    worldY = 0
-  ) {
-    /*
-     * La cámara está en el origen.
-     *
-     * X = dirección de la calle.
-     * Z = anchura de la calle.
-     */
-
-    const dx =
-      worldX;
-
-    const dz =
-      worldZ;
-
-    const cos =
-      Math.cos(
-        cameraAngle
-      );
-
-    const sin =
-      Math.sin(
-        cameraAngle
-      );
-
-    const side =
-      dx * cos -
-      dz * sin;
-
-    const depth =
-      dx * sin +
-      dz * cos;
-
-    if (
-      depth <= 0.25
-    ) {
-      return {
-        visible: false,
-        behind: true,
-        depth,
-        x: width / 2,
-        y: height / 2,
-        scale: 0
-      };
-    }
-
-    const focal =
-      width /
-      (
-        2 *
-        Math.tan(
-          FOV / 2
-        )
-      );
-
-    const screenX =
-      width / 2 +
-      (
-        side /
-        depth
-      ) *
-        focal;
-
-    const screenY =
-      height * HORIZON_Y -
-      (
-        (
-          worldY -
-          PLAYER_HEIGHT *
-            0.45
-        ) /
-        depth
-      ) *
-        focal;
-
-    return {
-      visible:
-        screenX >
-          -width * 0.15 &&
-        screenX <
-          width * 1.15 &&
-        depth <
-          MAX_DISTANCE,
-
-      behind: false,
-
-      depth,
-
-      x: screenX,
-
-      y: screenY,
-
-      scale:
-        focal /
-        depth
-    };
-  }
-
-  /* =======================================================
-     CIELO Y CALLE
-     ======================================================= */
-
-  function drawEnvironment() {
-    const horizon =
-      height * 0.47;
-
-    /*
-     * Cielo
-     */
-
-    const sky =
-      ctx.createLinearGradient(
-        0,
-        0,
-        0,
-        horizon
-      );
-
-    sky.addColorStop(
-      0,
-      "#53687d"
-    );
-
-    sky.addColorStop(
-      1,
-      "#c4bba9"
-    );
-
-    ctx.fillStyle =
-      sky;
-
-    ctx.fillRect(
-      0,
-      0,
-      width,
-      horizon
-    );
-
-    /*
-     * Suelo
-     */
-
-    const ground =
-      ctx.createLinearGradient(
-        0,
-        horizon,
-        0,
-        height
-      );
-
-    ground.addColorStop(
-      0,
-      "#555555"
-    );
-
-    ground.addColorStop(
-      1,
-      "#1d1d1d"
-    );
-
-    ctx.fillStyle =
-      ground;
-
-    ctx.fillRect(
-      0,
-      horizon,
-      width,
-      height -
-        horizon
-    );
-
-    /*
-     * CALLE HORIZONTAL
-     */
-
-    const roadLeftFar =
-      projectPoint(
-        -70,
-        -8.5,
-        0
-      );
-
-    const roadRightFar =
-      projectPoint(
-        70,
-        -8.5,
-        0
-      );
-
-    const roadRightNear =
-      projectPoint(
-        70,
-        8.5,
-        0
-      );
-
-    const roadLeftNear =
-      projectPoint(
-        -70,
-        8.5,
-        0
-      );
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-      roadLeftFar.x,
-      roadLeftFar.y
-    );
-
-    ctx.lineTo(
-      roadRightFar.x,
-      roadRightFar.y
-    );
-
-    ctx.lineTo(
-      roadRightNear.x,
-      roadRightNear.y
-    );
-
-    ctx.lineTo(
-      roadLeftNear.x,
-      roadLeftNear.y
-    );
-
-    ctx.closePath();
-
-    ctx.fillStyle =
-      "#494949";
-
-    ctx.fill();
-
-    /*
-     * Aceras.
-     */
-
-    for (
-      const side of [-1, 1]
-    ) {
-      const zOuter =
-        side * 15;
-
-      const zInner =
-        side * 8.5;
-
-      const a =
-        projectPoint(
-          -70,
-          zOuter,
-          0
-        );
-
-      const b =
-        projectPoint(
-          70,
-          zOuter,
-          0
-        );
-
-      const c =
-        projectPoint(
-          70,
-          zInner,
-          0
-        );
-
-      const d =
-        projectPoint(
-          -70,
-          zInner,
-          0
-        );
-
-      ctx.beginPath();
-
-      ctx.moveTo(
-        a.x,
-        a.y
-      );
-
-      ctx.lineTo(
-        b.x,
-        b.y
-      );
-
-      ctx.lineTo(
-        c.x,
-        c.y
-      );
-
-      ctx.lineTo(
-        d.x,
-        d.y
-      );
-
-      ctx.closePath();
-
-      ctx.fillStyle =
-        "#3b3b3b";
-
-      ctx.fill();
-    }
-
-    /*
-     * Línea central.
-     */
-
-    for (
-      let x = -70;
-      x < 70;
-      x += 9
-    ) {
-      const a =
-        projectPoint(
-          x,
-          0,
-          0.04
-        );
-
-      const b =
-        projectPoint(
-          x + 4.5,
-          0,
-          0.04
-        );
-
-      if (
-        a.depth <= 0 ||
-        b.depth <= 0
-      ) {
+      if (r1 < -1.35 || r0 > 1.35) {
         continue;
       }
 
-      ctx.strokeStyle =
-        "rgba(240,240,240,.78)";
+      const x0 = width / 2 + Math.tan(clamp(r0, -1.4, 1.4)) * focal;
+      const x1 = width / 2 + Math.tan(clamp(r1, -1.4, 1.4)) * focal;
+      const top = hy - Math.tan(b.elev) * focal;
+      const bw = x1 - x0;
+      const bh = hy - top;
 
-      ctx.lineWidth =
-        3;
+      ctx.fillStyle = b.color;
+      ctx.fillRect(x0, top, bw, bh + 2);
 
-      ctx.beginPath();
+      if (b.antenna) {
+        ctx.fillRect(x0 + bw * 0.48, top - bh * 0.12, Math.max(1, bw * 0.04), bh * 0.12);
+      }
 
-      ctx.moveTo(
-        a.x,
-        a.y
-      );
+      ctx.fillStyle = "rgba(255,214,130,.55)";
 
-      ctx.lineTo(
-        b.x,
-        b.y
-      );
-
-      ctx.stroke();
+      for (const w of b.windows) {
+        ctx.fillRect(
+          x0 + (w[0] + w[2] * 0.25) * bw,
+          top + (w[1] + w[3] * 0.3) * bh,
+          Math.max(1, w[2] * bw * 0.5),
+          Math.max(1, w[3] * bh * 0.4)
+        );
+      }
     }
 
-    /*
-     * Edificios al fondo.
-     */
+    // Neblina sobre el horizonte.
+    const haze = ctx.createLinearGradient(0, hy - focal * 0.12, 0, hy);
+    haze.addColorStop(0, "rgba(240,168,104,0)");
+    haze.addColorStop(1, "rgba(240,168,104,.35)");
+    ctx.fillStyle = haze;
+    ctx.fillRect(0, hy - focal * 0.12, width, focal * 0.12);
+  }
 
-    for (
-      const side of [-1, 1]
-    ) {
-      const baseZ =
-        side * 16;
+  function drawGround() {
+    const hy = height * HORIZON_Y;
 
-      for (
-        let x = -70;
-        x < 70;
-        x += 18
-      ) {
-        const heightBuilding =
-          5 +
-          (
-            Math.abs(x) %
-            12
-          ) *
-            0.12;
+    // Asfalto.
+    ctx.fillStyle = "#2d2f34";
+    ctx.fillRect(0, hy, width, height - hy);
 
-        const p1 =
-          projectPoint(
-            x,
-            baseZ,
-            0
-          );
+    // Acera del fondo + bordillo.
+    groundQuad(-140, 140, FAR_CURB_Z, FACADE_Z, "#8a857c");
+    groundQuad(-140, 140, FAR_CURB_Z - 0.25, FAR_CURB_Z, "#bdb7aa");
 
-        const p2 =
-          projectPoint(
-            x + 14,
-            baseZ,
-            0
-          );
+    // Baldosas de la acera.
+    ctx.lineWidth = 1;
 
-        const p3 =
-          projectPoint(
-            x + 14,
-            baseZ,
-            heightBuilding
-          );
+    for (let x = -60; x <= 60; x += 2) {
+      const a = project(x, 0.01, FAR_CURB_Z);
+      const b = project(x, 0.01, FACADE_Z);
 
-        const p4 =
-          projectPoint(
-            x,
-            baseZ,
-            heightBuilding
-          );
-
-        if (
-          p1.depth <= 0 &&
-          p2.depth <= 0
-        ) {
-          continue;
-        }
-
+      if (a && b && a.x > -20 && a.x < width + 20) {
+        ctx.strokeStyle = "rgba(0,0,0,.12)";
         ctx.beginPath();
-
-        ctx.moveTo(
-          p1.x,
-          p1.y
-        );
-
-        ctx.lineTo(
-          p2.x,
-          p2.y
-        );
-
-        ctx.lineTo(
-          p3.x,
-          p3.y
-        );
-
-        ctx.lineTo(
-          p4.x,
-          p4.y
-        );
-
-        ctx.closePath();
-
-        ctx.fillStyle =
-          side < 0
-            ? "#484a4d"
-            : "#55575a";
-
-        ctx.fill();
-
-        ctx.strokeStyle =
-          "rgba(0,0,0,.3)";
-
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
         ctx.stroke();
       }
+    }
+
+    // Acera cercana (donde está el jugador).
+    groundQuad(-140, 140, 0.2, NEAR_CURB_Z, "#8a857c");
+    groundQuad(-140, 140, NEAR_CURB_Z, NEAR_CURB_Z + 0.25, "#bdb7aa");
+
+    // Líneas laterales de la calzada.
+    groundQuad(-140, 140, NEAR_CURB_Z + 0.6, NEAR_CURB_Z + 0.72, "rgba(235,235,235,.55)", 0.01);
+    groundQuad(-140, 140, FAR_CURB_Z - 0.72, FAR_CURB_Z - 0.6, "rgba(235,235,235,.55)", 0.01);
+
+    // Línea central discontinua.
+    const midZ = (NEAR_CURB_Z + FAR_CURB_Z) / 2;
+
+    for (let x = -80; x < 80; x += 7) {
+      groundQuad(x, x + 3.5, midZ - 0.09, midZ + 0.09, "#e9e2c4", 0.01);
+    }
+
+    // Paso de cebra.
+    for (let z = NEAR_CURB_Z + 1; z < FAR_CURB_Z - 1; z += 1.1) {
+      groundQuad(17, 21.5, z, z + 0.55, "rgba(240,240,240,.8)", 0.01);
+    }
+  }
+
+  function drawFacades() {
+    const z = FACADE_Z;
+
+    for (const f of CITY.facades) {
+      const poly = projectPoly([
+        [f.x0, 0, z],
+        [f.x1, 0, z],
+        [f.x1, f.h, z],
+        [f.x0, f.h, z]
+      ]);
+
+      if (!polyOnScreen(poly)) {
+        continue;
+      }
+
+      fillPoly(poly, f.colors.wall, "rgba(0,0,0,.35)", 1);
+
+      // Cornisa.
+      wallQuad(f.x0, f.x1, f.h - 0.6, f.h, z, f.colors.trim);
+
+      // Escaparate de la planta baja.
+      wallQuad(f.x0 + 0.6, f.x1 - 0.6, 0.3, 2.7, z, "#26333f", f.colors.trim);
+      wallQuad(f.x0 + 1.2, f.x0 + 2.2, 0.3, 2.5, z, "#3a2a1e", f.colors.trim);
+
+      // Toldo.
+      wallQuad(f.x0 + 0.4, f.x1 - 0.4, 2.75, 3.35, z, f.awning);
+
+      // Ventanas.
+      const colW = (f.x1 - f.x0) / f.cols;
+      let index = 0;
+
+      for (let wy = 4; wy + 1.7 <= f.h - 0.9; wy += 3) {
+        for (let c = 0; c < f.cols; c++) {
+          const wx0 = f.x0 + c * colW + colW * 0.25;
+          const lit = f.lit[index % f.lit.length];
+          index++;
+
+          wallQuad(wx0, wx0 + colW * 0.5, wy, wy + 1.7, z, lit ? "#f5d67a" : "#2c3a48", f.colors.trim);
+        }
+      }
+    }
+  }
+
+  function drawLamps() {
+    const lz = FAR_CURB_Z + 0.6;
+
+    for (const lx of CITY.lamps) {
+      const base = project(lx, 0, lz);
+      const top = project(lx, 5.4, lz);
+      const head = project(lx, 5.3, lz - 1.2);
+
+      if (!base || !top || !head || base.x < -60 || base.x > width + 60) {
+        continue;
+      }
+
+      const s = focal / base.rz;
+
+      ctx.strokeStyle = "#1f2327";
+      ctx.lineCap = "round";
+      ctx.lineWidth = Math.max(1.5, 0.14 * s);
+      ctx.beginPath();
+      ctx.moveTo(base.x, base.y);
+      ctx.lineTo(top.x, top.y);
+      ctx.lineTo(head.x, head.y);
+      ctx.stroke();
+
+      const r = Math.max(3, 0.35 * s);
+      const glow = ctx.createRadialGradient(head.x, head.y, 0, head.x, head.y, r * 3);
+      glow.addColorStop(0, "rgba(255,240,190,.9)");
+      glow.addColorStop(1, "rgba(255,220,150,0)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(head.x - r * 3, head.y - r * 3, r * 6, r * 6);
     }
   }
 
@@ -2741,1983 +2449,1061 @@ function initializeAntitronksGame() {
      CAJAS 3D
      ======================================================= */
 
-  function drawBox(
-    box
-  ) {
-    const projection =
-      projectPoint(
-        box.x,
-        box.z,
-        box.h * 0.5
-      );
+  function worldLine(a, b, color, lw) {
+    const p = project(a[0], a[1], a[2]);
+    const q = project(b[0], b[1], b[2]);
 
-    if (
-      !projection.visible
-    ) {
+    if (!p || !q) {
       return;
     }
 
-    const focal =
-      width /
-      (
-        2 *
-        Math.tan(
-          FOV / 2
-        )
-      );
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lw;
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    ctx.lineTo(q.x, q.y);
+    ctx.stroke();
+  }
 
-    const scale =
-      focal /
-      projection.depth;
+  function drawBox(b) {
+    const st = BOX_STYLES[b.style];
+    const x0 = b.x - b.w / 2;
+    const x1 = b.x + b.w / 2;
+    const z0 = b.z - b.d / 2;
+    const z1 = b.z + b.d / 2;
+    const h = b.h;
 
-    const boxWidth =
-      box.w *
-      scale;
+    b.faces = [];
 
-    const boxHeight =
-      box.h *
-      scale;
+    const front = toCam(b.x, h / 2, z0);
+    b.depth = front.rz;
 
-    const x =
-      projection.x;
-
-    const y =
-      projection.y;
-
-    if (
-      x <
-        -boxWidth * 2 ||
-      x >
-        width +
-          boxWidth * 2
-    ) {
+    if (front.rz < NEAR) {
       return;
     }
+
+    const s = focal / front.rz;
+    const edge = Math.max(1, s * 0.025);
+
+    const faces = [];
+
+    // Caras laterales: solo la que mira hacia el jugador.
+    if (x0 > 0) {
+      faces.push({ pts: [[x0, 0, z1], [x0, 0, z0], [x0, h, z0], [x0, h, z1]], color: st.side });
+    }
+
+    if (x1 < 0) {
+      faces.push({ pts: [[x1, 0, z0], [x1, 0, z1], [x1, h, z1], [x1, h, z0]], color: st.side });
+    }
+
+    faces.push({ pts: [[x0, h, z0], [x1, h, z0], [x1, h, z1], [x0, h, z1]], color: st.top });
+    faces.push({ pts: [[x0, 0, z0], [x1, 0, z0], [x1, h, z0], [x0, h, z0]], color: st.front });
+
+    // Sombra en el suelo.
+    fillPoly(
+      projectPoly([
+        [x0 - 0.15, 0.005, z0 - 0.1],
+        [x1 + 0.15, 0.005, z0 - 0.1],
+        [x1 + 0.15, 0.005, z1 + 0.1],
+        [x0 - 0.15, 0.005, z1 + 0.1]
+      ]),
+      "rgba(0,0,0,.35)"
+    );
+
+    for (const face of faces) {
+      const poly = projectPoly(face.pts);
+
+      if (poly) {
+        fillPoly(poly, face.color, st.line, edge);
+        b.faces.push(poly);
+      }
+    }
+
+    // Detalles de la cara frontal: marco, tablones y refuerzo en X.
+    const zf = z0 - 0.005;
+    const m = Math.min(b.w, h) * 0.1;
+    const lw = Math.max(1, s * 0.03);
+
+    worldLine([x0 + m, m, zf], [x1 - m, m, zf], st.line, lw);
+    worldLine([x0 + m, h - m, zf], [x1 - m, h - m, zf], st.line, lw);
+    worldLine([x0 + m, m, zf], [x0 + m, h - m, zf], st.line, lw);
+    worldLine([x1 - m, m, zf], [x1 - m, h - m, zf], st.line, lw);
+    worldLine([x0 + m, m, zf], [x1 - m, h - m, zf], st.line, lw);
+
+    for (let i = 1; i < 3; i++) {
+      const yy = (h * i) / 3;
+      worldLine([x0 + m, yy, zf], [x1 - m, yy, zf], "rgba(0,0,0,.25)", Math.max(1, lw * 0.6));
+    }
+  }
+
+  /* =======================================================
+     PERSONAS
+     ======================================================= */
+
+  function getRise(t) {
+    if (t.state === "rising") {
+      return easeOut(t.stateTime / RISE_TIME);
+    }
+
+    if (t.state === "hiding") {
+      return 1 - easeOut(t.stateTime / HIDE_TIME);
+    }
+
+    return 1;
+  }
+
+  function drawEnemyFigure(t, u) {
+    const jacket = "#3a4232";
+
+    // Piernas.
+    ctx.fillStyle = "#2a2f25";
+    roundRect(-u * 0.14, -u * 0.49, u * 0.12, u * 0.47, u * 0.03);
+    ctx.fill();
+    roundRect(u * 0.02, -u * 0.49, u * 0.12, u * 0.47, u * 0.03);
+    ctx.fill();
+
+    // Botas.
+    ctx.fillStyle = "#111";
+    ctx.fillRect(-u * 0.16, -u * 0.05, u * 0.15, u * 0.05);
+    ctx.fillRect(u * 0.01, -u * 0.05, u * 0.15, u * 0.05);
+
+    // Torso.
+    ctx.fillStyle = jacket;
+    roundRect(-u * 0.18, -u * 0.83, u * 0.36, u * 0.37, u * 0.05);
+    ctx.fill();
+
+    // Chaleco + bolsillos.
+    ctx.fillStyle = "#23281f";
+    ctx.fillRect(-u * 0.13, -u * 0.8, u * 0.26, u * 0.26);
+    ctx.fillStyle = "#4a5240";
+    ctx.fillRect(-u * 0.11, -u * 0.64, u * 0.06, u * 0.07);
+    ctx.fillRect(-u * 0.03, -u * 0.64, u * 0.06, u * 0.07);
+    ctx.fillRect(u * 0.05, -u * 0.64, u * 0.06, u * 0.07);
+
+    // Cinturón.
+    ctx.fillStyle = "#151515";
+    ctx.fillRect(-u * 0.18, -u * 0.5, u * 0.36, u * 0.035);
+
+    // Brazos sujetando el fusil.
+    ctx.strokeStyle = jacket;
+    ctx.lineCap = "round";
+    ctx.lineWidth = u * 0.08;
+    ctx.beginPath();
+    ctx.moveTo(-u * 0.17, -u * 0.79);
+    ctx.lineTo(-u * 0.08, -u * 0.66);
+    ctx.moveTo(u * 0.17, -u * 0.79);
+    ctx.lineTo(u * 0.12, -u * 0.7);
+    ctx.stroke();
+
+    // Fusil apuntando al jugador.
+    ctx.save();
+    ctx.translate(u * 0.04, -u * 0.7);
+    ctx.rotate(-0.35);
+    ctx.fillStyle = "#141414";
+    ctx.fillRect(-u * 0.14, -u * 0.035, u * 0.28, u * 0.07);
+    ctx.fillRect(u * 0.02, -u * 0.08, u * 0.05, u * 0.05);
+    ctx.restore();
+
+    ctx.fillStyle = "#0a0a0a";
+    ctx.beginPath();
+    ctx.arc(-u * 0.09, -u * 0.655, u * 0.04, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = "#333";
+    ctx.beginPath();
+    ctx.arc(-u * 0.09, -u * 0.655, u * 0.018, 0, TAU);
+    ctx.fill();
+
+    // Guantes.
+    ctx.fillStyle = "#1a1a1a";
+    ctx.beginPath();
+    ctx.arc(-u * 0.07, -u * 0.66, u * 0.035, 0, TAU);
+    ctx.arc(u * 0.12, -u * 0.71, u * 0.035, 0, TAU);
+    ctx.fill();
+
+    // Aviso: está a punto de disparar (brillo rojo en el cañón).
+    if (t.state === "up") {
+      const left = t.reaction - t.stateTime;
+
+      if (left < 500 && Math.floor(gameTime / 80) % 2 === 0) {
+        ctx.fillStyle = "rgba(255,40,40,.9)";
+        ctx.beginPath();
+        ctx.arc(-u * 0.09, -u * 0.655, u * 0.03, 0, TAU);
+        ctx.fill();
+      }
+    }
+
+    // Fogonazo al disparar.
+    if (t.state === "firing") {
+      drawMuzzleFlash(-u * 0.09, -u * 0.655, u * 0.2);
+    }
+
+    // Cuello y cabeza con pasamontañas.
+    ctx.fillStyle = "#1b1b1b";
+    ctx.fillRect(-u * 0.04, -u * 0.86, u * 0.08, u * 0.05);
+    ctx.beginPath();
+    ctx.arc(0, -u * 0.9, u * 0.075, 0, TAU);
+    ctx.fill();
+
+    ctx.fillStyle = t.skin;
+    ctx.fillRect(-u * 0.05, -u * 0.915, u * 0.1, u * 0.025);
+    ctx.fillStyle = "#111";
+    ctx.fillRect(-u * 0.035, -u * 0.91, u * 0.015, u * 0.015);
+    ctx.fillRect(u * 0.02, -u * 0.91, u * 0.015, u * 0.015);
+
+    // Casco.
+    ctx.fillStyle = "#4b5540";
+    ctx.beginPath();
+    ctx.arc(0, -u * 0.925, u * 0.085, Math.PI, TAU);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillRect(-u * 0.095, -u * 0.93, u * 0.19, u * 0.02);
+  }
+
+  function drawCivilianFigure(t, u) {
+    // Piernas.
+    ctx.fillStyle = t.pants;
+    roundRect(-u * 0.13, -u * 0.49, u * 0.11, u * 0.47, u * 0.03);
+    ctx.fill();
+    roundRect(u * 0.02, -u * 0.49, u * 0.11, u * 0.47, u * 0.03);
+    ctx.fill();
+
+    ctx.fillStyle = "#eee";
+    ctx.fillRect(-u * 0.15, -u * 0.04, u * 0.14, u * 0.04);
+    ctx.fillRect(u * 0.01, -u * 0.04, u * 0.14, u * 0.04);
+
+    // Camiseta.
+    ctx.fillStyle = t.shirt;
+    roundRect(-u * 0.16, -u * 0.83, u * 0.32, u * 0.37, u * 0.05);
+    ctx.fill();
+
+    // Brazos arriba (se rinde).
+    ctx.strokeStyle = t.shirt;
+    ctx.lineCap = "round";
+    ctx.lineWidth = u * 0.07;
+    ctx.beginPath();
+    ctx.moveTo(-u * 0.15, -u * 0.79);
+    ctx.lineTo(-u * 0.19, -u * 0.95);
+    ctx.lineTo(-u * 0.14, -u * 1.06);
+    ctx.moveTo(u * 0.15, -u * 0.79);
+    ctx.lineTo(u * 0.19, -u * 0.95);
+    ctx.lineTo(u * 0.14, -u * 1.06);
+    ctx.stroke();
+
+    ctx.fillStyle = t.skin;
+    ctx.beginPath();
+    ctx.arc(-u * 0.14, -u * 1.08, u * 0.035, 0, TAU);
+    ctx.arc(u * 0.14, -u * 1.08, u * 0.035, 0, TAU);
+    ctx.fill();
+
+    // Cabeza.
+    ctx.fillRect(-u * 0.035, -u * 0.86, u * 0.07, u * 0.05);
+    ctx.beginPath();
+    ctx.arc(0, -u * 0.9, u * 0.075, 0, TAU);
+    ctx.fill();
+
+    ctx.fillStyle = t.hair;
+    ctx.beginPath();
+    ctx.arc(0, -u * 0.915, u * 0.078, Math.PI * 1.05, Math.PI * 1.95);
+    ctx.closePath();
+    ctx.fill();
+
+    // Cara asustada.
+    ctx.fillStyle = "#111";
+    ctx.fillRect(-u * 0.035, -u * 0.915, u * 0.015, u * 0.015);
+    ctx.fillRect(u * 0.02, -u * 0.915, u * 0.015, u * 0.015);
+    ctx.beginPath();
+    ctx.arc(0, -u * 0.87, u * 0.015, 0, TAU);
+    ctx.fill();
+  }
+
+  function drawMuzzleFlash(x, y, r) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.fillStyle = "rgba(255,190,60,.95)";
+    ctx.beginPath();
+
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * TAU;
+      const rr = i % 2 === 0 ? r : r * 0.4;
+      ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,255,230,.95)";
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.3, 0, TAU);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawPerson(t) {
+    t.hit = null;
+
+    const rise = getRise(t);
+    const h0 = PERSON_H * t.scale;
+    const baseY = -h0 * (1 - rise);
+
+    const feet = project(t.x, baseY, t.z);
+    const ground = project(t.x, 0, t.z);
+
+    if (!feet || !ground) {
+      return;
+    }
+
+    const u = h0 * (focal / feet.rz);
+
+    if (feet.x < -u || feet.x > width + u) {
+      return;
+    }
+
+    const clipY = ground.y;
 
     ctx.save();
 
-    ctx.translate(
-      x,
-      y
-    );
-
-    /*
-     * Sombra
-     */
-
-    ctx.fillStyle =
-      "rgba(0,0,0,.38)";
-
+    // Todo lo que esté "bajo el suelo" no se ve: así parece que
+    // el enemigo se levanta desde detrás de la caja.
     ctx.beginPath();
+    ctx.rect(0, 0, width, clipY);
+    ctx.clip();
 
-    ctx.ellipse(
-      0,
-      boxHeight *
-        0.55,
-      boxWidth *
-        0.7,
-      Math.max(
-        2,
-        boxHeight *
-          0.11
-      ),
-      0,
-      0,
-      TAU
-    );
+    ctx.translate(feet.x, feet.y);
 
-    ctx.fill();
+    if (t.state === "dying") {
+      const k = t.stateTime / DEATH_TIME;
+      ctx.rotate(t.fallDir * Math.min(1, k * 1.8) * 1.3);
+      ctx.globalAlpha = 1 - Math.max(0, (k - 0.55) / 0.45);
+    }
 
-    /*
-     * Cara derecha
-     */
+    if (t.type === "enemy") {
+      drawEnemyFigure(t, u);
+    } else {
+      drawCivilianFigure(t, u);
+    }
 
-    ctx.beginPath();
+    ctx.restore();
 
-    ctx.moveTo(
-      boxWidth *
-        0.5,
-      -boxHeight *
-        0.5
-    );
+    if (t.state === "dying") {
+      return;
+    }
 
-    ctx.lineTo(
-      boxWidth *
-        0.78,
-      -boxHeight *
-        0.38
-    );
+    // Zonas de impacto en pantalla (se usan al disparar).
+    t.hit = {
+      head: { x: feet.x, y: feet.y - u * 0.9, r: u * 0.1 },
+      body: {
+        x0: feet.x - u * 0.2,
+        x1: feet.x + u * 0.2,
+        y0: feet.y - u * 0.84,
+        y1: feet.y
+      },
+      clipY,
+      depth: feet.rz
+    };
 
-    ctx.lineTo(
-      boxWidth *
-        0.78,
-      boxHeight *
-        0.48
-    );
+    if (t.type === "enemy" && (t.state === "up" || t.state === "rising")) {
+      const left = t.state === "up" ? 1 - t.stateTime / t.reaction : 1;
 
-    ctx.lineTo(
-      boxWidth *
-        0.5,
-      boxHeight *
-        0.5
-    );
+      indicators.push({
+        x: feet.x,
+        y: feet.y - u * 1.05,
+        w: Math.max(26, u * 0.35),
+        left
+      });
+    }
+  }
 
-    ctx.closePath();
+  function drawIndicators() {
+    for (const ind of indicators) {
+      const x = ind.x - ind.w / 2;
+      const y = ind.y - 10;
 
-    ctx.fillStyle =
-      "#715033";
+      ctx.fillStyle = "rgba(0,0,0,.6)";
+      ctx.fillRect(x - 1, y - 1, ind.w + 2, 7);
 
-    ctx.fill();
+      ctx.fillStyle = ind.left > 0.5 ? "#ffd24a" : ind.left > 0.25 ? "#ff8a2a" : "#ff2d2d";
+      ctx.fillRect(x, y, ind.w * clamp(ind.left, 0, 1), 5);
+    }
+  }
 
-    /*
-     * Parte superior
-     */
+  /* =======================================================
+     OBJETOS ORDENADOS POR PROFUNDIDAD
+     ======================================================= */
 
-    ctx.beginPath();
+  function drawObjects() {
+    const items = [];
 
-    ctx.moveTo(
-      -boxWidth *
-        0.5,
-      -boxHeight *
-        0.5
-    );
+    for (const b of BOXES) {
+      items.push({ d: Math.hypot(b.x, b.z), draw: () => drawBox(b) });
+    }
 
-    ctx.lineTo(
-      -boxWidth *
-        0.2,
-      -boxHeight *
-        0.64
-    );
+    for (const t of targets) {
+      items.push({ d: Math.hypot(t.x, t.z), draw: () => drawPerson(t) });
+    }
 
-    ctx.lineTo(
-      boxWidth *
-        0.78,
-      -boxHeight *
-        0.38
-    );
+    items.sort((a, b) => b.d - a.d);
+    items.forEach((item) => item.draw());
+  }
 
-    ctx.lineTo(
-      boxWidth *
-        0.5,
-      -boxHeight *
-        0.5
-    );
+  /* =======================================================
+     QUÉ HAY BAJO EL RATÓN
+     ======================================================= */
 
-    ctx.closePath();
+  function pickAt(sx, sy) {
+    let best = null;
 
-    ctx.fillStyle =
-      "#9a7048";
+    for (const t of targets) {
+      const h = t.hit;
 
-    ctx.fill();
+      if (!h || sy > h.clipY) {
+        continue;
+      }
 
-    /*
-     * Cara frontal
-     */
+      let part = null;
 
-    ctx.beginPath();
+      if (Math.hypot(sx - h.head.x, sy - h.head.y) <= h.head.r) {
+        part = "head";
+      } else if (sx >= h.body.x0 && sx <= h.body.x1 && sy >= h.body.y0 && sy <= h.body.y1) {
+        part = "body";
+      }
 
-    ctx.rect(
-      -boxWidth *
-        0.5,
-      -boxHeight *
-        0.5,
-      boxWidth,
-      boxHeight
-    );
+      if (part && (!best || h.depth < best.depth)) {
+        best = { kind: "target", target: t, part, depth: h.depth };
+      }
+    }
 
-    ctx.fillStyle =
-      "#8a633f";
+    // Si una caja está delante, la caja para la bala.
+    for (const b of BOXES) {
+      if (!b.faces || !b.faces.length) {
+        continue;
+      }
 
-    ctx.fill();
+      if (b.faces.some((f) => pointInPoly(sx, sy, f)) && (!best || b.depth < best.depth)) {
+        best = { kind: "box", box: b, depth: b.depth };
+      }
+    }
 
-    ctx.strokeStyle =
-      "#2b1b10";
+    return best;
+  }
 
-    ctx.lineWidth =
-      Math.max(
-        1,
-        scale *
-          0.035
-      );
+  /* =======================================================
+     EFECTOS
+     ======================================================= */
 
-    ctx.stroke();
+  function spawnParticles(x, y, color, count, power) {
+    for (let i = 0; i < count; i++) {
+      particles.push({
+        x,
+        y,
+        vx: rand(-0.3, 0.3) * power,
+        vy: rand(-0.4, 0.05) * power,
+        life: 0,
+        max: rand(300, 600),
+        color,
+        size: rand(2, 4.5)
+      });
+    }
+  }
 
-    /*
-     * Tablones
-     */
+  function addFloater(x, y, text, color) {
+    floaters.push({ x, y, text, color, life: 0, max: 900 });
+  }
 
-    ctx.strokeStyle =
-      "rgba(50,28,15,.5)";
+  function updateEffects(delta) {
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.life += delta;
+      p.vy += 0.0015 * delta;
+      p.x += p.vx * delta;
+      p.y += p.vy * delta;
 
-    ctx.lineWidth =
-      Math.max(
-        1,
-        scale *
-          0.025
-      );
+      if (p.life >= p.max) {
+        particles.splice(i, 1);
+      }
+    }
 
-    for (
-      let i = 1;
-      i < 5;
-      i++
-    ) {
-      const yy =
-        -boxHeight *
-          0.5 +
-        boxHeight *
-          i /
-          5;
+    for (let i = floaters.length - 1; i >= 0; i--) {
+      const f = floaters[i];
+      f.life += delta;
+      f.y -= 0.05 * delta;
 
+      if (f.life >= f.max) {
+        floaters.splice(i, 1);
+      }
+    }
+
+    for (let i = tracers.length - 1; i >= 0; i--) {
+      tracers[i].life -= delta;
+
+      if (tracers[i].life <= 0) {
+        tracers.splice(i, 1);
+      }
+    }
+
+    recoil = Math.max(0, recoil - delta * 0.008);
+    muzzleFlash = Math.max(0, muzzleFlash - delta);
+  }
+
+  function drawEffects() {
+    for (const tr of tracers) {
+      ctx.strokeStyle = `rgba(255,230,140,${(tr.life / tr.max) * 0.9})`;
+      ctx.lineWidth = 2;
       ctx.beginPath();
-
-      ctx.moveTo(
-        -boxWidth *
-          0.47,
-        yy
-      );
-
-      ctx.lineTo(
-        boxWidth *
-          0.47,
-        yy
-      );
-
+      ctx.moveTo(tr.x0, tr.y0);
+      ctx.lineTo(tr.x1, tr.y1);
       ctx.stroke();
     }
 
-    /*
-     * Separación vertical
-     */
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-      0,
-      -boxHeight *
-        0.48
-    );
-
-    ctx.lineTo(
-      0,
-      boxHeight *
-        0.48
-    );
-
-    ctx.stroke();
-
-    /*
-     * Bandas metálicas
-     */
-
-    ctx.strokeStyle =
-      "rgba(25,25,25,.8)";
-
-    ctx.lineWidth =
-      Math.max(
-        1.5,
-        scale *
-          0.045
-      );
-
-    ctx.strokeRect(
-      -boxWidth *
-        0.46,
-      -boxHeight *
-        0.46,
-      boxWidth *
-        0.92,
-      boxHeight *
-        0.92
-    );
-
-    ctx.restore();
-  }
-
-  /* =======================================================
-     ENEMIGO / CIVIL
-     ======================================================= */
-
-  function drawPerson(
-    target,
-    projection
-  ) {
-    if (
-      !projection.visible
-    ) {
-      return;
+    for (const p of particles) {
+      ctx.globalAlpha = 1 - p.life / p.max;
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
     }
 
-    const focal =
-      width /
-      (
-        2 *
-        Math.tan(
-          FOV / 2
-        )
-      );
+    ctx.globalAlpha = 1;
 
-    const scale =
-      focal /
-      projection.depth *
-      target.scale;
+    ctx.textAlign = "center";
+    ctx.font = "900 20px system-ui, sans-serif";
 
-    const personHeight =
-      clamp(
-        4.9 * scale,
-        16,
-        height *
-          0.9
-      );
-
-    const personWidth =
-      personHeight *
-      0.34;
-
-    const x =
-      projection.x;
-
-    const y =
-      projection.y +
-      personHeight *
-        0.42;
-
-    if (
-      x <
-        -personWidth * 2 ||
-      x >
-        width +
-          personWidth * 2
-    ) {
-      return;
+    for (const f of floaters) {
+      ctx.globalAlpha = 1 - f.life / f.max;
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = "rgba(0,0,0,.8)";
+      ctx.strokeText(f.text, f.x, f.y);
+      ctx.fillStyle = f.color;
+      ctx.fillText(f.text, f.x, f.y);
     }
 
-    ctx.save();
-
-    ctx.translate(
-      x,
-      y
-    );
-
-    /*
-     * Sombra
-     */
-
-    ctx.fillStyle =
-      "rgba(0,0,0,.42)";
-
-    ctx.beginPath();
-
-    ctx.ellipse(
-      0,
-      personHeight *
-        0.53,
-      personWidth *
-        0.7,
-      personHeight *
-        0.12,
-      0,
-      0,
-      TAU
-    );
-
-    ctx.fill();
-
-    const headRadius =
-      personHeight *
-      0.105;
-
-    const headY =
-      -personHeight *
-      0.36;
-
-    const bodyTop =
-      -personHeight *
-      0.23;
-
-    const bodyBottom =
-      personHeight *
-      0.2;
-
-    /*
-     * Piernas
-     */
-
-    ctx.strokeStyle =
-      target.type ===
-      "enemy"
-        ? "#17191b"
-        : "#444";
-
-    ctx.lineWidth =
-      Math.max(
-        2,
-        personWidth *
-          0.23
-      );
-
-    ctx.lineCap =
-      "round";
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-      -personWidth *
-        0.14,
-      bodyBottom
-    );
-
-    ctx.lineTo(
-      -personWidth *
-        0.28,
-      personHeight *
-        0.48
-    );
-
-    ctx.moveTo(
-      personWidth *
-        0.14,
-      bodyBottom
-    );
-
-    ctx.lineTo(
-      personWidth *
-        0.28,
-      personHeight *
-        0.48
-    );
-
-    ctx.stroke();
-
-    /*
-     * Botas
-     */
-
-    ctx.strokeStyle =
-      "#101010";
-
-    ctx.lineWidth =
-      Math.max(
-        2,
-        personWidth *
-          0.26
-      );
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-      -personWidth *
-        0.28,
-      personHeight *
-        0.48
-    );
-
-    ctx.lineTo(
-      -personWidth *
-        0.4,
-      personHeight *
-        0.5
-    );
-
-    ctx.moveTo(
-      personWidth *
-        0.28,
-      personHeight *
-        0.48
-    );
-
-    ctx.lineTo(
-      personWidth *
-        0.4,
-      personHeight *
-        0.5
-    );
-
-    ctx.stroke();
-
-    /*
-     * Torso
-     */
-
-    ctx.fillStyle =
-      target.type ===
-      "enemy"
-        ? "#252a2e"
-        : "#6b6b6b";
-
-    ctx.strokeStyle =
-      "#101214";
-
-    ctx.lineWidth =
-      Math.max(
-        1,
-        personWidth *
-          0.055
-      );
-
-    ctx.beginPath();
-
-    ctx.roundRect(
-      -personWidth *
-        0.43,
-      bodyTop,
-      personWidth *
-        0.86,
-      bodyBottom -
-        bodyTop,
-      personWidth *
-        0.13
-    );
-
-    ctx.fill();
-
-    ctx.stroke();
-
-    /*
-     * Chaleco táctico
-     */
-
-    if (
-      target.type ===
-      "enemy"
-    ) {
-      ctx.fillStyle =
-        "#394147";
-
-      ctx.fillRect(
-        -personWidth *
-          0.31,
-        bodyTop +
-          personHeight *
-            0.035,
-        personWidth *
-          0.62,
-        personHeight *
-          0.18
-      );
-
-      ctx.strokeStyle =
-        "#16191b";
-
-      ctx.lineWidth =
-        Math.max(
-          1,
-          personWidth *
-            0.035
-        );
-
-      ctx.strokeRect(
-        -personWidth *
-          0.31,
-        bodyTop +
-          personHeight *
-            0.035,
-        personWidth *
-          0.62,
-        personHeight *
-          0.18
-      );
-
-      /*
-       * Bolsillos
-       */
-
-      ctx.fillStyle =
-        "#17191b";
-
-      ctx.fillRect(
-        -personWidth *
-          0.25,
-        bodyTop +
-          personHeight *
-            0.065,
-        personWidth *
-          0.14,
-        personHeight *
-          0.08
-      );
-
-      ctx.fillRect(
-        personWidth *
-          0.11,
-        bodyTop +
-          personHeight *
-            0.065,
-        personWidth *
-          0.14,
-        personHeight *
-          0.08
-      );
-    }
-
-    /*
-     * Brazos
-     */
-
-    ctx.strokeStyle =
-      target.type ===
-      "enemy"
-        ? "#30363a"
-        : "#686868";
-
-    ctx.lineWidth =
-      Math.max(
-        2,
-        personWidth *
-          0.18
-      );
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-      -personWidth *
-        0.34,
-      bodyTop +
-        personHeight *
-          0.04
-    );
-
-    ctx.lineTo(
-      -personWidth *
-        0.62,
-      bodyTop +
-        personHeight *
-          0.23
-    );
-
-    ctx.moveTo(
-      personWidth *
-        0.34,
-      bodyTop +
-        personHeight *
-          0.04
-    );
-
-    ctx.lineTo(
-      personWidth *
-        0.6,
-      bodyTop +
-        personHeight *
-          0.18
-    );
-
-    ctx.stroke();
-
-    /*
-     * Manos
-     */
-
-    ctx.fillStyle =
-      "#a77b5e";
-
-    ctx.beginPath();
-
-    ctx.arc(
-      -personWidth *
-        0.62,
-      bodyTop +
-        personHeight *
-          0.23,
-      Math.max(
-        2,
-        personWidth *
-          0.08
-      ),
-      0,
-      TAU
-    );
-
-    ctx.arc(
-      personWidth *
-        0.6,
-      bodyTop +
-        personHeight *
-          0.18,
-      Math.max(
-        2,
-        personWidth *
-          0.08
-      ),
-      0,
-      TAU
-    );
-
-    ctx.fill();
-
-    /*
-     * Arma enemiga
-     */
-
-    if (
-      target.type ===
-      "enemy"
-    ) {
-      drawM4(
-        personWidth,
-        personHeight
-      );
-    }
-
-    /*
-     * Cuello
-     */
-
-    ctx.fillStyle =
-      "#9d7358";
-
-    ctx.fillRect(
-      -personWidth *
-        0.11,
-      headY +
-        headRadius *
-          0.65,
-      personWidth *
-        0.22,
-      personHeight *
-        0.09
-    );
-
-    /*
-     * Cabeza
-     */
-
-    ctx.fillStyle =
-      "#a77a5e";
-
-    ctx.beginPath();
-
-    ctx.arc(
-      0,
-      headY,
-      headRadius,
-      0,
-      TAU
-    );
-
-    ctx.fill();
-
-    ctx.strokeStyle =
-      "#111";
-
-    ctx.lineWidth =
-      Math.max(
-        1,
-        headRadius *
-          0.12
-      );
-
-    ctx.stroke();
-
-    /*
-     * Casco + máscara
-     */
-
-    if (
-      target.type ===
-      "enemy"
-    ) {
-      ctx.fillStyle =
-        "#252b2f";
-
-      ctx.beginPath();
-
-      ctx.arc(
-        0,
-        headY -
-          headRadius *
-            0.1,
-        headRadius *
-          1.08,
-        Math.PI,
-        TAU
-      );
-
-      ctx.lineTo(
-        headRadius *
-          0.95,
-        headY
-      );
-
-      ctx.lineTo(
-        -headRadius *
-          0.95,
-        headY
-      );
-
-      ctx.closePath();
-
-      ctx.fill();
-
-      ctx.fillStyle =
-        "#202426";
-
-      ctx.fillRect(
-        -headRadius *
-          0.86,
-        headY -
-          headRadius *
-            0.02,
-        headRadius *
-          1.72,
-        headRadius *
-          0.55
-      );
-
-      /*
-       * Visor
-       */
-
-      ctx.fillStyle =
-        "#8c959a";
-
-      ctx.fillRect(
-        -headRadius *
-          0.56,
-        headY +
-          headRadius *
-            0.05,
-        headRadius *
-          1.12,
-        Math.max(
-          1,
-          headRadius *
-            0.13
-        )
-      );
-    }
-
-    ctx.restore();
-  }
-
-  /* =======================================================
-     M4 DETALLADA
-     ======================================================= */
-
-  function drawM4(
-    w,
-    h
-  ) {
-    const length =
-      w * 1.15;
-
-    const y =
-      -h * 0.02;
-
-    ctx.save();
-
-    ctx.translate(
-      w * 0.15,
-      y
-    );
-
-    ctx.rotate(
-      -0.18
-    );
-
-    /*
-     * Cañón
-     */
-
-    ctx.strokeStyle =
-      "#151718";
-
-    ctx.lineWidth =
-      Math.max(
-        2,
-        w * 0.075
-      );
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-      length * 0.1,
-      0
-    );
-
-    ctx.lineTo(
-      length * 0.72,
-      0
-    );
-
-    ctx.stroke();
-
-    /*
-     * Flash hider
-     */
-
-    ctx.lineWidth =
-      Math.max(
-        1,
-        w * 0.1
-      );
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-      length * 0.69,
-      0
-    );
-
-    ctx.lineTo(
-      length * 0.82,
-      0
-    );
-
-    ctx.stroke();
-
-    /*
-     * Receiver
-     */
-
-    ctx.fillStyle =
-      "#1b1e20";
-
-    ctx.strokeStyle =
-      "#080909";
-
-    ctx.lineWidth =
-      Math.max(
-        1,
-        w * 0.035
-      );
-
-    ctx.beginPath();
-
-    ctx.roundRect(
-      -length *
-        0.12,
-      -w * 0.1,
-      length *
-        0.42,
-      w * 0.2,
-      w * 0.04
-    );
-
-    ctx.fill();
-
-    ctx.stroke();
-
-    /*
-     * Cargador
-     */
-
-    ctx.fillStyle =
-      "#24282a";
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-      length * 0.04,
-      w * 0.1
-    );
-
-    ctx.lineTo(
-      length * 0.17,
-      w * 0.1
-    );
-
-    ctx.lineTo(
-      length * 0.22,
-      w * 0.38
-    );
-
-    ctx.lineTo(
-      length * 0.09,
-      w * 0.4
-    );
-
-    ctx.closePath();
-
-    ctx.fill();
-
-    /*
-     * Empuñadura
-     */
-
-    ctx.fillStyle =
-      "#121415";
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-      -length *
-        0.02,
-      w * 0.08
-    );
-
-    ctx.lineTo(
-      length * 0.1,
-      w * 0.08
-    );
-
-    ctx.lineTo(
-      length * 0.03,
-      w * 0.34
-    );
-
-    ctx.lineTo(
-      -length *
-        0.08,
-      w * 0.3
-    );
-
-    ctx.closePath();
-
-    ctx.fill();
-
-    /*
-     * Culata
-     */
-
-    ctx.strokeStyle =
-      "#17191a";
-
-    ctx.lineWidth =
-      Math.max(
-        2,
-        w * 0.12
-      );
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-      -length *
-        0.13,
-      0
-    );
-
-    ctx.lineTo(
-      -length *
-        0.42,
-      -w * 0.05
-    );
-
-    ctx.lineTo(
-      -length *
-        0.55,
-      -w * 0.17
-    );
-
-    ctx.stroke();
-
-    /*
-     * Mira
-     */
-
-    ctx.lineWidth =
-      Math.max(
-        1,
-        w * 0.055
-      );
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-      length * 0.02,
-      -w * 0.1
-    );
-
-    ctx.lineTo(
-      length * 0.07,
-      -w * 0.24
-    );
-
-    ctx.lineTo(
-      length * 0.16,
-      -w * 0.24
-    );
-
-    ctx.stroke();
-
-    ctx.restore();
-  }
-
-  /* =======================================================
-     PROYECCIÓN DE TARGET
-     ======================================================= */
-
-  function getTargetProjection(
-    target
-  ) {
-    return projectPoint(
-      target.x,
-      target.z,
-      1.55 *
-        target.scale
-    );
-  }
-
-  /* =======================================================
-     TARGETS EN PANTALLA
-     ======================================================= */
-
-  function drawTargets() {
-    const sorted =
-      [...targets].sort(
-        (a, b) => {
-          const pa =
-            getTargetProjection(
-              a
-            );
-
-          const pb =
-            getTargetProjection(
-              b
-            );
-
-          return (
-            pb.depth -
-            pa.depth
-          );
-        }
-      );
-
-    sorted.forEach(
-      (target) => {
-        const projection =
-          getTargetProjection(
-            target
-          );
-
-        if (
-          projection.visible
-        ) {
-          drawPerson(
-            target,
-            projection
-          );
-        }
-      }
-    );
+    ctx.globalAlpha = 1;
   }
 
   /* =======================================================
      FLECHAS DE ENEMIGOS FUERA DE PANTALLA
      ======================================================= */
 
-  function updateOffscreenArrows() {
-    if (
-      !arrowContainer
-    ) {
-      return;
-    }
+  function drawOffscreenArrows() {
+    const pulse = 0.6 + 0.4 * Math.sin(gameTime * 0.012);
+    const count = { left: 0, right: 0 };
 
-    arrowContainer.innerHTML =
-      "";
-
-    targets.forEach(
-      (target) => {
-        const projection =
-          getTargetProjection(
-            target
-          );
-
-        const relative =
-          normalizeAngle(
-            Math.atan2(
-              target.x,
-              target.z
-            ) -
-              cameraAngle
-          );
-
-        const offscreen =
-          projection.depth <=
-            0 ||
-          Math.abs(
-            relative
-          ) >
-            FOV * 0.49 ||
-          projection.x < 0 ||
-          projection.x > width;
-
-        if (!offscreen) {
-          return;
-        }
-
-        const arrow =
-          document.createElement(
-            "div"
-          );
-
-        arrow.className =
-          "antitronks-offscreen-arrow";
-
-        const right =
-          relative > 0;
-
-        arrow.style.left =
-          right
-            ? `${width - 30}px`
-            : "30px";
-
-        arrow.style.top =
-          `${height / 2}px`;
-
-        arrow.style.transform =
-          `translate(-50%, -50%) rotate(${
-            right
-              ? 90
-              : -90
-          }deg)`;
-
-        arrowContainer.appendChild(
-          arrow
-        );
+    for (const t of targets) {
+      if (t.type !== "enemy" || t.state === "dying" || t.state === "hiding") {
+        continue;
       }
-    );
+
+      const c = toCam(t.x, 1.2, t.z);
+      let side = 0;
+
+      if (c.rz < NEAR) {
+        side = c.rx < 0 ? -1 : 1;
+      } else {
+        const sx = width / 2 + (c.rx / c.rz) * focal;
+
+        if (sx < 0) {
+          side = -1;
+        } else if (sx > width) {
+          side = 1;
+        }
+      }
+
+      if (!side) {
+        continue;
+      }
+
+      const key = side < 0 ? "left" : "right";
+      const x = side < 0 ? 26 : width - 26;
+      const y = height * 0.45 + count[key] * 40;
+      count[key]++;
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(side, 1);
+      ctx.globalAlpha = pulse;
+      ctx.fillStyle = "#ff3b30";
+      ctx.strokeStyle = "rgba(0,0,0,.8)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-14, 0);
+      ctx.lineTo(6, -14);
+      ctx.lineTo(6, 14);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 
   /* =======================================================
-     ARMA DEL JUGADOR
+     ARMA DEL JUGADOR (apunta hacia el ratón)
      ======================================================= */
 
+  function getWeaponPose() {
+    const s = clamp(height / 700, 0.6, 1.4);
+    const px = width * 0.64;
+    const py = height + 40 * s;
+    const tx = mouseInside ? mouseX : width / 2;
+    const ty = mouseInside ? mouseY : height * HORIZON_Y;
+
+    let ang = Math.atan2(ty - py, tx - px);
+    ang = clamp(ang, -Math.PI * 0.92, -Math.PI * 0.08);
+
+    return { s, px, py, ang };
+  }
+
+  function getMuzzle() {
+    const w = getWeaponPose();
+    const len = 265 * w.s - recoil * 18 * w.s;
+
+    return {
+      x: w.px + Math.cos(w.ang) * len,
+      y: w.py + Math.sin(w.ang) * len
+    };
+  }
+
   function drawPlayerWeapon() {
-    const scale =
-      clamp(
-        width / 1100,
-        0.7,
-        1.2
-      );
-
-    /*
-     * El arma se ancla siempre al centro
-     * horizontal de la pantalla y apunta
-     * hacia arriba, en línea recta hacia
-     * la mira (HORIZON_Y). Antes el
-     * cañón se dibujaba en diagonal hacia
-     * la derecha, como si el jugador
-     * sujetara el arma de lado; ahora
-     * queda simétrica y orientada hacia
-     * delante, coherente con hacia dónde
-     * apunta realmente el disparo.
-     */
-
-    const baseY =
-      height * 0.97;
+    const { s, px, py, ang } = getWeaponPose();
 
     ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(ang + Math.PI / 2);
+    ctx.translate(0, recoil * 18 * s);
 
-    ctx.translate(
-      width * 0.5,
-      baseY
-    );
-
-    /*
-     * Antebrazos de apoyo
-     */
-
-    ctx.strokeStyle =
-      "#111315";
-
-    ctx.lineWidth =
-      15 * scale;
-
-    ctx.lineCap =
-      "round";
-
+    // Brazos.
+    ctx.strokeStyle = "#2b3326";
+    ctx.lineCap = "round";
+    ctx.lineWidth = 34 * s;
     ctx.beginPath();
-
-    ctx.moveTo(
-      -32 * scale,
-      6 * scale
-    );
-
-    ctx.lineTo(
-      -10 * scale,
-      -44 * scale
-    );
-
+    ctx.moveTo(-160 * s, 110 * s);
+    ctx.lineTo(-10 * s, -165 * s);
+    ctx.moveTo(130 * s, 120 * s);
+    ctx.lineTo(10 * s, -60 * s);
     ctx.stroke();
 
+    // Culata.
+    ctx.fillStyle = "#1d2023";
+    ctx.fillRect(-17 * s, -25 * s, 34 * s, 70 * s);
+
+    // Cuerpo.
+    ctx.fillStyle = "#2a2e31";
+    ctx.strokeStyle = "#0d0f10";
+    ctx.lineWidth = 2 * s;
+    ctx.fillRect(-20 * s, -135 * s, 40 * s, 115 * s);
+    ctx.strokeRect(-20 * s, -135 * s, 40 * s, 115 * s);
+
+    // Guardamanos.
+    ctx.fillStyle = "#23272a";
+    ctx.fillRect(-14 * s, -212 * s, 28 * s, 80 * s);
+
+    ctx.strokeStyle = "#111";
+    ctx.lineWidth = 2 * s;
+
+    for (let i = 0; i < 4; i++) {
+      const y = -200 * s + i * 17 * s;
+      ctx.beginPath();
+      ctx.moveTo(-9 * s, y);
+      ctx.lineTo(9 * s, y);
+      ctx.stroke();
+    }
+
+    // Cañón.
+    ctx.fillStyle = "#121416";
+    ctx.fillRect(-5 * s, -265 * s, 10 * s, 56 * s);
+
+    // Mira óptica.
+    ctx.fillStyle = "#111";
+    ctx.fillRect(-11 * s, -160 * s, 22 * s, 42 * s);
+    ctx.fillStyle = "#4aa3ff";
+    ctx.fillRect(-6 * s, -156 * s, 12 * s, 6 * s);
+
+    // Guantes.
+    ctx.fillStyle = "#1a1a1a";
     ctx.beginPath();
-
-    ctx.moveTo(
-      30 * scale,
-      10 * scale
-    );
-
-    ctx.lineTo(
-      11 * scale,
-      -72 * scale
-    );
-
-    ctx.stroke();
-
-    /*
-     * Culata
-     */
-
-    ctx.fillStyle =
-      "#1c2022";
-
-    ctx.fillRect(
-      -13 * scale,
-      -10 * scale,
-      26 * scale,
-      40 * scale
-    );
-
-    /*
-     * Cuerpo del arma (vertical y
-     * centrado, apuntando hacia la mira)
-     */
-
-    ctx.fillStyle =
-      "#272b2e";
-
-    ctx.fillRect(
-      -15 * scale,
-      -128 * scale,
-      30 * scale,
-      90 * scale
-    );
-
-    ctx.strokeStyle =
-      "#0d0f10";
-
-    ctx.lineWidth =
-      Math.max(
-        1,
-        2 * scale
-      );
-
-    ctx.strokeRect(
-      -15 * scale,
-      -128 * scale,
-      30 * scale,
-      90 * scale
-    );
-
-    /*
-     * Cargador
-     */
-
-    ctx.fillStyle =
-      "#1c2022";
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-      -3 * scale,
-      -44 * scale
-    );
-
-    ctx.lineTo(
-      11 * scale,
-      -44 * scale
-    );
-
-    ctx.lineTo(
-      17 * scale,
-      6 * scale
-    );
-
-    ctx.lineTo(
-      3 * scale,
-      8 * scale
-    );
-
-    ctx.closePath();
-
+    ctx.arc(-10 * s, -170 * s, 19 * s, 0, TAU);
+    ctx.arc(10 * s, -62 * s, 18 * s, 0, TAU);
     ctx.fill();
 
-    /*
-     * Cañón
-     */
-
-    ctx.fillStyle =
-      "#151719";
-
-    ctx.fillRect(
-      -6 * scale,
-      -170 * scale,
-      12 * scale,
-      44 * scale
-    );
-
-    /*
-     * Mira del arma, alineada con la
-     * mira central de la pantalla
-     */
-
-    ctx.strokeStyle =
-      "#0d0f10";
-
-    ctx.lineWidth =
-      4 * scale;
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-      0,
-      -128 * scale
-    );
-
-    ctx.lineTo(
-      0,
-      -150 * scale
-    );
-
-    ctx.stroke();
-
-    /*
-     * Manos
-     */
-
-    ctx.fillStyle =
-      "#a9795e";
-
-    ctx.beginPath();
-
-    ctx.arc(
-      -10 * scale,
-      -44 * scale,
-      19 * scale,
-      0,
-      TAU
-    );
-
-    ctx.arc(
-      11 * scale,
-      -72 * scale,
-      16 * scale,
-      0,
-      TAU
-    );
-
-    ctx.fill();
+    if (muzzleFlash > 0) {
+      drawMuzzleFlash(0, -275 * s, 34 * s);
+    }
 
     ctx.restore();
   }
 
   /* =======================================================
-     DISPARAR
+     MIRA = RATÓN
      ======================================================= */
 
-  function shoot() {
+  function drawCrosshair() {
+    if (!running || !mouseInside) {
+      return;
+    }
+
+    const hover = pickAt(mouseX, mouseY);
+    let color = "#ffffff";
+
+    if (hover && hover.kind === "target") {
+      color = hover.target.type === "enemy" ? "#ff3b30" : "#ffd24a";
+    }
+
+    ctx.save();
+    ctx.translate(mouseX, mouseY);
+
+    for (const pass of [0, 1]) {
+      ctx.strokeStyle = pass === 0 ? "rgba(0,0,0,.85)" : color;
+      ctx.lineWidth = pass === 0 ? 4 : 2;
+
+      ctx.beginPath();
+      ctx.arc(0, 0, 12, 0, TAU);
+      ctx.moveTo(0, -20);
+      ctx.lineTo(0, -6);
+      ctx.moveTo(0, 6);
+      ctx.lineTo(0, 20);
+      ctx.moveTo(-20, 0);
+      ctx.lineTo(-6, 0);
+      ctx.moveTo(6, 0);
+      ctx.lineTo(20, 0);
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(0, 0, 1.8, 0, TAU);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawEdgeHints() {
+    if (!running || !mouseInside) {
+      return;
+    }
+
+    const zone = width * EDGE_ZONE;
+    let side = 0;
+
+    if (mouseX < zone) {
+      side = -1;
+    } else if (mouseX > width - zone) {
+      side = 1;
+    }
+
+    if (!side) {
+      return;
+    }
+
+    const x0 = side < 0 ? 0 : width - zone;
+    const g = ctx.createLinearGradient(side < 0 ? 0 : width, 0, side < 0 ? zone : width - zone, 0);
+    g.addColorStop(0, "rgba(255,255,255,.18)");
+    g.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(x0, 0, zone, height);
+  }
+
+  /* =======================================================
+     GENERAR ENEMIGOS (SIEMPRE DETRÁS DE UNA CAJA)
+     ======================================================= */
+
+  function clearTargets() {
+    targets = [];
+    particles = [];
+    floaters = [];
+    tracers = [];
+    indicators = [];
+  }
+
+  function aliveCount() {
+    return targets.filter((t) => t.state !== "dying").length;
+  }
+
+  function spawnTarget() {
+    if (!running || aliveCount() >= getMaxTargets()) {
+      return;
+    }
+
+    const free = BOXES.filter((b) => !targets.some((t) => t.box === b));
+
+    if (!free.length) {
+      return;
+    }
+
+    const box = pick(free);
+    const type = Math.random() < 0.84 ? "enemy" : "civilian";
+    const spread = Math.max(0, box.w / 2 - 0.45);
+
+    targets.push({
+      box,
+      type,
+      x: box.x + rand(-spread, spread),
+      z: box.z + box.d / 2 + 0.35,
+      scale: rand(0.97, 1.04),
+      state: "rising",
+      stateTime: 0,
+      reaction: type === "enemy" ? getReactionTime() * rand(0.85, 1.15) : rand(1700, 2500),
+      fallDir: 1,
+      shirt: pick(SHIRTS),
+      pants: pick(PANTS),
+      skin: pick(SKINS),
+      hair: pick(HAIRS),
+      hit: null
+    });
+  }
+
+  function setState(t, state) {
+    t.state = state;
+    t.stateTime = 0;
+  }
+
+  /* =======================================================
+     DISPARAR (donde está el ratón)
+     ======================================================= */
+
+  function shootAt(sx, sy) {
     if (!running) {
       return;
     }
 
-    let selected =
-      null;
+    recoil = 1;
+    muzzleFlash = 60;
 
-    let selectedDistance =
-      Infinity;
+    const m = getMuzzle();
+    tracers.push({ x0: m.x, y0: m.y, x1: sx, y1: sy, life: 80, max: 80 });
 
-    const centerX =
-      width / 2;
+    const hit = pickAt(sx, sy);
 
-    const centerY =
-      height * HORIZON_Y;
-
-    for (
-      const target of targets
-    ) {
-      const projection =
-        getTargetProjection(
-          target
-        );
-
-      if (
-        !projection.visible
-      ) {
-        continue;
-      }
-
-      const dx =
-        projection.x -
-        centerX;
-
-      const dy =
-        projection.y -
-        centerY;
-
-      const distance =
-        Math.hypot(
-          dx,
-          dy
-        );
-
-      const radius =
-        clamp(
-          55 *
-            (
-              projection.scale ||
-              1
-            ),
-          24,
-          85
-        );
-
-      if (
-        distance <=
-          radius &&
-        distance <
-          selectedDistance
-      ) {
-        selected =
-          target;
-
-        selectedDistance =
-          distance;
-      }
-    }
-
-    if (!selected) {
-      showMessage(
-        "FALLO",
-        250
-      );
-
+    if (!hit) {
+      spawnParticles(sx, sy, "#a39d92", 6, 0.6);
       return;
     }
 
-    const index =
-      targets.indexOf(
-        selected
-      );
-
-    if (
-      index !== -1
-    ) {
-      targets.splice(
-        index,
-        1
-      );
+    if (hit.kind === "box") {
+      spawnParticles(sx, sy, "#d2a46a", 9, 0.8);
+      return;
     }
 
-    if (
-      selected.type ===
-      "enemy"
-    ) {
-      score += 1;
+    const t = hit.target;
+    setState(t, "dying");
+    t.fallDir = Math.random() < 0.5 ? -1 : 1;
+    t.hit = null;
 
+    spawnParticles(sx, sy, "#b3121b", 16, 1.1);
+
+    if (t.type === "enemy") {
+      const headshot = hit.part === "head";
+      score += headshot ? 2 : 1;
       updateHud();
-
-      showMessage(
-        "ENEMIGO ELIMINADO",
-        350
-      );
+      addFloater(sx, sy - 14, headshot ? "¡A LA CABEZA! +2" : "+1", headshot ? "#ffd24a" : "#ffffff");
+      showMessage(headshot ? "¡DISPARO A LA CABEZA!" : "ENEMIGO ELIMINADO", 450);
     } else {
-      damagePlayer(
-        "¡HAS DISPARADO A UN CIVIL!"
-      );
+      addFloater(sx, sy - 14, "¡CIVIL!", "#ff5252");
+      damagePlayer("¡HAS DISPARADO A UN CIVIL!");
     }
   }
 
   /* =======================================================
-     DAÑO
+     DAÑO / GAME OVER
      ======================================================= */
 
-  function damagePlayer(
-    reason
-  ) {
+  function damagePlayer(reason) {
     lives -= 1;
-
     updateHud();
-
     damageFlash();
+    showMessage(reason, 650);
 
-    showMessage(
-      reason,
-      600
-    );
-
-    if (
-      lives <= 0
-    ) {
+    if (lives <= 0) {
       gameOver();
     }
   }
 
-  /* =======================================================
-     GAME OVER
-     ======================================================= */
-
   function gameOver() {
-    running =
-      false;
-
-    cancelAnimationFrame(
-      animationFrame
-    );
-
+    running = false;
+    cancelAnimationFrame(animationFrame);
     clearTargets();
 
-    if (overlay) {
-      overlay.classList.remove(
-        "hidden"
-      );
-    }
+    overlay?.classList.remove("hidden");
 
     if (overlayTitle) {
-      overlayTitle.textContent =
-        "GAME OVER";
+      overlayTitle.textContent = "GAME OVER";
     }
 
     if (overlayText) {
-      overlayText.textContent =
-        `Has conseguido ${score} punto${
-          score === 1
-            ? ""
-            : "s"
-        }.`;
+      overlayText.textContent = `Has conseguido ${score} punto${score === 1 ? "" : "s"}.`;
     }
 
     if (startButton) {
-      startButton.textContent =
-        "REINTENTAR";
+      startButton.textContent = "REINTENTAR";
     }
 
     draw();
   }
 
   /* =======================================================
-     REINICIAR
+     REINICIAR / INICIAR
      ======================================================= */
 
   function resetGame() {
-    running =
-      false;
-
-    cancelAnimationFrame(
-      animationFrame
-    );
+    running = false;
+    cancelAnimationFrame(animationFrame);
 
     score = 0;
-
     lives = 3;
-
     cameraAngle = 0;
-
-    cameraTargetAngle = 0;
-
     spawnTimer = 0;
-
-    nextSpawn = 700;
-
+    nextSpawn = 600;
     lastTime = 0;
 
-    mouseX = 0.5;
-
     clearTargets();
-
     updateHud();
 
-    if (overlay) {
-      overlay.classList.remove(
-        "hidden"
-      );
-    }
+    overlay?.classList.remove("hidden");
 
     if (overlayTitle) {
-      overlayTitle.textContent =
-        "ANTITRONKS";
+      overlayTitle.textContent = "ANTITRONKS";
     }
 
     if (overlayText) {
-      overlayText.textContent =
-        "Gira la cámara, localiza a los enemigos y dispara antes de que ellos disparen.";
+      overlayText.textContent = INTRO_TEXT;
     }
 
     if (startButton) {
-      startButton.textContent =
-        "JUGAR";
+      startButton.textContent = "JUGAR";
     }
 
-    if (message) {
-      message.classList.remove(
-        "visible"
-      );
-    }
+    message?.classList.remove("visible");
 
     resize();
-
     draw();
   }
 
-  /* =======================================================
-     INICIAR
-     ======================================================= */
-
   function startGame() {
     score = 0;
-
     lives = 3;
-
     cameraAngle = 0;
-
-    cameraTargetAngle = 0;
-
     spawnTimer = 0;
-
-    nextSpawn = 600;
+    nextSpawn = 500;
 
     clearTargets();
-
     updateHud();
 
-    running =
-      true;
+    running = true;
+    overlay?.classList.add("hidden");
 
-    if (overlay) {
-      overlay.classList.add(
-        "hidden"
-      );
-    }
-
-    lastTime =
-      performance.now();
-
-    cancelAnimationFrame(
-      animationFrame
-    );
-
-    animationFrame =
-      requestAnimationFrame(
-        loop
-      );
+    lastTime = performance.now();
+    cancelAnimationFrame(animationFrame);
+    animationFrame = requestAnimationFrame(loop);
   }
 
   /* =======================================================
-     ABRIR JUEGO
+     ABRIR / CERRAR
      ======================================================= */
 
   function openGame() {
-    modal.classList.remove(
-      "hidden"
-    );
-
-    modal.setAttribute(
-      "aria-hidden",
-      "false"
-    );
-
-    document.body.classList.add(
-      "antitronks-open"
-    );
+    modal.classList.remove("hidden");
+    modal.setAttribute("aria-hidden", "false");
+    document.body.classList.add("antitronks-open");
 
     resize();
-
     resetGame();
   }
 
-  /* =======================================================
-     CERRAR JUEGO
-     ======================================================= */
-
   function closeGame() {
-    running =
-      false;
-
-    cancelAnimationFrame(
-      animationFrame
-    );
-
+    running = false;
+    cancelAnimationFrame(animationFrame);
     clearTargets();
 
-    modal.classList.add(
-      "hidden"
-    );
-
-    modal.setAttribute(
-      "aria-hidden",
-      "true"
-    );
-
-    document.body.classList.remove(
-      "antitronks-open"
-    );
+    modal.classList.add("hidden");
+    modal.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("antitronks-open");
 
     keys.clear();
+    mouseInside = false;
   }
 
   /* =======================================================
-     ACTUALIZACIÓN DEL JUEGO
+     ACTUALIZACIÓN
      ======================================================= */
 
-  function update(
-    delta,
-    now
-  ) {
-    /*
-     * A / D y flechas
-     */
-
-    if (
-      keys.has("a") ||
-      keys.has("arrowleft")
-    ) {
-      cameraTargetAngle -=
-        delta *
-        0.00155;
-    }
-
-    if (
-      keys.has("d") ||
-      keys.has("arrowright")
-    ) {
-      cameraTargetAngle +=
-        delta *
-        0.00155;
-    }
+  function update(delta) {
+    gameTime += delta;
 
     /*
-     * Ratón:
-     * mueve la cámara según la posición
-     * horizontal del ratón.
+     * Giro de cámara: rápido y directo (sin retraso).
      */
+    let turn = 0;
 
-    const mouseOffset =
-      (mouseX - 0.5) *
-      2;
+    if (keys.has("a") || keys.has("arrowleft")) {
+      turn -= KEY_TURN_SPEED;
+    }
 
-    cameraTargetAngle +=
-      mouseOffset *
-      delta *
-      0.00042;
+    if (keys.has("d") || keys.has("arrowright")) {
+      turn += KEY_TURN_SPEED;
+    }
 
-    cameraTargetAngle =
-      clamp(
-        cameraTargetAngle,
-        -CAMERA_TURN_LIMIT,
-        CAMERA_TURN_LIMIT
-      );
+    if (mouseInside && !touchInfo) {
+      const fx = mouseX / width;
 
-    cameraAngle +=
-      (
-        cameraTargetAngle -
-        cameraAngle
-      ) *
-      Math.min(
-        1,
-        delta *
-          0.012
-      );
+      if (fx < EDGE_ZONE) {
+        turn -= EDGE_TURN_SPEED * (0.5 + 0.5 * (1 - fx / EDGE_ZONE));
+      } else if (fx > 1 - EDGE_ZONE) {
+        turn += EDGE_TURN_SPEED * (0.5 + 0.5 * (1 - (1 - fx) / EDGE_ZONE));
+      }
+    }
+
+    cameraAngle = clamp(cameraAngle + (turn * delta) / 1000, -CAMERA_LIMIT, CAMERA_LIMIT);
 
     /*
      * Aparición de enemigos.
      */
+    spawnTimer += delta;
 
-    spawnTimer +=
-      delta;
-
-    if (
-      spawnTimer >=
-        nextSpawn &&
-      targets.length <
-        getMaxTargets()
-    ) {
+    if (spawnTimer >= nextSpawn) {
       spawnTarget();
-
       spawnTimer = 0;
-
-      nextSpawn =
-        getSpawnInterval() *
-        rand(
-          0.72,
-          1.15
-        );
+      nextSpawn = getSpawnInterval() * rand(0.75, 1.15);
     }
 
     /*
      * Enemigos y civiles.
      */
+    for (let i = targets.length - 1; i >= 0; i--) {
+      const t = targets[i];
+      t.stateTime += delta;
 
-    for (
-      let i =
-        targets.length -
-        1;
-      i >= 0;
-      i--
-    ) {
-      const target =
-        targets[i];
-
-      target.animation +=
-        delta *
-        0.003;
-
-      const age =
-        now -
-        target.born;
-
-      if (
-        age >=
-        target.reaction
-      ) {
-        if (
-          target.type ===
-          "enemy"
-        ) {
-          targets.splice(
-            i,
-            1
-          );
-
-          damagePlayer(
-            "¡TE HAN DISPARADO!"
-          );
+      if (t.state === "rising" && t.stateTime >= RISE_TIME) {
+        setState(t, "up");
+      } else if (t.state === "up" && t.stateTime >= t.reaction) {
+        if (t.type === "enemy") {
+          setState(t, "firing");
+          damagePlayer("¡TE HAN DISPARADO!");
 
           if (!running) {
-            break;
+            return;
           }
         } else {
-          /*
-           * Los civiles simplemente
-           * desaparecen si no les disparas.
-           */
-
-          targets.splice(
-            i,
-            1
-          );
+          setState(t, "hiding");
         }
+      } else if (t.state === "firing" && t.stateTime >= FIRE_TIME) {
+        setState(t, "hiding");
+      } else if (t.state === "hiding" && t.stateTime >= HIDE_TIME) {
+        targets.splice(i, 1);
+      } else if (t.state === "dying" && t.stateTime >= DEATH_TIME) {
+        targets.splice(i, 1);
       }
     }
 
-    /*
-     * Flash de daño.
-     */
+    updateEffects(delta);
 
-    if (
-      flashTimer > 0
-    ) {
-      flashTimer -=
-        delta;
+    if (flashTimer > 0) {
+      flashTimer -= delta;
 
-      if (
-        flashTimer <=
-        0
-      ) {
-        flash?.classList.remove(
-          "active"
-        );
+      if (flashTimer <= 0) {
+        flash?.classList.remove("active");
       }
     }
 
-    /*
-     * Mensajes.
-     */
+    if (messageTimer > 0) {
+      messageTimer -= delta;
 
-    if (
-      messageTimer > 0
-    ) {
-      messageTimer -=
-        delta;
-
-      if (
-        messageTimer <=
-        0
-      ) {
-        message?.classList.remove(
-          "visible"
-        );
+      if (messageTimer <= 0) {
+        message?.classList.remove("visible");
       }
     }
-
-    updateOffscreenArrows();
   }
 
   /* =======================================================
@@ -4725,202 +3511,102 @@ function initializeAntitronksGame() {
      ======================================================= */
 
   function draw() {
-    if (
-      width <= 0 ||
-      height <= 0
-    ) {
+    if (width <= 1 || height <= 1) {
       return;
     }
 
-    ctx.clearRect(
-      0,
-      0,
-      width,
-      height
-    );
+    camCos = Math.cos(cameraAngle);
+    camSin = Math.sin(cameraAngle);
+    indicators = [];
 
-    drawEnvironment();
+    ctx.clearRect(0, 0, width, height);
 
-    /*
-     * Cajas.
-     */
-
-    const sortedBoxes =
-      [...BOXES].sort(
-        (a, b) => {
-          const pa =
-            projectPoint(
-              a.x,
-              a.z,
-              a.h / 2
-            );
-
-          const pb =
-            projectPoint(
-              b.x,
-              b.z,
-              b.h / 2
-            );
-
-          return (
-            pb.depth -
-            pa.depth
-          );
-        }
-      );
-
-    sortedBoxes.forEach(
-      drawBox
-    );
-
-    /*
-     * Personas.
-     */
-
-    drawTargets();
-
-    /*
-     * Arma del jugador.
-     */
-
+    drawSky();
+    drawSkyline();
+    drawGround();
+    drawFacades();
+    drawLamps();
+    drawObjects();
+    drawIndicators();
+    drawEffects();
     drawPlayerWeapon();
+    drawEdgeHints();
+    drawOffscreenArrows();
+    drawCrosshair();
   }
 
-  /* =======================================================
-     BUCLE
-     ======================================================= */
-
-  function loop(
-    now
-  ) {
+  function loop(now) {
     if (!running) {
       draw();
       return;
     }
 
-    const delta =
-      Math.min(
-        40,
-        now -
-          lastTime ||
-          16
-      );
+    const delta = Math.min(40, now - lastTime || 16);
+    lastTime = now;
 
-    lastTime =
-      now;
-
-    update(
-      delta,
-      now
-    );
-
+    update(delta);
     draw();
 
-    animationFrame =
-      requestAnimationFrame(
-        loop
-      );
+    if (running) {
+      animationFrame = requestAnimationFrame(loop);
+    }
   }
 
   /* =======================================================
-     CONTROLES - TARJETA
+     CONTROLES
      ======================================================= */
 
-  card.addEventListener(
-    "click",
-    openGame
-  );
+  function localPoint(clientX, clientY) {
+    const rect = game.getBoundingClientRect();
 
-  card.addEventListener(
-    "keydown",
-    (event) => {
-      if (
-        event.key ===
-          "Enter" ||
-        event.key ===
-          " "
-      ) {
-        event.preventDefault();
+    return {
+      x: clamp(clientX - rect.left, 0, rect.width),
+      y: clamp(clientY - rect.top, 0, rect.height)
+    };
+  }
 
-        openGame();
-      }
+  card.addEventListener("click", openGame);
+
+  card.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openGame();
     }
-  );
+  });
 
-  /* =======================================================
-     CONTROLES - CERRAR
-     ======================================================= */
+  closeButton?.addEventListener("click", closeGame);
+  backdrop?.addEventListener("click", closeGame);
+  startButton?.addEventListener("click", startGame);
 
-  closeButton?.addEventListener(
-    "click",
-    closeGame
-  );
+  // Ratón: la mira sigue al ratón.
+  game.addEventListener("mousemove", (event) => {
+    const p = localPoint(event.clientX, event.clientY);
+    mouseX = p.x;
+    mouseY = p.y;
+    mouseInside = true;
+  });
 
-  backdrop?.addEventListener(
-    "click",
-    closeGame
-  );
+  game.addEventListener("mouseleave", () => {
+    mouseInside = false;
+  });
 
-  /* =======================================================
-     BOTÓN JUGAR
-     ======================================================= */
-
-  startButton?.addEventListener(
-    "click",
-    startGame
-  );
-
-  /* =======================================================
-     RATÓN - CÁMARA
-     ======================================================= */
-
-  game.addEventListener(
-    "mousemove",
-    (event) => {
-      const rect =
-        game.getBoundingClientRect();
-
-      mouseX =
-        clamp(
-          (
-            event.clientX -
-            rect.left
-          ) /
-            rect.width,
-          0,
-          1
-        );
+  // Clic: dispara exactamente donde está el ratón.
+  game.addEventListener("mousedown", (event) => {
+    if (event.button !== 0 || !running) {
+      return;
     }
-  );
 
-  game.addEventListener(
-    "mouseleave",
-    () => {
-      mouseX = 0.5;
-    }
-  );
+    event.preventDefault();
 
-  /* =======================================================
-     RATÓN - DISPARO
-     ======================================================= */
+    const p = localPoint(event.clientX, event.clientY);
+    mouseX = p.x;
+    mouseY = p.y;
+    mouseInside = true;
 
-  game.addEventListener(
-    "mousedown",
-    (event) => {
-      if (
-        event.button ===
-          0 &&
-        running
-      ) {
-        shoot();
-      }
-    }
-  );
+    shootAt(p.x, p.y);
+  });
 
-  /* =======================================================
-     TOUCH
-     ======================================================= */
-
+  // Táctil: tocar = disparar ahí; arrastrar = girar la cámara.
   game.addEventListener(
     "touchstart",
     (event) => {
@@ -4928,134 +3614,100 @@ function initializeAntitronksGame() {
         return;
       }
 
-      const touch =
-        event.changedTouches[0];
+      const touch = event.changedTouches[0];
 
       if (!touch) {
         return;
       }
 
-      const rect =
-        game.getBoundingClientRect();
-
-      mouseX =
-        clamp(
-          (
-            touch.clientX -
-            rect.left
-          ) /
-            rect.width,
-          0,
-          1
-        );
-
-      shoot();
+      const p = localPoint(touch.clientX, touch.clientY);
+      touchInfo = { startX: p.x, lastX: p.x, moved: false };
     },
-    {
-      passive: true
-    }
+    { passive: true }
   );
 
   game.addEventListener(
     "touchmove",
     (event) => {
-      const touch =
-        event.changedTouches[0];
+      const touch = event.changedTouches[0];
 
-      if (!touch) {
+      if (!touch || !touchInfo) {
         return;
       }
 
-      const rect =
-        game.getBoundingClientRect();
+      const p = localPoint(touch.clientX, touch.clientY);
+      const dx = p.x - touchInfo.lastX;
+      touchInfo.lastX = p.x;
 
-      mouseX =
-        clamp(
-          (
-            touch.clientX -
-            rect.left
-          ) /
-            rect.width,
-          0,
-          1
-        );
+      if (Math.abs(p.x - touchInfo.startX) > 12) {
+        touchInfo.moved = true;
+      }
+
+      if (touchInfo.moved) {
+        cameraAngle = clamp(cameraAngle - (dx / focal) * 1.3, -CAMERA_LIMIT, CAMERA_LIMIT);
+      }
     },
-    {
-      passive: true
-    }
+    { passive: true }
   );
 
-  /* =======================================================
-     TECLADO
-     ======================================================= */
-
-  window.addEventListener(
-    "keydown",
+  game.addEventListener(
+    "touchend",
     (event) => {
-      if (
-        modal.classList.contains(
-          "hidden"
-        )
-      ) {
-        return;
+      const touch = event.changedTouches[0];
+
+      if (touch && touchInfo && !touchInfo.moved && running) {
+        const p = localPoint(touch.clientX, touch.clientY);
+        mouseX = p.x;
+        mouseY = p.y;
+        shootAt(p.x, p.y);
       }
 
-      const key =
-        event.key.toLowerCase();
+      touchInfo = null;
+    },
+    { passive: true }
+  );
 
-      if (
-        key === "a" ||
-        key === "d" ||
-        key ===
-          "arrowleft" ||
-        key ===
-          "arrowright"
-      ) {
-        keys.add(key);
+  // Teclado.
+  window.addEventListener("keydown", (event) => {
+    if (modal.classList.contains("hidden")) {
+      return;
+    }
 
-        event.preventDefault();
-      }
+    const key = event.key.toLowerCase();
 
-      if (
-        key ===
-        "escape"
-      ) {
-        closeGame();
-      }
+    if (key === "a" || key === "d" || key === "arrowleft" || key === "arrowright") {
+      keys.add(key);
+      event.preventDefault();
+    }
 
-      if (
-        event.code ===
-          "Space" &&
-        running
-      ) {
-        event.preventDefault();
+    if (key === "escape") {
+      closeGame();
+    }
 
-        shoot();
+    if (event.code === "Space" && running) {
+      event.preventDefault();
+
+      if (!event.repeat) {
+        shootAt(mouseInside ? mouseX : width / 2, mouseInside ? mouseY : height * HORIZON_Y);
       }
     }
-  );
+  });
 
-  window.addEventListener(
-    "keyup",
-    (event) => {
-      keys.delete(
-        event.key.toLowerCase()
-      );
+  window.addEventListener("keyup", (event) => {
+    keys.delete(event.key.toLowerCase());
+  });
+
+  window.addEventListener("resize", () => {
+    if (modal.classList.contains("hidden")) {
+      return;
     }
-  );
 
-  /* =======================================================
-     RESIZE
-     ======================================================= */
+    resize();
 
-  window.addEventListener(
-    "resize",
-    resize
-  );
-
-  /* =======================================================
-     INICIO DEL JUEGO
-     ======================================================= */
+    if (!running) {
+      draw();
+    }
+  });
 
   resetGame();
 }
