@@ -4270,7 +4270,7 @@ function antininjaRoundRect(g, x, y, w, h, r) {
  * Ninja bola clásico: bola negra, rendija de la cara con los
  * ojos y cinta en la cabeza con las colas del nudo al viento.
  *  - normal:  cinta roja (1 clic)
- *  - flipper: cinta morada (voltereta hacia delante, 3 clics)
+ *  - flipper: cinta morada (1 voltereta hacia delante, 2 clics)
  *  - tank:    cinta dorada y armadura (2 clics)
  */
 function drawNinjaBall(g, x, y, r, opts = {}) {
@@ -4764,12 +4764,12 @@ function initializeAntininjaGame() {
 
   const FLIP_TIME = 520;
   // Cuánto avanza hacia el castillo el ninja morado en cada voltereta.
-  const FLIP_PUSH = 0.14;
-  const FLIPPER_HP = 3;
+  const FLIP_PUSH = 0.07;
+  const FLIPPER_HP = 2;
   const DEATH_TIME = 380;
 
   const INTRO_TEXT =
-    "Haz clic en los ninjas antes de que lleguen al castillo del rey. Cinta roja: 1 clic. Cinta dorada: 2 clics. Cinta morada: 3 clics, ¡pero con cada clic da una voltereta hacia delante y se acerca al castillo!";
+    "Haz clic en los ninjas antes de que lleguen al castillo del rey. Cinta roja: 1 clic. Cinta dorada: 2 clics. Cinta morada: 2 clics, ¡pero con el primero da una voltereta hacia delante y se acerca al castillo!";
 
   /* =======================================================
      ESTADO
@@ -5117,13 +5117,13 @@ function initializeAntininjaGame() {
       return;
     }
 
-    // Ninja morado: 3 clics. Con los dos primeros da una voltereta
-    // HACIA DELANTE y se acerca al castillo; al tercero muere.
+    // Ninja morado: 2 clics. Con el primero da UNA voltereta corta
+    // HACIA DELANTE y se acerca al castillo; con el segundo muere.
     n.hp -= 1;
 
     if (n.hp <= 0) {
       TronkSound.play("pop");
-      kill(n, 3, p);
+      kill(n, 2, p);
       return;
     }
 
