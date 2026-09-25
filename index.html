@@ -6,7 +6,7 @@
 
   <meta
     name="description"
-    content="TronkStudios es un estudio de videojuegos dedicado a crear juegos, experiencias y proyectos con creatividad y determinación."
+    content="Descubre nuestros juegos, proporciona ideas y juega minijuegos muy épicos desarrollados por los Tronks"
   />
 
   <meta name="robots" content="index, follow" />
@@ -25,13 +25,25 @@
 
   <meta
     property="og:description"
-    content="TronkStudios es un estudio de videojuegos dedicado a crear juegos, experiencias y proyectos con creatividad y determinación."
+    content="Descubre nuestros juegos, proporciona ideas y juega minijuegos muy épicos desarrollados por los Tronks"
   />
 
+  <!-- Imagen de vista previa (Google, WhatsApp, Discord...) -->
   <meta
     property="og:image"
-    content="https://tronkstudios.github.io/TronkWeb/tronkstudios-preview.png"
+    content="https://tronkstudios.github.io/TronkWeb/tronkstudios-preview.jpg"
   />
+
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="1200" />
+  <meta property="og:image:alt" content="Logo de TronkStudios" />
+  <meta property="og:site_name" content="TronkStudios" />
+  <meta property="og:locale" content="es_ES" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="TronkStudios | Videojuegos y Determinación" />
+  <meta name="twitter:description" content="Descubre nuestros juegos, proporciona ideas y juega minijuegos muy épicos desarrollados por los Tronks" />
+  <meta name="twitter:image" content="https://tronkstudios.github.io/TronkWeb/tronkstudios-preview.jpg" />
 
   <meta
     property="og:url"
@@ -41,13 +53,34 @@
   <meta property="og:type" content="website" />
 
   <!--
-    Icono de la web: es el que sale en la pestaña del navegador y
+    Icono de la web (solo la T): sale en la pestaña del navegador y
     al lado del nombre cuando buscas "TronkStudios" en Google.
-    Sube tu imagen al repositorio con el nombre favicon.png
-    (cuadrada, mejor de 512x512 píxeles).
   -->
-  <link rel="icon" type="image/png" href="favicon.png" />
-  <link rel="apple-touch-icon" href="favicon.png" />
+  <link rel="icon" type="image/png" sizes="480x480" href="favicon.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+
+  <!-- Datos para Google: nombre del sitio y logo -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "name": "TronkStudios",
+          "url": "https://tronkstudios.github.io/TronkWeb/",
+          "description": "Descubre nuestros juegos, proporciona ideas y juega minijuegos muy épicos desarrollados por los Tronks"
+        },
+        {
+          "@type": "Organization",
+          "name": "TronkStudios",
+          "url": "https://tronkstudios.github.io/TronkWeb/",
+          "logo": "https://tronkstudios.github.io/TronkWeb/favicon.png",
+          "image": "https://tronkstudios.github.io/TronkWeb/tronkstudios-preview.jpg",
+          "email": "tronkstudios7@gmail.com"
+        }
+      ]
+    }
+  </script>
 
   <link rel="stylesheet" href="styles.css?v=8" />
 
