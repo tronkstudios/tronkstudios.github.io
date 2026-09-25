@@ -780,6 +780,11 @@ if (registerForm) {
               email,
               password,
               options: {
+                // Al confirmar el correo, vuelve a esta misma página
+                // (antes Supabase mandaba a una dirección que daba 404).
+                emailRedirectTo:
+                  window.location.origin +
+                  window.location.pathname,
                 data: {
                   name
                 }
@@ -6779,6 +6784,66 @@ function initializeStickDrillGame() {
 }
 
 /* =========================================================
+   VUELTA DESDE EL CORREO DE VERIFICACIÓN
+   ========================================================= */
+
+/*
+ * Cuando alguien pulsa el enlace del correo, Supabase le trae de
+ * vuelta a la web con datos en la dirección (#access_token=...&type=signup
+ * o ?error_description=...). Aquí mostramos un mensaje bonito y
+ * limpiamos la dirección.
+ */
+function handleAuthRedirect() {
+  const hash = new URLSearchParams(
+    window.location.hash.replace(/^#/, "")
+  );
+
+  const query = new URLSearchParams(
+    window.location.search
+  );
+
+  const type =
+    hash.get("type") || query.get("type");
+
+  const error =
+    hash.get("error_description") ||
+    query.get("error_description");
+
+  const hasCode =
+    query.has("code") || hash.has("access_token");
+
+  if (!type && !error && !hasCode) {
+    return;
+  }
+
+  // Esperamos un poco para que Supabase lea los datos de la dirección.
+  setTimeout(async () => {
+    await updateAccountUI();
+
+    openModal(accountModal);
+
+    if (error) {
+      showAuthMessage(
+        `No se pudo verificar la cuenta: ${error.replace(/\+/g, " ")}. Si el enlace ha caducado, vuelve a registrarte o inicia sesión.`,
+        "error"
+      );
+    } else {
+      showAuthMessage(
+        "¡Cuenta verificada! Ya puedes participar en la comunidad.",
+        "success"
+      );
+    }
+
+    window.history.replaceState(
+      null,
+      "",
+      window.location.origin +
+        window.location.pathname
+    );
+  }, 1200);
+}
+
+/* =========================================================
    ESCAPE PARA MODALES GENERALES
    ========================================================= */
 
@@ -6827,6 +6892,8 @@ initializeCardImageFallbacks();
 loadSuggestions();
 
 updateAccountUI();
+
+handleAuthRedirect();
 
 initializeAntitronksGame();
 

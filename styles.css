@@ -1214,3 +1214,14 @@ body.antitronks-open {
 
 .stickdrill-key-blue { color: #93c5fd; }
 .stickdrill-key-red { color: #fca5a5; }
+
+/* Mensajes de la cuenta en color */
+.auth-message.success {
+  color: var(--success);
+  font-weight: 800;
+}
+
+.auth-message.error {
+  color: var(--danger);
+  font-weight: 800;
+}
