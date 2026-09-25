@@ -298,6 +298,19 @@ img {
   object-fit: contain;
 }
 
+.dev-card-media-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  color: var(--muted);
+  font-weight: 800;
+  text-align: center;
+  padding: 0.5rem;
+}
+
 .dev-card h3 {
   margin: 0;
 }
@@ -902,7 +915,7 @@ textarea:focus-visible {
 .antitronks-crosshair {
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: 53%;
   width: 42px;
   height: 42px;
   transform: translate(-50%, -50%);
@@ -1056,4 +1069,77 @@ body.antitronks-open {
     border: 0;
   }
   .antitronks-header { flex-basis: 50px; }
+}
+/* =========================================
+   MENSAJE DE VERIFICACIÓN DE EMAIL
+   ========================================= */
+
+.verification-message {
+  display: block;
+  width: 100%;
+  margin-top: 20px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+}
+
+.verification-card {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 20px;
+  border-radius: 16px;
+
+  background: #111827;
+  color: #f9fafb;
+
+  text-align: left;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.verification-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  margin-bottom: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.verification-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+
+  border-radius: 50%;
+  background: rgba(74, 222, 128, 0.12);
+
+  color: #4ade80;
+  font-size: 22px;
+}
+
+.verification-card p {
+  margin: 0 0 18px;
+  color: #d1d5db;
+
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.verification-badge {
+  display: inline-block;
+  padding: 7px 12px;
+
+  border-radius: 999px;
+  background: rgba(74, 222, 128, 0.12);
+
+  color: #4ade80;
+  font-size: 13px;
+  font-weight: 600;
 }

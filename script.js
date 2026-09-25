@@ -1706,6 +1706,58 @@ function escapeHtml(
 }
 
 /* =========================================================
+   IMÁGENES DE TARJETAS
+   ========================================================= */
+
+/*
+ * Si una imagen de tarjeta (por ejemplo antitronks.png) no
+ * carga -ruta equivocada, mayúsculas/minúsculas distintas al
+ * repositorio, archivo no subido, etc.- esto evita que quede
+ * un hueco roto y avisa en la consola con la ruta exacta que
+ * ha fallado, para poder depurarlo fácilmente.
+ */
+
+function initializeCardImageFallbacks() {
+  document
+    .querySelectorAll(".dev-card-media img")
+    .forEach((img) => {
+      img.addEventListener(
+        "error",
+        () => {
+          console.error(
+            `TronkStudios: no se ha podido cargar la imagen "${img.getAttribute(
+              "src"
+            )}". Comprueba que el archivo existe en el repositorio, que el nombre coincide EXACTAMENTE (mayúsculas/minúsculas incluidas: GitHub Pages distingue entre "Antitronks.png" y "antitronks.png") y que la ruta es correcta.`
+          );
+
+          const fallback =
+            document.createElement(
+              "div"
+            );
+
+          fallback.className =
+            "dev-card-media-fallback";
+
+          fallback.textContent =
+            `🎮 ${
+              img.dataset
+                .fallbackLabel ||
+              img.alt ||
+              "Imagen no disponible"
+            }`;
+
+          img.replaceWith(
+            fallback
+          );
+        },
+        {
+          once: true
+        }
+      );
+    });
+}
+
+/* =========================================================
    ANTITRONKS
    ========================================================= */
 
@@ -1812,11 +1864,44 @@ function initializeAntitronksGame() {
   const TAU =
     Math.PI * 2;
 
+  /*
+   * FOV de ~92°. Antes era ~140°, lo que
+   * obligaba a un mapa enorme para que
+   * tuviera sentido.
+   */
   const FOV =
-    Math.PI * 0.78;
+    Math.PI * 0.51;
+
+  /*
+   * Medio-ángulo máximo que el jugador
+   * puede girar la cámara hacia cada
+   * lado. Combinado con el FOV, esto es
+   * lo que limita el campo de combate a
+   * ~90° por delante del jugador en vez
+   * de casi 360°.
+   */
+  const CAMERA_TURN_LIMIT =
+    Math.PI * 0.22;
+
+  /*
+   * Fracción vertical de la pantalla que
+   * actúa como "línea de mira". Se usa
+   * EN LOS TRES SITIOS que deben
+   * coincidir: la proyección 3D
+   * (dónde se dibuja todo), el disparo
+   * (qué se considera "apuntado") y la
+   * mira visual (ver antitronks-crosshair
+   * en styles.css, colocada al mismo
+   * 53%). Si alguno de los tres usa un
+   * valor distinto, la mira deja de
+   * coincidir con lo que realmente se
+   * dispara.
+   */
+  const HORIZON_Y =
+    0.53;
 
   const MAX_DISTANCE =
-    90;
+    26;
 
   const PLAYER_HEIGHT =
     1.65;
@@ -1825,76 +1910,70 @@ function initializeAntitronksGame() {
    * La calle utiliza X como eje largo.
    * Z representa el ancho de la calle.
    */
+  /*
+   * IMPORTANTE: todas las cajas tienen
+   * "z" POSITIVA (delante del jugador).
+   * En este motor, "z" negativa
+   * significa "detrás de la cámara", así
+   * que mezclar signos -como antes- es
+   * lo que obligaba a girar la cámara
+   * casi 180° para llegar a algunas
+   * cajas. Con "z" siempre positiva, las
+   * 7 cajas quedan repartidas en un
+   * único arco compacto delante del
+   * jugador, tal y como en el dibujo de
+   * referencia (calle horizontal con
+   * cobertura a lo largo).
+   */
   const BOXES = [
     {
-      x: -58,
-      z: -7.2,
-      w: 4.2,
-      h: 3.5,
-      d: 4.0
+      x: -9,
+      z: 6.4,
+      w: 2.1,
+      h: 1.9,
+      d: 2.0
     },
     {
-      x: -45,
-      z: 7.0,
-      w: 3.8,
-      h: 3.2,
-      d: 3.7
-    },
-    {
-      x: -31,
-      z: -7.5,
-      w: 4.5,
-      h: 3.7,
-      d: 4.2
-    },
-    {
-      x: -17,
-      z: 6.8,
-      w: 3.7,
-      h: 3.3,
-      d: 3.8
+      x: -6,
+      z: 4.8,
+      w: 1.9,
+      h: 1.7,
+      d: 1.9
     },
     {
       x: -3,
-      z: -7.2,
-      w: 4.4,
-      h: 3.6,
-      d: 4.1
+      z: 6.2,
+      w: 2.2,
+      h: 2.0,
+      d: 2.1
     },
     {
-      x: 11,
-      z: 7.0,
-      w: 4.0,
-      h: 3.4,
-      d: 3.9
+      x: 0,
+      z: 4.6,
+      w: 2.0,
+      h: 1.8,
+      d: 2.0
     },
     {
-      x: 25,
-      z: -7.3,
-      w: 4.6,
-      h: 3.8,
-      d: 4.3
+      x: 3,
+      z: 6.3,
+      w: 2.1,
+      h: 1.9,
+      d: 2.0
     },
     {
-      x: 39,
-      z: 6.8,
-      w: 3.9,
-      h: 3.4,
-      d: 3.8
+      x: 6,
+      z: 4.7,
+      w: 1.9,
+      h: 1.7,
+      d: 1.9
     },
     {
-      x: 53,
-      z: -7.0,
-      w: 4.2,
-      h: 3.5,
-      d: 4.0
-    },
-    {
-      x: 65,
-      z: 7.1,
-      w: 4.5,
-      h: 3.7,
-      d: 4.2
+      x: 9,
+      z: 6.1,
+      w: 2.2,
+      h: 2.0,
+      d: 2.1
     }
   ];
 
@@ -2271,7 +2350,7 @@ function initializeAntitronksGame() {
         focal;
 
     const screenY =
-      height * 0.53 -
+      height * HORIZON_Y -
       (
         (
           worldY -
@@ -2673,9 +2752,7 @@ function initializeAntitronksGame() {
       );
 
     if (
-      projection.depth <= 0 ||
-      projection.depth >
-        MAX_DISTANCE
+      !projection.visible
     ) {
       return;
     }
@@ -2965,9 +3042,7 @@ function initializeAntitronksGame() {
     projection
   ) {
     if (
-      projection.depth <= 0 ||
-      projection.depth >
-        MAX_DISTANCE
+      !projection.visible
     ) {
       return;
     }
@@ -3804,10 +3879,7 @@ function initializeAntitronksGame() {
           );
 
         if (
-          projection.depth >
-            0 &&
-          projection.depth <
-            MAX_DISTANCE
+          projection.visible
         ) {
           drawPerson(
             target,
@@ -3907,8 +3979,21 @@ function initializeAntitronksGame() {
         1.2
       );
 
+    /*
+     * El arma se ancla siempre al centro
+     * horizontal de la pantalla y apunta
+     * hacia arriba, en línea recta hacia
+     * la mira (HORIZON_Y). Antes el
+     * cañón se dibujaba en diagonal hacia
+     * la derecha, como si el jugador
+     * sujetara el arma de lado; ahora
+     * queda simétrica y orientada hacia
+     * delante, coherente con hacia dónde
+     * apunta realmente el disparo.
+     */
+
     const baseY =
-      height * 0.94;
+      height * 0.97;
 
     ctx.save();
 
@@ -3918,14 +4003,14 @@ function initializeAntitronksGame() {
     );
 
     /*
-     * Brazo / arma
+     * Antebrazos de apoyo
      */
 
     ctx.strokeStyle =
       "#111315";
 
     ctx.lineWidth =
-      18 * scale;
+      15 * scale;
 
     ctx.lineCap =
       "round";
@@ -3933,30 +4018,108 @@ function initializeAntitronksGame() {
     ctx.beginPath();
 
     ctx.moveTo(
-      -42 * scale,
-      8 * scale
+      -32 * scale,
+      6 * scale
     );
 
     ctx.lineTo(
-      58 * scale,
-      -38 * scale
+      -10 * scale,
+      -44 * scale
+    );
+
+    ctx.stroke();
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      30 * scale,
+      10 * scale
+    );
+
+    ctx.lineTo(
+      11 * scale,
+      -72 * scale
     );
 
     ctx.stroke();
 
     /*
-     * Cuerpo del arma
+     * Culata
+     */
+
+    ctx.fillStyle =
+      "#1c2022";
+
+    ctx.fillRect(
+      -13 * scale,
+      -10 * scale,
+      26 * scale,
+      40 * scale
+    );
+
+    /*
+     * Cuerpo del arma (vertical y
+     * centrado, apuntando hacia la mira)
      */
 
     ctx.fillStyle =
       "#272b2e";
 
     ctx.fillRect(
-      22 * scale,
-      -54 * scale,
-      115 * scale,
-      24 * scale
+      -15 * scale,
+      -128 * scale,
+      30 * scale,
+      90 * scale
     );
+
+    ctx.strokeStyle =
+      "#0d0f10";
+
+    ctx.lineWidth =
+      Math.max(
+        1,
+        2 * scale
+      );
+
+    ctx.strokeRect(
+      -15 * scale,
+      -128 * scale,
+      30 * scale,
+      90 * scale
+    );
+
+    /*
+     * Cargador
+     */
+
+    ctx.fillStyle =
+      "#1c2022";
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      -3 * scale,
+      -44 * scale
+    );
+
+    ctx.lineTo(
+      11 * scale,
+      -44 * scale
+    );
+
+    ctx.lineTo(
+      17 * scale,
+      6 * scale
+    );
+
+    ctx.lineTo(
+      3 * scale,
+      8 * scale
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
 
     /*
      * Cañón
@@ -3966,22 +4129,36 @@ function initializeAntitronksGame() {
       "#151719";
 
     ctx.fillRect(
-      122 * scale,
-      -51 * scale,
-      70 * scale,
-      9 * scale
+      -6 * scale,
+      -170 * scale,
+      12 * scale,
+      44 * scale
     );
 
     /*
-     * Cargador
+     * Mira del arma, alineada con la
+     * mira central de la pantalla
      */
 
-    ctx.fillRect(
-      55 * scale,
-      -25 * scale,
-      15 * scale,
-      52 * scale
+    ctx.strokeStyle =
+      "#0d0f10";
+
+    ctx.lineWidth =
+      4 * scale;
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      0,
+      -128 * scale
     );
+
+    ctx.lineTo(
+      0,
+      -150 * scale
+    );
+
+    ctx.stroke();
 
     /*
      * Manos
@@ -3993,17 +4170,17 @@ function initializeAntitronksGame() {
     ctx.beginPath();
 
     ctx.arc(
-      -15 * scale,
-      -4 * scale,
-      22 * scale,
+      -10 * scale,
+      -44 * scale,
+      19 * scale,
       0,
       TAU
     );
 
     ctx.arc(
-      50 * scale,
-      -30 * scale,
-      20 * scale,
+      11 * scale,
+      -72 * scale,
+      16 * scale,
       0,
       TAU
     );
@@ -4032,7 +4209,7 @@ function initializeAntitronksGame() {
       width / 2;
 
     const centerY =
-      height * 0.53;
+      height * HORIZON_Y;
 
     for (
       const target of targets
@@ -4404,10 +4581,8 @@ function initializeAntitronksGame() {
     cameraTargetAngle =
       clamp(
         cameraTargetAngle,
-        -Math.PI *
-          0.82,
-        Math.PI *
-          0.82
+        -CAMERA_TURN_LIMIT,
+        CAMERA_TURN_LIMIT
       );
 
     cameraAngle +=
@@ -4928,6 +5103,8 @@ document.addEventListener(
    ========================================================= */
 
 initializeProjects();
+
+initializeCardImageFallbacks();
 
 loadSuggestions();
 
