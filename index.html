@@ -49,13 +49,13 @@
   <link rel="icon" type="image/png" href="favicon.png" />
   <link rel="apple-touch-icon" href="favicon.png" />
 
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=7" />
 
   <script
     src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
   ></script>
 
-  <script src="script.js" defer></script>
+  <script src="script.js?v=7" defer></script>
 </head>
 
 <body>
@@ -238,6 +238,27 @@
             </div>
 
             <h3>Protect Mogos</h3>
+
+          </article>
+
+          <article
+            class="card dev-card minigame-card"
+            data-minigame="stickdrill"
+            tabindex="0"
+            role="button"
+            aria-label="Abrir Stick Drill"
+          >
+
+            <div class="dev-card-media">
+              <img
+                src="stick-drill.png"
+                alt="Stick Drill - minijuego de esquivar el taladro"
+                loading="lazy"
+                data-fallback-label="Stick Drill"
+              />
+            </div>
+
+            <h3>Stick Drill</h3>
 
           </article>
 
@@ -1042,6 +1063,97 @@
               >
                 JUGAR
               </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- =====================================================
+       MINIJUEGO STICK DRILL
+       ===================================================== -->
+
+  <div
+    id="stickdrill-modal"
+    class="antitronks-modal hidden"
+    aria-hidden="true"
+  >
+
+    <div class="antitronks-backdrop"></div>
+
+    <div
+      class="antitronks-window stickdrill-window"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="stickdrill-title"
+    >
+
+      <header class="antitronks-header">
+        <h2 id="stickdrill-title">STICK DRILL</h2>
+
+        <button
+          class="antitronks-sound game-sound-toggle"
+          type="button"
+          aria-label="Silenciar"
+          aria-pressed="false"
+        >
+          🔊
+        </button>
+
+        <button
+          id="stickdrill-close"
+          class="antitronks-close"
+          type="button"
+          aria-label="Cerrar Stick Drill"
+        >
+          ×
+        </button>
+      </header>
+
+      <div class="antitronks-game stickdrill-game" id="stickdrill-game">
+        <canvas id="stickdrill-canvas" class="stickdrill-canvas"></canvas>
+
+        <div class="antitronks-hud stickdrill-hud" aria-hidden="true">
+          <div class="antitronks-score stickdrill-p1" id="stickdrill-p1">J1: VIVO</div>
+          <div class="antitronks-record stickdrill-time" id="stickdrill-time">TIEMPO: 0.0 s</div>
+          <div class="antitronks-record stickdrill-best" id="stickdrill-record">RÉCORD: 0.0 s</div>
+          <div class="antitronks-lives stickdrill-p2" id="stickdrill-p2">BOT: VIVO</div>
+
+          <div class="antitronks-hit-flash" id="stickdrill-hit-flash"></div>
+
+          <div class="antitronks-message" id="stickdrill-message">
+            <span id="stickdrill-message-text"></span>
+          </div>
+
+          <div class="antitronks-overlay" id="stickdrill-overlay">
+            <div class="antitronks-overlay-box">
+              <h3 id="stickdrill-overlay-title">STICK DRILL</h3>
+              <p id="stickdrill-overlay-text">
+                Esquiva el taladro que rebota por las paredes. El que caiga primero pierde.
+              </p>
+              <div class="stickdrill-modes">
+                <button
+                  id="stickdrill-bot"
+                  class="antitronks-start-button"
+                  type="button"
+                >
+                  🤖 CONTRA EL BOT
+                </button>
+                <button
+                  id="stickdrill-2p"
+                  class="antitronks-start-button stickdrill-2p-button"
+                  type="button"
+                >
+                  👥 2 JUGADORES
+                </button>
+              </div>
+              <p class="stickdrill-keys">
+                <span class="stickdrill-key-blue">J1: W A S D</span>
+                ·
+                <span class="stickdrill-key-red">J2: flechas</span>
+              </p>
             </div>
           </div>
         </div>

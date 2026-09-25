@@ -1155,3 +1155,62 @@ body.antitronks-open {
 .antitronks-sound:hover {
   background: #333;
 }
+
+/* =========================================
+   STICK DRILL (ventana cuadrada, tamaño medio)
+   ========================================= */
+
+.antitronks-window.stickdrill-window {
+  width: min(780px, 100%, calc(94vh - 56px));
+  height: auto;
+}
+
+.stickdrill-game {
+  flex: 0 0 auto;
+  aspect-ratio: 1 / 1;
+}
+
+#stickdrill-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.stickdrill-hud .antitronks-score,
+.stickdrill-hud .antitronks-lives,
+.stickdrill-hud .antitronks-record {
+  font-size: .85rem;
+  padding: .4rem .6rem;
+  top: 10px;
+}
+
+.stickdrill-hud .stickdrill-p1 { left: 10px; color: #93c5fd; }
+.stickdrill-hud .stickdrill-p2 { right: 10px; color: #fca5a5; }
+.stickdrill-hud .stickdrill-time { color: #fff; }
+.stickdrill-hud .stickdrill-best { top: 46px; font-size: .75rem; }
+
+.stickdrill-modes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .6rem;
+}
+
+.stickdrill-2p-button {
+  background: #dc2626;
+}
+
+.stickdrill-2p-button:hover {
+  background: #b91c1c;
+}
+
+.stickdrill-keys {
+  margin: 1rem 0 0 !important;
+  font-size: .85rem;
+  font-weight: 800;
+}
+
+.stickdrill-key-blue { color: #93c5fd; }
+.stickdrill-key-red { color: #fca5a5; }
