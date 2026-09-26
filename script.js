@@ -2568,24 +2568,23 @@ function initializeAntitronksGame() {
   }
 
   /*
-   * Dificultad: sube poco a poco.
-   * - Tiempo hasta que el enemigo dispara: 2,6 s al empezar,
-   *   2,0 s con 30 puntos y nunca menos de 1,3 s.
-   * - Nuevo enemigo: cada 1,4 s al empezar, 1,04 s con 30 puntos
-   *   y nunca menos de 0,65 s.
-   * - Enemigos a la vez: 2 al empezar, 3 desde 15 puntos,
-   *   4 como máximo desde 30.
+   * Dificultad: sube poco a poco hasta 50 puntos y ahí se queda.
+   * A partir de ese punto es difícil, pero nunca imposible.
+   * - Tiempo hasta que el enemigo dispara: 2,6 s al empezar
+   *   y nunca menos de 1,7 s.
+   * - Nuevo enemigo: cada 1,4 s al empezar y nunca menos de 0,9 s.
+   * - Enemigos a la vez: 2 al empezar y 3 como máximo desde 20 puntos.
    */
   function getSpawnInterval() {
-    return Math.max(650, 1400 - score * 12);
+    return Math.max(900, 1400 - score * 10);
   }
 
   function getReactionTime() {
-    return Math.max(1300, 2600 - score * 20);
+    return Math.max(1700, 2600 - score * 18);
   }
 
   function getMaxTargets() {
-    return Math.min(4, 2 + Math.floor(score / 15));
+    return Math.min(3, 2 + Math.floor(score / 20));
   }
 
   function roundRect(x, y, w, h, r) {
@@ -4917,29 +4916,29 @@ function initializeAntininjaGame() {
   }
 
   /*
-   * Dificultad: mismo sistema que Antitronks, sube poco a poco.
-   * - Velocidad: cruza el bosque en ~7 s al empezar,
-   *   ~5 s con 30 puntos y nunca en menos de ~3,5 s.
-   * - Nuevo ninja: cada 1,5 s al empezar, 1,08 s con 30 puntos
-   *   y nunca menos de 0,5 s.
-   * - Ninjas a la vez: 3 al empezar y 1 más cada 5 puntos (máx. 12).
-   * - Salen en grupos: 1 ninja al empezar, 2 a la vez desde 10 puntos,
-   *   3 desde 20 y 4 desde 30.
+   * Dificultad: mismo sistema que Antitronks, sube poco a poco
+   * hasta 50 puntos y ahí se queda. Difícil, pero nunca imposible.
+   * - Velocidad: cruza el bosque en ~7 s al empezar
+   *   y nunca en menos de ~4,5 s.
+   * - Nuevo ninja: cada 1,5 s al empezar y nunca menos de 0,85 s.
+   * - Ninjas a la vez: 3 al empezar y 1 más cada 8 puntos (máx. 7).
+   * - Salen en grupos: 1 ninja al empezar, 2 a la vez desde 15 puntos
+   *   y 3 como máximo desde 30.
    */
   function getSpeed() {
-    return Math.min(0.28, 0.14 + score * 0.002);
+    return Math.min(0.22, 0.14 + score * 0.0016);
   }
 
   function getSpawnInterval() {
-    return Math.max(500, 1500 - score * 14);
+    return Math.max(850, 1500 - score * 13);
   }
 
   function getMaxNinjas() {
-    return Math.min(12, 3 + Math.floor(score / 5));
+    return Math.min(7, 3 + Math.floor(score / 8));
   }
 
   function getGroupSize() {
-    return Math.min(4, 1 + Math.floor(score / 10));
+    return Math.min(3, 1 + Math.floor(score / 15));
   }
 
   /* =======================================================

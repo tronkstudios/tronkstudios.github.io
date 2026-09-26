@@ -1332,3 +1332,38 @@ body.antitronks-open {
 .project-description p:last-child {
   margin-bottom: 0;
 }
+
+/* ===== Sobre nosotros ===== */
+.about-card {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 28px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.about-logo {
+  flex-shrink: 0;
+  width: 96px;
+  height: 96px;
+  border-radius: 20px;
+  object-fit: cover;
+}
+
+.about-text {
+  margin: 0;
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+@media (max-width: 600px) {
+  .about-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 22px 18px;
+  }
+}
