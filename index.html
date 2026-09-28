@@ -83,13 +83,16 @@
     }
   </script>
 
-  <link rel="stylesheet" href="styles.css?v=11" />
+  <link rel="stylesheet" href="styles.css?v=12" />
 
   <script
     src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
   ></script>
 
   <script src="script.js?v=11" defer></script>
+
+  <!-- Sistema de soporte (chat con IA + formulario de correo) -->
+  <script src="support.js?v=1" defer></script>
 </head>
 
 <body>
@@ -122,6 +125,17 @@
       </nav>
 
       <div class="header-actions">
+
+        <button
+          id="support-button"
+          class="nav-support-button"
+          type="button"
+          aria-haspopup="dialog"
+          aria-controls="support-menu-modal"
+          data-open-support
+        >
+          🛟 Soporte
+        </button>
 
         <button
           id="account-button"
@@ -648,12 +662,15 @@
       © <span id="year"></span> TronkStudios
     </p>
 
-    <p>
-      Soporte:
-      <a href="mailto:tronkstudios7@gmail.com">
-        tronkstudios7@gmail.com
-      </a>
-    </p>
+    <button
+      class="footer-suggestion-button"
+      type="button"
+      aria-haspopup="dialog"
+      aria-controls="support-menu-modal"
+      data-open-support
+    >
+      🛟 ¿Necesitas ayuda? Soporte
+    </button>
 
   </div>
 </footer>
@@ -1305,6 +1322,367 @@
 
     </div>
   </div>
+
+
+  <!-- =====================================================
+       SOPORTE · MENÚ (elige IA o correo)
+       Lo controla support.js
+       ===================================================== -->
+
+  <div
+    id="support-menu-modal"
+    class="modal support-modal hidden"
+    aria-hidden="true"
+  >
+
+    <div class="support-backdrop" data-support-close></div>
+
+    <div
+      class="modal-box support-panel support-menu-box"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="support-menu-title"
+    >
+
+      <button
+        class="modal-close"
+        type="button"
+        aria-label="Cerrar soporte"
+        data-support-close
+      >
+        ×
+      </button>
+
+      <h2 id="support-menu-title">
+        Soporte
+      </h2>
+
+      <p class="modal-description">
+        ¿Cómo quieres que te ayudemos?
+      </p>
+
+      <div class="support-options">
+
+        <button
+          id="support-option-chat"
+          class="support-option"
+          type="button"
+        >
+          <span class="support-option-icon" aria-hidden="true">🤖</span>
+          <span class="support-option-text">
+            <strong>Hablar con una IA</strong>
+            <span>Respuestas al momento sobre juegos, errores, tu cuenta o la web.</span>
+          </span>
+        </button>
+
+        <button
+          id="support-option-mail"
+          class="support-option"
+          type="button"
+        >
+          <span class="support-option-icon" aria-hidden="true">✉️</span>
+          <span class="support-option-text">
+            <strong>Enviar un correo</strong>
+            <span>Escríbenos y te responderemos a tu correo electrónico.</span>
+          </span>
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       SOPORTE · CHAT CON IA
+       ===================================================== -->
+
+  <div
+    id="support-chat-modal"
+    class="modal support-modal support-modal-large hidden"
+    aria-hidden="true"
+  >
+
+    <div class="support-backdrop" data-support-close></div>
+
+    <div
+      class="modal-box support-panel support-chat-box"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="support-chat-title"
+    >
+
+      <header class="support-panel-header">
+
+        <button
+          class="support-back-button"
+          type="button"
+          data-support-back
+          aria-label="Volver a las opciones de soporte"
+        >
+          ←
+        </button>
+
+        <div class="support-panel-heading">
+          <h2 id="support-chat-title">
+            🤖 Asistente de soporte
+          </h2>
+          <p
+            id="support-chat-status"
+            class="support-chat-status"
+          >
+            Comprobando conexión...
+          </p>
+        </div>
+
+        <button
+          id="support-chat-reset"
+          class="support-icon-button"
+          type="button"
+          title="Nueva conversación"
+          aria-label="Empezar una nueva conversación"
+        >
+          ↺
+        </button>
+
+        <button
+          class="support-icon-button"
+          type="button"
+          aria-label="Cerrar chat"
+          data-support-close
+        >
+          ×
+        </button>
+
+      </header>
+
+      <div
+        id="support-chat-messages"
+        class="support-chat-messages"
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions"
+      ></div>
+
+      <form
+        id="support-chat-form"
+        class="support-chat-form"
+        novalidate
+      >
+
+        <label
+          for="support-chat-input"
+          class="support-visually-hidden"
+        >
+          Escribe tu pregunta
+        </label>
+
+        <textarea
+          id="support-chat-input"
+          class="support-chat-input"
+          rows="1"
+          maxlength="1000"
+          placeholder="Escribe tu pregunta..."
+          autocomplete="off"
+        ></textarea>
+
+        <button
+          id="support-chat-send"
+          class="primary-button support-send-button"
+          type="submit"
+          aria-label="Enviar pregunta"
+        >
+          Enviar
+        </button>
+
+      </form>
+
+      <p class="support-chat-footnote">
+        No compartas contraseñas ni datos privados. La conversación no se guarda.
+        <button
+          class="support-link-button"
+          type="button"
+          data-support-goto="mail"
+        >
+          ¿Prefieres escribirnos un correo?
+        </button>
+      </p>
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       SOPORTE · FORMULARIO DE CORREO
+       ===================================================== -->
+
+  <div
+    id="support-mail-modal"
+    class="modal support-modal hidden"
+    aria-hidden="true"
+  >
+
+    <div class="support-backdrop" data-support-close></div>
+
+    <div
+      class="modal-box support-panel support-mail-box"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="support-mail-title"
+    >
+
+      <header class="support-panel-header">
+
+        <button
+          class="support-back-button"
+          type="button"
+          data-support-back
+          aria-label="Volver a las opciones de soporte"
+        >
+          ←
+        </button>
+
+        <div class="support-panel-heading">
+          <h2 id="support-mail-title">
+            ✉️ Enviar un correo
+          </h2>
+          <p class="support-chat-status">
+            Te responderemos al correo que indiques.
+          </p>
+        </div>
+
+        <button
+          class="support-icon-button"
+          type="button"
+          aria-label="Cerrar formulario"
+          data-support-close
+        >
+          ×
+        </button>
+
+      </header>
+
+      <p
+        id="support-mail-notice"
+        class="support-notice hidden"
+      ></p>
+
+      <form
+        id="support-mail-form"
+        novalidate
+      >
+
+        <label for="support-mail-name">
+          Nombre
+        </label>
+        <input
+          id="support-mail-name"
+          name="name"
+          type="text"
+          minlength="2"
+          maxlength="60"
+          required
+          autocomplete="name"
+        />
+
+        <label for="support-mail-email">
+          Correo electrónico
+        </label>
+        <input
+          id="support-mail-email"
+          name="email"
+          type="email"
+          maxlength="254"
+          required
+          autocomplete="email"
+          placeholder="Para poder responderte"
+        />
+
+        <label for="support-mail-subject">
+          Asunto
+        </label>
+        <input
+          id="support-mail-subject"
+          name="subject"
+          type="text"
+          minlength="3"
+          maxlength="120"
+          required
+        />
+
+        <label for="support-mail-category">
+          Categoría del problema
+        </label>
+        <select
+          id="support-mail-category"
+          name="category"
+          required
+        >
+          <option value="" selected disabled>
+            Elige una categoría
+          </option>
+          <option value="Juegos">Juegos</option>
+          <option value="Aplicaciones">Aplicaciones</option>
+          <option value="Cuenta">Cuenta</option>
+          <option value="Error técnico">Error técnico</option>
+          <option value="Otros">Otros</option>
+        </select>
+
+        <label for="support-mail-message">
+          Descripción del problema
+        </label>
+        <textarea
+          id="support-mail-message"
+          name="message"
+          rows="6"
+          minlength="20"
+          maxlength="4000"
+          required
+          placeholder="Cuéntanos qué ha pasado, en qué juego o sección y qué estabas haciendo."
+        ></textarea>
+
+        <p class="character-counter">
+          <span id="support-mail-count">0</span>/4000
+        </p>
+
+        <!-- Campo trampa anti-spam: las personas no lo ven -->
+        <div class="support-honeypot" aria-hidden="true">
+          <label for="support-mail-website">No rellenes este campo</label>
+          <input
+            id="support-mail-website"
+            name="website"
+            type="text"
+            tabindex="-1"
+            autocomplete="off"
+          />
+        </div>
+
+        <!-- Aquí aparece la verificación anti-bots (Cloudflare Turnstile) si está configurada -->
+        <div id="support-turnstile" class="support-turnstile"></div>
+
+        <button
+          id="support-mail-submit"
+          class="primary-button full-button"
+          type="submit"
+        >
+          Enviar mensaje
+        </button>
+
+      </form>
+
+      <div
+        id="support-mail-result"
+        class="support-result hidden"
+        role="status"
+        aria-live="polite"
+      ></div>
+
+    </div>
+
+  </div>
+
 
 </body>
 </html>

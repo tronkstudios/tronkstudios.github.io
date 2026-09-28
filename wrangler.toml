@@ -1,0 +1,45 @@
+# =========================================================
+# Configuración del backend de soporte de TronkStudios
+# (Cloudflare Worker)
+#
+# Aquí SOLO van valores públicos. Las claves secretas se guardan con:
+#   npx wrangler secret put AI_API_KEY
+#   npx wrangler secret put RESEND_API_KEY
+#   npx wrangler secret put SUPPORT_EMAIL_TO
+#   npx wrangler secret put TURNSTILE_SECRET   (opcional)
+# =========================================================
+
+name = "tronkstudios-support"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+
+[vars]
+# Webs que pueden usar este backend (separadas por comas, sin barra final).
+# Para probar en local puedes añadir: ,http://127.0.0.1:5500
+ALLOWED_ORIGINS = "https://tronkstudios.github.io"
+
+# Proveedor de IA: "anthropic" o "openai-compatible"
+AI_PROVIDER = "anthropic"
+
+# Modelo del proveedor elegido (cámbialo si usas otro proveedor)
+AI_MODEL = "claude-haiku-4-5-20251001"
+
+# Solo para "openai-compatible": dirección base de la API, por ejemplo
+# "https://api.proveedor.com/v1". Con "anthropic" se deja vacío.
+AI_BASE_URL = ""
+
+# Remitente de los correos del formulario.
+# Sin dominio propio en Resend, usa exactamente este.
+MAIL_FROM = "Soporte TronkStudios <onboarding@resend.dev>"
+
+# Límite de peticiones por visitante (IP) gestionado por Cloudflare.
+# period solo puede ser 10 o 60 segundos.
+[[ratelimits]]
+name = "CHAT_LIMITER"
+namespace_id = "1001"
+simple = { limit = 8, period = 60 }
+
+[[ratelimits]]
+name = "CONTACT_LIMITER"
+namespace_id = "1002"
+simple = { limit = 2, period = 60 }
