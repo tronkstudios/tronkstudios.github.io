@@ -24,7 +24,7 @@ const SUPPORT_CONFIG = {
    *  - el chat muestra que el servicio no está configurado;
    *  - el formulario abre la aplicación de correo del usuario.
    */
-  apiBaseUrl: "",
+  apiBaseUrl: "https://tronkstudios-support.tronkstudios7.workers.dev",
 
   /*
    * Correo de soporte PÚBLICO. Solo se usa para el plan B
