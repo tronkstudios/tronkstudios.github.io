@@ -1367,3 +1367,492 @@ body.antitronks-open {
     padding: 22px 18px;
   }
 }
+
+/* =========================================================
+   SOPORTE (menú, chat con IA y formulario de correo)
+   Usa las mismas variables de color que el resto de la web,
+   así que se adapta solo al modo claro y oscuro.
+   ========================================================= */
+
+/* Botón «Soporte» de la cabecera (junto a Cuenta y Tema) */
+.nav-support-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  font-weight: 800;
+  color: #fff;
+  background: var(--accent);
+  white-space: nowrap;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.nav-support-button:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+@media (max-width: 700px) {
+  .nav-support-button {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+/* Fondo oscuro de los paneles de soporte */
+.support-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+}
+
+/* Animación de apertura */
+.support-modal:not(.hidden) .support-panel {
+  animation: support-pop 0.22s ease-out;
+}
+
+@keyframes support-pop {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- Menú de opciones ---------- */
+
+.support-menu-box {
+  width: min(460px, 100%);
+}
+
+.support-options {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.support-option {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 1rem;
+  text-align: left;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.support-option:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.14);
+}
+
+.support-option-icon {
+  flex: 0 0 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  font-size: 1.6rem;
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+
+.support-option-text strong {
+  display: block;
+  font-size: 1.05rem;
+}
+
+.support-option-text span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* ---------- Cabecera común de chat y correo ---------- */
+
+.support-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+
+.support-panel-heading {
+  flex: 1;
+  min-width: 0;
+}
+
+.modal-box .support-panel-heading h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.support-chat-status {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.support-chat-status.is-online::before,
+.support-chat-status.is-offline::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 0.4rem;
+  border-radius: 50%;
+  vertical-align: middle;
+  background: var(--success);
+}
+
+.support-chat-status.is-offline::before {
+  background: var(--danger);
+}
+
+.support-back-button,
+.support-icon-button {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.support-icon-button:last-child {
+  font-size: 1.5rem;
+}
+
+.support-back-button:hover,
+.support-icon-button:hover {
+  background: var(--border);
+}
+
+/* ---------- Chat ---------- */
+
+.support-modal-large .support-chat-box {
+  width: min(600px, 100%);
+  height: min(680px, 90vh);
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 1.1rem;
+}
+
+.support-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.9rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  scrollbar-color: var(--scroll-thumb) var(--scroll-track);
+}
+
+.support-bubble {
+  max-width: 85%;
+  padding: 0.65rem 0.9rem;
+  border-radius: 16px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.95rem;
+}
+
+.support-bubble.from-user {
+  align-self: flex-end;
+  background: var(--accent);
+  color: #fff;
+  border-bottom-right-radius: 6px;
+}
+
+.support-bubble.from-ai {
+  align-self: flex-start;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 6px;
+}
+
+.support-bubble.is-error {
+  align-self: center;
+  max-width: 95%;
+  background: transparent;
+  border: 1px dashed var(--danger);
+  color: var(--danger);
+  text-align: center;
+  font-size: 0.88rem;
+}
+
+.support-bubble.is-info {
+  align-self: center;
+  max-width: 95%;
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.88rem;
+}
+
+.support-bubble-action {
+  display: inline-block;
+  margin-top: 0.6rem;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 0.35rem 0.8rem;
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+
+.support-bubble-action:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Indicador «la IA está escribiendo» */
+.support-typing {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.75rem 0.95rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  border-bottom-left-radius: 6px;
+}
+
+.support-typing span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  animation: support-typing 1.1s infinite ease-in-out;
+}
+
+.support-typing span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.support-typing span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes support-typing {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+
+  30% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
+/* Formulario del chat (sobrescribe el estilo general de formularios de los modales) */
+.modal-box .support-chat-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.modal-box .support-chat-input {
+  flex: 1;
+  resize: none;
+  min-height: 44px;
+  max-height: 140px;
+  line-height: 1.4;
+}
+
+.modal-box .support-chat-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.support-send-button {
+  flex: 0 0 auto;
+  min-height: 44px;
+}
+
+.support-send-button:disabled,
+#support-mail-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.support-chat-footnote {
+  margin: 0.6rem 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.support-link-button {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+  font-weight: 800;
+  font-size: inherit;
+}
+
+.support-link-button:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Formulario de correo ---------- */
+
+.support-mail-box {
+  width: min(540px, 100%);
+}
+
+.support-notice {
+  margin: 0 0 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.support-honeypot {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.support-turnstile:empty {
+  display: none;
+}
+
+.support-result {
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.support-result.is-success {
+  border-color: var(--success);
+}
+
+.support-result.is-error {
+  border-color: var(--danger);
+}
+
+.support-result strong {
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+.support-result.is-success strong {
+  color: var(--success);
+}
+
+.support-result.is-error strong {
+  color: var(--danger);
+}
+
+.support-result p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.support-result .support-bubble-action {
+  margin-top: 0.7rem;
+}
+
+.support-field-error {
+  border-color: var(--danger) !important;
+}
+
+.support-visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- Móvil ---------- */
+
+@media (max-width: 700px) {
+  .modal-box .support-chat-form .support-send-button {
+    width: auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .support-modal-large {
+    padding: 0;
+  }
+
+  .support-modal-large .support-chat-box {
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    border-radius: 0;
+    border: 0;
+    padding: 0.8rem;
+    padding-top: calc(0.8rem + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(0.8rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .support-bubble {
+    max-width: 92%;
+  }
+
+  .modal-box .support-panel-heading h2 {
+    font-size: 1.05rem;
+  }
+
+  .support-option {
+    padding: 0.85rem;
+  }
+}
+
+/* Sin animaciones si el sistema lo pide */
+@media (prefers-reduced-motion: reduce) {
+  .support-modal:not(.hidden) .support-panel,
+  .support-typing span {
+    animation: none;
+  }
+
+  .support-option,
+  .support-option:hover {
+    transition: none;
+    transform: none;
+  }
+}
