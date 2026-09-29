@@ -5923,6 +5923,12 @@ function initializeStickDrillGame() {
   const INTRO_TEXT =
     "Esquiva el taladro que rebota por las paredes. El que caiga primero pierde. Jugador 1 (azul): W A S D. Jugador 2 (rojo): flechas.";
 
+  const TOUCH_INTRO_TEXT =
+    "Esquiva el taladro que rebota por las paredes. El que caiga primero pierde. Mueve a tu stickman con el joystick: J1 (azul) a la izquierda, J2 (rojo) a la derecha.";
+
+  // Joystick: por debajo de esta inclinación (0..1) no se mueve.
+  const STICK_DEADZONE = 0.2;
+
   /* =======================================================
      ESTADO
      ======================================================= */
@@ -5959,6 +5965,14 @@ function initializeStickDrillGame() {
   let messageTimer = 0;
 
   const keys = new Set();
+
+  // Dirección de cada joystick táctil (J1 y J2), de -1 a 1.
+  const sticks = {
+    1: { x: 0, y: 0 },
+    2: { x: 0, y: 0 }
+  };
+
+  let touchMode = false;
 
   /* =======================================================
      UTILIDADES
@@ -6004,6 +6018,11 @@ function initializeStickDrillGame() {
 
   function drillSpeed() {
     return Math.min(0.95, 0.33 + time * 0.012);
+  }
+
+  function introWithRecord() {
+    const intro = touchMode ? TOUCH_INTRO_TEXT : INTRO_TEXT;
+    return record > 0 ? `${intro} Récord: ${fmt(record)}.` : intro;
   }
 
   /* =======================================================
@@ -6110,6 +6129,7 @@ function initializeStickDrillGame() {
   }
 
   function setupRound() {
+    modal.dataset.mode = mode;
     time = 0;
     extraIndex = 0;
     particles = [];
@@ -6201,7 +6221,7 @@ function initializeStickDrillGame() {
     }
 
     if (overlayText) {
-      overlayText.textContent = record > 0 ? `${INTRO_TEXT} Récord: ${fmt(record)}.` : INTRO_TEXT;
+      overlayText.textContent = introWithRecord();
     }
 
     flash?.classList.remove("active");
@@ -6416,6 +6436,15 @@ function initializeStickDrillGame() {
       if (keys.has(p.right)) dx += 1;
       if (keys.has(p.up)) dy -= 1;
       if (keys.has(p.down)) dy += 1;
+
+      // Joystick táctil: misma velocidad que el teclado,
+      // solo aporta la dirección.
+      const stick = sticks[p.id];
+
+      if (stick) {
+        dx += stick.x;
+        dy += stick.y;
+      }
     }
 
     const len = Math.hypot(dx, dy);
@@ -6751,6 +6780,7 @@ function initializeStickDrillGame() {
     state = "menu";
     cancelAnimationFrame(animationFrame);
     keys.clear();
+    resetSticks();
 
     TronkSound.stopMusic();
 
@@ -6801,7 +6831,18 @@ function initializeStickDrillGame() {
     keys.delete(event.key.toLowerCase());
   });
 
-  window.addEventListener("blur", () => keys.clear());
+  window.addEventListener("blur", () => {
+    keys.clear();
+    resetSticks();
+  });
+
+  // Si cambias de app o de pestaña, nada se queda pulsado.
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      keys.clear();
+      resetSticks();
+    }
+  });
 
   window.addEventListener("resize", () => {
     if (modal.classList.contains("hidden")) {
@@ -6811,6 +6852,178 @@ function initializeStickDrillGame() {
     resize();
     draw();
   });
+
+  /* =======================================================
+     CONTROLES TÁCTILES (joysticks)
+     ======================================================= */
+
+  const pads = Array.from(modal.querySelectorAll(".stickdrill-pad"));
+  const padPointers = { 1: null, 2: null };
+  const coarseQuery = window.matchMedia
+    ? window.matchMedia("(hover: none) and (pointer: coarse)")
+    : null;
+
+  function setTouchMode(on) {
+    if (touchMode === on) {
+      return;
+    }
+
+    touchMode = on;
+    modal.classList.toggle("stickdrill-touch-mode", on);
+
+    if (!on) {
+      resetSticks();
+    }
+
+    // Actualiza el texto del menú si está a la vista.
+    if (state === "menu" && overlayText) {
+      overlayText.textContent = introWithRecord();
+    }
+
+    // El campo cambia de tamaño: se recalcula tras aplicar el CSS.
+    requestAnimationFrame(() => {
+      if (!modal.classList.contains("hidden")) {
+        resize();
+        draw();
+      }
+    });
+  }
+
+  function setKnob(pad, px, py) {
+    const knob = pad.querySelector(".stickdrill-knob");
+
+    if (knob) {
+      knob.style.setProperty("--kx", `${px}px`);
+      knob.style.setProperty("--ky", `${py}px`);
+    }
+  }
+
+  function moveStick(pad, player, clientX, clientY) {
+    const rect = pad.getBoundingClientRect();
+    const r = rect.width / 2;
+
+    if (r <= 0) {
+      return;
+    }
+
+    let x = (clientX - (rect.left + r)) / r;
+    let y = (clientY - (rect.top + rect.height / 2)) / r;
+    const len = Math.hypot(x, y);
+
+    if (len > 1) {
+      x /= len;
+      y /= len;
+    }
+
+    setKnob(pad, x * r * 0.56, y * r * 0.56);
+
+    const active = Math.hypot(x, y) >= STICK_DEADZONE;
+    sticks[player].x = active ? x : 0;
+    sticks[player].y = active ? y : 0;
+  }
+
+  function releaseStick(pad, player) {
+    const id = padPointers[player];
+    padPointers[player] = null;
+
+    sticks[player].x = 0;
+    sticks[player].y = 0;
+    pad.classList.remove("active");
+    setKnob(pad, 0, 0);
+
+    if (id !== null) {
+      try {
+        pad.releasePointerCapture(id);
+      } catch {
+        // El dedo ya no estaba capturado.
+      }
+    }
+  }
+
+  function resetSticks() {
+    for (const pad of pads) {
+      releaseStick(pad, Number(pad.dataset.player));
+    }
+  }
+
+  for (const pad of pads) {
+    const player = Number(pad.dataset.player);
+
+    if (!sticks[player]) {
+      continue;
+    }
+
+    pad.addEventListener("pointerdown", (event) => {
+      // Un solo dedo por joystick; los demás dedos van al otro.
+      if (padPointers[player] !== null) {
+        return;
+      }
+
+      event.preventDefault();
+      padPointers[player] = event.pointerId;
+
+      try {
+        // Sigue funcionando aunque el dedo salga del círculo.
+        pad.setPointerCapture(event.pointerId);
+      } catch {
+        // Navegador sin captura de puntero.
+      }
+
+      pad.classList.add("active");
+      moveStick(pad, player, event.clientX, event.clientY);
+    });
+
+    pad.addEventListener("pointermove", (event) => {
+      if (event.pointerId !== padPointers[player]) {
+        return;
+      }
+
+      event.preventDefault();
+      moveStick(pad, player, event.clientX, event.clientY);
+    });
+
+    const end = (event) => {
+      if (event.pointerId !== padPointers[player]) {
+        return;
+      }
+
+      releaseStick(pad, player);
+    };
+
+    pad.addEventListener("pointerup", end);
+    pad.addEventListener("pointercancel", end);
+    pad.addEventListener("lostpointercapture", end);
+    pad.addEventListener("contextmenu", (event) => event.preventDefault());
+  }
+
+  // Detecta si se está jugando con el dedo o con ratón.
+  const detectPointer = (event) => {
+    if (event.pointerType === "touch" || event.pointerType === "pen") {
+      setTouchMode(true);
+    } else if (event.pointerType === "mouse") {
+      setTouchMode(Boolean(coarseQuery && coarseQuery.matches));
+    }
+  };
+
+  card.addEventListener("pointerdown", detectPointer);
+  modal.addEventListener("pointerdown", detectPointer, true);
+
+  // Safari (iOS): evita el zoom con dos dedos dentro del juego.
+  modal.addEventListener("gesturestart", (event) => event.preventDefault());
+
+  // Recalcula el campo al girar el móvil o al mostrar la barra del navegador.
+  if (window.ResizeObserver) {
+    new ResizeObserver(() => {
+      if (modal.classList.contains("hidden")) {
+        return;
+      }
+
+      resize();
+      draw();
+    }).observe(game);
+  }
+
+  setTouchMode(Boolean(coarseQuery && coarseQuery.matches));
 
   showMenu();
 }
