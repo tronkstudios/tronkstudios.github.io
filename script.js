@@ -90,6 +90,48 @@ const accountName =
 const accountEmail =
   document.getElementById("account-email");
 
+/* ---------- Cambiar / recuperar contraseña ---------- */
+
+const forgotPanel =
+  document.getElementById("forgot-panel");
+
+const newPasswordPanel =
+  document.getElementById("new-password-panel");
+
+const forgotForm =
+  document.getElementById("forgot-form");
+
+const newPasswordForm =
+  document.getElementById("new-password-form");
+
+const newPasswordDescription =
+  document.getElementById("new-password-description");
+
+const showForgotButton =
+  document.getElementById("show-forgot");
+
+const forgotBackButton =
+  document.getElementById("forgot-back");
+
+const changePasswordButton =
+  document.getElementById("change-password-button");
+
+const newPasswordCancelButton =
+  document.getElementById("new-password-cancel");
+
+/*
+  true cuando el usuario llega desde el enlace
+  «cambiar contraseña» del correo. Se comprueba aquí,
+  antes de que Supabase limpie la dirección.
+*/
+let recoveryModalShown = false;
+
+let passwordRecoveryMode =
+  /type=recovery/.test(
+    window.location.hash +
+      window.location.search
+  );
+
 /* =========================================================
    SUGERENCIAS
    ========================================================= */
@@ -484,7 +526,40 @@ function showSuggestionMessage(
    PANELES DE CUENTA
    ========================================================= */
 
+function hidePasswordPanels() {
+  forgotPanel?.classList.add("hidden");
+  newPasswordPanel?.classList.add("hidden");
+}
+
+function hideAllAccountPanels() {
+  loginPanel?.classList.add("hidden");
+  registerPanel?.classList.add("hidden");
+  loggedPanel?.classList.add("hidden");
+  hidePasswordPanels();
+}
+
+function showForgotPanel() {
+  hideAllAccountPanels();
+  forgotPanel?.classList.remove("hidden");
+}
+
+function showNewPasswordPanel(fromEmailLink) {
+  hideAllAccountPanels();
+
+  if (newPasswordDescription) {
+    newPasswordDescription.textContent =
+      fromEmailLink
+        ? "Ya casi está: elige tu nueva contraseña."
+        : "Escribe la contraseña nueva que quieres usar.";
+  }
+
+  newPasswordForm?.reset();
+  newPasswordPanel?.classList.remove("hidden");
+}
+
 function showLoginPanel() {
+  hidePasswordPanels();
+
   loginPanel?.classList.remove(
     "hidden"
   );
@@ -499,6 +574,8 @@ function showLoginPanel() {
 }
 
 function showRegisterPanel() {
+  hidePasswordPanels();
+
   loginPanel?.classList.add(
     "hidden"
   );
@@ -513,6 +590,8 @@ function showRegisterPanel() {
 }
 
 function showLoggedPanel() {
+  hidePasswordPanels();
+
   loginPanel?.classList.add(
     "hidden"
   );
@@ -533,6 +612,12 @@ function showLoggedPanel() {
 async function updateAccountUI() {
   currentUser =
     await getCurrentUser();
+
+  // Viene del enlace del correo: primero tiene que elegir contraseña
+  if (passwordRecoveryMode && currentUser) {
+    showNewPasswordPanel(true);
+    return;
+  }
 
   if (!currentUser) {
     showLoginPanel();
@@ -843,6 +928,306 @@ if (registerForm) {
 }
 
 /* =========================================================
+   CAMBIAR / RECUPERAR CONTRASEÑA
+   ========================================================= */
+
+// Traduce los errores de Supabase más habituales
+function passwordErrorText(error) {
+  const text =
+    (error && error.message) || "";
+
+  if (/rate limit|security purposes|seconds/i.test(text)) {
+    return "Has pedido demasiados enlaces seguidos. Espera un minuto y vuelve a intentarlo.";
+  }
+
+  if (/different from the old/i.test(text)) {
+    return "La contraseña nueva tiene que ser distinta de la anterior.";
+  }
+
+  if (/at least 6|should be at least/i.test(text)) {
+    return "La contraseña necesita al menos 6 caracteres.";
+  }
+
+  if (/session|not authenticated|jwt/i.test(text)) {
+    return "El enlace ha caducado. Pide uno nuevo desde «¿Olvidaste tu contraseña?».";
+  }
+
+  return text || "Ha ocurrido un error. Inténtalo de nuevo.";
+}
+
+function passwordRedirectUrl() {
+  return (
+    window.location.origin +
+    window.location.pathname
+  );
+}
+
+// Abre la ventana de Cuenta en el panel de contraseña.
+// Si hay sesión: cambiarla. Si no: pedir el enlace por correo.
+async function openPasswordHelp() {
+  showAuthMessage("");
+
+  await updateAccountUI();
+
+  if (currentUser) {
+    showNewPasswordPanel(false);
+  } else {
+    showForgotPanel();
+
+    const forgotEmail =
+      document.getElementById("forgot-email");
+
+    const loginEmail =
+      document.getElementById("login-email");
+
+    if (
+      forgotEmail &&
+      !forgotEmail.value &&
+      loginEmail?.value
+    ) {
+      forgotEmail.value =
+        loginEmail.value.trim();
+    }
+  }
+
+  openModal(accountModal);
+}
+
+// Para que el soporte (Tronker) pueda abrirlo
+window.TronkAccount = {
+  openPasswordHelp
+};
+
+if (showForgotButton) {
+  showForgotButton.addEventListener(
+    "click",
+    () => {
+      showAuthMessage("");
+      openPasswordHelp();
+    }
+  );
+}
+
+if (forgotBackButton) {
+  forgotBackButton.addEventListener(
+    "click",
+    () => {
+      showAuthMessage("");
+      showLoginPanel();
+    }
+  );
+}
+
+if (changePasswordButton) {
+  changePasswordButton.addEventListener(
+    "click",
+    () => {
+      showAuthMessage("");
+      showNewPasswordPanel(false);
+    }
+  );
+}
+
+if (newPasswordCancelButton) {
+  newPasswordCancelButton.addEventListener(
+    "click",
+    async () => {
+      passwordRecoveryMode = false;
+      showAuthMessage("");
+      await updateAccountUI();
+    }
+  );
+}
+
+// Paso 1: pedir el enlace por correo
+if (forgotForm) {
+  forgotForm.addEventListener(
+    "submit",
+    async (event) => {
+      event.preventDefault();
+
+      if (!isSupabaseConfigured()) {
+        showAuthMessage(
+          "La cuenta todavía no está configurada. Primero hay que conectar Supabase.",
+          "error"
+        );
+
+        return;
+      }
+
+      const email =
+        document
+          .getElementById("forgot-email")
+          ?.value.trim() || "";
+
+      if (!email) {
+        showAuthMessage(
+          "Escribe el correo de tu cuenta.",
+          "error"
+        );
+
+        return;
+      }
+
+      const submitButton =
+        forgotForm.querySelector(
+          'button[type="submit"]'
+        );
+
+      if (submitButton) {
+        submitButton.disabled = true;
+      }
+
+      showAuthMessage(
+        "Enviando enlace..."
+      );
+
+      try {
+        const { error } =
+          await supabaseClient.auth.resetPasswordForEmail(
+            email,
+            {
+              redirectTo:
+                passwordRedirectUrl()
+            }
+          );
+
+        if (error) {
+          showAuthMessage(
+            passwordErrorText(error),
+            "error"
+          );
+
+          return;
+        }
+
+        // Mismo mensaje exista o no la cuenta (así nadie
+        // puede averiguar qué correos están registrados)
+        showAuthMessage(
+          "Si hay una cuenta con ese correo, te llegará un enlace en unos minutos. Mira también en Spam.",
+          "success"
+        );
+      } catch (error) {
+        console.error(error);
+
+        showAuthMessage(
+          "No se ha podido enviar el enlace. Inténtalo de nuevo.",
+          "error"
+        );
+      } finally {
+        if (submitButton) {
+          submitButton.disabled = false;
+        }
+      }
+    }
+  );
+}
+
+// Paso 2: guardar la contraseña nueva
+if (newPasswordForm) {
+  newPasswordForm.addEventListener(
+    "submit",
+    async (event) => {
+      event.preventDefault();
+
+      if (!isSupabaseConfigured()) {
+        showAuthMessage(
+          "La cuenta todavía no está configurada. Primero hay que conectar Supabase.",
+          "error"
+        );
+
+        return;
+      }
+
+      const password =
+        document.getElementById("new-password")
+          ?.value || "";
+
+      const repeat =
+        document.getElementById("new-password-repeat")
+          ?.value || "";
+
+      if (password.length < 6) {
+        showAuthMessage(
+          "La contraseña necesita al menos 6 caracteres.",
+          "error"
+        );
+
+        return;
+      }
+
+      if (password !== repeat) {
+        showAuthMessage(
+          "Las dos contraseñas no coinciden.",
+          "error"
+        );
+
+        return;
+      }
+
+      const submitButton =
+        newPasswordForm.querySelector(
+          'button[type="submit"]'
+        );
+
+      if (submitButton) {
+        submitButton.disabled = true;
+      }
+
+      showAuthMessage(
+        "Guardando contraseña..."
+      );
+
+      try {
+        const { error } =
+          await supabaseClient.auth.updateUser({
+            password
+          });
+
+        if (error) {
+          showAuthMessage(
+            passwordErrorText(error),
+            "error"
+          );
+
+          return;
+        }
+
+        passwordRecoveryMode = false;
+        newPasswordForm.reset();
+
+        // Quita el rastro del enlace de la dirección
+        if (window.location.hash || window.location.search) {
+          history.replaceState(
+            null,
+            "",
+            window.location.pathname
+          );
+        }
+
+        await updateAccountUI();
+
+        showAuthMessage(
+          "Contraseña cambiada correctamente.",
+          "success"
+        );
+      } catch (error) {
+        console.error(error);
+
+        showAuthMessage(
+          "No se ha podido cambiar la contraseña. Inténtalo de nuevo.",
+          "error"
+        );
+      } finally {
+        if (submitButton) {
+          submitButton.disabled = false;
+        }
+      }
+    }
+  );
+}
+
+/* =========================================================
    CERRAR SESIÓN
    ========================================================= */
 
@@ -910,7 +1295,22 @@ if (isSupabaseConfigured()) {
       currentUser =
         session?.user || null;
 
+      if (event === "PASSWORD_RECOVERY") {
+        passwordRecoveryMode = true;
+      }
+
       await updateAccountUI();
+
+      // Abre la ventana una sola vez al volver del enlace
+      if (
+        passwordRecoveryMode &&
+        currentUser &&
+        !recoveryModalShown
+      ) {
+        recoveryModalShown = true;
+        showAuthMessage("");
+        openModal(accountModal);
+      }
 
       if (
         typeof renderSuggestions ===
