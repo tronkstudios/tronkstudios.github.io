@@ -7,6 +7,17 @@
   <!-- Color de la barra del navegador en el móvil (el negro azulado del logo) -->
   <meta name="theme-color" content="#05080f" />
 
+  <!--
+    SEGURIDAD: la página solo puede cargar código y conectarse
+    a los sitios de esta lista. Si algún día añades algo externo
+    (otro servidor, vídeos incrustados...), hay que añadirlo aquí.
+  -->
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://qjjnqhbtovjcbwgcwhgl.supabase.co wss://qjjnqhbtovjcbwgcwhgl.supabase.co https://tronkstudios-support.tronkstudios7.workers.dev; frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests"
+  />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+
   <meta
     name="description"
     content="Descubre nuestros juegos, propón ideas y juega minijuegos épicos creados por los Tronks."
@@ -86,7 +97,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="styles.css?v=19" />
+  <link rel="stylesheet" href="styles.css?v=20" />
 
   <!-- Estilos de la portada (imagen principal arriba del todo) -->
   <style>
@@ -121,7 +132,7 @@
     src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
   ></script>
 
-  <script src="script.js?v=17" defer></script>
+  <script src="script.js?v=18" defer></script>
 
   <!-- Sistema de soporte (chat con Tronker + formulario de correo) -->
   <script src="support.js?v=3" defer></script>

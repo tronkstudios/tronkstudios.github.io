@@ -1316,6 +1316,11 @@ if (isSupabaseConfigured()) {
         typeof renderSuggestions ===
         "function"
       ) {
+        // Al entrar o salir, se actualiza qué sugerencias has votado
+        if (event !== "TOKEN_REFRESHED") {
+          await loadMyVotes();
+        }
+
         renderSuggestions(
           allSuggestions
         );
@@ -1386,6 +1391,9 @@ updateCharacterCounter();
    ========================================================= */
 
 let allSuggestions = [];
+
+// Sugerencias que el usuario ya ha votado (ids en texto)
+let myVotedSuggestions = new Set();
 let currentSuggestionTab =
   "all";
 
@@ -1440,6 +1448,8 @@ async function loadSuggestions() {
       return;
     }
 
+    await loadMyVotes();
+
     renderSuggestions(
       data || []
     );
@@ -1451,6 +1461,37 @@ async function loadSuggestions() {
         No se pudieron cargar las sugerencias.
       </div>
     `;
+  }
+}
+
+/* =========================================================
+   MIS VOTOS (para marcar las sugerencias ya votadas)
+   ========================================================= */
+
+async function loadMyVotes() {
+  myVotedSuggestions = new Set();
+
+  if (!isSupabaseConfigured() || !currentUser) {
+    return;
+  }
+
+  try {
+    const { data, error } =
+      await supabaseClient
+        .from("suggestion_votes")
+        .select("suggestion_id");
+
+    if (error) {
+      // Si la tabla aún no existe, simplemente no se marcan
+      console.warn("No se pudieron cargar tus votos:", error.message);
+      return;
+    }
+
+    (data || []).forEach((row) => {
+      myVotedSuggestions.add(String(row.suggestion_id));
+    });
+  } catch (error) {
+    console.error(error);
   }
 }
 
@@ -1656,11 +1697,26 @@ function createSuggestionCard(
       suggestion.votes || 0
     }`;
 
+  const alreadyVoted =
+    myVotedSuggestions.has(
+      String(suggestion.id)
+    );
+
+  if (alreadyVoted) {
+    voteButton.classList.add("voted");
+    voteButton.setAttribute("aria-pressed", "true");
+    voteButton.title = "Ya has votado esta sugerencia";
+  } else {
+    voteButton.setAttribute("aria-pressed", "false");
+    voteButton.title = "Votar esta sugerencia";
+  }
+
   voteButton.addEventListener(
     "click",
     () => {
       voteSuggestion(
-        suggestion
+        suggestion,
+        voteButton
       );
     }
   );
@@ -1824,8 +1880,7 @@ if (suggestionForm) {
               user_id: user.id,
               name,
               category,
-              idea,
-              votes: 0
+              idea
             });
 
         if (error) {
@@ -1872,45 +1927,86 @@ if (suggestionForm) {
    VOTAR
    ========================================================= */
 
+// El voto se suma en el servidor (función vote_suggestion de
+// Supabase): un voto por persona y nadie puede inventarse votos.
 async function voteSuggestion(
-  suggestion
+  suggestion,
+  button
 ) {
   if (!isSupabaseConfigured()) {
     return;
   }
 
-  const newVotes =
-    Number(
-      suggestion.votes || 0
-    ) + 1;
+  // Para votar hay que iniciar sesión
+  if (!currentUser) {
+    await updateAccountUI();
+    openModal(accountModal);
+    showAuthMessage(
+      "Inicia sesión para votar las sugerencias.",
+      "error"
+    );
+    return;
+  }
+
+  if (
+    myVotedSuggestions.has(
+      String(suggestion.id)
+    )
+  ) {
+    flashVoteButton(button, "Ya votaste");
+    return;
+  }
+
+  if (button) {
+    button.disabled = true;
+  }
 
   try {
-    const {
-      error
-    } =
-      await supabaseClient
-        .from("suggestions")
-        .update({
-          votes: newVotes
-        })
-        .eq(
-          "id",
-          suggestion.id
-        );
-
-    if (error) {
-      console.error(
-        "Error votando:",
-        error
+    const { data, error } =
+      await supabaseClient.rpc(
+        "vote_suggestion",
+        {
+          p_suggestion_id: String(suggestion.id)
+        }
       );
 
+    if (error) {
+      console.error("Error votando:", error);
+      flashVoteButton(button, "No se pudo votar");
       return;
+    }
+
+    myVotedSuggestions.add(String(suggestion.id));
+
+    if (data && data.already_voted) {
+      flashVoteButton(button, "Ya votaste");
     }
 
     await loadSuggestions();
   } catch (error) {
     console.error(error);
+    flashVoteButton(button, "No se pudo votar");
+  } finally {
+    if (button) {
+      button.disabled = false;
+    }
   }
+}
+
+// Cambia el texto del botón un momento y lo devuelve a su estado
+function flashVoteButton(button, text) {
+  if (!button) {
+    return;
+  }
+
+  const original = button.textContent;
+  button.textContent = text;
+
+  setTimeout(() => {
+    if (button.isConnected) {
+      button.textContent = original;
+    }
+  }, 1500);
 }
 
 /* =========================================================
