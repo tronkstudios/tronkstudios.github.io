@@ -2,7 +2,7 @@
 
 /* =========================================================
    TRONKSTUDIOS - SISTEMA DE SOPORTE
-   Menú «Soporte» → chat con IA o formulario de correo.
+   Menú «Soporte» → chat con respuestas guiadas o formulario de correo.
 
    Este archivo NO contiene claves secretas y no debe
    contenerlas nunca: se publica en GitHub Pages y cualquiera
@@ -20,9 +20,9 @@ const SUPPORT_CONFIG = {
    * SIN barra al final. Ejemplo:
    * "https://tronkstudios-support.tu-subdominio.workers.dev"
    *
-   * Mientras esté vacía:
-   *  - el chat muestra que el servicio no está configurado;
-   *  - el formulario abre la aplicación de correo del usuario.
+   * Mientras esté vacía, el formulario abre la aplicación
+   * de correo del usuario. (El chat no la necesita: funciona
+   * con un guion fijo y no se conecta a ningún servidor.)
    */
   apiBaseUrl: "https://tronkstudios-support.tronkstudios7.workers.dev",
 
@@ -49,8 +49,6 @@ const SUPPORT_CONFIG = {
      CONSTANTES
      ========================================================= */
 
-  const MAX_CHAT_MESSAGE = 1000;
-  const MAX_HISTORY_SENT = 12;
   const MAIL_LIMITS = {
     name: [2, 60],
     subject: [3, 120],
@@ -65,14 +63,6 @@ const SUPPORT_CONFIG = {
   ];
   const MIN_FILL_TIME_MS = 3000;
   const MAIL_COOLDOWN_MS = 60000;
-  const CONTACT_MARKER = "[CONTACTO]";
-
-  const WELCOME_TEXT =
-    "¡Hola! Soy el asistente de soporte de TronkStudios. " +
-    "Puedo ayudarte con problemas en los juegos y minijuegos, errores técnicos, " +
-    "tu cuenta, las sugerencias o cualquier duda sobre la web.\n\n" +
-    "Soy una IA y puedo equivocarme. Si no sé resolver algo, " +
-    "te propondré escribir al equipo por correo.";
 
   /* =========================================================
      ELEMENTOS
@@ -88,9 +78,7 @@ const SUPPORT_CONFIG = {
   }
 
   const chatMessages = document.getElementById("support-chat-messages");
-  const chatForm = document.getElementById("support-chat-form");
-  const chatInput = document.getElementById("support-chat-input");
-  const chatSend = document.getElementById("support-chat-send");
+  const chatOptions = document.getElementById("support-chat-options");
   const chatStatus = document.getElementById("support-chat-status");
   const chatReset = document.getElementById("support-chat-reset");
 
@@ -116,8 +104,7 @@ const SUPPORT_CONFIG = {
   let activeModal = null;
   let lastOpener = null;
 
-  // Historial del chat. No se guarda en localStorage ni en ningún servidor.
-  let chatHistory = [];
+  // Estado del chat. No se guarda en ningún sitio.
   let chatBusy = false;
   let chatStarted = false;
 
@@ -142,15 +129,6 @@ const SUPPORT_CONFIG = {
 
   function isApiConfigured() {
     return /^https:\/\//i.test(apiBase());
-  }
-
-  // Oculta cosas que parecen contraseñas, tokens o claves antes de enviarlas a la IA
-  function redactSecrets(text) {
-    return String(text)
-      .replace(/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{5,}/g, "[dato ocultado]")
-      .replace(/\bsb_(?:publishable|secret)_[A-Za-z0-9_-]{8,}/gi, "[dato ocultado]")
-      .replace(/\b(?:sk|pk|rk)[-_][A-Za-z0-9_-]{16,}/g, "[dato ocultado]")
-      .replace(/((?:contraseña|contrasena|password|passwd|clave|pass)\s*(?:es|:|=)\s*)\S+/gi, "$1[dato ocultado]");
   }
 
   async function fetchWithTimeout(url, options = {}) {
@@ -268,7 +246,7 @@ const SUPPORT_CONFIG = {
   }
 
   function openChat() {
-    showModal(chatModal, chatInput.disabled ? null : chatInput);
+    showModal(chatModal, chatOptions.querySelector("button"));
 
     if (!chatStarted) {
       startChat();
@@ -336,8 +314,323 @@ const SUPPORT_CONFIG = {
   });
 
   /* =========================================================
-     CHAT CON IA
+     CHAT CON IA (guion fijo: el usuario solo elige opciones)
+
+     Cada paso tiene:
+       msg:     lo que dice el asistente (texto o lista de textos)
+       options: botones [texto, destino]
+
+     El destino puede ser el nombre de otro paso o una acción:
+       "@correo"   → abre el formulario de correo de soporte
+       "@cuenta"   → cierra el soporte y abre la ventana de Cuenta
+       "@sugerir"  → cierra el soporte y abre «Sugerir una idea»
+       "@cerrar"   → cierra el soporte
      ========================================================= */
+
+  const GUION = {
+    inicio: {
+      msg: [
+        "¡Hola! Soy el asistente de soporte de TronkStudios.",
+        "Elige la opción que describe tu problema."
+      ],
+      options: [
+        ["🔑 No puedo iniciar sesión", "login"],
+        ["🔒 Olvidé mi contraseña", "pass"],
+        ["👤 No puedo crear una cuenta", "registro"],
+        ["🎮 Un minijuego no carga o va mal", "juego"],
+        ["🐞 Quiero reportar un fallo", "bug"],
+        ["💡 Quiero enviar una sugerencia", "sugerencia"],
+        ["🗑️ Quiero borrar mi cuenta", "borrar"],
+        ["🙋 Hablar con el equipo", "humano"]
+      ]
+    },
+
+    /* ---------- INICIO DE SESIÓN ---------- */
+    login: {
+      msg: "Vamos a arreglarlo. ¿Qué mensaje te sale al intentar entrar?",
+      options: [
+        ["«Invalid login credentials»", "login_pass"],
+        ["«Email not confirmed»", "login_confirm"],
+        ["«Ha ocurrido un error al iniciar sesión»", "login_carga"],
+        ["No pasa nada o se queda en «Iniciando sesión...»", "login_carga"]
+      ]
+    },
+    login_pass: {
+      msg: [
+        "Ese mensaje significa que el correo o la contraseña no coinciden. Prueba esto, en orden:",
+        "1. Revisa que no tengas el bloqueo de mayúsculas activado.\n" +
+          "2. Comprueba que el correo esté bien escrito, sin espacios al final.\n" +
+          "3. Asegúrate de que usas el mismo correo con el que creaste la cuenta.\n" +
+          "4. Si nunca llegaste a crear la cuenta, créala primero.",
+        "¿Has podido entrar?"
+      ],
+      options: [
+        ["✅ Sí, ya entré", "resuelto"],
+        ["🔒 No recuerdo la contraseña", "pass"],
+        ["👤 Creo que no tengo cuenta", "registro_nueva"]
+      ]
+    },
+    login_confirm: {
+      msg: [
+        "Al crear la cuenta te enviamos un correo de confirmación. Tienes que pulsar el enlace de ese correo antes de poder entrar.",
+        "1. Busca en tu bandeja de entrada un correo de confirmación.\n" +
+          "2. Mira también en Spam y en Promociones.\n" +
+          "3. Pulsa el enlace: te devolverá a esta web y ya podrás iniciar sesión.",
+        "¿Lo has encontrado?"
+      ],
+      options: [
+        ["✅ Sí, ya está confirmada", "resuelto"],
+        ["📭 No me llega ningún correo", "humano"]
+      ]
+    },
+    login_carga: {
+      msg: [
+        "Suele ser cosa del navegador. Prueba:",
+        "1. Recarga la página con Ctrl + F5 (o Cmd + Mayús + R en Mac).\n" +
+          "2. Abre la web en una ventana de incógnito.\n" +
+          "3. Desactiva un momento los bloqueadores de anuncios.\n" +
+          "4. Prueba con otro navegador (Chrome, Firefox o Edge).",
+        "¿Ha funcionado?"
+      ],
+      options: [
+        ["✅ Sí, ya funciona", "resuelto"],
+        ["❌ No, sigue igual", "caida"]
+      ]
+    },
+    caida: {
+      msg: [
+        "Entonces puede que el servidor de cuentas esté teniendo problemas en este momento.",
+        "Espera unos 15 minutos y vuelve a intentarlo. Mientras tanto, los minijuegos se pueden jugar sin iniciar sesión.",
+        "¿Quieres avisar al equipo igualmente?"
+      ],
+      options: [
+        ["✉️ Sí, avisar al equipo", "@correo"],
+        ["No, esperaré", "fin_pregunta"]
+      ]
+    },
+
+    /* ---------- CONTRASEÑA ---------- */
+    pass: {
+      msg: [
+        "Ahora mismo la web no tiene un botón para cambiar la contraseña tú mismo.",
+        "Escríbenos desde el formulario de correo con la categoría «Cuenta», usando el mismo correo de tu cuenta, y el equipo te ayudará a recuperarla.",
+        "Nunca te pediremos tu contraseña: no la escribas en el mensaje."
+      ],
+      options: [
+        ["✉️ Escribir al equipo", "@correo"],
+        ["✅ La he recordado", "resuelto"]
+      ]
+    },
+
+    /* ---------- REGISTRO ---------- */
+    registro: {
+      msg: "¿Qué pasa al intentar crear la cuenta?",
+      options: [
+        ["«User already registered»", "reg_usado"],
+        ["Me dice algo de la contraseña", "reg_pass"],
+        ["Me dice que revise mi correo", "login_confirm"],
+        ["No pasa nada o sale un error", "login_carga"]
+      ]
+    },
+    registro_nueva: {
+      msg: [
+        "Para crear una cuenta, pulsa «👤 Cuenta» arriba del todo y luego «Crear cuenta».",
+        "Después tendrás que confirmar tu correo con el enlace que te enviaremos."
+      ],
+      options: [
+        ["👤 Abrir la ventana de Cuenta", "@cuenta"],
+        ["Tengo otro problema", "inicio"]
+      ]
+    },
+    reg_usado: {
+      msg: [
+        "Eso significa que ya existe una cuenta con ese correo. Prueba a iniciar sesión con él.",
+        "¿Qué quieres hacer?"
+      ],
+      options: [
+        ["👤 Iniciar sesión", "@cuenta"],
+        ["🔒 No recuerdo la contraseña", "pass"],
+        ["✅ Ya lo he resuelto", "resuelto"]
+      ]
+    },
+    reg_pass: {
+      msg: [
+        "La contraseña necesita al menos 6 caracteres. Te recomendamos mezclar letras y números.",
+        "¿Ya te deja?"
+      ],
+      options: [
+        ["✅ Sí, cuenta creada", "resuelto"],
+        ["❌ No, sigue sin dejarme", "humano"]
+      ]
+    },
+
+    /* ---------- MINIJUEGOS ---------- */
+    juego: {
+      msg: "¿Qué minijuego te da problemas?",
+      options: [
+        ["Antitronks", "juego_tipo"],
+        ["Protect Mogos", "juego_tipo"],
+        ["Stick Drill", "juego_tipo"],
+        ["Todos", "juego_tipo"]
+      ]
+    },
+    juego_tipo: {
+      msg: "¿Qué le pasa exactamente?",
+      options: [
+        ["No carga o se queda en blanco/negro", "juego_nocarga"],
+        ["Va lento o a tirones", "juego_lento"],
+        ["Los controles no responden", "juego_controles"],
+        ["No hay sonido", "juego_sonido"],
+        ["Se ha borrado mi récord", "juego_record"]
+      ]
+    },
+    juego_nocarga: {
+      msg: [
+        "Prueba esto:",
+        "1. Recarga la página con Ctrl + F5.\n" +
+          "2. Asegúrate de que tu navegador está actualizado.\n" +
+          "3. Desactiva un momento las extensiones o bloqueadores.\n" +
+          "4. Si estás en el móvil, prueba en un ordenador.",
+        "¿Ya carga?"
+      ],
+      options: [
+        ["✅ Sí, ya funciona", "resuelto"],
+        ["❌ No, sigue sin cargar", "bug"]
+      ]
+    },
+    juego_lento: {
+      msg: [
+        "Para que vaya más fluido:",
+        "1. Cierra otras pestañas y programas abiertos.\n" +
+          "2. Si usas un portátil, enchúfalo al cargador.\n" +
+          "3. En Chrome, activa «Usar aceleración de hardware» en Configuración > Sistema.",
+        "¿Va mejor?"
+      ],
+      options: [
+        ["✅ Sí, mucho mejor", "resuelto"],
+        ["❌ No, sigue igual", "bug"]
+      ]
+    },
+    juego_controles: {
+      msg: [
+        "Haz clic una vez dentro del juego antes de empezar, para que las teclas le lleguen al juego y no a la página.",
+        "En Stick Drill, el jugador 1 usa W A S D y el jugador 2 las flechas. En móvil o tablet se juega con los joysticks de los lados.",
+        "¿Ya responde?"
+      ],
+      options: [
+        ["✅ Sí, ya funciona", "resuelto"],
+        ["❌ No", "bug"]
+      ]
+    },
+    juego_sonido: {
+      msg: [
+        "Cada minijuego tiene un botón de altavoz arriba, junto a la ×. Si ves 🔇, púlsalo para volver a activar el sonido.",
+        "Comprueba también que el volumen del dispositivo está subido y que la pestaña no está silenciada.",
+        "¿Ya se oye?"
+      ],
+      options: [
+        ["✅ Sí", "resuelto"],
+        ["❌ No", "bug"]
+      ]
+    },
+    juego_record: {
+      msg: [
+        "Los récords se guardan en tu navegador, no en tu cuenta. Por eso se pierden si:",
+        "• Juegas en otro navegador o en otro dispositivo.\n" +
+          "• Juegas en una ventana de incógnito.\n" +
+          "• Borras los datos o las cookies del navegador.",
+        "Si juegas siempre en el mismo navegador y sin borrar datos, tu récord se mantendrá."
+      ],
+      options: [
+        ["👍 Entendido", "fin_pregunta"],
+        ["🐞 No era nada de eso", "bug"]
+      ]
+    },
+
+    /* ---------- FALLOS Y SUGERENCIAS ---------- */
+    bug: {
+      msg: [
+        "Gracias por avisar. Envía un correo al equipo con la categoría «Error técnico» y cuenta:",
+        "• Qué juego o parte de la web falla.\n" +
+          "• Qué estabas haciendo cuando pasó.\n" +
+          "• Qué navegador y dispositivo usas."
+      ],
+      options: [
+        ["✉️ Escribir al equipo", "@correo"],
+        ["Tengo otro problema", "inicio"]
+      ]
+    },
+    sugerencia: {
+      msg: [
+        "¡Nos encanta recibir ideas! Puedes publicarla en la sección Comunidad con el botón «💡 Sugerir una idea».",
+        "Para publicar necesitas haber iniciado sesión."
+      ],
+      options: [
+        ["💡 Sugerir una idea ahora", "@sugerir"],
+        ["Tengo otro problema", "inicio"]
+      ]
+    },
+
+    /* ---------- BORRAR CUENTA ---------- */
+    borrar: {
+      msg: [
+        "Borrar la cuenta elimina también tus sugerencias, y no se puede deshacer.",
+        "¿Seguro que quieres seguir?"
+      ],
+      options: [
+        ["Sí, quiero borrarla", "borrar_si"],
+        ["No, mejor no", "fin_pregunta"]
+      ]
+    },
+    borrar_si: {
+      msg:
+        "Envía un correo al equipo con la categoría «Cuenta», desde el mismo correo de tu cuenta y con el asunto «Borrar cuenta». El equipo la eliminará y te avisará.",
+      options: [
+        ["✉️ Escribir al equipo", "@correo"],
+        ["Tengo otro problema", "inicio"]
+      ]
+    },
+
+    /* ---------- HABLAR CON EL EQUIPO ---------- */
+    humano: {
+      msg:
+        "Te paso con el equipo. Rellena el formulario de correo contando tu problema y lo que ya has probado aquí, así te responderán más rápido.",
+      options: [
+        ["✉️ Escribir al equipo", "@correo"],
+        ["Tengo otro problema", "inicio"]
+      ]
+    },
+
+    /* ---------- CIERRES ---------- */
+    resuelto: {
+      msg: "¡Genial, me alegro de que esté solucionado! ¿Puedo ayudarte con algo más?",
+      options: [
+        ["Sí, otra cosa", "inicio"],
+        ["No, eso es todo", "despedida"]
+      ]
+    },
+    fin_pregunta: {
+      msg: "De acuerdo. ¿Puedo ayudarte con algo más?",
+      options: [
+        ["Sí, otra cosa", "inicio"],
+        ["No, eso es todo", "despedida"]
+      ]
+    },
+    despedida: {
+      msg: "¡Gracias por jugar a los juegos de TronkStudios! Si vuelves a tener problemas, aquí estaré.",
+      options: [
+        ["Tengo otro problema", "inicio"],
+        ["Cerrar el chat", "@cerrar"]
+      ]
+    }
+  };
+
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, reduceMotion ? 0 : ms));
+
+  // Cambia cada vez que se reinicia el chat, para que los mensajes
+  // que aún se estaban «escribiendo» no se mezclen con los nuevos.
+  let chatRun = 0;
 
   function scrollChatToBottom() {
     chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -346,21 +639,11 @@ const SUPPORT_CONFIG = {
   function addBubble(text, type) {
     const bubble = document.createElement("div");
     bubble.className = `support-bubble ${type}`;
-    // textContent: nunca se interpreta como HTML (evita inyecciones)
+    // textContent: nunca se interpreta como HTML
     bubble.textContent = text;
     chatMessages.appendChild(bubble);
     scrollChatToBottom();
     return bubble;
-  }
-
-  function addEmailAction(bubble) {
-    const action = document.createElement("button");
-    action.type = "button";
-    action.className = "support-bubble-action";
-    action.textContent = "✉️ Enviar un correo";
-    action.addEventListener("click", openMail);
-    bubble.appendChild(document.createElement("br"));
-    bubble.appendChild(action);
   }
 
   function showTyping() {
@@ -373,209 +656,101 @@ const SUPPORT_CONFIG = {
     return typing;
   }
 
-  function setChatStatus(text, state) {
-    chatStatus.textContent = text;
-    chatStatus.classList.toggle("is-online", state === "online");
-    chatStatus.classList.toggle("is-offline", state === "offline");
+  // Cierra el soporte y pulsa un botón de la propia web (Cuenta, Sugerir...)
+  function openFromChat(buttonId) {
+    closeSupport();
+    document.getElementById(buttonId)?.click();
   }
 
-  function setChatEnabled(enabled) {
-    chatInput.disabled = !enabled;
-    chatSend.disabled = !enabled || chatBusy;
+  function runAction(destination) {
+    if (destination === "@correo") {
+      openMail();
+    } else if (destination === "@cuenta") {
+      openFromChat("account-button");
+    } else if (destination === "@sugerir") {
+      openFromChat("new-suggestion-button");
+    } else if (destination === "@cerrar") {
+      closeSupport();
+    }
   }
 
-  function showNotConfigured() {
-    setChatStatus("Servicio no configurado", "offline");
-    setChatEnabled(false);
+  function renderOptions(stepName, options) {
+    chatOptions.innerHTML = "";
 
-    const info = addBubble(
-      "El chat con IA todavía no está conectado a ningún servicio de inteligencia artificial, " +
-        "así que ahora mismo no puede responder. Mientras tanto, puedes escribirnos por correo.",
-      "is-info"
-    );
+    const list = options.slice();
 
-    addEmailAction(info);
-  }
-
-  async function startChat() {
-    chatStarted = true;
-    chatMessages.innerHTML = "";
-    chatHistory = [];
-
-    addBubble(WELCOME_TEXT, "from-ai");
-
-    if (!isApiConfigured()) {
-      showNotConfigured();
-      return;
+    if (stepName !== "inicio" && stepName !== "despedida") {
+      list.push(["↩ Volver al menú", "inicio", true]);
     }
 
-    setChatStatus("Comprobando conexión...", null);
-    setChatEnabled(false);
+    list.forEach(([label, destination, secondary]) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = secondary ? "support-chat-option is-secondary" : "support-chat-option";
+      button.textContent = label;
 
-    const health = await checkHealth();
+      button.addEventListener("click", () => {
+        if (chatBusy) {
+          return;
+        }
 
-    if (!health.reachable) {
-      setChatStatus("Sin conexión con el servicio", "offline");
-      setChatEnabled(true);
-      addBubble(
-        "No se ha podido conectar con el servicio de soporte. Puedes intentar escribir igualmente " +
-          "o enviarnos un correo.",
-        "is-info"
-      );
-      return;
-    }
+        if (destination.startsWith("@")) {
+          runAction(destination);
+          return;
+        }
 
-    if (!health.chat) {
-      showNotConfigured();
-      return;
-    }
-
-    setChatStatus("En línea · Asistente con IA", "online");
-    setChatEnabled(true);
-    chatInput.focus();
-  }
-
-  function autoResizeChatInput() {
-    chatInput.style.height = "auto";
-    chatInput.style.height = `${Math.min(chatInput.scrollHeight, 140)}px`;
-  }
-
-  chatInput.addEventListener("input", autoResizeChatInput);
-
-  // Enter envía; Mayús + Enter hace salto de línea
-  chatInput.addEventListener("keydown", (event) => {
-    if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
-      event.preventDefault();
-      chatForm.requestSubmit();
-    }
-  });
-
-  chatReset.addEventListener("click", () => {
-    if (chatBusy) {
-      return;
-    }
-
-    chatInput.value = "";
-    autoResizeChatInput();
-    startChat();
-  });
-
-  function chatErrorMessage(status, data) {
-    if (data && data.error === "not_configured") {
-      return "not_configured";
-    }
-
-    if (status === 429) {
-      return "Has enviado muchos mensajes seguidos. Espera un minuto y vuelve a intentarlo.";
-    }
-
-    if (status === 400 || status === 413) {
-      return "No se ha podido procesar el mensaje. Prueba a escribirlo más corto.";
-    }
-
-    return "El asistente no ha podido responder ahora mismo. Inténtalo de nuevo en unos minutos o envíanos un correo.";
-  }
-
-  chatForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-
-    if (chatBusy || chatInput.disabled) {
-      return;
-    }
-
-    const original = chatInput.value.trim();
-
-    if (!original) {
-      return;
-    }
-
-    if (original.length > MAX_CHAT_MESSAGE) {
-      addBubble(`El mensaje es demasiado largo (máximo ${MAX_CHAT_MESSAGE} caracteres).`, "is-error");
-      return;
-    }
-
-    const text = redactSecrets(original);
-
-    addBubble(text, "from-user");
-
-    if (text !== original) {
-      addBubble(
-        "He ocultado algo que parecía una contraseña o una clave. No hace falta que las compartas: el asistente nunca las necesita.",
-        "is-info"
-      );
-    }
-
-    chatInput.value = "";
-    autoResizeChatInput();
-
-    chatHistory.push({ role: "user", content: text });
-
-    chatBusy = true;
-    setChatEnabled(true);
-    const typing = showTyping();
-
-    try {
-      const response = await fetchWithTimeout(`${apiBase()}/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: chatHistory.slice(-MAX_HISTORY_SENT) })
+        addBubble(label, "from-user");
+        goToStep(destination);
       });
 
-      const data = await readJson(response);
+      chatOptions.appendChild(button);
+    });
+  }
 
+  async function goToStep(stepName) {
+    const step = GUION[stepName] || GUION.inicio;
+    const run = chatRun;
+    const messages = Array.isArray(step.msg) ? step.msg : [step.msg];
+
+    chatBusy = true;
+    chatOptions.innerHTML = "";
+
+    for (const text of messages) {
+      const typing = showTyping();
+      await wait(Math.min(350 + text.length * 10, 1200));
       typing.remove();
 
-      if (!response.ok || typeof data.reply !== "string" || !data.reply.trim()) {
-        throw Object.assign(new Error("chat_failed"), { status: response.status, data });
+      if (run !== chatRun) {
+        return;
       }
 
-      let reply = data.reply.trim();
-      const suggestsEmail = reply.includes(CONTACT_MARKER);
-      reply = reply.split(CONTACT_MARKER).join("").trim();
-
-      chatHistory.push({ role: "assistant", content: reply });
-
-      const bubble = addBubble(reply, "from-ai");
-
-      if (suggestsEmail) {
-        addEmailAction(bubble);
-      }
-
-      setChatStatus("En línea · Asistente con IA", "online");
-    } catch (error) {
-      typing.remove();
-
-      // Quitamos la pregunta fallida del historial para no desordenar la conversación
-      chatHistory.pop();
-
-      const message = error && error.name === "AbortError"
-        ? "El asistente ha tardado demasiado en responder. Inténtalo de nuevo."
-        : chatErrorMessage(error && error.status, error && error.data);
-
-      if (message === "not_configured") {
-        showNotConfigured();
-      } else {
-        const bubble = addBubble(message, "is-error");
-
-        if (!error || !error.status || error.status >= 500) {
-          addEmailAction(bubble);
-        }
-      }
-
-      // Devolvemos el texto al campo para que no tenga que reescribirlo
-      if (!chatInput.value && !chatInput.disabled) {
-        chatInput.value = original;
-        autoResizeChatInput();
-      }
-    } finally {
-      chatBusy = false;
-      setChatEnabled(!chatInput.disabled);
-
-      if (!chatInput.disabled) {
-        chatInput.focus();
-      }
+      addBubble(text, "from-ai");
     }
-  });
+
+    chatBusy = false;
+    renderOptions(stepName, step.options);
+    scrollChatToBottom();
+
+    const first = chatOptions.querySelector("button");
+
+    if (first && activeModal === chatModal) {
+      first.focus({ preventScroll: true });
+    }
+  }
+
+  function startChat() {
+    chatStarted = true;
+    chatRun += 1;
+    chatBusy = false;
+    chatMessages.innerHTML = "";
+    chatOptions.innerHTML = "";
+    chatStatus.textContent = "Asistente automático";
+    chatStatus.classList.add("is-online");
+    chatStatus.classList.remove("is-offline");
+    goToStep("inicio");
+  }
+
+  chatReset.addEventListener("click", startChat);
 
   /* =========================================================
      FORMULARIO DE CORREO
