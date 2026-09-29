@@ -7560,6 +7560,93 @@ console.log(
   "TronkStudios: inicialización completada."
 );
 /* =========================================================
+   MENÚ DESPLEGABLE EN MÓVIL (botón ☰)
+   ========================================================= */
+
+const siteMenu =
+  document.getElementById("site-menu");
+
+const menuToggle =
+  document.getElementById("menu-toggle");
+
+const mobileMenuQuery =
+  window.matchMedia("(max-width: 700px)");
+
+function setSiteMenu(open) {
+  if (!siteMenu || !menuToggle) {
+    return;
+  }
+
+  siteMenu.classList.toggle("is-open", open);
+  menuToggle.setAttribute("aria-expanded", String(open));
+  menuToggle.setAttribute(
+    "aria-label",
+    open ? "Cerrar menú" : "Abrir menú"
+  );
+}
+
+function closeSiteMenu() {
+  setSiteMenu(false);
+}
+
+if (siteMenu && menuToggle) {
+  menuToggle.addEventListener("click", () => {
+    setSiteMenu(!siteMenu.classList.contains("is-open"));
+  });
+
+  // Al abrir Soporte o Cuenta, el menú se cierra
+  siteMenu
+    .querySelectorAll("#support-button, #account-button")
+    .forEach((button) => {
+      button.addEventListener("click", closeSiteMenu);
+    });
+
+  // Tocar fuera del menú lo cierra
+  document.addEventListener("click", (event) => {
+    if (
+      siteMenu.classList.contains("is-open") &&
+      !siteMenu.contains(event.target) &&
+      !menuToggle.contains(event.target)
+    ) {
+      closeSiteMenu();
+    }
+  });
+
+  // Escape lo cierra y devuelve el foco al botón
+  document.addEventListener("keydown", (event) => {
+    if (
+      event.key === "Escape" &&
+      siteMenu.classList.contains("is-open")
+    ) {
+      closeSiteMenu();
+      menuToggle.focus();
+    }
+  });
+
+  // Al pasar a pantalla grande, se cierra
+  mobileMenuQuery.addEventListener("change", (event) => {
+    if (!event.matches) {
+      closeSiteMenu();
+    }
+  });
+}
+
+// Pulsar el logo vuelve arriba del todo
+document.querySelector(".brand-link")?.addEventListener("click", (event) => {
+  event.preventDefault();
+  closeSiteMenu();
+
+  if (history.replaceState) {
+    history.replaceState(null, "", window.location.pathname + window.location.search);
+  }
+
+  window.scrollTo({
+    top: 0,
+    behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"
+  });
+});
+
+/* =========================================================
    BARRA DE NAVEGACIÓN: ir a la sección, centrarla
    y marcarla con destellos
    ========================================================= */
@@ -7844,6 +7931,10 @@ console.log(
       }
 
       event.preventDefault();
+
+      // En móvil se cierra el menú antes de calcular la posición,
+      // porque al cerrarse la barra de arriba se hace más pequeña
+      closeSiteMenu();
 
       if (history.replaceState) {
         history.replaceState(null, "", `#${id}`);
