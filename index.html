@@ -83,7 +83,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="styles.css?v=13" />
+  <link rel="stylesheet" href="styles.css?v=14" />
 
   <!-- Estilos de la portada (imagen principal arriba del todo) -->
   <style>
@@ -120,8 +120,8 @@
 
   <script src="script.js?v=13" defer></script>
 
-  <!-- Sistema de soporte (chat con IA + formulario de correo) -->
-  <script src="support.js?v=1" defer></script>
+  <!-- Sistema de soporte (chat guiado + formulario de correo) -->
+  <script src="support.js?v=2" defer></script>
 </head>
 
 <body>
@@ -1539,7 +1539,7 @@
             id="support-chat-status"
             class="support-chat-status"
           >
-            Comprobando conexión...
+            Asistente automático
           </p>
         </div>
 
@@ -1572,41 +1572,16 @@
         aria-relevant="additions"
       ></div>
 
-      <form
-        id="support-chat-form"
-        class="support-chat-form"
-        novalidate
-      >
-
-        <label
-          for="support-chat-input"
-          class="support-visually-hidden"
-        >
-          Escribe tu pregunta
-        </label>
-
-        <textarea
-          id="support-chat-input"
-          class="support-chat-input"
-          rows="1"
-          maxlength="1000"
-          placeholder="Escribe tu pregunta..."
-          autocomplete="off"
-        ></textarea>
-
-        <button
-          id="support-chat-send"
-          class="primary-button support-send-button"
-          type="submit"
-          aria-label="Enviar pregunta"
-        >
-          Enviar
-        </button>
-
-      </form>
+      <!-- Botones de respuesta: el usuario solo puede elegir opciones (los crea support.js) -->
+      <div
+        id="support-chat-options"
+        class="support-chat-options"
+        role="group"
+        aria-label="Elige una respuesta"
+      ></div>
 
       <p class="support-chat-footnote">
-        No compartas contraseñas ni datos privados. La conversación no se guarda.
+        Elige una opción para continuar. La conversación no se guarda.
         <button
           class="support-link-button"
           type="button"
