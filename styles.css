@@ -738,6 +738,13 @@ img {
   border-color: var(--accent);
 }
 
+/* Sugerencia ya votada por ti */
+.vote-button.voted {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  color: var(--accent);
+}
+
 .delete-suggestion-button {
   color: var(--danger);
   margin-left: auto;

@@ -582,9 +582,8 @@ export default {
           return json({ error: "forbidden" }, 403, cors);
         }
 
-        if (url.pathname === "/chat") {
-          return await handleChat(request, env, cors);
-        }
+        // /chat desactivado: Tronker funciona con un guion fijo y
+        // no usa IA, así que nadie puede gastar tu clave de IA.
 
         if (url.pathname === "/contact") {
           return await handleContact(request, env, cors);
