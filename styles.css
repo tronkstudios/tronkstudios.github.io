@@ -1622,6 +1622,104 @@ body.antitronks-open {
 }
 
 /* =========================================================
+   DESTELLO AL IR A UNA SECCIÓN DESDE LA BARRA
+   ========================================================= */
+
+.nav-highlight-host {
+  position: relative;
+}
+
+.site-header h2:focus,
+.section h2:focus {
+  outline: none;
+}
+
+.nav-highlight {
+  position: absolute;
+  inset: -14px;
+  z-index: 5;
+  pointer-events: none;
+  border-radius: 20px;
+  border: 2px solid var(--accent);
+  box-shadow:
+    0 0 0 5px color-mix(in srgb, var(--accent) 14%, transparent),
+    0 0 32px color-mix(in srgb, var(--accent) 40%, transparent);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.nav-highlight.is-on {
+  opacity: 1;
+  animation: nav-glow-pulse 1.3s ease-in-out infinite;
+}
+
+/* Al desplazarse: todo se desvanece suavemente */
+.nav-highlight.is-fading {
+  opacity: 0;
+  transition: opacity 0.55s ease;
+  animation: none;
+}
+
+@keyframes nav-glow-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 5px color-mix(in srgb, var(--accent) 14%, transparent),
+      0 0 26px color-mix(in srgb, var(--accent) 32%, transparent);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 7px color-mix(in srgb, var(--accent) 20%, transparent),
+      0 0 44px color-mix(in srgb, var(--accent) 55%, transparent);
+  }
+}
+
+/* Destellos en forma de estrella sobre el borde */
+.nav-sparkle {
+  position: absolute;
+  background: color-mix(in srgb, var(--accent) 75%, #fff);
+  clip-path: polygon(
+    50% 0%, 64% 36%, 100% 50%, 64% 64%,
+    50% 100%, 36% 64%, 0% 50%, 36% 36%
+  );
+  filter: drop-shadow(0 0 4px var(--accent));
+  opacity: 0;
+  transform: scale(0) rotate(0deg);
+  animation: nav-sparkle 0.9s ease-out forwards;
+}
+
+@keyframes nav-sparkle {
+  0% {
+    opacity: 0;
+    transform: scale(0) rotate(0deg);
+  }
+
+  40% {
+    opacity: 1;
+    transform: scale(1) rotate(45deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(0.2) rotate(90deg);
+  }
+}
+
+@media (max-width: 600px) {
+  .nav-highlight {
+    inset: -8px;
+    border-radius: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-highlight.is-on {
+    animation: none;
+  }
+}
+
+/* =========================================================
    CANAL DE YOUTUBE (debajo de la imagen de portada)
    ========================================================= */
 
