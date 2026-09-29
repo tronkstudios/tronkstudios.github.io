@@ -314,7 +314,7 @@ const SUPPORT_CONFIG = {
   });
 
   /* =========================================================
-     CHAT CON IA (guion fijo: el usuario solo elige opciones)
+     CHAT CON TRONKER (guion fijo: el usuario solo elige opciones)
 
      Cada paso tiene:
        msg:     lo que dice el asistente (texto o lista de textos)
@@ -323,6 +323,7 @@ const SUPPORT_CONFIG = {
      El destino puede ser el nombre de otro paso o una acción:
        "@correo"   → abre el formulario de correo de soporte
        "@cuenta"   → cierra el soporte y abre la ventana de Cuenta
+       "@contrasena" → cierra el soporte y abre cambiar/recuperar contraseña
        "@sugerir"  → cierra el soporte y abre «Sugerir una idea»
        "@cerrar"   → cierra el soporte
      ========================================================= */
@@ -330,12 +331,12 @@ const SUPPORT_CONFIG = {
   const GUION = {
     inicio: {
       msg: [
-        "¡Hola! Soy el asistente de soporte de TronkStudios.",
+        "¡Hola! Soy Tronker, el asistente de soporte de TronkStudios.",
         "Elige la opción que describe tu problema."
       ],
       options: [
         ["🔑 No puedo iniciar sesión", "login"],
-        ["🔒 Olvidé mi contraseña", "pass"],
+        ["🔒 Olvidé o quiero cambiar mi contraseña", "pass"],
         ["👤 No puedo crear una cuenta", "registro"],
         ["🎮 Un minijuego no carga o va mal", "juego"],
         ["🐞 Quiero reportar un fallo", "bug"],
@@ -366,7 +367,7 @@ const SUPPORT_CONFIG = {
       ],
       options: [
         ["✅ Sí, ya entré", "resuelto"],
-        ["🔒 No recuerdo la contraseña", "pass"],
+        ["🔒 No recuerdo la contraseña", "pass_olvido"],
         ["👤 Creo que no tengo cuenta", "registro_nueva"]
       ]
     },
@@ -411,14 +412,58 @@ const SUPPORT_CONFIG = {
 
     /* ---------- CONTRASEÑA ---------- */
     pass: {
+      msg: "¿Qué necesitas?",
+      options: [
+        ["No recuerdo mi contraseña", "pass_olvido"],
+        ["Quiero cambiarla (sé la actual)", "pass_cambiar"]
+      ]
+    },
+    pass_olvido: {
       msg: [
-        "Ahora mismo la web no tiene un botón para cambiar la contraseña tú mismo.",
-        "Escríbenos desde el formulario de correo con la categoría «Cuenta», usando el mismo correo de tu cuenta, y el equipo te ayudará a recuperarla.",
-        "Nunca te pediremos tu contraseña: no la escribas en el mensaje."
+        "Te ayudo a recuperarla:",
+        "1. Pulsa el botón de abajo y escribe el correo de tu cuenta.\n" +
+          "2. Te llegará un correo con un enlace (mira también en Spam).\n" +
+          "3. Pulsa el enlace: volverás a esta web y podrás elegir tu contraseña nueva.",
+        "Nunca te pediremos tu contraseña por correo ni por este chat."
       ],
       options: [
-        ["✉️ Escribir al equipo", "@correo"],
-        ["✅ La he recordado", "resuelto"]
+        ["🔒 Recuperar mi contraseña", "@contrasena"],
+        ["📭 No me llega el correo", "pass_nollega"],
+        ["⚠️ El enlace no funciona", "pass_enlace"],
+        ["✅ Ya la he cambiado", "resuelto"]
+      ]
+    },
+    pass_cambiar: {
+      msg: [
+        "Para cambiarla necesitas haber iniciado sesión.",
+        "Pulsa el botón de abajo, escribe la contraseña nueva dos veces y pulsa «Guardar contraseña». También lo encontrarás en «👤 Cuenta» → «🔒 Cambiar contraseña»."
+      ],
+      options: [
+        ["🔒 Cambiar mi contraseña", "@contrasena"],
+        ["✅ Ya la he cambiado", "resuelto"]
+      ]
+    },
+    pass_nollega: {
+      msg: [
+        "Comprueba estas cosas:",
+        "• Que el correo es exactamente el de tu cuenta.\n" +
+          "• La carpeta de Spam y la de Promociones.\n" +
+          "• Espera un par de minutos: pedirlo muchas veces seguidas lo bloquea un rato.",
+        "¿Ha llegado?"
+      ],
+      options: [
+        ["✅ Sí, ya llegó", "pass_olvido"],
+        ["❌ No, sigue sin llegar", "humano"]
+      ]
+    },
+    pass_enlace: {
+      msg: [
+        "Si al pulsar el enlace no te deja cambiarla, probablemente ha caducado o ya lo usaste.",
+        "Pide un enlace nuevo y ábrelo en el mismo navegador donde lo pediste."
+      ],
+      options: [
+        ["🔒 Pedir un enlace nuevo", "@contrasena"],
+        ["❌ Sigue sin funcionar", "humano"]
       ]
     },
 
@@ -449,7 +494,7 @@ const SUPPORT_CONFIG = {
       ],
       options: [
         ["👤 Iniciar sesión", "@cuenta"],
-        ["🔒 No recuerdo la contraseña", "pass"],
+        ["🔒 No recuerdo la contraseña", "pass_olvido"],
         ["✅ Ya lo he resuelto", "resuelto"]
       ]
     },
@@ -617,7 +662,7 @@ const SUPPORT_CONFIG = {
       ]
     },
     despedida: {
-      msg: "¡Gracias por jugar a los juegos de TronkStudios! Si vuelves a tener problemas, aquí estaré.",
+      msg: "¡Gracias por jugar a los juegos de TronkStudios! Si vuelves a tener problemas, Tronker estará aquí.",
       options: [
         ["Tengo otro problema", "inicio"],
         ["Cerrar el chat", "@cerrar"]
@@ -649,7 +694,7 @@ const SUPPORT_CONFIG = {
   function showTyping() {
     const typing = document.createElement("div");
     typing.className = "support-typing";
-    typing.setAttribute("aria-label", "El asistente está escribiendo");
+    typing.setAttribute("aria-label", "Tronker está escribiendo");
     typing.innerHTML = "<span></span><span></span><span></span>";
     chatMessages.appendChild(typing);
     scrollChatToBottom();
@@ -665,6 +710,14 @@ const SUPPORT_CONFIG = {
   function runAction(destination) {
     if (destination === "@correo") {
       openMail();
+    } else if (destination === "@contrasena") {
+      closeSupport();
+
+      if (window.TronkAccount && typeof window.TronkAccount.openPasswordHelp === "function") {
+        window.TronkAccount.openPasswordHelp();
+      } else {
+        document.getElementById("account-button")?.click();
+      }
     } else if (destination === "@cuenta") {
       openFromChat("account-button");
     } else if (destination === "@sugerir") {
@@ -744,7 +797,7 @@ const SUPPORT_CONFIG = {
     chatBusy = false;
     chatMessages.innerHTML = "";
     chatOptions.innerHTML = "";
-    chatStatus.textContent = "Asistente automático";
+    chatStatus.textContent = "Asistente de soporte";
     chatStatus.classList.add("is-online");
     chatStatus.classList.remove("is-offline");
     goToStep("inicio");

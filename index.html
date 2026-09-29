@@ -83,7 +83,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="styles.css?v=14" />
+  <link rel="stylesheet" href="styles.css?v=15" />
 
   <!-- Estilos de la portada (imagen principal arriba del todo) -->
   <style>
@@ -118,10 +118,10 @@
     src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
   ></script>
 
-  <script src="script.js?v=13" defer></script>
+  <script src="script.js?v=14" defer></script>
 
-  <!-- Sistema de soporte (chat guiado + formulario de correo) -->
-  <script src="support.js?v=2" defer></script>
+  <!-- Sistema de soporte (chat con Tronker + formulario de correo) -->
+  <script src="support.js?v=3" defer></script>
 </head>
 
 <body>
@@ -830,6 +830,16 @@
         </form>
 
 
+        <p class="auth-switch auth-forgot">
+          <button
+            id="show-forgot"
+            type="button"
+          >
+            ¿Olvidaste tu contraseña?
+          </button>
+        </p>
+
+
         <p class="auth-switch">
 
           ¿No tienes cuenta?
@@ -924,6 +934,123 @@
       </div>
 
 
+      <!-- RECUPERAR CONTRASEÑA (pedir el enlace) -->
+
+      <div
+        id="forgot-panel"
+        class="hidden"
+      >
+
+        <p class="modal-description">
+          Escribe el correo de tu cuenta y te enviaremos un enlace para elegir una contraseña nueva.
+        </p>
+
+
+        <form id="forgot-form">
+
+          <label for="forgot-email">
+            Correo electrónico
+          </label>
+
+          <input
+            id="forgot-email"
+            type="email"
+            required
+            autocomplete="email"
+          />
+
+
+          <button
+            class="primary-button full-button"
+            type="submit"
+          >
+            Enviar enlace
+          </button>
+
+        </form>
+
+
+        <p class="auth-switch">
+
+          <button
+            id="forgot-back"
+            type="button"
+          >
+            Volver a iniciar sesión
+          </button>
+
+        </p>
+
+      </div>
+
+
+      <!-- NUEVA CONTRASEÑA (al volver del enlace o desde la cuenta) -->
+
+      <div
+        id="new-password-panel"
+        class="hidden"
+      >
+
+        <p
+          id="new-password-description"
+          class="modal-description"
+        >
+          Elige tu nueva contraseña.
+        </p>
+
+
+        <form id="new-password-form">
+
+          <label for="new-password">
+            Nueva contraseña
+          </label>
+
+          <input
+            id="new-password"
+            type="password"
+            minlength="6"
+            required
+            autocomplete="new-password"
+          />
+
+
+          <label for="new-password-repeat">
+            Repite la contraseña
+          </label>
+
+          <input
+            id="new-password-repeat"
+            type="password"
+            minlength="6"
+            required
+            autocomplete="new-password"
+          />
+
+
+          <button
+            class="primary-button full-button"
+            type="submit"
+          >
+            Guardar contraseña
+          </button>
+
+        </form>
+
+
+        <p class="auth-switch">
+
+          <button
+            id="new-password-cancel"
+            type="button"
+          >
+            Cancelar
+          </button>
+
+        </p>
+
+      </div>
+
+
       <!-- USUARIO CONECTADO -->
 
       <div
@@ -950,6 +1077,15 @@
           </div>
 
         </div>
+
+
+        <button
+          id="change-password-button"
+          class="secondary-button full-button"
+          type="button"
+        >
+          🔒 Cambiar contraseña
+        </button>
 
 
         <button
@@ -1477,8 +1613,8 @@
         >
           <span class="support-option-icon" aria-hidden="true">🤖</span>
           <span class="support-option-text">
-            <strong>Hablar con una IA</strong>
-            <span>Respuestas al momento sobre juegos, errores, tu cuenta o la web.</span>
+            <strong>Hablar con Tronker</strong>
+            <span>Nuestro asistente te ayuda al momento con juegos, errores, tu cuenta o la web.</span>
           </span>
         </button>
 
@@ -1502,7 +1638,7 @@
 
 
   <!-- =====================================================
-       SOPORTE · CHAT CON IA
+       SOPORTE · CHAT CON TRONKER
        ===================================================== -->
 
   <div
@@ -1533,13 +1669,13 @@
 
         <div class="support-panel-heading">
           <h2 id="support-chat-title">
-            🤖 Asistente de soporte
+            🤖 Tronker
           </h2>
           <p
             id="support-chat-status"
             class="support-chat-status"
           >
-            Asistente automático
+            Asistente de soporte
           </p>
         </div>
 
