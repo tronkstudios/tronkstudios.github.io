@@ -1622,6 +1622,87 @@ body.antitronks-open {
 }
 
 /* =========================================================
+   CANAL DE YOUTUBE (debajo de la imagen de portada)
+   ========================================================= */
+
+.youtube-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  width: 100%;
+  max-width: 560px;
+  padding: 0.8rem 0.9rem;
+  text-align: left;
+  text-decoration: none;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.youtube-banner:hover {
+  border-color: #ff0033;
+  transform: translateY(-2px);
+}
+
+.youtube-banner:focus-visible {
+  outline: 3px solid #ff0033;
+  outline-offset: 3px;
+}
+
+.youtube-banner-icon {
+  flex: 0 0 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: #ff0033;
+  background: var(--surface-2);
+}
+
+.youtube-banner-text {
+  flex: 1;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.youtube-banner-cta {
+  flex: 0 0 auto;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  background: #ff0033;
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .youtube-banner {
+    flex-wrap: wrap;
+  }
+
+  .youtube-banner-text {
+    flex-basis: calc(100% - 64px);
+  }
+
+  .youtube-banner-cta {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .youtube-banner,
+  .youtube-banner:hover {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* =========================================================
    SOPORTE (menú, chat con IA y formulario de correo)
    Usa las mismas variables de color que el resto de la web,
    así que se adapta solo al modo claro y oscuro.
