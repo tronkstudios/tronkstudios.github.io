@@ -1855,6 +1855,77 @@ body.antitronks-open {
   }
 }
 
+/* ===== Sobre nosotros: desplegable "Más información" ===== */
+.about-more {
+  margin-top: 24px;
+}
+
+.about-more-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.2rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--accent);
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+/* Quita el triángulo por defecto del navegador */
+.about-more-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.about-more-toggle:hover {
+  border-color: var(--brand-blue);
+}
+
+.about-more-toggle:focus-visible {
+  outline: 3px solid var(--brand-blue);
+  outline-offset: 3px;
+}
+
+.about-more-chevron {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.25s ease;
+}
+
+.about-more[open] .about-more-chevron {
+  transform: rotate(180deg);
+}
+
+.about-more[open] .about-more-body {
+  animation: about-more-in 0.3s ease;
+}
+
+@keyframes about-more-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about-more-chevron {
+    transition: none;
+  }
+
+  .about-more[open] .about-more-body {
+    animation: none;
+  }
+}
+
 /* ===== Sobre nosotros: datos, vídeo y "Cómo lo hicimos" ===== */
 .about-subtitle {
   margin: 40px 0 12px;
@@ -1938,8 +2009,8 @@ body.antitronks-open {
 }
 
 .case-icon {
-  width: 40px;
-  height: 40px;
+  width: 26px;
+  height: 26px;
   color: var(--brand-cyan);
 }
 
