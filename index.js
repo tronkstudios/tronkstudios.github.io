@@ -547,9 +547,11 @@ async function handleContact(request, env, cors) {
   // El mensaje ya ha llegado a soporte: ahora avisamos al visitante.
   // Si la respuesta automática falla, NO devolvemos error, porque
   // lo importante (que nos llegue su mensaje) ya ha funcionado.
-  await sendAutoReply(env, fields);
+  const autoReply = await sendAutoReply(env, fields);
 
-  return json({ ok: true }, 200, cors);
+  // autoReply le dice a la web si la confirmación ha salido de verdad,
+  // para que no le diga al visitante que tiene un correo que no le llegará.
+  return json({ ok: true, autoReply }, 200, cors);
 }
 
 /* =========================================================
@@ -563,11 +565,18 @@ async function handleContact(request, env, cors) {
    que viene de una lista cerrada (MAIL_CATEGORIES).
 
    Para desactivarla: secret/variable AUTO_REPLY = "off".
+
+   OJO: con el remitente de pruebas de Resend (onboarding@resend.dev)
+   Resend solo entrega correos al dueño de la cuenta. Para que la
+   confirmación llegue a cualquier visitante hace falta un dominio
+   verificado en Resend y ponerlo en MAIL_FROM.
+
+   Devuelve true si Resend ha aceptado el correo y false si no.
    ========================================================= */
 
 async function sendAutoReply(env, fields) {
   if (String(env.AUTO_REPLY || "").trim().toLowerCase() === "off") {
-    return;
+    return false;
   }
 
   const category = MAIL_CATEGORIES.includes(fields.category)
@@ -601,9 +610,13 @@ async function sendAutoReply(env, fields) {
 
     if (!response.ok) {
       console.error("auto-reply: Resend respondió", response.status);
+      return false;
     }
+
+    return true;
   } catch (error) {
     console.error("auto-reply: no se pudo contactar con Resend", error && error.name);
+    return false;
   }
 }
 
