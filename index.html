@@ -98,7 +98,7 @@
   </script>
 
   <link rel="stylesheet" href="css/styles.css?v=25" />
-  <link rel="stylesheet" href="css/tronk-fight.css?v=1" />
+  <link rel="stylesheet" href="css/tronk-fight.css?v=2" />
 
   <!-- Estilos de la portada (imagen principal arriba del todo) -->
   <style>
@@ -148,7 +148,7 @@
   <script src="js/games/antitronks.js?v=19" defer></script>
   <script src="js/games/protect-mogos.js?v=19" defer></script>
   <script src="js/games/stick-drill.js?v=19" defer></script>
-  <script src="js/games/tronk-fight.js?v=1" defer></script>
+  <script src="js/games/tronk-fight.js?v=2" defer></script>
   <script src="js/app.js?v=19" defer></script>
 
   <!-- Sistema de soporte (chat con Tronker + formulario de correo) -->
@@ -1833,7 +1833,10 @@
       <h1 id="tf-t-logo" class="tf-logo"><span>Tronk</span><span>Fight</span></h1>
       <p class="tf-tag">Siete luchadores, un solo duelo.</p>
       <div class="tf-row">
-        <button id="tf-btn-play" class="tf-btn tf-big">Jugar</button>
+        <button id="tf-btn-play" class="tf-btn tf-big">Contra el bot</button>
+        <button id="tf-btn-duo" class="tf-btn tf-big tf-pink">Dos jugadores</button>
+      </div>
+      <div class="tf-row">
         <button id="tf-btn-help" class="tf-btn tf-ghost" style="color:#fff">Controles</button>
       </div>
             <p class="tf-credit">Un juego de TronkStudios</p>
@@ -1915,6 +1918,14 @@
             </table>
           </section>
         </div>
+        <section class="tf-duo-keys">
+          <h3>Dos jugadores</h3>
+          <table>
+            <tr><td>Jugador 1</td><td><kbd>A</kbd> <kbd>D</kbd> moverse, <kbd>W</kbd> saltar, <kbd>J</kbd> atacar, <kbd>K</kbd> bloquear, <kbd>L</kbd> esquivar, <kbd>I</kbd> especial</td></tr>
+            <tr><td>Jugador 2</td><td>Flechas para moverse y saltar, <kbd>,</kbd> atacar, <kbd>.</kbd> bloquear, <kbd>-</kbd> esquivar, <kbd>Mayús</kbd> derecha especial (o teclado numérico: <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>0</kbd>)</td></tr>
+            <tr><td>Móvil o tablet</td><td>Cada jugador tiene su mando en su mitad de la pantalla</td></tr>
+          </table>
+        </section>
         <p class="tf-tips"><strong>Parry:</strong> pulsa bloquear justo antes de que te golpeen. El rival queda aturdido y tú ganas especial. Si mantienes el bloqueo pulsado no hay parry: hay que acertar el momento. <strong>Esquivar</strong> te hace invulnerable un instante. La barra de especial se llena al dar y recibir golpes.</p>
         <button id="tf-btn-help-close" class="tf-btn">Entendido</button>
       </div>
@@ -1955,12 +1966,23 @@
     <button id="tf-btn-pause" hidden aria-label="Pausa">II</button>
 
     <div id="tf-touch" hidden>
-      <div id="tf-stick" aria-label="Joystick"><div id="tf-knob"></div></div>
-      <div id="tf-btns">
-        <button class="tf-tb" data-k="special" aria-label="Ataque especial">Especial</button>
-        <button class="tf-tb" data-k="dodge" aria-label="Esquivar">Esquivar</button>
-        <button class="tf-tb" data-k="block" aria-label="Bloquear">Bloquear</button>
-        <button class="tf-tb" data-k="attack" aria-label="Atacar">Atacar</button>
+      <div class="tf-pad" data-p="0">
+        <div class="tf-stick" aria-label="Joystick del jugador 1"><div class="tf-knob"></div></div>
+        <div class="tf-btns">
+          <button class="tf-tb" data-k="special" aria-label="Ataque especial del jugador 1">Especial</button>
+          <button class="tf-tb" data-k="dodge" aria-label="Esquivar del jugador 1">Esquivar</button>
+          <button class="tf-tb" data-k="block" aria-label="Bloquear del jugador 1">Bloquear</button>
+          <button class="tf-tb" data-k="attack" aria-label="Atacar del jugador 1">Atacar</button>
+        </div>
+      </div>
+      <div class="tf-pad" data-p="1">
+        <div class="tf-stick" aria-label="Joystick del jugador 2"><div class="tf-knob"></div></div>
+        <div class="tf-btns">
+          <button class="tf-tb" data-k="special" aria-label="Ataque especial del jugador 2">Especial</button>
+          <button class="tf-tb" data-k="dodge" aria-label="Esquivar del jugador 2">Esquivar</button>
+          <button class="tf-tb" data-k="block" aria-label="Bloquear del jugador 2">Bloquear</button>
+          <button class="tf-tb" data-k="attack" aria-label="Atacar del jugador 2">Atacar</button>
+        </div>
       </div>
     </div>
   </div>

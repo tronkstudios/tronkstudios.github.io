@@ -3,6 +3,15 @@
 Historia de la web de TronkStudios agrupada por versiones. Cada versión
 resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 
+## [v5.2] · Octubre de 2026 · Tronk Fight a dos jugadores
+
+### Añadido
+- Modo **Dos jugadores** en Tronk Fight, además del modo contra el bot.
+- En ordenador, los dos juegan en el mismo teclado: J1 con WASD + J K L I y J2 con
+  las flechas + , . - y Mayús derecha (o el teclado numérico).
+- En móvil y tablet, cada jugador tiene su propio mando en su mitad de la pantalla.
+- El marcador indica quién es J1 y J2, y el resultado muestra las estadísticas de los dos.
+
 ## [v5.1] · Octubre de 2026 · Tronk Fight dentro de la web
 
 ### Cambiado
