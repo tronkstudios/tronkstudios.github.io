@@ -19,6 +19,9 @@ const PROJECTS = {
     image: "img/juegos/z-tronks.png",
     category: "Roblox",
     people: 5,
+    // ID del vídeo de YouTube del tráiler (lo que va después de youtu.be/).
+    // Déjalo vacío ("") si un juego no tiene tráiler.
+    trailer: "VrHyQbwUtrY",
     // Año, mes (1-12), día
     release: [2027, 1, 4],
     description: [
@@ -90,14 +93,114 @@ function openProjectModal(id) {
     description.appendChild(p);
   });
 
+  // El tráiler va SIEMPRE al final de la descripción.
+  if (project.trailer) {
+    description.appendChild(createTrailer(project));
+  }
+
   openModal(modal);
 }
 
+/* =========================================================
+   TRÁILER DE YOUTUBE DENTRO DE LA FICHA
+   Se usa youtube-nocookie.com (no guarda cookies hasta que se
+   reproduce). El reproductor de YouTube ya trae volumen y
+   pantalla completa; "allowfullscreen" es lo que permite
+   ponerlo en grande. Este dominio está permitido en la CSP
+   (frame-src) de index.html.
+   ========================================================= */
+
+/* Crea el <iframe> del tráiler (se usa en la ficha y en la tarjeta). */
+function createTrailerFrame(project) {
+  const frame = document.createElement("div");
+  frame.className = "video-frame";
+
+  const iframe = document.createElement("iframe");
+  iframe.src =
+    `https://www.youtube-nocookie.com/embed/${encodeURIComponent(project.trailer)}?rel=0`;
+  iframe.title = `Tráiler de ${project.title}`;
+  iframe.loading = "lazy";
+  iframe.referrerPolicy = "strict-origin-when-cross-origin";
+  iframe.allow = "encrypted-media; picture-in-picture; fullscreen";
+  iframe.allowFullscreen = true;
+
+  frame.appendChild(iframe);
+  return frame;
+}
+
+function createTrailer(project) {
+  const wrapper = document.createElement("section");
+  wrapper.className = "project-trailer";
+  wrapper.setAttribute("aria-labelledby", "project-trailer-title");
+
+  const title = document.createElement("h3");
+  title.id = "project-trailer-title";
+  title.className = "project-trailer-title";
+  title.textContent = "Ver Trailer";
+
+  const frame = createTrailerFrame(project);
+  frame.classList.add("project-trailer-frame");
+  wrapper.append(title, frame);
+
+  return wrapper;
+}
+
+/*
+ * Al cerrar la ficha (con la ×, con Escape o pulsando fuera)
+ * se quita el vídeo, para que el tráiler no siga sonando
+ * con la ventana cerrada.
+ */
+function stopTrailerWhenModalCloses() {
+  const modal = document.getElementById("project-modal");
+
+  if (!modal) {
+    return;
+  }
+
+  new MutationObserver(() => {
+    if (modal.classList.contains("hidden")) {
+      modal
+        .querySelectorAll(".project-trailer")
+        .forEach((trailer) => trailer.remove());
+    }
+  }).observe(modal, { attributes: true, attributeFilter: ["class"] });
+}
+
+/*
+ * Tráiler también en la TARJETA del juego (sección "Juegos en
+ * desarrollo"), debajo de la categoría y con "Ver trailer" encima.
+ * La tarjeta entera abre la ficha al pulsarla, así que los clics
+ * y teclas dentro del bloque del tráiler NO se pasan a la tarjeta:
+ * pulsar "Ver trailer" no abre la ficha por error.
+ */
+function addCardTrailer(card, project) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "card-trailer";
+
+  const title = document.createElement("p");
+  title.className = "card-trailer-title";
+  title.textContent = "Ver trailer";
+
+  wrapper.append(title, createTrailerFrame(project));
+
+  ["click", "keydown"].forEach((type) => {
+    wrapper.addEventListener(type, (event) => event.stopPropagation());
+  });
+
+  card.appendChild(wrapper);
+}
+
 function initializeProjects() {
+  stopTrailerWhenModalCloses();
+
   document
     .querySelectorAll(".dev-card[data-project]")
     .forEach((card) => {
       const id = card.dataset.project;
+
+      if (PROJECTS[id] && PROJECTS[id].trailer) {
+        addCardTrailer(card, PROJECTS[id]);
+      }
 
       card.addEventListener("click", () => openProjectModal(id));
 
