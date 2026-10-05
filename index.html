@@ -132,10 +132,25 @@
     src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
   ></script>
 
-  <script src="script.js?v=18" defer></script>
+  <!--
+    Código de la web, dividido por responsabilidad. El ORDEN importa:
+    se ejecutan en este orden y comparten variables globales
+    (ver docs/adr/0002-scripts-clasicos-por-modulos.md).
+  -->
+  <script src="js/core.js?v=19" defer></script>
+  <script src="js/theme.js?v=19" defer></script>
+  <script src="js/ui.js?v=19" defer></script>
+  <script src="js/auth.js?v=19" defer></script>
+  <script src="js/suggestions.js?v=19" defer></script>
+  <script src="js/projects.js?v=19" defer></script>
+  <script src="js/games/audio.js?v=19" defer></script>
+  <script src="js/games/antitronks.js?v=19" defer></script>
+  <script src="js/games/protect-mogos.js?v=19" defer></script>
+  <script src="js/games/stick-drill.js?v=19" defer></script>
+  <script src="js/app.js?v=19" defer></script>
 
   <!-- Sistema de soporte (chat con Tronker + formulario de correo) -->
-  <script src="support.js?v=3" defer></script>
+  <script src="js/support.js?v=3" defer></script>
 </head>
 
 <body>
