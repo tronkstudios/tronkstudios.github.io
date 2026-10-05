@@ -1994,7 +1994,7 @@ body.antitronks-open {
 }
 
 /* Primer título dentro del desplegable: menos hueco arriba */
-.about-more-body > .about-video:first-child .about-subtitle {
+.about-more-body > .about-subtitle:first-child {
   margin-top: 24px;
 }
 

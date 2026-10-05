@@ -13,6 +13,7 @@ resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 ### Añadido
 - Respuesta automática por correo al visitante cuando usa el formulario de soporte.
 - Tráiler de Z Tronks en su tarjeta y en su ficha («Ver trailer»), con volumen y pantalla completa.
+- Se quita «Nuestros vídeos» de Sobre nosotros: el único vídeo era el tráiler, que ya sale en Z Tronks.
 - Sección «Sobre nosotros» ampliada: vídeos del canal de
   YouTube y «Cómo lo hicimos» con problemas reales, su solución y su resultado.
 - Ese contenido queda plegado en un desplegable «Más información» (`<details>` nativo, accesible con teclado).
