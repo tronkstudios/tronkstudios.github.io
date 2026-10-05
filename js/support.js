@@ -38,7 +38,7 @@ const SUPPORT_CONFIG = {
    * Clave de SITIO de Cloudflare Turnstile (anti-bots).
    * Es pública, no es secreta. Déjala vacía si no lo usas.
    */
-  turnstileSiteKey: "",
+  turnstileSiteKey: "0x4AAAAAAFOXSR7FOVEePUTr",
 
   // Tiempo máximo de espera de cada petición (milisegundos)
   requestTimeoutMs: 30000
