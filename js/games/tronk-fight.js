@@ -1033,8 +1033,8 @@ function aiThink(f, o, M) {
 }
 
 /* ---------- PARTIDA ---------- */
-function newMatch(c1, c2, stage, mode, diff) {
-  const M = { c: [c1, c2], stage, mode, diff, round: 1, wins: [0, 0], frame: 0,
+function newMatch(c1, c2, stage, mode, diff, pvp = false) {
+  const M = { c: [c1, c2], stage, mode, diff, pvp, round: 1, wins: [0, 0], frame: 0,
     stats: [{ hits: 0, parries: 0, dmg: 0, combo: 0 }, { hits: 0, parries: 0, dmg: 0, combo: 0 }],
     proj: [], fx: [], parts: [], texts: [], decals: [], hitstop: 0, shake: 0, slow: 0, slowAcc: 0, freeze: 0, banner: null };
   resetRound(M);
@@ -1043,7 +1043,7 @@ function newMatch(c1, c2, stage, mode, diff) {
 function resetRound(M) {
   M.f = [makeFighter(CHARS[M.c[0]], 410, 1, 0), makeFighter(CHARS[M.c[1]], 870, -1, 1)];
   if (M.mode !== "play") M.f[0].ai = newAI(M.diff);
-  M.f[1].ai = newAI(M.diff);
+  if (!M.pvp) M.f[1].ai = newAI(M.diff);
   M.proj = []; M.fx = []; M.parts = []; M.texts = [];
   M.timer = 99 * 60; M.phaseT = 0; M.winner = -1;
   if (M.mode === "sim") M.phase = "fight";
@@ -2065,6 +2065,10 @@ function bar(ctx, M, f, side) {
   ctx.save(); ctx.beginPath(); ctx.arc(px, py, 38, 0, Math.PI * 2); ctx.clip();
   ctx.fillStyle = "#241f52"; ctx.fillRect(px - 40, py - 40, 80, 80);
   drawPortrait(ctx, f.ch, px, py + 4, 34, side ? -1 : 1); ctx.restore();
+  // quién controla a cada luchador
+  const tag = M.pvp ? (side ? "J2" : "J1") : (side ? "Bot" : "Tú");
+  ctx.fillStyle = side ? "#ff4f8e" : "#1e6fe8"; rr(ctx, px - 24, py + 40, 48, 22, 11); ctx.fill();
+  ctx.font = "bold 15px Rubik, sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = "#fff"; ctx.fillText(tag, px, py + 56);
   // rondas ganadas
   for (let k = 0; k < 2; k++) {
     const cx = side ? 690 + 14 + k * 26 : 590 - 14 - k * 26;
@@ -2118,6 +2122,8 @@ const root = document.getElementById("tf-root");
 const modal = document.getElementById("tronkfight-modal");
 const card = document.querySelector('[data-minigame="tronkfight"]');
 if (!root || !modal || !card) return;
+const C = n => "tf-" + n;   // en la web, las clases llevan el prefijo tf-
+const ID = n => "tf-" + n;  // y los ids también
 const $ = s => root.querySelector(s);
 const stageEl = $("#tf-stage"), canvas = $("#tf-game"), ctx = canvas.getContext("2d");
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -2145,18 +2151,18 @@ if (window.ResizeObserver) new ResizeObserver(() => resize()).observe(root);
 /* ---------- estado de la app ---------- */
 const app = {
   screen: "title", match: null, demo: null, paused: false,
-  sel: { step: "p1", p1: store.get("p1", 0), cpu: store.get("cpu", 1), cursor: 0, diff: store.get("diff", "normal"), stage: store.get("stage", 0) },
+  sel: { mode: "cpu", step: "p1", p1: store.get("p1", 0), cpu: store.get("cpu", 1), cursor: 0, diff: store.get("diff", "normal"), stage: store.get("stage", 0) },
   touchOn: isTouch, overShown: false
 };
 Settings.blood = store.get("blood", true);
 Settings.music = store.get("music", true);
 
 function show(id) {
-  for (const s of root.querySelectorAll(".tf-screen")) s.hidden = s.id !== "tf-" + id;
+  for (const s of root.querySelectorAll("." + C("screen"))) s.hidden = s.id !== ID(id);
   app.screen = id;
   $("#tf-btn-pause").hidden = id !== "fight";
   $("#tf-touch").hidden = !(id === "fight" && app.touchOn);
-  const first = id && root.querySelector("#tf-" + id)?.querySelector("button");
+  const first = id && root.querySelector("#" + ID(id))?.querySelector("button");
   if (first && !isTouch) setTimeout(() => first.focus({ preventScroll: true }), 30);
 }
 function hideAll() { show("fight"); }
@@ -2173,7 +2179,7 @@ const roster = $("#tf-roster");
 CHARS.forEach((ch, i) => {
   const li = document.createElement("li");
   const btn = document.createElement("button");
-  btn.className = "tf-tile"; btn.setAttribute("role", "option"); btn.dataset.i = i;
+  btn.className = C("tile"); btn.setAttribute("role", "option"); btn.dataset.i = i;
   btn.innerHTML = `<canvas width="160" height="150" aria-hidden="true"></canvas><span>${ch.name}</span>`;
   const c = btn.querySelector("canvas").getContext("2d");
   c.fillStyle = "#241f52"; c.fillRect(0, 0, 160, 150);
@@ -2189,7 +2195,7 @@ function setCursor(i) {
   previewF = makePreview(app.sel.cursor);
   updateSelect();
 }
-function pips(n) { return Array.from({ length: 5 }, (_, k) => `<span class="tf-pip${k < n ? " tf-on" : ""}"></span>`).join(""); }
+function pips(n) { return Array.from({ length: 5 }, (_, k) => `<span class="${C("pip")}${k < n ? " " + C("on") : ""}"></span>`).join(""); }
 function statsOf(w) {
   const m = w.normal, total = m.startup + m.active + m.recovery;
   const dmg = clamp(Math.round((m.dmg - 4) / 2), 1, 5);
@@ -2200,9 +2206,11 @@ function statsOf(w) {
 }
 function updateSelect() {
   const s = app.sel, ch = CHARS[s.cursor], w = WEAPONS[ch.weapon], st = statsOf(w);
-  $("#tf-sel-title").textContent = s.step === "p1" ? "Elige a tu luchador" : "Elige a tu rival";
-  $("#tf-who").textContent = s.step === "p1" ? "Tú" : "Bot";
-  $("#tf-who").className = "tf-who" + (s.step === "p1" ? "" : " tf-cpu");
+  const duo = s.mode === "pvp";
+  $("#tf-sel-title").textContent = duo ? (s.step === "p1" ? "Jugador 1: elige luchador" : "Jugador 2: elige luchador")
+    : (s.step === "p1" ? "Elige a tu luchador" : "Elige a tu rival");
+  $("#tf-who").textContent = duo ? (s.step === "p1" ? "J1" : "J2") : (s.step === "p1" ? "Tú" : "Bot");
+  $("#tf-who").className = C("who") + (s.step === "p1" ? "" : " " + C("cpu"));
   $("#tf-i-name").textContent = ch.name;
   $("#tf-i-name").style.color = ch.color;
   $("#tf-i-weapon").textContent = `Arma: ${w.name}.` + (w.note ? ` ${w.note}` : "");
@@ -2211,13 +2219,13 @@ function updateSelect() {
     `<dt>Alcance</dt><dd>${pips(st.reach)}</dd><dt>Movilidad</dt><dd>${pips(st.mob)}</dd>`;
   $("#tf-i-sp-name").textContent = w.special.name;
   $("#tf-i-sp-desc").textContent = w.special.desc;
-  $("#tf-diff-box").hidden = s.step !== "cpu";
-  $("#tf-btn-pick").textContent = s.step === "p1" ? `Elegir a ${ch.name}` : `Luchar contra ${ch.name}`;
-  for (const t of roster.querySelectorAll(".tf-tile")) {
+  $("#tf-diff-box").hidden = s.step !== "cpu" || duo;
+  $("#tf-btn-pick").textContent = s.step === "p1" || duo ? `Elegir a ${ch.name}` : `Luchar contra ${ch.name}`;
+  for (const t of roster.querySelectorAll("." + C("tile"))) {
     const i = +t.dataset.i;
     t.setAttribute("aria-selected", String(i === s.cursor));
-    t.querySelectorAll(".tf-badge").forEach(b => b.remove());
-    if (s.step === "cpu" && i === s.p1) t.insertAdjacentHTML("beforeend", '<span class="tf-badge tf-p1">Tú</span>');
+    t.querySelectorAll("." + C("badge")).forEach(b => b.remove());
+    if (s.step === "cpu" && i === s.p1) t.insertAdjacentHTML("beforeend", `<span class="${C("badge")} ${C("p1")}">${duo ? "J1" : "Tú"}</span>`);
   }
 }
 function openSelect(step = "p1") {
@@ -2235,7 +2243,7 @@ function pick() {
     setCursor(next);
   } else {
     s.cpu = s.cursor; store.set("cpu", s.cpu);
-    s.diff = root.querySelector('input[name="tf-diff"]:checked').value; store.set("diff", s.diff);
+    s.diff = root.querySelector(`input[name="${ID("diff")}"]:checked`).value; store.set("diff", s.diff);
     openStages();
   }
 }
@@ -2245,7 +2253,7 @@ $("#tf-btn-sel-back").addEventListener("click", () => {
   if (app.sel.step === "cpu") { app.sel.step = "p1"; setCursor(app.sel.p1); }
   else show("scr-title");
 });
-root.querySelectorAll('input[name="tf-diff"]').forEach(r => { r.checked = r.value === app.sel.diff; });
+root.querySelectorAll(`input[name="${ID("diff")}"]`).forEach(r => { r.checked = r.value === app.sel.diff; });
 
 /* vista previa animada */
 function makePreview(i) {
@@ -2278,7 +2286,7 @@ const stagesUl = $("#tf-stages");
 STAGES.forEach((st, i) => {
   const li = document.createElement("li");
   const b = document.createElement("button");
-  b.className = "tf-stage-tile"; b.dataset.i = i;
+  b.className = C("stage-tile"); b.dataset.i = i;
   b.innerHTML = `<canvas width="320" height="180" aria-hidden="true"></canvas><span>${st.name}</span>`;
   b.addEventListener("click", () => { Sound.init(); Sound.play("ui"); setStage(i); });
   b.addEventListener("dblclick", startFight);
@@ -2286,7 +2294,7 @@ STAGES.forEach((st, i) => {
 });
 function setStage(i) {
   app.sel.stage = i; store.set("stage", i);
-  for (const t of stagesUl.querySelectorAll(".tf-stage-tile")) t.setAttribute("aria-pressed", String(+t.dataset.i === i));
+  for (const t of stagesUl.querySelectorAll("." + C("stage-tile"))) t.setAttribute("aria-pressed", String(+t.dataset.i === i));
   const c = $("#tf-stage-big").getContext("2d");
   c.drawImage(getBG(i), 0, 0, 640, 360);
   const fake = { frame: 120 };
@@ -2304,9 +2312,10 @@ $("#tf-btn-fight").addEventListener("click", startFight);
 function startFight() {
   Sound.init();
   const s = app.sel;
-  app.match = newMatch(s.p1, s.cpu, s.stage, "play", s.diff);
+  app.match = newMatch(s.p1, s.cpu, s.stage, "play", s.diff, s.mode === "pvp");
   app.paused = false; app.overShown = false;
   touch.reset();
+  $("#tf-touch").classList.toggle(C("duo"), s.mode === "pvp");
   Sound.music.start(s.stage);
   show("fight");
 }
@@ -2344,34 +2353,56 @@ optFs.addEventListener("change", () => {
 function showResult(M) {
   const won = M.wins[0] > M.wins[1];
   const me = CHARS[M.c[0]], cpu = CHARS[M.c[1]];
-  $("#tf-r-title").textContent = won ? `¡Gana ${me.name}!` : `Gana ${cpu.name}`;
-  $("#tf-r-title").style.color = won ? "var(--gold)" : "var(--pink)";
+  if (M.pvp) {
+    $("#tf-r-title").textContent = won ? `¡Gana ${me.name}! (Jugador 1)` : `¡Gana ${cpu.name}! (Jugador 2)`;
+    $("#tf-r-title").style.color = won ? "var(--blue)" : "var(--pink)";
+  } else {
+    $("#tf-r-title").textContent = won ? `¡Gana ${me.name}!` : `Gana ${cpu.name}`;
+    $("#tf-r-title").style.color = won ? "var(--gold)" : "var(--pink)";
+  }
   Sound.music.stop();
   if (won) Sound.crowd("cheer");
-  const S = M.stats[0];
-  $("#tf-r-stats").innerHTML =
-    `<li><strong>${M.wins[0]} - ${M.wins[1]}</strong>Rondas</li>` +
-    `<li><strong>${S.hits}</strong>Golpes</li>` +
-    `<li><strong>${S.parries}</strong>Parrys</li>` +
-    `<li><strong>${S.combo}</strong>Combo máximo</li>`;
+  const S = M.stats[0], S2 = M.stats[1];
+  $("#tf-r-stats").innerHTML = M.pvp
+    ? `<li><strong>${M.wins[0]} - ${M.wins[1]}</strong>Rondas</li>` +
+      `<li><strong>${S.hits} - ${S2.hits}</strong>Golpes</li>` +
+      `<li><strong>${S.parries} - ${S2.parries}</strong>Parrys</li>` +
+      `<li><strong>${S.combo} - ${S2.combo}</strong>Combo máximo</li>`
+    : `<li><strong>${M.wins[0]} - ${M.wins[1]}</strong>Rondas</li>` +
+      `<li><strong>${S.hits}</strong>Golpes</li>` +
+      `<li><strong>${S.parries}</strong>Parrys</li>` +
+      `<li><strong>${S.combo}</strong>Combo máximo</li>`;
   show("scr-result");
 }
 
 /* ---------- portada y ayuda ---------- */
-$("#tf-btn-play").addEventListener("click", () => { Sound.init(); Sound.play("ui"); openSelect("p1"); });
+$("#tf-btn-play").addEventListener("click", () => { Sound.init(); Sound.play("ui"); app.sel.mode = "cpu"; openSelect("p1"); });
+$("#tf-btn-duo").addEventListener("click", () => { Sound.init(); Sound.play("ui"); app.sel.mode = "pvp"; openSelect("p1"); });
 $("#tf-btn-help").addEventListener("click", () => show("scr-help"));
 $("#tf-btn-help-close").addEventListener("click", () => {
   if (app.paused && app.match) show("scr-pause"); else show("scr-title");
 });
 
-/* ---------- teclado ---------- */
-const KEYMAP = {
-  KeyA: "left", ArrowLeft: "left", KeyD: "right", ArrowRight: "right",
-  KeyW: "up", ArrowUp: "up", Space: "up",
-  KeyJ: "attack", KeyZ: "attack", KeyK: "block", KeyX: "block",
-  KeyL: "dodge", KeyC: "dodge", KeyI: "special", KeyV: "special", KeyS: "down", ArrowDown: "down"
+/* ---------- teclado ----------
+   Contra el bot: el jugador puede usar cualquiera de las dos zonas del teclado.
+   Dos jugadores: J1 con WASD + J K L I, J2 con flechas + , . - y Mayús derecha
+   (o el teclado numérico: 1 atacar, 2 bloquear, 3 esquivar, 0 especial). */
+const KEYS_P1 = { KeyA: "left", KeyD: "right", KeyW: "up", KeyS: "down", KeyJ: "attack", KeyK: "block", KeyL: "dodge", KeyI: "special" };
+const KEYS_P2 = {
+  ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up", ArrowDown: "down",
+  Comma: "attack", Period: "block", Slash: "dodge", ShiftRight: "special",
+  Numpad1: "attack", Numpad2: "block", Numpad3: "dodge", Numpad0: "special"
 };
-const keys = {};
+const KEYS_SOLO = { ...KEYS_P1, ...KEYS_P2, Space: "up", KeyZ: "attack", KeyX: "block", KeyC: "dodge", KeyV: "special" };
+const keys = [{}, {}];
+function keyTarget(code) {
+  if (app.match && app.match.pvp) {
+    if (KEYS_P1[code]) return [0, KEYS_P1[code]];
+    if (KEYS_P2[code]) return [1, KEYS_P2[code]];
+    return null;
+  }
+  return KEYS_SOLO[code] ? [0, KEYS_SOLO[code]] : null;
+}
 window.addEventListener("keydown", e => {
   if (modal.classList.contains("hidden")) return;
   if (e.code === "Escape" || e.code === "KeyP") {
@@ -2383,8 +2414,8 @@ window.addEventListener("keydown", e => {
     return;
   }
   if (app.screen === "fight") {
-    const k = KEYMAP[e.code];
-    if (k) { keys[k] = true; e.preventDefault(); }
+    const k = keyTarget(e.code);
+    if (k) { keys[k[0]][k[1]] = true; e.preventDefault(); }
     return;
   }
   if (app.screen === "scr-select") {
@@ -2396,38 +2427,49 @@ window.addEventListener("keydown", e => {
     if (e.code === "ArrowLeft" || e.code === "KeyA") { setStage((app.sel.stage + 4) % 5); e.preventDefault(); }
   }
 });
-window.addEventListener("keyup", e => { const k = KEYMAP[e.code]; if (k) keys[k] = false; });
+window.addEventListener("keyup", e => {
+  for (const map of [KEYS_SOLO, KEYS_P1, KEYS_P2]) if (map[e.code]) { keys[0][map[e.code]] = false; keys[1][map[e.code]] = false; }
+});
+window.addEventListener("blur", () => { keys[0] = {}; keys[1] = {}; touch.reset(); });
 // con el juego abierto, las flechas y el espacio no mueven la página
 window.addEventListener("keydown", e => {
   if (!modal.classList.contains("hidden") && ["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code) && e.target.tagName !== "INPUT") e.preventDefault();
 }, true);
-window.addEventListener("blur", () => { for (const k in keys) keys[k] = false; touch.reset(); });
 
-/* ---------- controles táctiles ---------- */
+/* ---------- controles táctiles ----------
+   Un mando por jugador. Contra el bot solo se ve el del J1; con dos
+   jugadores, cada uno tiene su mitad de la pantalla. */
 const touch = {
-  state: {}, stickId: null,
-  reset() { this.state = {}; this.stickId = null; $("#tf-knob").style.transform = ""; root.querySelectorAll(".tf-tb").forEach(b => b.classList.remove("tf-on")); }
+  pads: [{ state: {}, stickId: null }, { state: {}, stickId: null }],
+  reset() {
+    for (const p of this.pads) { p.state = {}; p.stickId = null; }
+    root.querySelectorAll("." + C("knob")).forEach(k => { k.style.transform = ""; });
+    root.querySelectorAll("." + C("tb")).forEach(b => b.classList.remove(C("on")));
+  }
 };
-const stick = $("#tf-stick"), knob = $("#tf-knob");
-function stickMove(e) {
-  const r = stick.getBoundingClientRect();
-  const cx = r.left + r.width / 2, cy = r.top + r.height / 2, rad = r.width / 2;
-  let dx = (e.clientX - cx) / rad, dy = (e.clientY - cy) / rad;
-  const len = Math.hypot(dx, dy); if (len > 1) { dx /= len; dy /= len; }
-  knob.style.transform = `translate(${dx * rad * 0.55}px, ${dy * rad * 0.55}px)`;
-  touch.state.left = dx < -0.3; touch.state.right = dx > 0.3;
-  touch.state.up = dy < -0.55; touch.state.down = dy > 0.6;
-}
-stick.addEventListener("pointerdown", e => { e.preventDefault(); Sound.init(); touch.stickId = e.pointerId; stick.setPointerCapture(e.pointerId); stickMove(e); });
-stick.addEventListener("pointermove", e => { if (e.pointerId === touch.stickId) stickMove(e); });
-const stickEnd = e => { if (e.pointerId !== touch.stickId) return; touch.stickId = null; knob.style.transform = ""; touch.state.left = touch.state.right = touch.state.up = touch.state.down = false; };
-stick.addEventListener("pointerup", stickEnd); stick.addEventListener("pointercancel", stickEnd);
-root.querySelectorAll(".tf-tb").forEach(b => {
-  const k = b.dataset.k;
-  b.addEventListener("pointerdown", e => { e.preventDefault(); Sound.init(); b.setPointerCapture(e.pointerId); touch.state[k] = true; b.classList.add("tf-on"); });
-  const up = () => { touch.state[k] = false; b.classList.remove("tf-on"); };
-  b.addEventListener("pointerup", up); b.addEventListener("pointercancel", up);
-  b.addEventListener("contextmenu", e => e.preventDefault());
+root.querySelectorAll("." + C("pad")).forEach(pad => {
+  const T = touch.pads[+pad.dataset.p];
+  const stick = pad.querySelector("." + C("stick")), knob = pad.querySelector("." + C("knob"));
+  const move = e => {
+    const r = stick.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2, rr = r.width / 2;
+    let dx = (e.clientX - cx) / rr, dy = (e.clientY - cy) / rr;
+    const len = Math.hypot(dx, dy); if (len > 1) { dx /= len; dy /= len; }
+    knob.style.transform = `translate(${dx * rr * 0.55}px, ${dy * rr * 0.55}px)`;
+    T.state.left = dx < -0.3; T.state.right = dx > 0.3;
+    T.state.up = dy < -0.55; T.state.down = dy > 0.6;
+  };
+  stick.addEventListener("pointerdown", e => { e.preventDefault(); Sound.init(); T.stickId = e.pointerId; stick.setPointerCapture(e.pointerId); move(e); });
+  stick.addEventListener("pointermove", e => { if (e.pointerId === T.stickId) move(e); });
+  const end = e => { if (e.pointerId !== T.stickId) return; T.stickId = null; knob.style.transform = ""; T.state.left = T.state.right = T.state.up = T.state.down = false; };
+  stick.addEventListener("pointerup", end); stick.addEventListener("pointercancel", end);
+  pad.querySelectorAll("." + C("tb")).forEach(b => {
+    const k = b.dataset.k;
+    b.addEventListener("pointerdown", e => { e.preventDefault(); Sound.init(); b.setPointerCapture(e.pointerId); T.state[k] = true; b.classList.add(C("on")); });
+    const up = () => { T.state[k] = false; b.classList.remove(C("on")); };
+    b.addEventListener("pointerup", up); b.addEventListener("pointercancel", up);
+    b.addEventListener("contextmenu", e => e.preventDefault());
+  });
 });
 stageEl.addEventListener("touchmove", e => { if (app.screen === "fight") e.preventDefault(); }, { passive: false });
 
@@ -2450,8 +2492,10 @@ function loop(now) {
   while (acc >= STEP && n < 5) {
     if (app.screen === "fight" && app.match && !app.paused) {
       const M = app.match;
-      M.f[0].input = { ...keys };
-      if (app.touchOn) for (const k in touch.state) if (touch.state[k]) M.f[0].input[k] = true;
+      for (let p = 0; p < (M.pvp ? 2 : 1); p++) {
+        M.f[p].input = { ...keys[p] };
+        if (app.touchOn) for (const k in touch.pads[p].state) if (touch.pads[p].state[k]) M.f[p].input[k] = true;
+      }
       step(M);
       if (M.phase === "over" && !app.overShown && M.phaseT > 0) { app.overShown = true; setTimeout(() => showResult(M), 900); }
     } else if (!app.match || app.screen === "scr-title" || app.screen === "scr-help" && !app.paused) {
@@ -2464,8 +2508,10 @@ function loop(now) {
   const M = (app.match && app.screen !== "scr-title") ? app.match : app.demo;
   if (M) render(ctx, M, dt, { noHud: M.mode === "demo", reduceMotion });
   if (app.screen === "scr-select") drawPreview(dt);
-  const sp = root.querySelector('.tf-tb[data-k="special"]');
-  if (sp && app.match) sp.classList.toggle("tf-ready", app.match.f[0].meter >= 100);
+  if (app.match) root.querySelectorAll("." + C("pad")).forEach(pad => {
+    const sp = pad.querySelector(`.${C("tb")}[data-k="special"]`);
+    if (sp) sp.classList.toggle(C("ready"), app.match.f[+pad.dataset.p].meter >= 100);
+  });
   raf = requestAnimationFrame(loop);
 }
 
@@ -2487,7 +2533,7 @@ function closeGame() {
   running = false; cancelAnimationFrame(raf);
   Sound.music.stop();
   app.match = null; app.paused = false;
-  for (const k in keys) keys[k] = false;
+  keys[0] = {}; keys[1] = {};
   touch.reset();
   if (document.fullscreenElement) { try { document.exitFullscreen(); } catch (e) {} }
   optFs.checked = false;
