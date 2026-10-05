@@ -3,6 +3,18 @@
 Historia de la web de TronkStudios agrupada por versiones. Cada versión
 resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 
+## [v5] · Octubre de 2026 · Tronk Fight
+
+### Añadido
+- Nuevo minijuego **Tronk Fight** en `juegos/tronk-fight/`: duelo 2D de stickmans con 7 luchadores
+  (Ranjay, Omogos, Finillos, Yant, Sulius, Chambas y Quizo), cada uno con su arma y su ataque especial.
+- Parrys, esquivas, guardia que se rompe, sistema K.O. al mejor de 3 rondas, bot con 3 dificultades,
+  5 escenarios y controles táctiles para móvil.
+- Golpes por contacto real entre el arma y el cuerpo (el arma no atraviesa al rival).
+- Sangre (desactivable), sonido sintetizado, música de combate y presentador.
+- Equilibrado con miles de combates simulados de bot contra bot.
+- Tarjeta del juego en la sección Minijuegos.
+
 ## [v4] · Octubre de 2026 · Orden y documentación
 
 ### Cambiado
