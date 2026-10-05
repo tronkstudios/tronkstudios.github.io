@@ -21,6 +21,7 @@ ideas, y escribir al soporte (Tronker o formulario de correo).
 ```
 index.html                 Página única (secciones con <section>)
 css/styles.css             Estilos con tokens (variables CSS) y modo claro/oscuro
+css/tronk-fight.css        Estilos de Tronk Fight (todo con prefijo tf- para no chocar)
 js/
   core.js                  Configuración de Supabase y elementos de la página
   theme.js                 Modo claro / oscuro guardado en el navegador
@@ -32,10 +33,9 @@ js/
   games/antitronks.js      Minijuego Antitronks
   games/protect-mogos.js   Minijuego Protect Mogos
   games/stick-drill.js     Minijuego Stick Drill
+  games/tronk-fight.js     Minijuego Tronk Fight (juego de lucha completo)
   app.js                   Arranque, menú móvil y navegación
   support.js               Menú de soporte, chat de Tronker y formulario
-juegos/tronk-fight/        Tronk Fight: juego de lucha completo en un solo archivo
-  voces/                   (opcional) grabaciones del presentador
 img/juegos/                Imágenes de las tarjetas
 index.js                   Backend de soporte (Cloudflare Worker)
 docs/adr/                  Decisiones de arquitectura
@@ -71,15 +71,15 @@ El Worker no guarda los mensajes ni los escribe en los logs.
 
 ## Tronk Fight
 
-Es un juego independiente en un solo archivo (`juegos/tronk-fight/index.html`), con
-su propio motor: la lógica va a 60 pasos por segundo separada del dibujo, lo que
-permite simular miles de combates de bot contra bot para equilibrar las armas.
-Los golpes se calculan con la forma real del arma contra el cuerpo del rival.
+Se abre en una ventana dentro de la web, como el resto de minijuegos.
+Su código está en `js/games/tronk-fight.js`, metido entero dentro de una función
+para que sus variables no choquen con las de la web, y sus estilos en
+`css/tronk-fight.css`, con todos los nombres empezando por `tf-`.
 
-**Voz del presentador:** si se añaden grabaciones en `juegos/tronk-fight/voces/`
-con estos nombres, el juego las usa en vez de la voz del navegador:
-`ronda1.mp3`, `ronda2.mp3`, `ronda3.mp3`, `lucha.mp3`, `ko.mp3`, `perfecto.mp3`,
-`tiempo.mp3`, `combo.mp3`, `parry.mp3`, `guardia.mp3`, `limite.mp3` y `especial.mp3`.
+Tiene su propio motor: la lógica va a 60 pasos por segundo separada del dibujo,
+lo que permite simular miles de combates de bot contra bot para equilibrar las armas.
+Los golpes se calculan con la forma real del arma contra el cuerpo del rival.
+El juego solo se ejecuta mientras su ventana está abierta.
 
 ## Probarlo en local
 
