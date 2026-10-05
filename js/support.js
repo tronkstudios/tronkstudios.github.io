@@ -1057,7 +1057,9 @@ const SUPPORT_CONFIG = {
       showMailResult(
         "success",
         "Mensaje enviado",
-        `Hemos recibido tu mensaje. Te hemos enviado un correo de confirmación a ${data.email} y te responderemos allí lo antes posible.`
+        result.autoReply === true
+          ? `Hemos recibido tu mensaje. Te hemos enviado un correo de confirmación a ${data.email} y te responderemos allí lo antes posible.`
+          : `Hemos recibido tu mensaje. Te responderemos a ${data.email} lo antes posible.`
       );
 
       mailForm.reset();
