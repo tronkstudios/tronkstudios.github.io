@@ -98,6 +98,7 @@
   </script>
 
   <link rel="stylesheet" href="css/styles.css?v=25" />
+  <link rel="stylesheet" href="css/tronk-fight.css?v=1" />
 
   <!-- Estilos de la portada (imagen principal arriba del todo) -->
   <style>
@@ -147,6 +148,7 @@
   <script src="js/games/antitronks.js?v=19" defer></script>
   <script src="js/games/protect-mogos.js?v=19" defer></script>
   <script src="js/games/stick-drill.js?v=19" defer></script>
+  <script src="js/games/tronk-fight.js?v=1" defer></script>
   <script src="js/app.js?v=19" defer></script>
 
   <!-- Sistema de soporte (chat con Tronker + formulario de correo) -->
@@ -456,12 +458,12 @@
 
           </article>
 
-          <!-- Tronk Fight es un juego completo: se abre en su propia página -->
-          <a
+          <article
             class="card dev-card minigame-card"
-            href="juegos/tronk-fight/"
-            aria-label="Jugar a Tronk Fight"
-            style="color: inherit; text-decoration: none;"
+            data-minigame="tronkfight"
+            tabindex="0"
+            role="button"
+            aria-label="Abrir Tronk Fight"
           >
 
             <div class="dev-card-media">
@@ -475,7 +477,7 @@
 
             <h3>Tronk Fight</h3>
 
-          </a>
+          </article>
 
         </div>
 
@@ -1780,6 +1782,196 @@
     </div>
   </div>
 
+
+
+  <!-- =====================================================
+       MINIJUEGO TRONK FIGHT
+       ===================================================== -->
+
+  <div
+    id="tronkfight-modal"
+    class="antitronks-modal hidden"
+    aria-hidden="true"
+  >
+
+    <div class="antitronks-backdrop"></div>
+
+    <div
+      class="antitronks-window tronkfight-window"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="tronkfight-title"
+    >
+
+      <header class="antitronks-header">
+        <h2 id="tronkfight-title">TRONK FIGHT</h2>
+
+        <button
+          class="antitronks-sound game-sound-toggle"
+          type="button"
+          aria-label="Silenciar"
+          aria-pressed="false"
+        >
+          🔊
+        </button>
+
+        <button
+          id="tronkfight-close"
+          class="antitronks-close"
+          type="button"
+          aria-label="Cerrar Tronk Fight"
+        >
+          ×
+        </button>
+      </header>
+
+<div id="tf-root" class="tf-root">
+  <div id="tf-stage">
+    <canvas id="tf-game" aria-label="Combate de Tronk Fight"></canvas>
+
+    <section id="tf-scr-title" class="tf-screen" aria-labelledby="tf-t-logo">
+      <h1 id="tf-t-logo" class="tf-logo"><span>Tronk</span><span>Fight</span></h1>
+      <p class="tf-tag">Siete luchadores, un solo duelo.</p>
+      <div class="tf-row">
+        <button id="tf-btn-play" class="tf-btn tf-big">Jugar</button>
+        <button id="tf-btn-help" class="tf-btn tf-ghost" style="color:#fff">Controles</button>
+      </div>
+            <p class="tf-credit">Un juego de TronkStudios</p>
+    </section>
+
+    <section id="tf-scr-select" class="tf-screen" hidden aria-labelledby="tf-sel-title">
+      <div class="tf-sel-wrap">
+        <header class="tf-sel-head">
+          <h2 id="tf-sel-title" class="tf-display">Elige a tu luchador</h2>
+          <button id="tf-btn-sel-back" class="tf-btn tf-ghost tf-small" style="color:#fff">Volver</button>
+        </header>
+        <div class="tf-sel-main">
+          <div class="tf-preview-box">
+            <canvas id="tf-preview" width="640" height="560" aria-hidden="true"></canvas>
+            <span id="tf-who" class="tf-who">Tú</span>
+          </div>
+          <div class="tf-info tf-panel">
+            <h3 id="tf-i-name" class="tf-display"></h3>
+            <p id="tf-i-weapon" class="tf-weapon"></p>
+            <dl id="tf-i-stats" class="tf-stats"></dl>
+            <div class="tf-special">
+              <h4 id="tf-i-sp-name" class="tf-display"></h4>
+              <p id="tf-i-sp-desc"></p>
+            </div>
+            <div id="tf-diff-box" hidden>
+              <p class="tf-seg-title">Dificultad del bot</p>
+              <div class="tf-seg" role="radiogroup" aria-label="Dificultad del bot">
+                <label><input type="radio" name="tf-diff" value="facil">Fácil</label>
+                <label><input type="radio" name="tf-diff" value="normal" checked>Normal</label>
+                <label><input type="radio" name="tf-diff" value="dificil">Difícil</label>
+              </div>
+            </div>
+            <div class="tf-pick-row">
+              <button id="tf-btn-pick" class="tf-btn tf-big">Elegir</button>
+              <button id="tf-btn-random" class="tf-btn tf-ghost tf-small">Al azar</button>
+            </div>
+          </div>
+        </div>
+        <ul id="tf-roster" class="tf-roster" role="listbox" aria-label="Luchadores"></ul>
+      </div>
+    </section>
+
+    <section id="tf-scr-stagesel" class="tf-screen" hidden aria-labelledby="tf-stg-title">
+      <div class="tf-sel-head" style="width:100%">
+        <h2 id="tf-stg-title" class="tf-display" style="font-size:6.4cqh;color:#fff;-webkit-text-stroke:.5cqh #14112b;paint-order:stroke fill">Elige escenario</h2>
+        <button id="tf-btn-stg-back" class="tf-btn tf-ghost tf-small" style="color:#fff">Volver</button>
+      </div>
+      <p id="tf-matchup" class="tf-matchup tf-display"></p>
+      <div class="tf-stage-big"><canvas id="tf-stage-big" width="640" height="360" aria-hidden="true"></canvas></div>
+      <ul id="tf-stages" class="tf-stages" aria-label="Escenarios"></ul>
+      <button id="tf-btn-fight" class="tf-btn tf-big tf-pink">¡A luchar!</button>
+    </section>
+
+    <section id="tf-scr-help" class="tf-screen" hidden aria-labelledby="tf-help-title">
+      <div class="tf-card tf-panel">
+        <h2 id="tf-help-title" class="tf-display">Controles</h2>
+        <div class="tf-keys">
+          <section>
+            <h3>Teclado</h3>
+            <table>
+              <tr><td>Moverse</td><td><kbd>A</kbd> <kbd>D</kbd> o flechas</td></tr>
+              <tr><td>Saltar</td><td><kbd>W</kbd> o <kbd>↑</kbd></td></tr>
+              <tr><td>Atacar</td><td><kbd>J</kbd> o <kbd>Z</kbd></td></tr>
+              <tr><td>Bloquear</td><td><kbd>K</kbd> o <kbd>X</kbd> (mantener)</td></tr>
+              <tr><td>Esquivar</td><td><kbd>L</kbd> o <kbd>C</kbd></td></tr>
+              <tr><td>Especial</td><td><kbd>I</kbd> o <kbd>V</kbd></td></tr>
+              <tr><td>Pausa</td><td><kbd>Esc</kbd> o <kbd>P</kbd></td></tr>
+            </table>
+          </section>
+          <section>
+            <h3>Móvil</h3>
+            <table>
+              <tr><td>Moverse</td><td>Joystick izquierdo</td></tr>
+              <tr><td>Saltar</td><td>Joystick hacia arriba</td></tr>
+              <tr><td>Atacar</td><td>Botón rosa grande</td></tr>
+              <tr><td>Bloquear</td><td>Botón azul (mantener)</td></tr>
+              <tr><td>Esquivar</td><td>Botón Esquivar + dirección</td></tr>
+              <tr><td>Especial</td><td>Botón dorado cuando brilla</td></tr>
+            </table>
+          </section>
+        </div>
+        <p class="tf-tips"><strong>Parry:</strong> pulsa bloquear justo antes de que te golpeen. El rival queda aturdido y tú ganas especial. Si mantienes el bloqueo pulsado no hay parry: hay que acertar el momento. <strong>Esquivar</strong> te hace invulnerable un instante. La barra de especial se llena al dar y recibir golpes.</p>
+        <button id="tf-btn-help-close" class="tf-btn">Entendido</button>
+      </div>
+    </section>
+
+    <section id="tf-scr-pause" class="tf-screen" hidden aria-labelledby="tf-pause-title">
+      <div class="tf-card tf-panel">
+        <h2 id="tf-pause-title" class="tf-display">Pausa</h2>
+        <div class="tf-row">
+          <button id="tf-btn-resume" class="tf-btn">Seguir</button>
+          <button id="tf-btn-restart" class="tf-btn tf-ghost">Reiniciar combate</button>
+        </div>
+        <div class="tf-row">
+          <button id="tf-btn-p-select" class="tf-btn tf-ghost tf-small">Cambiar luchadores</button>
+          <button id="tf-btn-p-menu" class="tf-btn tf-ghost tf-small">Salir al menú</button>
+        </div>
+        <div class="tf-toggles">
+          <label><input type="checkbox" id="tf-opt-music" checked> Música</label>
+          <label><input type="checkbox" id="tf-opt-blood" checked> Sangre</label>
+          <label><input type="checkbox" id="tf-opt-touch"> Controles táctiles</label>
+          <label id="tf-opt-fs-wrap"><input type="checkbox" id="tf-opt-fs"> Pantalla completa</label>
+        </div>
+      </div>
+    </section>
+
+    <section id="tf-scr-result" class="tf-screen" hidden aria-labelledby="tf-r-title">
+      <div class="tf-card tf-panel">
+        <h2 id="tf-r-title" class="tf-display"></h2>
+        <ul class="tf-result-stats" id="tf-r-stats"></ul>
+        <div class="tf-row">
+          <button id="tf-btn-rematch" class="tf-btn tf-pink">Revancha</button>
+          <button id="tf-btn-r-select" class="tf-btn tf-ghost">Cambiar luchadores</button>
+          <button id="tf-btn-r-menu" class="tf-btn tf-ghost">Menú</button>
+        </div>
+      </div>
+    </section>
+
+    <button id="tf-btn-pause" hidden aria-label="Pausa">II</button>
+
+    <div id="tf-touch" hidden>
+      <div id="tf-stick" aria-label="Joystick"><div id="tf-knob"></div></div>
+      <div id="tf-btns">
+        <button class="tf-tb" data-k="special" aria-label="Ataque especial">Especial</button>
+        <button class="tf-tb" data-k="dodge" aria-label="Esquivar">Esquivar</button>
+        <button class="tf-tb" data-k="block" aria-label="Bloquear">Bloquear</button>
+        <button class="tf-tb" data-k="attack" aria-label="Atacar">Atacar</button>
+      </div>
+    </div>
+  </div>
+  <div id="tf-rotate" hidden>
+  <div class="tf-phone" aria-hidden="true"></div>
+  <p>Gira el móvil: Tronk Fight se juega en horizontal.</p>
+  <button id="tf-btn-rotate-ok" class="tf-btn">Seguir igualmente</button>
+</div>
+</div>
+    </div>
+  </div>
 
   <!-- =====================================================
        SOPORTE · MENÚ (elige IA o correo)
