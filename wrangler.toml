@@ -10,7 +10,7 @@
 # =========================================================
 
 name = "tronkstudios-support"
-main = "src/index.js"
+main = "index.js"
 compatibility_date = "2025-09-01"
 
 [vars]
