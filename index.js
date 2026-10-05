@@ -5,6 +5,7 @@
      GET  /health   → dice qué partes están configuradas (sin datos sensibles)
      POST /chat     → envía la conversación al proveedor de IA
      POST /contact  → envía el formulario al correo de soporte (Resend)
+                     y una respuesta automática al visitante
 
    Aquí sí se usan claves secretas, pero NUNCA se escriben en
    este archivo: se guardan como "secrets" de Cloudflare
@@ -543,7 +544,67 @@ async function handleContact(request, env, cors) {
     return json({ error: "send_failed" }, 502, cors);
   }
 
+  // El mensaje ya ha llegado a soporte: ahora avisamos al visitante.
+  // Si la respuesta automática falla, NO devolvemos error, porque
+  // lo importante (que nos llegue su mensaje) ya ha funcionado.
+  await sendAutoReply(env, fields);
+
   return json({ ok: true }, 200, cors);
+}
+
+/* =========================================================
+   RESPUESTA AUTOMÁTICA AL VISITANTE
+   Se envía a la dirección que escribió en el formulario.
+
+   SEGURIDAD: el texto es fijo y NO copia nada de lo que escribió
+   la persona (ni nombre, ni asunto, ni mensaje). Así nadie puede
+   usar el formulario para mandar texto suyo a un tercero
+   haciéndose pasar por TronkStudios. Solo se usa la categoría,
+   que viene de una lista cerrada (MAIL_CATEGORIES).
+
+   Para desactivarla: secret/variable AUTO_REPLY = "off".
+   ========================================================= */
+
+async function sendAutoReply(env, fields) {
+  if (String(env.AUTO_REPLY || "").trim().toLowerCase() === "off") {
+    return;
+  }
+
+  const category = MAIL_CATEGORIES.includes(fields.category)
+    ? fields.category
+    : "Otros";
+
+  const text =
+    "¡Hola!\n\n" +
+    "Hemos recibido tu mensaje en el soporte de TronkStudios " +
+    `(categoría: ${category}).\n\n` +
+    "Lo leeremos lo antes posible y te contestaremos a este mismo correo. " +
+    "No hace falta que lo envíes otra vez.\n\n" +
+    "Si no has escrito tú a TronkStudios, puedes ignorar este correo.\n\n" +
+    "—\nTronkStudios · Videojuegos y determinación\n" +
+    "https://tronkstudios.github.io/";
+
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${env.RESEND_API_KEY}`
+      },
+      body: JSON.stringify({
+        from: env.MAIL_FROM,
+        to: [fields.email],
+        subject: "Hemos recibido tu mensaje · TronkStudios",
+        text
+      })
+    });
+
+    if (!response.ok) {
+      console.error("auto-reply: Resend respondió", response.status);
+    }
+  } catch (error) {
+    console.error("auto-reply: no se pudo contactar con Resend", error && error.name);
+  }
 }
 
 /* =========================================================
