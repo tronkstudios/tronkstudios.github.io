@@ -1937,35 +1937,9 @@ body.antitronks-open {
   color: var(--muted);
 }
 
-.about-stats {
-  list-style: none;
-  margin: 24px 0 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 16px;
-}
-
-.about-stats li {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 18px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-left: 4px solid var(--brand-blue);
-  border-radius: var(--radius);
-}
-
-.about-stats strong {
-  font-size: 2rem;
-  line-height: 1;
-  color: var(--accent);
-}
-
-.about-stats span {
-  color: var(--muted);
-  font-size: 0.95rem;
+/* Primer título dentro del desplegable: menos hueco arriba */
+.about-more-body > .about-video:first-child .about-subtitle {
+  margin-top: 24px;
 }
 
 .video-frame {
