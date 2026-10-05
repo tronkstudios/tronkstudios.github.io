@@ -2132,7 +2132,7 @@ if (suggestionCategory) {
 const PROJECTS = {
   "z-tronks": {
     title: "Z Tronks",
-    image: "z-tronks.png",
+    image: "img/juegos/z-tronks.png",
     category: "Roblox",
     people: 5,
     // Año, mes (1-12), día
