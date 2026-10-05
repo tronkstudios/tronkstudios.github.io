@@ -72,6 +72,8 @@ El Worker no guarda los mensajes ni los escribe en los logs.
 ## Tronk Fight
 
 Se abre en una ventana dentro de la web, como el resto de minijuegos.
+Se puede jugar contra un bot (3 dificultades) o a dos jugadores en el mismo
+teclado o en el mismo móvil o tablet, con un mando para cada uno.
 Su código está en `js/games/tronk-fight.js`, metido entero dentro de una función
 para que sus variables no choquen con las de la web, y sus estilos en
 `css/tronk-fight.css`, con todos los nombres empezando por `tf-`.
