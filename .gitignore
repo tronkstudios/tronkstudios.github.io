@@ -1,1 +1,5 @@
+# Claves locales: no subir nunca
+.dev.vars
+.env
+node_modules/
 .wrangler/
