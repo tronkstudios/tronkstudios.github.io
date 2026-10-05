@@ -1,309 +1,9 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Tronk Fight | TronkStudios</title>
-<link rel="icon" href="../../favicon.png">
-<meta name="description" content="Tronk Fight: duelo de stickmans 2D con 7 luchadores, parrys, ataques especiales y bot.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
-<style>
-:root{
-  --bg:#dfe2fb; --panel:#ffffff; --panel-2:#eef0ff; --ink:#14112b; --muted:#4b4777;
-  --line:#b8b3e6; --blue:#1e6fe8; --pink:#e0306f; --gold:#c99700; --scrim:rgba(20,17,43,.55);
-  box-sizing:border-box;
-  padding-top:env(safe-area-inset-top,0px);
-  padding-bottom:env(safe-area-inset-bottom,0px);
-}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){
-    --bg:#0c0a1d; --panel:#1b1740; --panel-2:#241f52; --ink:#f4f6ff; --muted:#b4b0dd;
-    --line:#3d3780; --blue:#3b8bff; --pink:#ff4f8e; --gold:#ffd23f; --scrim:rgba(8,6,20,.62);
-  }
-}
-:root[data-theme="dark"]{
-  --bg:#0c0a1d; --panel:#1b1740; --panel-2:#241f52; --ink:#f4f6ff; --muted:#b4b0dd;
-  --line:#3d3780; --blue:#3b8bff; --pink:#ff4f8e; --gold:#ffd23f; --scrim:rgba(8,6,20,.62);
-}
-*,*::before,*::after{box-sizing:border-box}
-html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
-body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:Rubik,"Segoe UI",system-ui,sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
-#app{position:relative;width:100%;height:100%;display:grid;place-items:center;
-  padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
-#stage{position:relative;container-type:size;background:#0c0a1d;overflow:hidden;border-radius:6px;box-shadow:0 0 0 1px var(--line)}
-#game{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
-
-/* ---------- pantallas sobre el lienzo ---------- */
-.screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.2cqh;padding:3cqh 3cqw;background:var(--scrim)}
-.screen[hidden]{display:none}
-h1,h2,h3,h4{margin:0;font-weight:400}
-.display{font-family:Bangers,Impact,"Arial Black",sans-serif;letter-spacing:.04em;line-height:.95}
-.btn{font:700 2.4cqh/1 Rubik,system-ui,sans-serif;color:#fff;background:var(--blue);border:0;border-radius:999px;padding:1.6cqh 3.4cqw;cursor:pointer;box-shadow:0 .5cqh 0 rgba(0,0,0,.35);transition:transform .08s ease,filter .15s ease}
-.btn:hover{filter:brightness(1.12)}
-.btn:active{transform:translateY(.4cqh);box-shadow:0 .1cqh 0 rgba(0,0,0,.35)}
-.btn:focus-visible,.tile:focus-visible,.seg label:focus-within,.stage-tile:focus-visible{outline:.45cqh solid var(--gold);outline-offset:.45cqh}
-.btn.big{font-size:3.2cqh;padding:2cqh 4.6cqw}
-.btn.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 .3cqh var(--line)}
-.btn.pink{background:var(--pink)}
-.btn.small{font-size:2cqh;padding:1.2cqh 2.4cqw}
-.row{display:flex;gap:1.6cqw;flex-wrap:wrap;justify-content:center}
-
-/* portada */
-#scr-title{background:linear-gradient(180deg,rgba(12,10,29,.15),rgba(12,10,29,.78) 70%)}
-.logo{font-family:Bangers,Impact,sans-serif;font-size:21cqh;line-height:.82;color:#fff;text-align:center;
-  -webkit-text-stroke:.9cqh #14112b;paint-order:stroke fill;text-shadow:0 1.4cqh 0 #14112b;transform:rotate(-4deg)}
-.logo span{display:block}
-.logo span:first-child{color:#ffd23f}
-.logo span:last-child{color:#fff;margin-left:9cqw}
-.tag{margin:0;font-size:2.8cqh;color:#e9e7ff;text-shadow:0 .3cqh 0 #000}
-#scr-title .credit{position:absolute;bottom:2.4cqh;left:0;right:0;text-align:center;font-size:1.8cqh;color:#cfcaf7}
-
-/* selección de luchador */
-#scr-select,#scr-stagesel,#scr-help,#scr-pause,#scr-result{background:var(--scrim);backdrop-filter:blur(3px)}
-.panel{background:var(--panel);border-radius:2.4cqh;box-shadow:0 1.2cqh 3cqh rgba(0,0,0,.35);color:var(--ink)}
-.sel-wrap{width:100%;height:100%;display:grid;grid-template-rows:auto 1fr auto;gap:1.8cqh}
-.sel-head{display:flex;align-items:center;justify-content:space-between;gap:2cqw}
-.sel-head h2{font-size:6.4cqh;color:#fff;-webkit-text-stroke:.5cqh #14112b;paint-order:stroke fill}
-.sel-main{display:grid;grid-template-columns:42% 1fr;gap:2.4cqw;min-height:0}
-.preview-box{position:relative;border-radius:2.4cqh;overflow:hidden;background:radial-gradient(circle at 50% 70%,#2b2566,#120f2a 70%);box-shadow:inset 0 0 0 .3cqh rgba(255,255,255,.08)}
-#preview{width:100%;height:100%;display:block}
-.who{position:absolute;top:1.6cqh;left:1.6cqw;font:700 1.9cqh Rubik,sans-serif;padding:.7cqh 1.2cqw;border-radius:999px;color:#fff;background:var(--blue)}
-.who.cpu{background:var(--pink)}
-.info{padding:2.6cqh 2.4cqw;display:flex;flex-direction:column;gap:1.4cqh;min-height:0;overflow:auto}
-.info h3{font-size:8cqh;line-height:.9}
-.info .weapon{margin:0;font-size:2.4cqh;color:var(--muted)}
-.stats{display:grid;grid-template-columns:auto 1fr;gap:.9cqh 1.6cqw;margin:.6cqh 0 0;align-items:center}
-.stats dt{font-size:2.1cqh;color:var(--muted)}
-.stats dd{margin:0;display:flex;gap:.5cqw}
-.pip{width:3.6cqw;height:1.5cqh;border-radius:.4cqh;background:var(--panel-2);box-shadow:inset 0 0 0 .15cqh var(--line)}
-.pip.on{background:var(--gold);box-shadow:none}
-.special{background:var(--panel-2);border-radius:1.6cqh;padding:1.4cqh 1.4cqw}
-.special h4{font-size:3.6cqh;color:var(--pink)}
-.special p{margin:.4cqh 0 0;font-size:2.1cqh;line-height:1.35;max-width:60ch}
-.seg{display:flex;gap:.8cqw;flex-wrap:wrap}
-.seg-title{font-size:2.1cqh;color:var(--muted);margin:0}
-.seg label{position:relative;font-size:2.1cqh;padding:1cqh 1.8cqw;border-radius:999px;box-shadow:inset 0 0 0 .25cqh var(--line);cursor:pointer}
-.seg input{position:absolute;opacity:0;pointer-events:none}
-.seg label:has(input:checked){background:var(--ink);color:var(--panel);box-shadow:none}
-.pick-row{margin-top:auto;display:flex;gap:1.2cqw;flex-wrap:wrap}
-.roster{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(7,1fr);gap:1cqw}
-.tile{position:relative;width:100%;aspect-ratio:1/1.08;border:0;border-radius:1.8cqh;background:var(--panel);cursor:pointer;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;overflow:hidden;box-shadow:inset 0 0 0 .3cqh var(--line);transition:transform .1s ease}
-.tile canvas{width:100%;flex:1;min-height:0;display:block}
-.tile span{font:700 1.9cqh Rubik,sans-serif;color:var(--ink);padding:.5cqh 0 .9cqh}
-.tile[aria-selected="true"]{box-shadow:inset 0 0 0 .55cqh var(--gold);transform:translateY(-.6cqh)}
-.tile .badge{position:absolute;top:.6cqh;left:.6cqh;font:700 1.5cqh Rubik,sans-serif;color:#fff;border-radius:999px;padding:.3cqh .8cqw}
-.badge.p1{background:var(--blue)}
-.badge.cpu{background:var(--pink);left:auto;right:.6cqh}
-
-/* escenarios */
-.stages{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,1fr);gap:1.4cqw;width:100%}
-.stage-tile{width:100%;border:0;padding:0;border-radius:1.8cqh;overflow:hidden;background:var(--panel);cursor:pointer;box-shadow:inset 0 0 0 .3cqh var(--line);display:flex;flex-direction:column}
-.stage-tile canvas{width:100%;aspect-ratio:16/9;display:block}
-.stage-tile span{font:700 2.1cqh Rubik,sans-serif;color:var(--ink);padding:1.1cqh .6cqw}
-.stage-tile[aria-pressed="true"]{box-shadow:inset 0 0 0 .55cqh var(--gold)}
-.stage-big{width:62%;aspect-ratio:16/9;border-radius:2cqh;overflow:hidden;box-shadow:0 1cqh 3cqh rgba(0,0,0,.4)}
-.stage-big canvas{width:100%;height:100%;display:block}
-.matchup{font-size:5cqh;color:#fff;-webkit-text-stroke:.4cqh #14112b;paint-order:stroke fill;text-align:center}
-
-/* ayuda, pausa, resultado */
-.card{padding:3.4cqh 3.4cqw;display:flex;flex-direction:column;gap:2cqh;align-items:center;max-width:86%;max-height:92%;overflow:auto}
-.card h2{font-size:8cqh;text-align:center}
-.keys{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.6cqh 3cqw;width:100%}
-.keys section h3{font:700 2.4cqh Rubik,sans-serif;margin-bottom:1cqh}
-.keys table{border-collapse:collapse;width:100%;font-size:2.1cqh}
-.keys td{padding:.7cqh .6cqw;border-bottom:.15cqh solid var(--line)}
-.keys td:first-child{color:var(--muted);white-space:nowrap}
-kbd{font:700 1.9cqh Rubik,sans-serif;background:var(--panel-2);border-radius:.6cqh;padding:.2cqh .6cqw;box-shadow:inset 0 -.25cqh 0 var(--line)}
-.tips{margin:0;font-size:2.1cqh;line-height:1.4;color:var(--muted);max-width:70ch}
-.result-stats{display:flex;gap:3cqw;margin:0;padding:0;list-style:none;font-size:2.3cqh}
-.result-stats strong{display:block;font-family:Bangers,Impact,sans-serif;font-size:5.4cqh;font-weight:400;color:var(--gold)}
-.toggles{display:flex;flex-direction:column;gap:1cqh;font-size:2.2cqh}
-.toggles label{display:flex;gap:1cqw;align-items:center;cursor:pointer}
-.toggles input{width:2.4cqh;height:2.4cqh;accent-color:var(--blue)}
-
-/* botón de pausa */
-#btn-pause{position:absolute;top:1.2cqh;left:50%;transform:translateX(-50%) translateY(13.4cqh);width:6cqh;height:6cqh;border-radius:50%;border:0;background:rgba(20,17,43,.75);color:#fff;font:700 2.4cqh Rubik,sans-serif;cursor:pointer;box-shadow:inset 0 0 0 .25cqh rgba(255,255,255,.25)}
-#btn-pause:focus-visible{outline:.45cqh solid var(--gold)}
-
-/* controles táctiles */
-#touch{position:absolute;inset:0;pointer-events:none}
-#touch[hidden]{display:none}
-#stick{position:absolute;left:3cqw;bottom:4cqh;width:30cqh;height:30cqh;border-radius:50%;background:rgba(255,255,255,.10);box-shadow:inset 0 0 0 .4cqh rgba(255,255,255,.28);pointer-events:auto;touch-action:none}
-#knob{position:absolute;left:50%;top:50%;width:13cqh;height:13cqh;margin:-6.5cqh 0 0 -6.5cqh;border-radius:50%;background:rgba(255,255,255,.42);box-shadow:0 .6cqh 1.4cqh rgba(0,0,0,.35)}
-#btns{position:absolute;right:3cqw;bottom:4cqh;width:38cqh;height:34cqh;pointer-events:none}
-.tb{position:absolute;pointer-events:auto;touch-action:none;border:0;border-radius:50%;color:#fff;font:700 1.9cqh Rubik,sans-serif;background:rgba(20,17,43,.55);box-shadow:inset 0 0 0 .4cqh rgba(255,255,255,.35);display:grid;place-items:center;text-align:center;line-height:1.05}
-.tb.on{background:rgba(255,255,255,.35)}
-.tb[data-k="attack"]{width:16cqh;height:16cqh;right:0;bottom:0;background:rgba(224,48,111,.7);font-size:2.4cqh}
-.tb[data-k="block"]{width:12cqh;height:12cqh;right:17cqh;bottom:0;background:rgba(30,111,232,.6)}
-.tb[data-k="dodge"]{width:12cqh;height:12cqh;right:2cqh;bottom:17cqh}
-.tb[data-k="special"]{width:12cqh;height:12cqh;right:17cqh;bottom:14cqh;background:rgba(201,151,0,.55)}
-.tb[data-k="special"].ready{background:rgba(255,210,63,.9);color:#14112b;animation:pulse 1s ease-in-out infinite}
-@keyframes pulse{50%{transform:scale(1.08)}}
-
-#rotate{position:fixed;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center;background:var(--bg);color:var(--ink)}
-#rotate[hidden]{display:none}
-#rotate p{margin:0;font-size:18px;max-width:30ch;line-height:1.4}
-#rotate .phone{width:56px;height:96px;border-radius:12px;border:5px solid currentColor;animation:turn 2.4s ease-in-out infinite}
-@keyframes turn{40%,60%{transform:rotate(-90deg)}}
-@media (prefers-reduced-motion:reduce){
-  .tb[data-k="special"].ready,#rotate .phone{animation:none}
-  .btn,.tile{transition:none}
-}
-</style>
-</head>
-<body>
-<div id="app">
-  <div id="stage">
-    <canvas id="game" aria-label="Combate de Tronk Fight"></canvas>
-
-    <section id="scr-title" class="screen" aria-labelledby="t-logo">
-      <h1 id="t-logo" class="logo"><span>Tronk</span><span>Fight</span></h1>
-      <p class="tag">Siete luchadores, un solo duelo.</p>
-      <div class="row">
-        <button id="btn-play" class="btn big">Jugar</button>
-        <button id="btn-help" class="btn ghost" style="color:#fff">Controles</button>
-      </div>
-      <a id="btn-web" class="btn ghost small" style="color:#fff;text-decoration:none" href="../../" hidden>Volver a TronkStudios</a>
-      <p class="credit">Un juego de TronkStudios</p>
-    </section>
-
-    <section id="scr-select" class="screen" hidden aria-labelledby="sel-title">
-      <div class="sel-wrap">
-        <header class="sel-head">
-          <h2 id="sel-title" class="display">Elige a tu luchador</h2>
-          <button id="btn-sel-back" class="btn ghost small" style="color:#fff">Volver</button>
-        </header>
-        <div class="sel-main">
-          <div class="preview-box">
-            <canvas id="preview" width="640" height="560" aria-hidden="true"></canvas>
-            <span id="who" class="who">Tú</span>
-          </div>
-          <div class="info panel">
-            <h3 id="i-name" class="display"></h3>
-            <p id="i-weapon" class="weapon"></p>
-            <dl id="i-stats" class="stats"></dl>
-            <div class="special">
-              <h4 id="i-sp-name" class="display"></h4>
-              <p id="i-sp-desc"></p>
-            </div>
-            <div id="diff-box" hidden>
-              <p class="seg-title">Dificultad del bot</p>
-              <div class="seg" role="radiogroup" aria-label="Dificultad del bot">
-                <label><input type="radio" name="diff" value="facil">Fácil</label>
-                <label><input type="radio" name="diff" value="normal" checked>Normal</label>
-                <label><input type="radio" name="diff" value="dificil">Difícil</label>
-              </div>
-            </div>
-            <div class="pick-row">
-              <button id="btn-pick" class="btn big">Elegir</button>
-              <button id="btn-random" class="btn ghost small">Al azar</button>
-            </div>
-          </div>
-        </div>
-        <ul id="roster" class="roster" role="listbox" aria-label="Luchadores"></ul>
-      </div>
-    </section>
-
-    <section id="scr-stagesel" class="screen" hidden aria-labelledby="stg-title">
-      <div class="sel-head" style="width:100%">
-        <h2 id="stg-title" class="display" style="font-size:6.4cqh;color:#fff;-webkit-text-stroke:.5cqh #14112b;paint-order:stroke fill">Elige escenario</h2>
-        <button id="btn-stg-back" class="btn ghost small" style="color:#fff">Volver</button>
-      </div>
-      <p id="matchup" class="matchup display"></p>
-      <div class="stage-big"><canvas id="stage-big" width="640" height="360" aria-hidden="true"></canvas></div>
-      <ul id="stages" class="stages" aria-label="Escenarios"></ul>
-      <button id="btn-fight" class="btn big pink">¡A luchar!</button>
-    </section>
-
-    <section id="scr-help" class="screen" hidden aria-labelledby="help-title">
-      <div class="card panel">
-        <h2 id="help-title" class="display">Controles</h2>
-        <div class="keys">
-          <section>
-            <h3>Teclado</h3>
-            <table>
-              <tr><td>Moverse</td><td><kbd>A</kbd> <kbd>D</kbd> o flechas</td></tr>
-              <tr><td>Saltar</td><td><kbd>W</kbd> o <kbd>↑</kbd></td></tr>
-              <tr><td>Atacar</td><td><kbd>J</kbd> o <kbd>Z</kbd></td></tr>
-              <tr><td>Bloquear</td><td><kbd>K</kbd> o <kbd>X</kbd> (mantener)</td></tr>
-              <tr><td>Esquivar</td><td><kbd>L</kbd> o <kbd>C</kbd></td></tr>
-              <tr><td>Especial</td><td><kbd>I</kbd> o <kbd>V</kbd></td></tr>
-              <tr><td>Pausa</td><td><kbd>Esc</kbd> o <kbd>P</kbd></td></tr>
-            </table>
-          </section>
-          <section>
-            <h3>Móvil</h3>
-            <table>
-              <tr><td>Moverse</td><td>Joystick izquierdo</td></tr>
-              <tr><td>Saltar</td><td>Joystick hacia arriba</td></tr>
-              <tr><td>Atacar</td><td>Botón rosa grande</td></tr>
-              <tr><td>Bloquear</td><td>Botón azul (mantener)</td></tr>
-              <tr><td>Esquivar</td><td>Botón Esquivar + dirección</td></tr>
-              <tr><td>Especial</td><td>Botón dorado cuando brilla</td></tr>
-            </table>
-          </section>
-        </div>
-        <p class="tips"><strong>Parry:</strong> pulsa bloquear justo antes de que te golpeen. El rival queda aturdido y tú ganas especial. Si mantienes el bloqueo pulsado no hay parry: hay que acertar el momento. <strong>Esquivar</strong> te hace invulnerable un instante. La barra de especial se llena al dar y recibir golpes.</p>
-        <button id="btn-help-close" class="btn">Entendido</button>
-      </div>
-    </section>
-
-    <section id="scr-pause" class="screen" hidden aria-labelledby="pause-title">
-      <div class="card panel">
-        <h2 id="pause-title" class="display">Pausa</h2>
-        <div class="row">
-          <button id="btn-resume" class="btn">Seguir</button>
-          <button id="btn-restart" class="btn ghost">Reiniciar combate</button>
-        </div>
-        <div class="row">
-          <button id="btn-p-select" class="btn ghost small">Cambiar luchadores</button>
-          <button id="btn-p-menu" class="btn ghost small">Salir al menú</button>
-        </div>
-        <div class="toggles">
-          <label><input type="checkbox" id="opt-sound" checked> Sonido</label>
-          <label><input type="checkbox" id="opt-music" checked> Música</label>
-          <label><input type="checkbox" id="opt-voice" checked> Voz del presentador</label>
-          <label><input type="checkbox" id="opt-blood" checked> Sangre</label>
-          <label><input type="checkbox" id="opt-touch"> Controles táctiles</label>
-          <label id="opt-fs-wrap"><input type="checkbox" id="opt-fs"> Pantalla completa</label>
-        </div>
-      </div>
-    </section>
-
-    <section id="scr-result" class="screen" hidden aria-labelledby="r-title">
-      <div class="card panel">
-        <h2 id="r-title" class="display"></h2>
-        <ul class="result-stats" id="r-stats"></ul>
-        <div class="row">
-          <button id="btn-rematch" class="btn pink">Revancha</button>
-          <button id="btn-r-select" class="btn ghost">Cambiar luchadores</button>
-          <button id="btn-r-menu" class="btn ghost">Menú</button>
-        </div>
-      </div>
-    </section>
-
-    <button id="btn-pause" hidden aria-label="Pausa">II</button>
-
-    <div id="touch" hidden>
-      <div id="stick" aria-label="Joystick"><div id="knob"></div></div>
-      <div id="btns">
-        <button class="tb" data-k="special" aria-label="Ataque especial">Especial</button>
-        <button class="tb" data-k="dodge" aria-label="Esquivar">Esquivar</button>
-        <button class="tb" data-k="block" aria-label="Bloquear">Bloquear</button>
-        <button class="tb" data-k="attack" aria-label="Atacar">Atacar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div id="rotate" hidden>
-  <div class="phone" aria-hidden="true"></div>
-  <p>Gira el móvil: Tronk Fight se juega en horizontal.</p>
-  <button id="btn-rotate-ok" class="btn">Seguir igualmente</button>
-</div>
-<script>
+/* =========================================================
+   TRONK FIGHT · minijuego de lucha de stickmans
+   Todo el juego va dentro de esta función para no chocar con
+   las variables del resto de la web.
+   ========================================================= */
+(function () {
 "use strict";
 /* =========================================================
    TRONK FIGHT · motor de combate
@@ -386,7 +86,7 @@ const DIFF = {
 };
 
 /* ---------- AJUSTES ---------- */
-const Settings = { blood: true, music: true, voice: true };
+const Settings = { blood: true, music: true };
 
 /* ---------- SONIDO (todo sintetizado, sin archivos) ---------- */
 const Sound = {
@@ -605,74 +305,9 @@ const Sound = {
   }
 };
 
-/* ---------- PRESENTADOR ----------
-   Si en la carpeta del juego hay grabaciones (voces/ronda1.mp3, voces/ko.mp3…)
-   se usan esas; si no, la voz más expresiva en español del dispositivo,
-   con ritmo y tono distinto en cada frase. */
-const LINES = {
-  versus:  { text: "¡{a} contra {b}!", rate: 1.08, pitch: 0.55, major: true },
-  ronda1:  { text: "¡Ronda uno!", rate: 1.0, pitch: 0.5, sting: "hype", major: true },
-  ronda2:  { text: "¡Ronda dos!", rate: 1.0, pitch: 0.5, sting: "hype", major: true },
-  ronda3:  { text: "¡Ronda final!", rate: 0.9, pitch: 0.42, sting: "hype", major: true },
-  lucha:   { text: "¡A pelear!", rate: 1.3, pitch: 0.62, sting: "stab", major: true },
-  ko:      { text: "¡Ka! ¡O!", rate: 0.7, pitch: 0.32, sting: "boom", major: true },
-  perfecto:{ text: "¡Perfecto!", rate: 0.85, pitch: 0.48, major: true },
-  tiempo:  { text: "¡Se acabó el tiempo!", rate: 1.15, pitch: 0.5, sting: "stab", major: true },
-  gana:    { text: "¡{name} gana!", rate: 0.95, pitch: 0.45, major: true },
-  combo:   { text: ["¡Combo!", "¡Brutal!", "¡Imparable!", "¡Qué paliza!"], rate: 1.25, pitch: 0.6 },
-  parry:   { text: ["¡Parry!", "¡Qué reflejos!", "¡Bloqueo perfecto!"], rate: 1.3, pitch: 0.65 },
-  guardia: { text: "¡Guardia rota!", rate: 1.25, pitch: 0.55 },
-  limite:  { text: ["¡Está al límite!", "¡Un golpe más y cae!"], rate: 1.2, pitch: 0.55 },
-  especial:{ text: ["¡Ataque especial!", "¡Aquí viene!"], rate: 1.3, pitch: 0.6 }
-};
-const Announcer = {
-  voice: null, last: 0, files: {}, checked: false,
-  pickVoice() {
-    if (!window.speechSynthesis) return null;
-    const vs = speechSynthesis.getVoices().filter(v => /^es/i.test(v.lang));
-    if (!vs.length) return null;
-    const score = v => {
-      let s = 0;
-      if (/natural|neural|online|premium|enhanced/i.test(v.name)) s += 10;   // voces de más calidad (Edge, Apple)
-      if (/google/i.test(v.name)) s += 5;
-      if (/alvaro|álvaro|jorge|pablo|diego|raul|raúl|carlos|juan|enrique|antonio|male|hombre/i.test(v.name)) s += 4;
-      if (/es-ES/i.test(v.lang)) s += 2;
-      return s;
-    };
-    return vs.sort((a, b) => score(b) - score(a))[0];
-  },
-  checkFiles() {
-    if (this.checked) return; this.checked = true;
-    if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.hostname)) return;
-    for (const id of Object.keys(LINES)) {
-      fetch(`voces/${id}.mp3`, { method: "HEAD" }).then(r => { if (r.ok) this.files[id] = `voces/${id}.mp3`; }).catch(() => {});
-    }
-  },
-  say(id, vars = {}) {
-    if (Sound.muted || !Settings.voice) return;
-    const L = LINES[id]; if (!L) return;
-    const now = performance.now();
-    if (!L.major && (now - this.last < 2600 || (window.speechSynthesis && speechSynthesis.speaking))) return;
-    this.last = now;
-    if (L.sting) Sound.sting(L.sting);
-    if (this.files[id] && !vars.name && !vars.a) {
-      try { const a = new Audio(this.files[id]); a.volume = 1; a.play(); return; } catch (e) {}
-    }
-    if (!window.speechSynthesis) return;
-    let text = Array.isArray(L.text) ? L.text[(Math.random() * L.text.length) | 0] : L.text;
-    text = text.replace("{a}", vars.a || "").replace("{b}", vars.b || "").replace("{name}", vars.name || "");
-    try {
-      if (L.major && !vars.queue) speechSynthesis.cancel();
-      if (!this.voice) this.voice = this.pickVoice();
-      const u = new SpeechSynthesisUtterance(text);
-      if (this.voice) u.voice = this.voice;
-      u.lang = this.voice ? this.voice.lang : "es-ES";
-      u.rate = L.rate; u.pitch = L.pitch; u.volume = 1;
-      speechSynthesis.speak(u);
-    } catch (e) {}
-  }
-};
-if (window.speechSynthesis) speechSynthesis.onvoiceschanged = () => { Announcer.voice = Announcer.pickVoice(); };
+/* ---------- AMBIENTE DE ESTADIO (sin presentador) ----------
+   Los momentos importantes se marcan con efectos musicales. */
+const CUES = { ronda1: "hype", ronda2: "hype", ronda3: "hype", lucha: "stab", ko: "boom", tiempo: "stab" };
 
 /* ---------- LUCHADOR ---------- */
 function makeFighter(ch, x, face, side) {
@@ -693,7 +328,7 @@ const grounded = f => f.y >= GROUND && f.vy >= 0;
 function setState(f, s) { f.state = s; f.t = 0; f.hitDone = false; f.sd = {}; f.hideWeapon = false; }
 
 function fx(M, name, o) { if (M.mode === "play") Sound.play(name, o); }
-function say(M, id, vars) { if (M.mode === "play") Announcer.say(id, vars); }
+function say(M, id) { if (M.mode === "play" && CUES[id]) Sound.sting(CUES[id]); }
 
 function startAttack(f, M) {
   setState(f, "attack");
@@ -715,7 +350,6 @@ function startSpecial(f, M) {
     banner(M, f.w.special.name, 44, f.ch.color, true);
   }
   fx(M, "special", { pitch: f.ch.pitch });
-  if (f.side === 1) say(M, "especial");
 }
 function startBlock(f, fresh) {
   const was = f.state === "block";
@@ -1132,7 +766,7 @@ function resolveHit(M, a, d, h, proj) {
     if (M.mode !== "sim") {
       fx(M, "parry");
       M.fx.push({ kind: "ring", x: d.x + d.face * 30, y: d.y - 100, t: 0, color: "#7fe9ff" });
-      popText(M, "¡Parry!", d.x, d.y - 180, "#7fe9ff"); say(M, "parry");
+      popText(M, "¡Parry!", d.x, d.y - 180, "#7fe9ff");
     }
     return "parry";
   }
@@ -1146,7 +780,7 @@ function resolveHit(M, a, d, h, proj) {
     if (d.guard <= 0) {
       d.guard = 0; setState(d, "guardbreak"); d.stun = 48;
       M.hitstop = 10;
-      if (M.mode !== "sim") { fx(M, "guardbreak", { pitch: d.ch.pitch }); popText(M, "¡Guardia rota!", d.x, d.y - 180, "#ffd23f"); say(M, "guardia"); }
+      if (M.mode !== "sim") { fx(M, "guardbreak", { pitch: d.ch.pitch }); popText(M, "¡Guardia rota!", d.x, d.y - 180, "#ffd23f"); }
     } else {
       d.state = "blockstun"; d.t = 0; d.stun = Math.round(h.stun * 0.6);
       M.hitstop = 4; fx(M, "clang");
@@ -1201,9 +835,8 @@ function resolveHit(M, a, d, h, proj) {
     if (h.shock) M.fx.push({ kind: "zap", x: d.x, y: d.y - 80, t: 0 });
   }
   if (M.mode === "play") {
-    if (d.combo === 3 || d.combo === 5) { say(M, "combo"); Sound.crowd("ooh"); }
+    if (d.combo === 3 || d.combo === 5) Sound.crowd("ooh");
     else if (h.heavy || dmg >= 13) Sound.crowd("ooh");
-    if (d.hp > 0 && d.hp < 20 && !M.warned[d.side]) { M.warned[d.side] = true; say(M, "limite"); }
   }
   if (d.hp <= 0) knockout(M, a, d);
   return "hit";
@@ -1402,7 +1035,7 @@ function aiThink(f, o, M) {
 /* ---------- PARTIDA ---------- */
 function newMatch(c1, c2, stage, mode, diff) {
   const M = { c: [c1, c2], stage, mode, diff, round: 1, wins: [0, 0], frame: 0,
-    stats: [{ hits: 0, parries: 0, dmg: 0, combo: 0 }, { hits: 0, parries: 0, dmg: 0, combo: 0 }], warned: [false, false],
+    stats: [{ hits: 0, parries: 0, dmg: 0, combo: 0 }, { hits: 0, parries: 0, dmg: 0, combo: 0 }],
     proj: [], fx: [], parts: [], texts: [], decals: [], hitstop: 0, shake: 0, slow: 0, slowAcc: 0, freeze: 0, banner: null };
   resetRound(M);
   return M;
@@ -1418,9 +1051,7 @@ function resetRound(M) {
     M.phase = "intro";
     banner(M, M.round >= 3 ? "Ronda final" : "Ronda " + M.round, 66, "#fff");
     fx(M, "round");
-    if (M.round === 1) { say(M, "versus", { a: CHARS[M.c[0]].name, b: CHARS[M.c[1]].name }); say(M, "ronda1", { queue: true }); }
-    else say(M, M.round >= 3 ? "ronda3" : "ronda" + M.round);
-    M.warned = [false, false];
+    say(M, M.round >= 3 ? "ronda3" : "ronda" + M.round);
     M.decals = [];
   }
 }
@@ -1482,7 +1113,7 @@ function step(M) {
     if (M.phaseT === 70 && M.winner >= 0) {
       const w = M.f[M.winner];
       if (w.state !== "ko") setState(w, "win");
-      if (M.phase === "ko" && w.hp >= 100) { banner(M, "¡Perfecto!", 60, "#ffd23f"); say(M, "perfecto"); }
+      if (M.phase === "ko" && w.hp >= 100) { banner(M, "¡Perfecto!", 60, "#ffd23f"); }
     }
     if (M.phaseT >= (M.mode === "sim" ? 1 : 160)) endRound(M);
   } else if (M.phase === "over") {
@@ -1507,7 +1138,7 @@ function simRound(c1, c2, diff = "dificil") {
   while (M.phase === "fight" && n < 99 * 60 + 10) { step(M); n++; }
   return { winner: M.winner, frames: n };
 }
-window.__tfSim = function (rounds = 30, diff = "dificil") {
+const __tfSim = function (rounds = 30, diff = "dificil") {
   const N = CHARS.length, wins = Array(N).fill(0), games = Array(N).fill(0), table = [];
   for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
     if (i === j) continue;
@@ -1523,6 +1154,7 @@ window.__tfSim = function (rounds = 30, diff = "dificil") {
   }
   return { winrate: CHARS.map((c, i) => [c.name, +(wins[i] / games[i]).toFixed(3)]), table };
 };
+
 /* =========================================================
    DIBUJO
    ========================================================= */
@@ -2470,7 +2102,7 @@ function render(ctx, M, dt, opts = {}) {
   drawParts(ctx, M);
   ctx.restore();
   if (!opts.noHud) drawHUD(ctx, M);
-  if (M.banner) {
+  if (M.banner && M.mode !== "demo") {
     const b = M.banner, k = b.t < 8 ? 1 + (1 - b.t / 8) * 0.6 : 1;
     const alpha = b.t > b.dur - 10 ? (b.dur - b.t) / 10 : 1;
     ctx.save(); ctx.globalAlpha = clamp(alpha, 0, 1); ctx.translate(640, b.small ? 250 : 380); ctx.scale(k, k);
@@ -2478,11 +2110,16 @@ function render(ctx, M, dt, opts = {}) {
     ctx.restore();
   }
 }
+
 /* =========================================================
    INTERFAZ, CONTROLES Y BUCLE
    ========================================================= */
-const $ = s => document.querySelector(s);
-const stageEl = $("#stage"), canvas = $("#game"), ctx = canvas.getContext("2d");
+const root = document.getElementById("tf-root");
+const modal = document.getElementById("tronkfight-modal");
+const card = document.querySelector('[data-minigame="tronkfight"]');
+if (!root || !modal || !card) return;
+const $ = s => root.querySelector(s);
+const stageEl = $("#tf-stage"), canvas = $("#tf-game"), ctx = canvas.getContext("2d");
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const isTouch = "ontouchstart" in window || matchMedia("(pointer: coarse)").matches;
 
@@ -2493,8 +2130,9 @@ const store = {
 
 let scale = 1;
 function resize() {
-  const vw = window.innerWidth, vh = window.innerHeight;
-  const w = Math.min(vw, vh * 16 / 9), h = w * 9 / 16;
+  const box = root.getBoundingClientRect();
+  if (box.width < 10 || box.height < 10) return;
+  const w = Math.min(box.width, box.height * 16 / 9), h = w * 9 / 16;
   stageEl.style.width = w + "px"; stageEl.style.height = h + "px";
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
@@ -2502,6 +2140,7 @@ function resize() {
   checkRotate();
 }
 window.addEventListener("resize", resize);
+if (window.ResizeObserver) new ResizeObserver(() => resize()).observe(root);
 
 /* ---------- estado de la app ---------- */
 const app = {
@@ -2509,17 +2148,15 @@ const app = {
   sel: { step: "p1", p1: store.get("p1", 0), cpu: store.get("cpu", 1), cursor: 0, diff: store.get("diff", "normal"), stage: store.get("stage", 0) },
   touchOn: isTouch, overShown: false
 };
-Sound.muted = !store.get("sound", true);
 Settings.blood = store.get("blood", true);
 Settings.music = store.get("music", true);
-Settings.voice = store.get("voice", true);
 
 function show(id) {
-  for (const s of document.querySelectorAll(".screen")) s.hidden = s.id !== id;
+  for (const s of root.querySelectorAll(".tf-screen")) s.hidden = s.id !== "tf-" + id;
   app.screen = id;
-  $("#btn-pause").hidden = id !== "fight";
-  $("#touch").hidden = !(id === "fight" && app.touchOn);
-  const first = id && document.getElementById(id)?.querySelector("button");
+  $("#tf-btn-pause").hidden = id !== "fight";
+  $("#tf-touch").hidden = !(id === "fight" && app.touchOn);
+  const first = id && root.querySelector("#tf-" + id)?.querySelector("button");
   if (first && !isTouch) setTimeout(() => first.focus({ preventScroll: true }), 30);
 }
 function hideAll() { show("fight"); }
@@ -2532,11 +2169,11 @@ function newDemo() {
 }
 
 /* ---------- selección de luchador ---------- */
-const roster = $("#roster");
+const roster = $("#tf-roster");
 CHARS.forEach((ch, i) => {
   const li = document.createElement("li");
   const btn = document.createElement("button");
-  btn.className = "tile"; btn.setAttribute("role", "option"); btn.dataset.i = i;
+  btn.className = "tf-tile"; btn.setAttribute("role", "option"); btn.dataset.i = i;
   btn.innerHTML = `<canvas width="160" height="150" aria-hidden="true"></canvas><span>${ch.name}</span>`;
   const c = btn.querySelector("canvas").getContext("2d");
   c.fillStyle = "#241f52"; c.fillRect(0, 0, 160, 150);
@@ -2552,7 +2189,7 @@ function setCursor(i) {
   previewF = makePreview(app.sel.cursor);
   updateSelect();
 }
-function pips(n) { return Array.from({ length: 5 }, (_, k) => `<span class="pip${k < n ? " on" : ""}"></span>`).join(""); }
+function pips(n) { return Array.from({ length: 5 }, (_, k) => `<span class="tf-pip${k < n ? " tf-on" : ""}"></span>`).join(""); }
 function statsOf(w) {
   const m = w.normal, total = m.startup + m.active + m.recovery;
   const dmg = clamp(Math.round((m.dmg - 4) / 2), 1, 5);
@@ -2563,24 +2200,24 @@ function statsOf(w) {
 }
 function updateSelect() {
   const s = app.sel, ch = CHARS[s.cursor], w = WEAPONS[ch.weapon], st = statsOf(w);
-  $("#sel-title").textContent = s.step === "p1" ? "Elige a tu luchador" : "Elige a tu rival";
-  $("#who").textContent = s.step === "p1" ? "Tú" : "Bot";
-  $("#who").className = "who" + (s.step === "p1" ? "" : " cpu");
-  $("#i-name").textContent = ch.name;
-  $("#i-name").style.color = ch.color;
-  $("#i-weapon").textContent = `Arma: ${w.name}.` + (w.note ? ` ${w.note}` : "");
-  $("#i-stats").innerHTML =
+  $("#tf-sel-title").textContent = s.step === "p1" ? "Elige a tu luchador" : "Elige a tu rival";
+  $("#tf-who").textContent = s.step === "p1" ? "Tú" : "Bot";
+  $("#tf-who").className = "tf-who" + (s.step === "p1" ? "" : " tf-cpu");
+  $("#tf-i-name").textContent = ch.name;
+  $("#tf-i-name").style.color = ch.color;
+  $("#tf-i-weapon").textContent = `Arma: ${w.name}.` + (w.note ? ` ${w.note}` : "");
+  $("#tf-i-stats").innerHTML =
     `<dt>Daño</dt><dd>${pips(st.dmg)}</dd><dt>Velocidad</dt><dd>${pips(st.spd)}</dd>` +
     `<dt>Alcance</dt><dd>${pips(st.reach)}</dd><dt>Movilidad</dt><dd>${pips(st.mob)}</dd>`;
-  $("#i-sp-name").textContent = w.special.name;
-  $("#i-sp-desc").textContent = w.special.desc;
-  $("#diff-box").hidden = s.step !== "cpu";
-  $("#btn-pick").textContent = s.step === "p1" ? `Elegir a ${ch.name}` : `Luchar contra ${ch.name}`;
-  for (const t of roster.querySelectorAll(".tile")) {
+  $("#tf-i-sp-name").textContent = w.special.name;
+  $("#tf-i-sp-desc").textContent = w.special.desc;
+  $("#tf-diff-box").hidden = s.step !== "cpu";
+  $("#tf-btn-pick").textContent = s.step === "p1" ? `Elegir a ${ch.name}` : `Luchar contra ${ch.name}`;
+  for (const t of roster.querySelectorAll(".tf-tile")) {
     const i = +t.dataset.i;
     t.setAttribute("aria-selected", String(i === s.cursor));
-    t.querySelectorAll(".badge").forEach(b => b.remove());
-    if (s.step === "cpu" && i === s.p1) t.insertAdjacentHTML("beforeend", '<span class="badge p1">Tú</span>');
+    t.querySelectorAll(".tf-badge").forEach(b => b.remove());
+    if (s.step === "cpu" && i === s.p1) t.insertAdjacentHTML("beforeend", '<span class="tf-badge tf-p1">Tú</span>');
   }
 }
 function openSelect(step = "p1") {
@@ -2598,17 +2235,17 @@ function pick() {
     setCursor(next);
   } else {
     s.cpu = s.cursor; store.set("cpu", s.cpu);
-    s.diff = document.querySelector('input[name="diff"]:checked').value; store.set("diff", s.diff);
+    s.diff = root.querySelector('input[name="tf-diff"]:checked').value; store.set("diff", s.diff);
     openStages();
   }
 }
-$("#btn-pick").addEventListener("click", pick);
-$("#btn-random").addEventListener("click", () => { Sound.init(); setCursor(Math.floor(Math.random() * 7)); Sound.play("ui"); });
-$("#btn-sel-back").addEventListener("click", () => {
+$("#tf-btn-pick").addEventListener("click", pick);
+$("#tf-btn-random").addEventListener("click", () => { Sound.init(); setCursor(Math.floor(Math.random() * 7)); Sound.play("ui"); });
+$("#tf-btn-sel-back").addEventListener("click", () => {
   if (app.sel.step === "cpu") { app.sel.step = "p1"; setCursor(app.sel.p1); }
   else show("scr-title");
 });
-document.querySelectorAll('input[name="diff"]').forEach(r => { r.checked = r.value === app.sel.diff; });
+root.querySelectorAll('input[name="tf-diff"]').forEach(r => { r.checked = r.value === app.sel.diff; });
 
 /* vista previa animada */
 function makePreview(i) {
@@ -2616,7 +2253,7 @@ function makePreview(i) {
   f.y = 470; f.showT = 0; return f;
 }
 let previewF = makePreview(0);
-const pctx = $("#preview").getContext("2d");
+const pctx = $("#tf-preview").getContext("2d");
 function drawPreview(dt) {
   const f = previewF; f.showT++;
   const cyc = f.showT % 260;
@@ -2637,11 +2274,11 @@ function drawPreview(dt) {
 }
 
 /* ---------- selección de escenario ---------- */
-const stagesUl = $("#stages");
+const stagesUl = $("#tf-stages");
 STAGES.forEach((st, i) => {
   const li = document.createElement("li");
   const b = document.createElement("button");
-  b.className = "stage-tile"; b.dataset.i = i;
+  b.className = "tf-stage-tile"; b.dataset.i = i;
   b.innerHTML = `<canvas width="320" height="180" aria-hidden="true"></canvas><span>${st.name}</span>`;
   b.addEventListener("click", () => { Sound.init(); Sound.play("ui"); setStage(i); });
   b.addEventListener("dblclick", startFight);
@@ -2649,23 +2286,23 @@ STAGES.forEach((st, i) => {
 });
 function setStage(i) {
   app.sel.stage = i; store.set("stage", i);
-  for (const t of stagesUl.querySelectorAll(".stage-tile")) t.setAttribute("aria-pressed", String(+t.dataset.i === i));
-  const c = $("#stage-big").getContext("2d");
+  for (const t of stagesUl.querySelectorAll(".tf-stage-tile")) t.setAttribute("aria-pressed", String(+t.dataset.i === i));
+  const c = $("#tf-stage-big").getContext("2d");
   c.drawImage(getBG(i), 0, 0, 640, 360);
   const fake = { frame: 120 };
   c.save(); c.scale(0.5, 0.5); drawBgDynamic(c, fake, i, 120); c.restore();
 }
 function openStages() {
   stagesUl.querySelectorAll("canvas").forEach((c, i) => { const g = c.getContext("2d"); g.drawImage(getBG(i), 0, 0, 320, 180); g.save(); g.scale(0.25, 0.25); drawBgDynamic(g, { frame: 120 }, i, 120); g.restore(); });
-  $("#matchup").textContent = `${CHARS[app.sel.p1].name} contra ${CHARS[app.sel.cpu].name}`;
+  $("#tf-matchup").textContent = `${CHARS[app.sel.p1].name} contra ${CHARS[app.sel.cpu].name}`;
   setStage(app.sel.stage);
   show("scr-stagesel");
 }
-$("#btn-stg-back").addEventListener("click", () => openSelect("cpu"));
-$("#btn-fight").addEventListener("click", startFight);
+$("#tf-btn-stg-back").addEventListener("click", () => openSelect("cpu"));
+$("#tf-btn-fight").addEventListener("click", startFight);
 
 function startFight() {
-  Sound.init(); Announcer.checkFiles();
+  Sound.init();
   const s = app.sel;
   app.match = newMatch(s.p1, s.cpu, s.stage, "play", s.diff);
   app.paused = false; app.overShown = false;
@@ -2680,43 +2317,39 @@ function pause() {
   app.paused = true; Sound.music.pause(true); show("scr-pause");
 }
 function resume() { app.paused = false; Sound.music.pause(false); show("fight"); }
-$("#btn-pause").addEventListener("click", pause);
-$("#btn-resume").addEventListener("click", resume);
-$("#btn-restart").addEventListener("click", startFight);
-$("#btn-p-select").addEventListener("click", () => { Sound.music.stop(); openSelect("p1"); });
-$("#btn-p-menu").addEventListener("click", () => { Sound.music.stop(); app.match = null; show("scr-title"); });
-$("#btn-rematch").addEventListener("click", startFight);
-$("#btn-r-select").addEventListener("click", () => openSelect("p1"));
-$("#btn-r-menu").addEventListener("click", () => { app.match = null; show("scr-title"); });
+$("#tf-btn-pause").addEventListener("click", pause);
+$("#tf-btn-resume").addEventListener("click", resume);
+$("#tf-btn-restart").addEventListener("click", startFight);
+$("#tf-btn-p-select").addEventListener("click", () => { Sound.music.stop(); openSelect("p1"); });
+$("#tf-btn-p-menu").addEventListener("click", () => { Sound.music.stop(); app.match = null; show("scr-title"); });
+$("#tf-btn-rematch").addEventListener("click", startFight);
+$("#tf-btn-r-select").addEventListener("click", () => openSelect("p1"));
+$("#tf-btn-r-menu").addEventListener("click", () => { app.match = null; show("scr-title"); });
 
-const optSound = $("#opt-sound"), optTouch = $("#opt-touch"), optFs = $("#opt-fs");
-optSound.checked = !Sound.muted;
-optSound.addEventListener("change", () => { Sound.setMuted(!optSound.checked); store.set("sound", optSound.checked); });
-for (const [id, key] of [["#opt-music", "music"], ["#opt-voice", "voice"], ["#opt-blood", "blood"]]) {
+const optTouch = $("#tf-opt-touch"), optFs = $("#tf-opt-fs");
+for (const [id, key] of [["#tf-opt-music", "music"], ["#tf-opt-blood", "blood"]]) {
   const el = $(id); el.checked = Settings[key];
   el.addEventListener("change", () => {
     Settings[key] = el.checked; store.set(key, el.checked);
     if (key === "blood" && !el.checked && app.match) { app.match.decals = []; app.match.parts = app.match.parts.filter(p => p.kind !== "blood" && p.kind !== "streak"); }
-    if (key === "voice" && !el.checked && window.speechSynthesis) speechSynthesis.cancel();
   });
 }
 optTouch.checked = app.touchOn;
 optTouch.addEventListener("change", () => { app.touchOn = optTouch.checked; });
-if (!document.fullscreenEnabled) $("#opt-fs-wrap").hidden = true;
+if (!document.fullscreenEnabled) $("#tf-opt-fs-wrap").hidden = true;
 optFs.addEventListener("change", () => {
-  try { if (optFs.checked) document.documentElement.requestFullscreen(); else if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {}
+  try { if (optFs.checked) modal.querySelector(".tronkfight-window").requestFullscreen(); else if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {}
 });
 
 function showResult(M) {
   const won = M.wins[0] > M.wins[1];
   const me = CHARS[M.c[0]], cpu = CHARS[M.c[1]];
-  $("#r-title").textContent = won ? `¡Gana ${me.name}!` : `Gana ${cpu.name}`;
-  $("#r-title").style.color = won ? "var(--gold)" : "var(--pink)";
+  $("#tf-r-title").textContent = won ? `¡Gana ${me.name}!` : `Gana ${cpu.name}`;
+  $("#tf-r-title").style.color = won ? "var(--gold)" : "var(--pink)";
   Sound.music.stop();
-  Announcer.say("gana", { name: won ? me.name : cpu.name });
   if (won) Sound.crowd("cheer");
   const S = M.stats[0];
-  $("#r-stats").innerHTML =
+  $("#tf-r-stats").innerHTML =
     `<li><strong>${M.wins[0]} - ${M.wins[1]}</strong>Rondas</li>` +
     `<li><strong>${S.hits}</strong>Golpes</li>` +
     `<li><strong>${S.parries}</strong>Parrys</li>` +
@@ -2725,9 +2358,9 @@ function showResult(M) {
 }
 
 /* ---------- portada y ayuda ---------- */
-$("#btn-play").addEventListener("click", () => { Sound.init(); Sound.play("ui"); openSelect("p1"); });
-$("#btn-help").addEventListener("click", () => show("scr-help"));
-$("#btn-help-close").addEventListener("click", () => {
+$("#tf-btn-play").addEventListener("click", () => { Sound.init(); Sound.play("ui"); openSelect("p1"); });
+$("#tf-btn-help").addEventListener("click", () => show("scr-help"));
+$("#tf-btn-help-close").addEventListener("click", () => {
   if (app.paused && app.match) show("scr-pause"); else show("scr-title");
 });
 
@@ -2740,9 +2373,13 @@ const KEYMAP = {
 };
 const keys = {};
 window.addEventListener("keydown", e => {
+  if (modal.classList.contains("hidden")) return;
   if (e.code === "Escape" || e.code === "KeyP") {
+    e.preventDefault();
     if (app.screen === "fight") pause(); else if (app.screen === "scr-pause") resume();
-    else if (app.screen === "scr-help") $("#btn-help-close").click();
+    else if (app.screen === "scr-help") $("#tf-btn-help-close").click();
+    else if (e.code === "Escape" && app.screen === "scr-title") closeGame();
+    else if (e.code === "Escape") { Sound.music.stop(); app.match = null; show("scr-title"); }
     return;
   }
   if (app.screen === "fight") {
@@ -2760,14 +2397,18 @@ window.addEventListener("keydown", e => {
   }
 });
 window.addEventListener("keyup", e => { const k = KEYMAP[e.code]; if (k) keys[k] = false; });
+// con el juego abierto, las flechas y el espacio no mueven la página
+window.addEventListener("keydown", e => {
+  if (!modal.classList.contains("hidden") && ["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code) && e.target.tagName !== "INPUT") e.preventDefault();
+}, true);
 window.addEventListener("blur", () => { for (const k in keys) keys[k] = false; touch.reset(); });
 
 /* ---------- controles táctiles ---------- */
 const touch = {
   state: {}, stickId: null,
-  reset() { this.state = {}; this.stickId = null; $("#knob").style.transform = ""; document.querySelectorAll(".tb").forEach(b => b.classList.remove("on")); }
+  reset() { this.state = {}; this.stickId = null; $("#tf-knob").style.transform = ""; root.querySelectorAll(".tf-tb").forEach(b => b.classList.remove("tf-on")); }
 };
-const stick = $("#stick"), knob = $("#knob");
+const stick = $("#tf-stick"), knob = $("#tf-knob");
 function stickMove(e) {
   const r = stick.getBoundingClientRect();
   const cx = r.left + r.width / 2, cy = r.top + r.height / 2, rad = r.width / 2;
@@ -2781,10 +2422,10 @@ stick.addEventListener("pointerdown", e => { e.preventDefault(); Sound.init(); t
 stick.addEventListener("pointermove", e => { if (e.pointerId === touch.stickId) stickMove(e); });
 const stickEnd = e => { if (e.pointerId !== touch.stickId) return; touch.stickId = null; knob.style.transform = ""; touch.state.left = touch.state.right = touch.state.up = touch.state.down = false; };
 stick.addEventListener("pointerup", stickEnd); stick.addEventListener("pointercancel", stickEnd);
-document.querySelectorAll(".tb").forEach(b => {
+root.querySelectorAll(".tf-tb").forEach(b => {
   const k = b.dataset.k;
-  b.addEventListener("pointerdown", e => { e.preventDefault(); Sound.init(); b.setPointerCapture(e.pointerId); touch.state[k] = true; b.classList.add("on"); });
-  const up = () => { touch.state[k] = false; b.classList.remove("on"); };
+  b.addEventListener("pointerdown", e => { e.preventDefault(); Sound.init(); b.setPointerCapture(e.pointerId); touch.state[k] = true; b.classList.add("tf-on"); });
+  const up = () => { touch.state[k] = false; b.classList.remove("tf-on"); };
   b.addEventListener("pointerup", up); b.addEventListener("pointercancel", up);
   b.addEventListener("contextmenu", e => e.preventDefault());
 });
@@ -2794,13 +2435,15 @@ stageEl.addEventListener("touchmove", e => { if (app.screen === "fight") e.preve
 let rotateDismissed = false;
 function checkRotate() {
   const portrait = window.innerHeight > window.innerWidth;
-  $("#rotate").hidden = !(isTouch && portrait && !rotateDismissed);
+  $("#tf-rotate").hidden = !(isTouch && portrait && !rotateDismissed && !modal.classList.contains("hidden"));
 }
-$("#btn-rotate-ok").addEventListener("click", () => { rotateDismissed = true; checkRotate(); });
+$("#tf-btn-rotate-ok").addEventListener("click", () => { rotateDismissed = true; checkRotate(); });
 
 /* ---------- bucle ---------- */
-let last = performance.now(), acc = 0;
+let last = performance.now(), acc = 0, running = false, raf = 0;
 function loop(now) {
+  if (!running) return;
+  if (window.TronkSound && TronkSound.isMuted() !== Sound.muted) Sound.setMuted(TronkSound.isMuted());
   const dt = Math.min(0.05, (now - last) / 1000); last = now; acc += dt;
   const STEP = 1 / 60;
   let n = 0;
@@ -2821,22 +2464,41 @@ function loop(now) {
   const M = (app.match && app.screen !== "scr-title") ? app.match : app.demo;
   if (M) render(ctx, M, dt, { noHud: M.mode === "demo", reduceMotion });
   if (app.screen === "scr-select") drawPreview(dt);
-  const sp = document.querySelector('.tb[data-k="special"]');
-  if (sp && app.match) sp.classList.toggle("ready", app.match.f[0].meter >= 100);
-  requestAnimationFrame(loop);
+  const sp = root.querySelector('.tf-tb[data-k="special"]');
+  if (sp && app.match) sp.classList.toggle("tf-ready", app.match.f[0].meter >= 100);
+  raf = requestAnimationFrame(loop);
 }
 
-/* ---------- enlace de vuelta a la web (solo dentro de la web de TronkStudios) ---------- */
-if (/github\.io$|^localhost$|^127\.0\.0\.1$/.test(location.hostname)) $("#btn-web").hidden = false;
+/* ---------- abrir y cerrar el minijuego ---------- */
+function openGame() {
+  modal.classList.remove("hidden");
+  modal.setAttribute("aria-hidden", "false");
+  document.body.classList.add("antitronks-open");
+  if (window.TronkSound) { TronkSound.stopMusic(); Sound.muted = TronkSound.isMuted(); }
+  Sound.init(); Sound.setMuted(Sound.muted);
+  ensureReach();
+  if (!app.demo) newDemo();
+  app.match = null; app.paused = false;
+  show("scr-title");
+  requestAnimationFrame(() => { resize(); checkRotate(); });
+  if (!running) { running = true; last = performance.now(); acc = 0; raf = requestAnimationFrame(loop); }
+}
+function closeGame() {
+  running = false; cancelAnimationFrame(raf);
+  Sound.music.stop();
+  app.match = null; app.paused = false;
+  for (const k in keys) keys[k] = false;
+  touch.reset();
+  if (document.fullscreenElement) { try { document.exitFullscreen(); } catch (e) {} }
+  optFs.checked = false;
+  modal.classList.add("hidden");
+  modal.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("antitronks-open");
+  card.focus({ preventScroll: true });
+}
+card.addEventListener("click", openGame);
+card.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openGame(); } });
+document.getElementById("tronkfight-close")?.addEventListener("click", closeGame);
+modal.querySelector(".antitronks-backdrop")?.addEventListener("click", closeGame);
 
-/* ---------- arranque ---------- */
-resize();
-ensureReach();
-newDemo();
-show("scr-title");
-const fontsReady = document.fonts && document.fonts.load ? Promise.all([document.fonts.load("40px Bangers"), document.fonts.load("20px Rubik")]) : Promise.resolve();
-fontsReady.catch(() => {}).finally(() => { for (const k in BG) delete BG[k]; });
-requestAnimationFrame(loop);
-</script>
-</body>
-</html>
+})();

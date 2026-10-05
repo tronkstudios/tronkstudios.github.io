@@ -3,6 +3,17 @@
 Historia de la web de TronkStudios agrupada por versiones. Cada versión
 resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 
+## [v5.1] · Octubre de 2026 · Tronk Fight dentro de la web
+
+### Cambiado
+- Tronk Fight se abre en una ventana dentro de la web, como Antitronks, Protect Mogos
+  y Stick Drill, en vez de en una página aparte (`juegos/tronk-fight/` se elimina).
+- Código en `js/games/tronk-fight.js` y estilos en `css/tronk-fight.css`, con prefijo `tf-`.
+- Usa el botón de sonido común de los minijuegos.
+
+### Quitado
+- El presentador con voz sintética; los momentos clave se marcan con efectos de estadio.
+
 ## [v5] · Octubre de 2026 · Tronk Fight
 
 ### Añadido
