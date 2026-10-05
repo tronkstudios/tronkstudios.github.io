@@ -97,7 +97,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="styles.css?v=20" />
+  <link rel="stylesheet" href="css/styles.css?v=21" />
 
   <!-- Estilos de la portada (imagen principal arriba del todo) -->
   <style>
@@ -132,10 +132,25 @@
     src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
   ></script>
 
-  <script src="script.js?v=18" defer></script>
+  <!--
+    Código de la web, dividido por responsabilidad. El ORDEN importa:
+    se ejecutan en este orden y comparten variables globales
+    (ver docs/adr/0002-scripts-clasicos-por-modulos.md).
+  -->
+  <script src="js/core.js?v=19" defer></script>
+  <script src="js/theme.js?v=19" defer></script>
+  <script src="js/ui.js?v=19" defer></script>
+  <script src="js/auth.js?v=19" defer></script>
+  <script src="js/suggestions.js?v=19" defer></script>
+  <script src="js/projects.js?v=19" defer></script>
+  <script src="js/games/audio.js?v=19" defer></script>
+  <script src="js/games/antitronks.js?v=19" defer></script>
+  <script src="js/games/protect-mogos.js?v=19" defer></script>
+  <script src="js/games/stick-drill.js?v=19" defer></script>
+  <script src="js/app.js?v=19" defer></script>
 
   <!-- Sistema de soporte (chat con Tronker + formulario de correo) -->
-  <script src="support.js?v=3" defer></script>
+  <script src="js/support.js?v=3" defer></script>
 </head>
 
 <body>
@@ -388,7 +403,7 @@
 
             <div class="dev-card-media">
               <img
-                src="antitronks.png"
+                src="img/juegos/antitronks.png"
                 alt="Antitronks - minijuego de disparos"
                 loading="lazy"
                 data-fallback-label="Antitronks"
@@ -409,7 +424,7 @@
 
             <div class="dev-card-media">
               <img
-                src="protect-mogos.png"
+                src="img/juegos/protect-mogos.png"
                 alt="Protect Mogos - minijuego de ninjas"
                 loading="lazy"
                 data-fallback-label="Protect Mogos"
@@ -430,7 +445,7 @@
 
             <div class="dev-card-media">
               <img
-                src="stick-drill.png"
+                src="img/juegos/stick-drill.png"
                 alt="Stick Drill - minijuego de esquivar el taladro"
                 loading="lazy"
                 data-fallback-label="Stick Drill"
@@ -490,7 +505,7 @@
             <div class="dev-card-media">
 
               <img
-                src="z-tronks.png"
+                src="img/juegos/z-tronks.png"
                 alt="Z Tronks - juego de zombis para Roblox"
                 loading="lazy"
                 data-fallback-label="Z Tronks"
