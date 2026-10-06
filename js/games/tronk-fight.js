@@ -2135,11 +2135,28 @@ const store = {
 };
 
 let scale = 1;
+const rootBox = () => root.getBoundingClientRect();
 function resize() {
-  const box = root.getBoundingClientRect();
+  const box = rootBox();
   if (box.width < 10 || box.height < 10) return;
-  const w = Math.min(box.width, box.height * 16 / 9), h = w * 9 / 16;
-  stageEl.style.width = w + "px"; stageEl.style.height = h + "px";
+  // en combate con controles táctiles se deja sitio a los lados (o abajo en vertical)
+  const pads = app.touchOn && app.screen === "fight";
+  const portrait = box.height > box.width;
+  let w, h, x, y;
+  if (pads && portrait) {
+    const gh = Math.max(box.height * 0.36, 200);
+    w = Math.min(box.width, (box.height - gh) * 16 / 9); h = w * 9 / 16;
+    x = (box.width - w) / 2; y = Math.max(0, (box.height - gh - h) / 2);
+  } else if (pads) {
+    const g = clamp(box.width * 0.16, 120, 240);
+    w = Math.min(box.width - 2 * g, box.height * 16 / 9); h = w * 9 / 16;
+    x = (box.width - w) / 2; y = (box.height - h) / 2;
+  } else {
+    w = Math.min(box.width, box.height * 16 / 9); h = w * 9 / 16;
+    x = (box.width - w) / 2; y = (box.height - h) / 2;
+  }
+  Object.assign(stageEl.style, { left: x + "px", top: y + "px", width: w + "px", height: h + "px" });
+  if (pads) layoutTouch(box, { x, y, w, h }, portrait);
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
   scale = canvas.width / W;
@@ -2162,10 +2179,58 @@ function show(id) {
   app.screen = id;
   $("#tf-btn-pause").hidden = id !== "fight";
   $("#tf-touch").hidden = !(id === "fight" && app.touchOn);
+  requestAnimationFrame(resize);
   const first = id && root.querySelector("#" + ID(id))?.querySelector("button");
   if (first && !isTouch) setTimeout(() => first.focus({ preventScroll: true }), 30);
 }
 function hideAll() { show("fight"); }
+
+/* Coloca los mandos en el espacio libre: a los lados del juego en horizontal
+   y debajo en vertical. Con dos jugadores, cada uno tiene su lado. */
+function px(el, x, y, w, h) { Object.assign(el.style, { left: x + "px", top: y + "px", width: w + "px", height: h + "px" }); }
+function cluster(btns, cx, cy, a) {
+  const b = a * 0.74, gap = a * 0.12, size = a + b + gap;
+  px(btns, cx - size / 2, cy - size / 2, size, size);
+  const set = (k, x, y, d) => { const el = btns.querySelector(`[data-k="${k}"]`); px(el, x, y, d, d); el.style.fontSize = Math.max(9, d * 0.2) + "px"; };
+  set("attack", size - a, size - a, a);
+  set("block", 0, size - b, b);
+  set("dodge", size - b - (a - b) / 2, 0, b);
+  set("special", 0, 0, b);
+}
+function layoutTouch(box, st, portrait) {
+  const duo = app.match && app.match.pvp;
+  const pads = root.querySelectorAll("." + C("pad"));
+  const zones = portrait
+    ? [{ x: 0, y: st.y + st.h, w: box.width / 2, h: box.height - st.y - st.h }, { x: box.width / 2, y: st.y + st.h, w: box.width / 2, h: box.height - st.y - st.h }]
+    : [{ x: 0, y: 0, w: st.x, h: box.height }, { x: st.x + st.w, y: 0, w: box.width - st.x - st.w, h: box.height }];
+  pads.forEach(pad => {
+    const p = +pad.dataset.p, stick = pad.querySelector("." + C("stick")), btns = pad.querySelector("." + C("btns"));
+    if (!duo) {
+      // un jugador: joystick en un lado y botones en el otro
+      if (p !== 0) return;
+      const L = zones[0], R = zones[1];
+      const s = Math.min(L.w * 0.86, L.h * (portrait ? 0.8 : 0.5), 200);
+      px(stick, L.x + (L.w - s) / 2, L.y + L.h * (portrait ? 0.5 : 0.6) - s / 2, s, s);
+      let a = Math.min(R.w * 0.5, R.h * (portrait ? 0.42 : 0.26), 120);
+      cluster(btns, R.x + R.w / 2, R.y + R.h * (portrait ? 0.5 : 0.6), a);
+      return;
+    }
+    const Z = zones[p];
+    if (portrait) {
+      // cada jugador en su mitad de abajo: joystick a la izquierda y botones a la derecha
+      const s = Math.min(Z.w * 0.42, Z.h * 0.75, 170);
+      px(stick, Z.x + Z.w * 0.04, Z.y + (Z.h - s) / 2, s, s);
+      const a = Math.min(Z.w * 0.24, Z.h * 0.4, 100);
+      cluster(btns, Z.x + Z.w * 0.72, Z.y + Z.h / 2, a);
+    } else {
+      // cada jugador en su lado: botones arriba y joystick abajo
+      const a = Math.min(Z.w * 0.46, Z.h * 0.2, 100);
+      cluster(btns, Z.x + Z.w / 2, Z.y + Z.h * 0.3, a);
+      const s = Math.min(Z.w * 0.84, Z.h * 0.38, 180);
+      px(stick, Z.x + (Z.w - s) / 2, Z.y + Z.h * 0.72 - s / 2, s, s);
+    }
+  });
+}
 
 /* ---------- combate de demostración en la portada ---------- */
 function newDemo() {
@@ -2344,7 +2409,7 @@ for (const [id, key] of [["#tf-opt-music", "music"], ["#tf-opt-blood", "blood"]]
   });
 }
 optTouch.checked = app.touchOn;
-optTouch.addEventListener("change", () => { app.touchOn = optTouch.checked; });
+optTouch.addEventListener("change", () => { app.touchOn = optTouch.checked; resize(); });
 if (!document.fullscreenEnabled) $("#tf-opt-fs-wrap").hidden = true;
 optFs.addEventListener("change", () => {
   try { if (optFs.checked) modal.querySelector(".tronkfight-window").requestFullscreen(); else if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {}
@@ -2455,7 +2520,7 @@ root.querySelectorAll("." + C("pad")).forEach(pad => {
     const cx = r.left + r.width / 2, cy = r.top + r.height / 2, rr = r.width / 2;
     let dx = (e.clientX - cx) / rr, dy = (e.clientY - cy) / rr;
     const len = Math.hypot(dx, dy); if (len > 1) { dx /= len; dy /= len; }
-    knob.style.transform = `translate(${dx * rr * 0.55}px, ${dy * rr * 0.55}px)`;
+    knob.style.transform = `translate(calc(-50% + ${dx * rr * 0.55}px), calc(-50% + ${dy * rr * 0.55}px))`;
     T.state.left = dx < -0.3; T.state.right = dx > 0.3;
     T.state.up = dy < -0.55; T.state.down = dy > 0.6;
   };
