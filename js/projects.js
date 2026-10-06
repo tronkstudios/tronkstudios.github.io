@@ -29,6 +29,21 @@ const PROJECTS = {
       "Cada jugador podrá elegir entre distintas clases, como Gunner, Warrior, Rogue y Medic, cada una con sus propias armas, habilidades y estilos de combate. A medida que avances, podrás desbloquear nuevas habilidades, conseguir mejor equipamiento y enfrentarte a enemigos cada vez más peligrosos.",
       "Forma un equipo con tus amigos, sobrevive al apocalipsis y conviértete en uno de los supervivientes más poderosos de Z Tronks."
     ]
+  },
+
+  "the-sundered-sky": {
+    title: "The Sundered Sky",
+    image: "img/juegos/the-sundered-sky.png",
+    category: "Juego",
+    people: 1,
+    trailer: "",
+    // null = todavía no tiene fecha de lanzamiento
+    release: null,
+    description: [
+      "The Sundered Sky es un RPG de fantasía y aventuras en un mundo hecho de cubos. Hace siglos, un gran cataclismo conocido como la Ruptura partió el antiguo continente en pedazos, y hoy sus restos flotan como islas sobre un inmenso mar de nubes.",
+      "Junto a tus amigos viajarás en un barco volador por un archipiélago que se genera al azar en cada partida. Explora biomas muy distintos, descubre criaturas nunca vistas, visita ciudades de razas y facciones con sus propias ideas, y adéntrate en mazmorras llenas de tesoros. Elige tu clase, consigue armas y armaduras, fabrica equipo, doma mascotas y mejora tu barco para llegar cada vez más lejos.",
+      "Cada pueblo habla su propia lengua. Aprende sus palabras poco a poco para leer libros antiguos, desvelar los secretos de la Ruptura y enfrentarte a jefes legendarios. Un mundo de aventuras para todas las edades, pensado para disfrutarlo en compañía."
+    ]
   }
 };
 
@@ -55,11 +70,15 @@ function openProjectModal(id) {
     return;
   }
 
-  const days = daysUntil(project.release);
+  // Sin fecha: se muestra "Sin fecha todavía" y no hay cuenta atrás.
+  const hasRelease = Array.isArray(project.release);
+  const days = hasRelease ? daysUntil(project.release) : null;
 
   let countdown;
 
-  if (days > 1) {
+  if (!hasRelease) {
+    countdown = "";
+  } else if (days > 1) {
     countdown = `¡Faltan ${days} días!`;
   } else if (days === 1) {
     countdown = "¡Sale mañana!";
@@ -80,9 +99,13 @@ function openProjectModal(id) {
   modal.querySelector("#project-modal-category").textContent = project.category;
   modal.querySelector("#project-modal-people").textContent =
     `${project.people} ${project.people === 1 ? "persona" : "personas"}`;
-  modal.querySelector("#project-modal-release").textContent =
-    formatReleaseDate(project.release);
-  modal.querySelector("#project-modal-countdown").textContent = countdown;
+  modal.querySelector("#project-modal-release").textContent = hasRelease
+    ? formatReleaseDate(project.release)
+    : "Sin fecha todavía";
+
+  const countdownElement = modal.querySelector("#project-modal-countdown");
+  countdownElement.textContent = countdown;
+  countdownElement.hidden = !countdown;
 
   const description = modal.querySelector("#project-modal-description");
   description.innerHTML = "";
