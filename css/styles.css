@@ -1876,6 +1876,28 @@ body.antitronks-open {
   box-shadow: none;
 }
 
+/* ===== Juego sin tráiler: aviso en lugar del vídeo ===== */
+.trailer-unavailable {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 1rem;
+  text-align: center;
+  color: #cbd5e1;
+  font-weight: 700;
+}
+
+.trailer-unavailable p {
+  margin: 0;
+}
+
+.trailer-unavailable-icon {
+  font-size: 2rem;
+  opacity: 0.7;
+}
+
 /* ===== Sobre nosotros ===== */
 .about-card {
   display: flex;
