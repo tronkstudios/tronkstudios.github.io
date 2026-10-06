@@ -3,6 +3,14 @@
 Historia de la web de TronkStudios agrupada por versiones. Cada versión
 resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 
+## [v5.3] · Octubre de 2026 · Tronk Fight en móvil
+
+### Cambiado
+- En móvil y tablet, la ventana de Tronk Fight ocupa toda la pantalla.
+- Los controles táctiles van fuera de la imagen del juego: a los lados en horizontal
+  y debajo en vertical, para que no tapen a los luchadores.
+- Con dos jugadores, cada uno tiene su mando en su lado de la pantalla.
+
 ## [v5.2] · Octubre de 2026 · Tronk Fight a dos jugadores
 
 ### Añadido
