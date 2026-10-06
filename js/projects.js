@@ -117,9 +117,8 @@ function openProjectModal(id) {
   });
 
   // El tráiler va SIEMPRE al final de la descripción.
-  if (project.trailer) {
-    description.appendChild(createTrailer(project));
-  }
+  // Si el juego aún no tiene, se avisa de que no hay tráiler.
+  description.appendChild(createTrailer(project));
 
   openModal(modal);
 }
@@ -161,11 +160,30 @@ function createTrailer(project) {
   title.className = "project-trailer-title";
   title.textContent = "Ver Trailer";
 
-  const frame = createTrailerFrame(project);
+  const frame = project.trailer
+    ? createTrailerFrame(project)
+    : createNoTrailerFrame();
   frame.classList.add("project-trailer-frame");
   wrapper.append(title, frame);
 
   return wrapper;
+}
+
+/* Recuadro que sustituye al vídeo cuando un juego no tiene tráiler. */
+function createNoTrailerFrame() {
+  const frame = document.createElement("div");
+  frame.className = "video-frame trailer-unavailable";
+
+  const icon = document.createElement("span");
+  icon.className = "trailer-unavailable-icon";
+  icon.setAttribute("aria-hidden", "true");
+  icon.textContent = "🎬";
+
+  const text = document.createElement("p");
+  text.textContent = "No hay tráiler disponible todavía";
+
+  frame.append(icon, text);
+  return frame;
 }
 
 /*
@@ -204,7 +222,10 @@ function addCardTrailer(card, project) {
   title.className = "card-trailer-title";
   title.textContent = "Ver trailer";
 
-  wrapper.append(title, createTrailerFrame(project));
+  wrapper.append(
+    title,
+    project.trailer ? createTrailerFrame(project) : createNoTrailerFrame()
+  );
 
   ["click", "keydown"].forEach((type) => {
     wrapper.addEventListener(type, (event) => event.stopPropagation());
@@ -221,7 +242,8 @@ function initializeProjects() {
     .forEach((card) => {
       const id = card.dataset.project;
 
-      if (PROJECTS[id] && PROJECTS[id].trailer) {
+      // Con tráiler se muestra el vídeo; sin tráiler, el aviso.
+      if (PROJECTS[id]) {
         addCardTrailer(card, PROJECTS[id]);
       }
 
