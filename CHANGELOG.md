@@ -3,6 +3,13 @@
 Historia de la web de TronkStudios agrupada por versiones. Cada versión
 resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 
+## [v5.4] · Octubre de 2026 · Quitar votos en sugerencias
+
+### Cambiado
+- En Sugerencias, si ya has votado una idea, al pulsar otra vez 👍 se quita tu voto
+  en lugar de mostrar «Ya votaste».
+- Nueva función `unvote_suggestion` de Supabase en `docs/supabase/votos.sql`.
+
 ## [v5.3] · Octubre de 2026 · Tronk Fight en móvil
 
 ### Cambiado
