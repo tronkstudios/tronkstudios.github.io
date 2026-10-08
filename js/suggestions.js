@@ -380,7 +380,7 @@ function createSuggestionCard(
   if (alreadyVoted) {
     voteButton.classList.add("voted");
     voteButton.setAttribute("aria-pressed", "true");
-    voteButton.title = "Ya has votado esta sugerencia";
+    voteButton.title = "Quitar tu voto";
   } else {
     voteButton.setAttribute("aria-pressed", "false");
     voteButton.title = "Votar esta sugerencia";
@@ -599,11 +599,13 @@ if (suggestionForm) {
 }
 
 /* =========================================================
-   VOTAR
+   VOTAR / QUITAR VOTO
    ========================================================= */
 
-// El voto se suma en el servidor (función vote_suggestion de
-// Supabase): un voto por persona y nadie puede inventarse votos.
+// El voto se suma y se resta en el servidor (funciones
+// vote_suggestion y unvote_suggestion de Supabase, ver
+// docs/supabase/votos.sql): un voto por persona y nadie puede
+// inventarse votos. Si ya has votado, al pulsar se quita el voto.
 async function voteSuggestion(
   suggestion,
   button
@@ -623,44 +625,49 @@ async function voteSuggestion(
     return;
   }
 
-  if (
-    myVotedSuggestions.has(
-      String(suggestion.id)
-    )
-  ) {
-    flashVoteButton(button, "Ya votaste");
-    return;
-  }
+  const id = String(suggestion.id);
+  const alreadyVoted = myVotedSuggestions.has(id);
 
   if (button) {
     button.disabled = true;
   }
 
   try {
-    const { data, error } =
+    const { error } =
       await supabaseClient.rpc(
-        "vote_suggestion",
+        alreadyVoted
+          ? "unvote_suggestion"
+          : "vote_suggestion",
         {
-          p_suggestion_id: String(suggestion.id)
+          p_suggestion_id: id
         }
       );
 
     if (error) {
-      console.error("Error votando:", error);
-      flashVoteButton(button, "No se pudo votar");
+      console.error(
+        alreadyVoted ? "Error quitando el voto:" : "Error votando:",
+        error
+      );
+      flashVoteButton(
+        button,
+        alreadyVoted ? "No se pudo quitar" : "No se pudo votar"
+      );
       return;
     }
 
-    myVotedSuggestions.add(String(suggestion.id));
-
-    if (data && data.already_voted) {
-      flashVoteButton(button, "Ya votaste");
+    if (alreadyVoted) {
+      myVotedSuggestions.delete(id);
+    } else {
+      myVotedSuggestions.add(id);
     }
 
     await loadSuggestions();
   } catch (error) {
     console.error(error);
-    flashVoteButton(button, "No se pudo votar");
+    flashVoteButton(
+      button,
+      alreadyVoted ? "No se pudo quitar" : "No se pudo votar"
+    );
   } finally {
     if (button) {
       button.disabled = false;
