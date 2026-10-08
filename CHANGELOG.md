@@ -3,6 +3,14 @@
 Historia de la web de TronkStudios agrupada por versiones. Cada versión
 resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 
+## [v5.5] · Octubre de 2026 · Nuevo orden de secciones
+
+### Cambiado
+- **Juegos en desarrollo** pasa a ser la primera sección de la página.
+- **Minijuegos** se mueve al final, justo encima de Comunidad (sugerencias).
+- El menú de navegación sigue el mismo orden: En desarrollo, Nuestros Juegos,
+  Aplicaciones, Roblox, Minijuegos, Comunidad y Sobre nosotros.
+
 ## [v5.4] · Octubre de 2026 · Quitar votos en sugerencias
 
 ### Cambiado
