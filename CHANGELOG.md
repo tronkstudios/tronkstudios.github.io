@@ -3,6 +3,26 @@
 Historia de la web de TronkStudios agrupada por versiones. Cada versión
 resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 
+## [v6] · Octubre de 2026 · Portada, fichas, comunidad y diario
+
+### Añadido
+- **Portada nueva**: logo, frase «Videojuegos y determinación», botones
+  «Explorar los juegos» y «Jugar minijuegos», y un fondo de partículas
+  (`js/hero.js`) que solo se anima cuando la portada se ve y respeta
+  «reducir movimiento».
+- **Fichas completas** de los juegos en desarrollo: género, plataformas, estado
+  con barra de progreso, lanzamiento estimado y capturas (miniaturas que se ven
+  en grande). Los datos rápidos también salen en la tarjeta.
+- **Diario de desarrollo** (sección Novedades) con fechas y etiquetas
+  Desarrollo, Actualización y Anuncio, filtros y «Ver entradas anteriores».
+- **Sobre TronkStudios**: qué es el estudio, qué juegos creamos, qué nos
+  diferencia, objetivos y tecnologías.
+
+### Cambiado
+- **Comunidad**: resumen de ideas y votos, ordenar por «Más votadas» o
+  «Más recientes» y aviso para crear una cuenta. Sin sesión, «Sugerir una idea»
+  y votar abren directamente la ventana de Cuenta.
+
 ## [v5.5] · Octubre de 2026 · Nuevo orden de secciones
 
 ### Cambiado
