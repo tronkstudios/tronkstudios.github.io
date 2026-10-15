@@ -109,7 +109,9 @@ async function loadSuggestions() {
   if (!isSupabaseConfigured()) {
     suggestionsList.innerHTML = `
       <div class="suggestions-loading">
-        Configura Supabase para mostrar las sugerencias.
+        ${navigator.onLine
+          ? "Configura Supabase para mostrar las sugerencias."
+          : "Sin conexión. Las sugerencias volverán cuando tengas internet."}
       </div>
     `;
 

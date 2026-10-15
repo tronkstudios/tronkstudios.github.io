@@ -356,9 +356,16 @@ function addCardTrailer(card, project) {
   const wrapper = document.createElement("div");
   wrapper.className = "card-trailer";
 
-  const title = document.createElement("p");
+  // En el móvil el tráiler va plegado: se abre al pulsar el título
+  const title = document.createElement("button");
+  title.type = "button";
   title.className = "card-trailer-title";
-  title.textContent = "Ver trailer";
+  title.textContent = "Ver tráiler";
+  title.setAttribute("aria-expanded", "false");
+  title.addEventListener("click", () => {
+    const open = wrapper.classList.toggle("is-open");
+    title.setAttribute("aria-expanded", String(open));
+  });
 
   wrapper.append(
     title,
@@ -451,6 +458,13 @@ function initializeCardImageFallbacks() {
   document
     .querySelectorAll(".dev-card-media img")
     .forEach((img) => {
+      // Fondo desenfocado con la misma imagen, para que las portadas
+      // cuadradas no queden en un marco vacío
+      img.closest(".dev-card-media")?.style.setProperty(
+        "--media-image",
+        `url("${img.src}")`
+      );
+
       img.addEventListener(
         "error",
         () => {
