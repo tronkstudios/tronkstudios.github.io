@@ -26,7 +26,8 @@ const NOTIFICATION_ICONS = {
   status: "sparkles",
   reply: "message",
   record: "trophy",
-  release: "calendar"
+  release: "calendar",
+  team: "megaphone"
 };
 
 // Cada cuánto se miran las notificaciones nuevas (ms)
@@ -289,9 +290,14 @@ async function toggleNotificationsPanel() {
   items.forEach((item) => {
     const row = document.createElement("li");
 
-    const link = document.createElement("a");
+    // Con enlace es un <a>; los avisos sin enlace son solo texto
+    const hasLink = /^#[a-z-]+$/.test(item.link);
+    const link = document.createElement(hasLink ? "a" : "div");
     link.className = item.read ? "notification" : "notification is-unread";
-    link.href = /^#[a-z-]+$/.test(item.link) ? item.link : "#";
+
+    if (hasLink) {
+      link.href = item.link;
+    }
     link.appendChild(makeIcon(NOTIFICATION_ICONS[item.kind] || "bell", "icon notification-icon"));
 
     const text = document.createElement("span");
