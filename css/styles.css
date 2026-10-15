@@ -5389,3 +5389,35 @@ button.card-trailer-title {
 .empty-state[hidden] {
   display: none;
 }
+
+/* ---------- Shorts: tarjetas verticales que se deslizan ---------- */
+
+.shorts[hidden] {
+  display: none;
+}
+
+.shorts-list {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(170px, 210px);
+  gap: 0.9rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  scroll-snap-type: x mandatory;
+}
+
+.video-card.is-short {
+  scroll-snap-align: start;
+}
+
+.video-card.is-short .video-media {
+  aspect-ratio: 9 / 16;
+}
+
+.video-card.is-short .video-title {
+  font-size: 0.92rem;
+}
+
+.video-card.is-short .video-meta {
+  font-size: 0.78rem;
+}

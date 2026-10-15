@@ -746,7 +746,7 @@ async function sendLaunchNotifications(env) {
    ========================================================= */
 
 const YOUTUBE_CHANNEL_ID = "UCb2X1ZIDj9f89RY3uwwFaFQ";
-const YOUTUBE_CACHE_SECONDS = 1800;
+const YOUTUBE_CACHE_SECONDS = 600;
 const ROBLOX_CACHE_SECONDS = 60;
 
 /* Devuelve lo guardado en caché o lo calcula y lo guarda */
@@ -802,17 +802,22 @@ async function fetchYoutubeVideos() {
   const xml = await response.text();
   const entries = xml.split("<entry>").slice(1);
 
-  return entries.slice(0, 6).map((entry) => {
+  // El feed trae hasta 15 vídeos; los Shorts llevan un enlace /shorts/
+  return entries.slice(0, 15).map((entry) => {
     const pick = (pattern) => (entry.match(pattern) || [])[1] || "";
     const id = pick(/<yt:videoId>([\w-]{6,20})<\/yt:videoId>/);
+    const title = decodeXml(pick(/<title>([\s\S]*?)<\/title>/)).slice(0, 150);
+    const short =
+      /<link[^>]+href="https:\/\/www\.youtube\.com\/shorts\//.test(entry) || /#shorts?\b/i.test(title);
 
     return {
       id,
-      title: decodeXml(pick(/<title>([\s\S]*?)<\/title>/)).slice(0, 150),
+      title,
+      short,
       published: pick(/<published>([^<]+)<\/published>/),
       views: Number(pick(/<media:statistics views="(\d+)"/)) || 0,
       thumbnail: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
-      url: `https://www.youtube.com/watch?v=${id}`
+      url: short ? `https://www.youtube.com/shorts/${id}` : `https://www.youtube.com/watch?v=${id}`
     };
   }).filter((video) => video.id);
 }
