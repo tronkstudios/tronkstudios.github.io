@@ -125,8 +125,8 @@ Con eso aparece **Panel del equipo** en «Cuenta», desde donde se puede:
   `docs/supabase/lanzamientos.sql`). Quien lo tiene en su lista de deseados
   recibe una notificación, y la fecha de la tabla `game_releases` manda sobre
   la de `js/projects.js`;
-- enviar **avisos** a todos los usuarios o solo a quien tiene un juego en su
-  lista de deseados (necesita `docs/supabase/avisos.sql`). Llegan a la campana.
+- enviar **avisos** a todos los usuarios (necesita `docs/supabase/avisos.sql`).
+  Llegan a la campana.
 
 Cada persona recibe **notificaciones** (campana de la cabecera) cuando su idea
 llega a 1, 5, 10, 25, 50 o 100 votos, cuando el equipo cambia su estado o le
