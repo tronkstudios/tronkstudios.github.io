@@ -578,22 +578,26 @@ function renderProfile(content, data) {
       return;
     }
 
-    const earned = badge.test(data);
-
-    // En perfiles ajenos solo se ven las conseguidas
-    if (!earned && !isMine) {
+    // Solo se ven las insignias conseguidas
+    if (!badge.test(data)) {
       return;
     }
 
-    const item = makeElement("li", earned ? "badge" : "badge badge-locked");
-    item.title = earned ? badge.how : `Cómo conseguirla: ${badge.how}`;
-    item.appendChild(makeIcon(earned ? badge.icon : "lock", "icon badge-icon"));
+    const item = makeElement("li", "badge");
+    item.title = badge.how;
+    item.appendChild(makeIcon(badge.icon, "icon badge-icon"));
     item.appendChild(makeElement("span", "badge-name", badge.name));
     badges.appendChild(item);
   });
 
   if (!badges.children.length) {
-    badges.appendChild(makeElement("li", "profile-empty", "Todavía no tiene insignias."));
+    badges.appendChild(
+      makeElement(
+        "li",
+        "profile-empty",
+        isMine ? "Todavía no tienes insignias." : "Todavía no tiene insignias."
+      )
+    );
   }
 
   content.appendChild(badges);

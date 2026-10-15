@@ -3626,13 +3626,6 @@ button.project-thumb:hover {
   font-weight: 800;
 }
 
-.badge-locked {
-  border-color: var(--border);
-  background: var(--surface-2);
-  color: var(--muted);
-  opacity: 0.75;
-}
-
 .profile-empty {
   color: var(--muted);
   font-size: 0.9rem;
@@ -4029,10 +4022,6 @@ button.project-thumb:hover {
 
 .badge .badge-icon {
   color: var(--accent);
-}
-
-.badge-locked .badge-icon {
-  color: var(--muted);
 }
 
 .profile-wish-notify {
