@@ -73,6 +73,12 @@
   <link rel="icon" type="image/png" sizes="480x480" href="favicon.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
 
+  <!-- App instalable (PWA): manifest.webmanifest + sw.js (js/pwa.js) -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="TronkStudios" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
   <!-- Datos para Google: nombre del sitio y logo -->
   <script type="application/ld+json">
     {
@@ -97,7 +103,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="css/styles.css?v=38" />
+  <link rel="stylesheet" href="css/styles.css?v=41" />
   <link rel="stylesheet" href="css/tronk-fight.css?v=3" />
 
 
@@ -114,8 +120,8 @@
   <script src="js/theme.js?v=20" defer></script>
   <script src="js/ui.js?v=21" defer></script>
   <script src="js/auth.js?v=21" defer></script>
-  <script src="js/suggestions.js?v=23" defer></script>
-  <script src="js/projects.js?v=27" defer></script>
+  <script src="js/suggestions.js?v=24" defer></script>
+  <script src="js/projects.js?v=29" defer></script>
   <script src="js/profiles.js?v=5" defer></script>
   <script src="js/community.js?v=3" defer></script>
   <script src="js/team.js?v=6" defer></script>
@@ -127,7 +133,8 @@
   <script src="js/games/protect-mogos.js?v=20" defer></script>
   <script src="js/games/stick-drill.js?v=20" defer></script>
   <script src="js/games/tronk-fight.js?v=4" defer></script>
-  <script src="js/app.js?v=25" defer></script>
+  <script src="js/pwa.js?v=1" defer></script>
+  <script src="js/app.js?v=26" defer></script>
 
   <!-- Sistema de soporte (chat con Tronker + formulario de correo) -->
   <script src="js/support.js?v=9" defer></script>
@@ -191,6 +198,8 @@
       <symbol id="i-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4.5"/><path d="m11.2 11.8 9.3-9.3M17 6l3 3M14.5 8.5l2 2"/></symbol>
       <symbol id="i-bug" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7.5" width="10" height="13" rx="5"/><path d="M9 7.5a3 3 0 0 1 6 0M12 11v9.5M3 13h4M17 13h4M4 7.5l3 2M20 7.5l-3 2M4 19.5l3-2M20 19.5l-3-2"/></symbol>
       <symbol id="i-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11M7 10l5 5 5-5"/><path d="M4 16.5v2A2.5 2.5 0 0 0 6.5 21h11a2.5 2.5 0 0 0 2.5-2.5v-2"/></symbol>
+      <symbol id="i-wifi-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5a14 14 0 0 1 5-3M11 5a14 14 0 0 1 10.5 3.5M5.5 12a9 9 0 0 1 4-2.3M14.5 9.8a9 9 0 0 1 4 2.2M8.8 15.3a4.5 4.5 0 0 1 6.4 0"/><circle cx="12" cy="19" r="1" fill="currentColor"/><path d="M3 3l18 18"/></symbol>
       <symbol id="i-swords" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2"/><path d="M14.5 6.5 18 3h3v3l-3.5 3.5M5 14l4 4M7 17l-3 3M3 19l2 2"/></symbol>
     </defs>
   </svg>
@@ -361,6 +370,9 @@
             <a class="hero-button hero-button-secondary" href="#minijuegos" data-nav-link>
               Jugar minijuegos
             </a>
+            <button id="install-button" class="hero-button hero-button-secondary" type="button" hidden>
+              <svg class="icon" aria-hidden="true"><use href="#i-download"></use></svg> Instalar app
+            </button>
           </div>
 
           <!--
@@ -1328,6 +1340,11 @@
     </section>
 
   </main>
+
+  <!-- Aviso sin conexión (js/pwa.js) -->
+  <p id="offline-notice" class="offline-notice" role="status" hidden>
+    <svg class="icon" aria-hidden="true"><use href="#i-wifi-off"></use></svg> Sin conexión: puedes seguir jugando a los minijuegos.
+  </p>
 
 
   <!-- =====================================================
