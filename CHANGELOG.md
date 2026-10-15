@@ -3,30 +3,47 @@
 Historia de la web de TronkStudios agrupada por versiones. Cada versión
 resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 
-## [v9] · Octubre de 2026 · Móvil, app instalable e inglés
+## [v6] · Octubre de 2026 · La nueva web de TronkStudios
 
-### Añadido
+La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
+del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
+pantalla. Estas son sus partes, de la más reciente a la primera.
+
+### 6.8 · Se adapta a cada pantalla
+
+#### Cambiado
+- **Tablet** (701–1023 px): menú desplegable ☰ en lugar de dos filas de enlaces;
+  la cabecera pasa de 164 px a 64 px de alto.
+- **Pantallas grandes**: desde 1600 px el contenido se ensancha a 1320 px y la
+  letra crece; desde 2200 px, a 1560 px. Antes todo quedaba pequeño en el centro.
+- **Móviles muy estrechos** (320–359 px): portada, etiquetas y minijuegos más compactos.
+- **Móvil en horizontal**: portada en dos columnas y más baja.
+- Versión visible en el pie de la web.
+
+### 6.7 · Móvil, app instalable e inglés
+
+#### Añadido
 - **Web instalable** (PWA): `manifest.webmanifest`, iconos, `sw.js` y botón
   «Instalar app». Los minijuegos funcionan **sin internet** y sale un aviso cuando
   no hay conexión.
 - **Versión en inglés** con el botón ES / EN de la cabecera (`js/i18n.js`): toda la
   web, el chat de Tronker y los minijuegos.
 
-### Cambiado
+#### Cambiado
 - **Tarjetas de juegos en móvil**: a todo el ancho, portada de borde a borde con
   fondo desenfocado, tráiler plegable y minijuegos en dos columnas con botón de jugar.
 
-## [v8.2] · Octubre de 2026 · Logo que reacciona y avisos del equipo
+### 6.6 · Logo que reacciona y avisos del equipo
 
-### Añadido
+#### Añadido
 - Al pulsar el **logo flotante** de la portada, gira, salta o tiembla, suelta chispas
   y empuja las partículas del fondo. También funciona con el teclado.
 - Pestaña **Avisos** en el panel del equipo: enviar una notificación a todos los
   usuarios (`docs/supabase/avisos.sql`).
 
-## [v8.1] · Octubre de 2026 · Historia, diario plegable y fechas de estreno
+### 6.5 · Historia, diario plegable y fechas de estreno
 
-### Añadido
+#### Añadido
 - **Cómo lo hicimos** pasa a ser una línea temporal con todo el proceso, desde la
   idea hasta la web actual, que va apareciendo paso a paso con una flecha.
 - El **diario de desarrollo** se puede ocultar y mostrar (se recuerda en el navegador).
@@ -34,12 +51,12 @@ resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
   cada juego avisa a quien lo tiene en su lista de deseados
   (`docs/supabase/lanzamientos.sql`).
 
-### Cambiado
+#### Cambiado
 - El perfil solo muestra las insignias conseguidas.
 
-## [v8] · Octubre de 2026 · Comunidad, iconos y avatares
+### 6.4 · Comunidad, iconos y avatares
 
-### Añadido
+#### Añadido
 - **Estado de cada idea** (Pendiente, En estudio, Planeada, Hecha, Descartada),
   **respuesta del equipo** y filtro por estado.
 - **Panel del equipo**: estados y respuestas, encuestas, entradas del diario y
@@ -50,20 +67,20 @@ resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 - Entradas del **diario** escritas desde el panel, guardadas en Supabase.
 - `docs/supabase/comunidad.sql` con tablas, reglas de seguridad y funciones.
 
-### Cambiado
+#### Cambiado
 - **Iconos propios en SVG** en lugar de emojis en toda la web (el de YouTube se mantiene).
 - **12 avatares dibujados** para los perfiles en lugar de emojis.
 
-## [v7.1] · Octubre de 2026 · Aviso de lanzamiento en la web
+### 6.3 · Aviso de lanzamiento en la web
 
-### Añadido
+#### Añadido
 - Si pediste «Avísame cuando salga» y el juego ya ha salido, al entrar en la web
   con tu cuenta aparece arriba un aviso con un botón para ver su ficha. Al cerrarlo
   no vuelve a salir en ese navegador. No necesita correo ni dominio.
 
-## [v7] · Octubre de 2026 · Perfiles, deseados y clasificación
+### 6.2 · Perfiles, deseados y clasificación
 
-### Añadido
+#### Añadido
 - **Perfiles**: avatar, nombre, biografía, fecha de alta, ideas, votos recibidos,
   insignias, lista de deseados y récords. Se editan desde «Cuenta → Ver mi perfil»
   y se abren pulsando el nombre de alguien en Comunidad o en la clasificación.
@@ -77,25 +94,25 @@ resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 - Botones de **tienda** en la ficha cuando un juego tiene `stores` (Steam, itch.io...).
 - `docs/supabase/plataforma.sql` con las tablas y sus reglas de seguridad.
 
-### Cambiado
+#### Cambiado
 - Tronker añade Tronk Fight y explica que con sesión los récords se guardan en la cuenta.
 
-## [v6.1] · Octubre de 2026 · Logo animado
+### 6.1 · Logo animado
 
-### Cambiado
+#### Cambiado
 - El logo de la portada entra con un zoom, flota, su brillo azul late y le cruza
   un reflejo de luz cada pocos segundos (sin animación con «reducir movimiento»).
 - The Sundered Sky aparece con la plataforma PC.
 - Las cifras de la portada son reales: «juegos finalizados» y «juegos en desarrollo»
   se cuentan solas a partir de las tarjetas de cada sección.
 
-### Quitado
+#### Quitado
 - La sección «Nuestras Aplicaciones», su enlace del menú y la categoría
   Aplicación/Aplicaciones de las sugerencias y del soporte.
 
-## [v6] · Octubre de 2026 · Portada, fichas, comunidad y diario
+### 6.0 · Portada, fichas, comunidad y diario
 
-### Añadido
+#### Añadido
 - **Portada nueva**: logo, frase «Videojuegos y determinación», botones
   «Explorar los juegos» y «Jugar minijuegos», y un fondo de partículas
   (`js/hero.js`) que solo se anima cuando la portada se ve y respeta
@@ -107,7 +124,7 @@ resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 - **Sobre TronkStudios**: qué es el estudio, qué juegos creamos, qué nos
   diferencia, objetivos y tecnologías.
 
-### Cambiado
+#### Cambiado
 - **Comunidad**: resumen de ideas y votos, ordenar por «Más votadas» o
   «Más recientes» y aviso para crear una cuenta. Sin sesión, «Sugerir una idea»
   y votar abren directamente la ventana de Cuenta.

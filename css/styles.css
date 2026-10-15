@@ -256,7 +256,7 @@ img {
 }
 
 /* En ordenador: logo y botones en la primera fila, enlaces debajo */
-@media (min-width: 701px) {
+@media (min-width: 1024px) {
   .site-header .header-actions {
     order: 2;
   }
@@ -283,7 +283,7 @@ img {
   display: none;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 1023px) {
   .header-inner {
     flex-wrap: wrap;
     gap: 0.5rem;
@@ -401,7 +401,7 @@ img {
   }
 }
 
-@media (max-width: 700px) and (prefers-reduced-motion: reduce) {
+@media (max-width: 1023px) and (prefers-reduced-motion: reduce) {
   .site-menu.is-open {
     animation: none;
   }
@@ -999,8 +999,8 @@ textarea:focus-visible {
 
 /* MÓVIL */
 
-@media (max-width: 700px) {
-
+/* Cabecera en tablet y móvil (menú ☰) */
+@media (max-width: 1023px) {
   .main-nav {
     width: 100%;
     overflow-x: auto;
@@ -1020,7 +1020,9 @@ textarea:focus-visible {
     flex: 1;
     justify-content: center;
   }
+}
 
+@media (max-width: 700px) {
   .suggestion-tools {
     flex-direction: column;
   }
@@ -2305,7 +2307,7 @@ body.antitronks-open {
   border-color: var(--accent-hover);
 }
 
-@media (max-width: 700px) {
+@media (max-width: 1023px) {
   .nav-support-button {
     flex: 1;
     justify-content: center;
@@ -4344,7 +4346,7 @@ button.project-thumb:hover {
   text-align: center;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 1023px) {
   .notifications {
     order: 0;
   }
@@ -5036,4 +5038,112 @@ button.card-trailer-title {
 
 .offline-notice .icon {
   color: #f59e0b;
+}
+
+
+/* =========================================================
+   TODAS LAS PANTALLAS (v6)
+   - Tablet: menú ☰ hasta 1023 px (ver la cabecera).
+   - Pantallas grandes: contenido más ancho y letra algo mayor,
+     para que no quede todo pequeño en el centro.
+   - Móviles muy pequeños: textos y botones más compactos.
+   ========================================================= */
+
+@media (min-width: 1600px) {
+  html {
+    font-size: 17px;
+  }
+
+  .container {
+    width: min(1320px, 100%);
+  }
+
+  .hero-logo {
+    max-width: 440px;
+  }
+
+  .brand-logo {
+    height: 50px;
+  }
+}
+
+@media (min-width: 2200px) {
+  html {
+    font-size: 19px;
+  }
+
+  .container {
+    width: min(1560px, 100%);
+  }
+
+  .hero-logo {
+    max-width: 520px;
+  }
+
+  .brand-logo {
+    height: 56px;
+  }
+
+  .modal-box {
+    font-size: 1rem;
+  }
+}
+
+/* Móviles muy estrechos (320–359 px) */
+@media (max-width: 359px) {
+  .container {
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+  }
+
+  .hero-eyebrow {
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+  }
+
+  .hero-title {
+    font-size: 2rem;
+  }
+
+  .hero-facts {
+    gap: 0.3rem 1rem;
+  }
+
+  #minijuegos .cards-grid {
+    gap: 0.5rem;
+  }
+
+  #minijuegos .minigame-card h3 {
+    font-size: 0.85rem;
+  }
+}
+
+/* Pantallas bajas en horizontal (móvil girado): portada más corta */
+@media (max-height: 500px) and (orientation: landscape) {
+  .hero {
+    padding: 1.5rem 0;
+  }
+
+  .hero-inner {
+    grid-template-columns: 1.4fr 1fr;
+    text-align: left;
+  }
+
+  .hero-content {
+    align-items: flex-start;
+  }
+
+  .hero-actions,
+  .hero-facts {
+    justify-content: flex-start;
+  }
+
+  .hero-logo {
+    max-width: 200px;
+  }
+}
+
+.footer-version {
+  opacity: 0.6;
+  font-size: 0.85em;
 }

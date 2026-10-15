@@ -103,7 +103,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="css/styles.css?v=42" />
+  <link rel="stylesheet" href="css/styles.css?v=44" />
   <link rel="stylesheet" href="css/tronk-fight.css?v=3" />
 
 
@@ -134,7 +134,7 @@
   <script src="js/games/stick-drill.js?v=20" defer></script>
   <script src="js/games/tronk-fight.js?v=4" defer></script>
   <script src="js/pwa.js?v=1" defer></script>
-  <script src="js/app.js?v=26" defer></script>
+  <script src="js/app.js?v=27" defer></script>
 
   <!-- Sistema de soporte (chat con Tronker + formulario de correo) -->
   <script src="js/support.js?v=9" defer></script>
@@ -990,6 +990,15 @@
         </div>
 
         <div id="news-list" class="news-list">
+          <article class="news-entry" data-tag="announcement">
+            <div class="news-entry-meta">
+              <time datetime="2026-10-15">15 oct 2026</time>
+              <span class="news-tag news-tag-announcement">Anuncio</span>
+            </div>
+            <h3>Llega la v6 de la web</h3>
+            <p>La web se adapta a cualquier pantalla, del móvil más pequeño a un monitor 4K, se puede instalar como una app, funciona sin conexión y ya está en inglés.</p>
+          </article>
+
           <article class="news-entry" data-tag="update">
             <div class="news-entry-meta">
               <time datetime="2026-10-15">15 oct 2026</time>
@@ -1366,6 +1375,7 @@
 
     <p>
       © <span id="year"></span> TronkStudios
+      <span class="footer-version" title="Ver el CHANGELOG">· v6</span>
     </p>
 
     <div class="footer-actions">
@@ -2884,6 +2894,6 @@
 
   <!-- Versión en inglés. Va aquí, sin defer, para traducir antes de
        que se vea la página (ver js/i18n.js). -->
-  <script src="js/i18n.js?v=2"></script>
+  <script src="js/i18n.js?v=3"></script>
 </body>
 </html>
