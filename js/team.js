@@ -599,26 +599,11 @@ async function renderTeamReleases(content) {
    AVISOS: enviar una notificación a los usuarios
    ========================================================= */
 
-const NOTICE_LINKS = [
-  ["", "Sin enlace"],
-  ["#desarrollo", "Juegos en desarrollo"],
-  ["#minijuegos", "Minijuegos"],
-  ["#sugerencias", "Comunidad"],
-  ["#novedades", "Diario de desarrollo"]
-];
-
 function renderTeamNotices(content) {
   content.replaceChildren();
 
   const form = teamElement("form", "team-form");
-  form.appendChild(teamElement("h3", "profile-section-title", "Enviar un aviso"));
-  form.appendChild(
-    teamElement(
-      "p",
-      "profile-empty",
-      "Les llegará a la campana de notificaciones. Por ejemplo: «¡Z Tronks ya ha salido!» o «Era una prueba, no hagáis caso»."
-    )
-  );
+  form.appendChild(teamElement("h3", "profile-section-title", "Enviar un aviso a todos"));
 
   const message = document.createElement("textarea");
   message.required = true;
@@ -632,36 +617,11 @@ function renderTeamNotices(content) {
     counter.textContent = `${message.value.length} / 200`;
   });
 
-  const target = document.createElement("select");
-  target.setAttribute("aria-label", "A quién se envía");
-  [["", "A todos los usuarios"]]
-    .concat(
-      Object.entries(PROJECTS).map(([id, project]) => [
-        id,
-        `A quien tiene ${project.title} en deseados`
-      ])
-    )
-    .forEach(([value, label]) => {
-      const option = document.createElement("option");
-      option.value = value;
-      option.textContent = label;
-      target.appendChild(option);
-    });
-
-  const link = document.createElement("select");
-  link.setAttribute("aria-label", "Al pulsar el aviso, lleva a");
-  NOTICE_LINKS.forEach(([value, label]) => {
-    const option = document.createElement("option");
-    option.value = value;
-    option.textContent = value ? `Al pulsarlo lleva a: ${label}` : label;
-    link.appendChild(option);
-  });
-
   const submit = teamElement("button", "primary-button");
   submit.type = "submit";
   setIconText(submit, "megaphone", "Enviar aviso");
 
-  form.append(message, counter, target, link, submit);
+  form.append(message, counter, submit);
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -673,9 +633,7 @@ function renderTeamNotices(content) {
       return;
     }
 
-    const who = target.options[target.selectedIndex].textContent.toLowerCase();
-
-    if (!window.confirm(`¿Enviar este aviso ${who}?\n\n«${text}»`)) {
+    if (!window.confirm(`¿Enviar este aviso a todos los usuarios?\n\n«${text}»`)) {
       return;
     }
 
@@ -683,8 +641,8 @@ function renderTeamNotices(content) {
 
     const { data, error } = await supabaseClient.rpc("team_broadcast", {
       p_message: text,
-      p_link: link.value,
-      p_project: target.value || null
+      p_link: "",
+      p_project: null
     });
 
     submit.disabled = false;

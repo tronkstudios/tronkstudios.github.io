@@ -9,8 +9,7 @@ resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 - Al pulsar el **logo flotante** de la portada, gira, salta o tiembla, suelta chispas
   y empuja las partículas del fondo. También funciona con el teclado.
 - Pestaña **Avisos** en el panel del equipo: enviar una notificación a todos los
-  usuarios o a quien tiene un juego en deseados, con enlace opcional a una sección
-  (`docs/supabase/avisos.sql`).
+  usuarios (`docs/supabase/avisos.sql`).
 
 ## [v8.1] · Octubre de 2026 · Historia, diario plegable y fechas de estreno
 
