@@ -334,14 +334,14 @@ const SUPPORT_CONFIG = {
         "Elige la opción que describe tu problema."
       ],
       options: [
-        ["🔑 No puedo iniciar sesión", "login"],
-        ["🔒 Olvidé o quiero cambiar mi contraseña", "pass"],
-        ["👤 No puedo crear una cuenta", "registro"],
-        ["🎮 Un minijuego no carga o va mal", "juego"],
-        ["🐞 Quiero reportar un fallo", "bug"],
-        ["💡 Quiero enviar una sugerencia", "sugerencia"],
-        ["🗑️ Quiero borrar mi cuenta", "borrar"],
-        ["🙋 Hablar con el equipo", "humano"]
+        ["No puedo iniciar sesión", "login"],
+        ["Olvidé o quiero cambiar mi contraseña", "pass"],
+        ["No puedo crear una cuenta", "registro"],
+        ["Un minijuego no carga o va mal", "juego"],
+        ["Quiero reportar un fallo", "bug"],
+        ["Quiero enviar una sugerencia", "sugerencia"],
+        ["Quiero borrar mi cuenta", "borrar"],
+        ["Hablar con el equipo", "humano"]
       ]
     },
 
@@ -365,9 +365,9 @@ const SUPPORT_CONFIG = {
         "¿Has podido entrar?"
       ],
       options: [
-        ["✅ Sí, ya entré", "resuelto"],
-        ["🔒 No recuerdo la contraseña", "pass_olvido"],
-        ["👤 Creo que no tengo cuenta", "registro_nueva"]
+        ["Sí, ya entré", "resuelto"],
+        ["No recuerdo la contraseña", "pass_olvido"],
+        ["Creo que no tengo cuenta", "registro_nueva"]
       ]
     },
     login_confirm: {
@@ -379,8 +379,8 @@ const SUPPORT_CONFIG = {
         "¿Lo has encontrado?"
       ],
       options: [
-        ["✅ Sí, ya está confirmada", "resuelto"],
-        ["📭 No me llega ningún correo", "humano"]
+        ["Sí, ya está confirmada", "resuelto"],
+        ["No me llega ningún correo", "humano"]
       ]
     },
     login_carga: {
@@ -393,8 +393,8 @@ const SUPPORT_CONFIG = {
         "¿Ha funcionado?"
       ],
       options: [
-        ["✅ Sí, ya funciona", "resuelto"],
-        ["❌ No, sigue igual", "caida"]
+        ["Sí, ya funciona", "resuelto"],
+        ["No, sigue igual", "caida"]
       ]
     },
     caida: {
@@ -404,7 +404,7 @@ const SUPPORT_CONFIG = {
         "¿Quieres avisar al equipo igualmente?"
       ],
       options: [
-        ["✉️ Sí, avisar al equipo", "@correo"],
+        ["Sí, avisar al equipo", "@correo"],
         ["No, esperaré", "fin_pregunta"]
       ]
     },
@@ -426,20 +426,20 @@ const SUPPORT_CONFIG = {
         "Nunca te pediremos tu contraseña por correo ni por este chat."
       ],
       options: [
-        ["🔒 Recuperar mi contraseña", "@contrasena"],
-        ["📭 No me llega el correo", "pass_nollega"],
-        ["⚠️ El enlace no funciona", "pass_enlace"],
-        ["✅ Ya la he cambiado", "resuelto"]
+        ["Recuperar mi contraseña", "@contrasena"],
+        ["No me llega el correo", "pass_nollega"],
+        ["El enlace no funciona", "pass_enlace"],
+        ["Ya la he cambiado", "resuelto"]
       ]
     },
     pass_cambiar: {
       msg: [
         "Para cambiarla necesitas haber iniciado sesión.",
-        "Pulsa el botón de abajo, escribe la contraseña nueva dos veces y pulsa «Guardar contraseña». También lo encontrarás en «👤 Cuenta» → «🔒 Cambiar contraseña»."
+        "Pulsa el botón de abajo, escribe la contraseña nueva dos veces y pulsa «Guardar contraseña». También lo encontrarás en «Cuenta» → «Cambiar contraseña»."
       ],
       options: [
-        ["🔒 Cambiar mi contraseña", "@contrasena"],
-        ["✅ Ya la he cambiado", "resuelto"]
+        ["Cambiar mi contraseña", "@contrasena"],
+        ["Ya la he cambiado", "resuelto"]
       ]
     },
     pass_nollega: {
@@ -451,8 +451,8 @@ const SUPPORT_CONFIG = {
         "¿Ha llegado?"
       ],
       options: [
-        ["✅ Sí, ya llegó", "pass_olvido"],
-        ["❌ No, sigue sin llegar", "humano"]
+        ["Sí, ya llegó", "pass_olvido"],
+        ["No, sigue sin llegar", "humano"]
       ]
     },
     pass_enlace: {
@@ -461,8 +461,8 @@ const SUPPORT_CONFIG = {
         "Pide un enlace nuevo y ábrelo en el mismo navegador donde lo pediste."
       ],
       options: [
-        ["🔒 Pedir un enlace nuevo", "@contrasena"],
-        ["❌ Sigue sin funcionar", "humano"]
+        ["Pedir un enlace nuevo", "@contrasena"],
+        ["Sigue sin funcionar", "humano"]
       ]
     },
 
@@ -478,11 +478,11 @@ const SUPPORT_CONFIG = {
     },
     registro_nueva: {
       msg: [
-        "Para crear una cuenta, pulsa «👤 Cuenta» arriba del todo y luego «Crear cuenta».",
+        "Para crear una cuenta, pulsa «Cuenta» arriba del todo y luego «Crear cuenta».",
         "Después tendrás que confirmar tu correo con el enlace que te enviaremos."
       ],
       options: [
-        ["👤 Abrir la ventana de Cuenta", "@cuenta"],
+        ["Abrir la ventana de Cuenta", "@cuenta"],
         ["Tengo otro problema", "inicio"]
       ]
     },
@@ -492,9 +492,9 @@ const SUPPORT_CONFIG = {
         "¿Qué quieres hacer?"
       ],
       options: [
-        ["👤 Iniciar sesión", "@cuenta"],
-        ["🔒 No recuerdo la contraseña", "pass_olvido"],
-        ["✅ Ya lo he resuelto", "resuelto"]
+        ["Iniciar sesión", "@cuenta"],
+        ["No recuerdo la contraseña", "pass_olvido"],
+        ["Ya lo he resuelto", "resuelto"]
       ]
     },
     reg_pass: {
@@ -503,8 +503,8 @@ const SUPPORT_CONFIG = {
         "¿Ya te deja?"
       ],
       options: [
-        ["✅ Sí, cuenta creada", "resuelto"],
-        ["❌ No, sigue sin dejarme", "humano"]
+        ["Sí, cuenta creada", "resuelto"],
+        ["No, sigue sin dejarme", "humano"]
       ]
     },
 
@@ -539,8 +539,8 @@ const SUPPORT_CONFIG = {
         "¿Ya carga?"
       ],
       options: [
-        ["✅ Sí, ya funciona", "resuelto"],
-        ["❌ No, sigue sin cargar", "bug"]
+        ["Sí, ya funciona", "resuelto"],
+        ["No, sigue sin cargar", "bug"]
       ]
     },
     juego_lento: {
@@ -552,8 +552,8 @@ const SUPPORT_CONFIG = {
         "¿Va mejor?"
       ],
       options: [
-        ["✅ Sí, mucho mejor", "resuelto"],
-        ["❌ No, sigue igual", "bug"]
+        ["Sí, mucho mejor", "resuelto"],
+        ["No, sigue igual", "bug"]
       ]
     },
     juego_controles: {
@@ -563,19 +563,19 @@ const SUPPORT_CONFIG = {
         "¿Ya responde?"
       ],
       options: [
-        ["✅ Sí, ya funciona", "resuelto"],
-        ["❌ No", "bug"]
+        ["Sí, ya funciona", "resuelto"],
+        ["No", "bug"]
       ]
     },
     juego_sonido: {
       msg: [
-        "Cada minijuego tiene un botón de altavoz arriba, junto a la ×. Si ves 🔇, púlsalo para volver a activar el sonido.",
+        "Cada minijuego tiene un botón de altavoz arriba, junto a la ×. Si ves el altavoz tachado, púlsalo para volver a activar el sonido.",
         "Comprueba también que el volumen del dispositivo está subido y que la pestaña no está silenciada.",
         "¿Ya se oye?"
       ],
       options: [
-        ["✅ Sí", "resuelto"],
-        ["❌ No", "bug"]
+        ["Sí", "resuelto"],
+        ["No", "bug"]
       ]
     },
     juego_record: {
@@ -587,8 +587,8 @@ const SUPPORT_CONFIG = {
         "Si inicias sesión, tus récords se guardan también en tu cuenta: los verás en tu perfil y en la clasificación de Minijuegos, desde cualquier dispositivo."
       ],
       options: [
-        ["👍 Entendido", "fin_pregunta"],
-        ["🐞 No era nada de eso", "bug"]
+        ["Entendido", "fin_pregunta"],
+        ["No era nada de eso", "bug"]
       ]
     },
 
@@ -601,17 +601,17 @@ const SUPPORT_CONFIG = {
           "• Qué navegador y dispositivo usas."
       ],
       options: [
-        ["✉️ Escribir al equipo", "@correo"],
+        ["Escribir al equipo", "@correo"],
         ["Tengo otro problema", "inicio"]
       ]
     },
     sugerencia: {
       msg: [
-        "¡Nos encanta recibir ideas! Puedes publicarla en la sección Comunidad con el botón «💡 Sugerir una idea».",
+        "¡Nos encanta recibir ideas! Puedes publicarla en la sección Comunidad con el botón «Sugerir una idea».",
         "Para publicar necesitas haber iniciado sesión."
       ],
       options: [
-        ["💡 Sugerir una idea ahora", "@sugerir"],
+        ["Sugerir una idea ahora", "@sugerir"],
         ["Tengo otro problema", "inicio"]
       ]
     },
@@ -631,7 +631,7 @@ const SUPPORT_CONFIG = {
       msg:
         "Envía un correo al equipo con la categoría «Cuenta», desde el mismo correo de tu cuenta y con el asunto «Borrar cuenta». El equipo la eliminará y te avisará.",
       options: [
-        ["✉️ Escribir al equipo", "@correo"],
+        ["Escribir al equipo", "@correo"],
         ["Tengo otro problema", "inicio"]
       ]
     },
@@ -641,7 +641,7 @@ const SUPPORT_CONFIG = {
       msg:
         "Te paso con el equipo. Rellena el formulario de correo contando tu problema y lo que ya has probado aquí, así te responderán más rápido.",
       options: [
-        ["✉️ Escribir al equipo", "@correo"],
+        ["Escribir al equipo", "@correo"],
         ["Tengo otro problema", "inicio"]
       ]
     },
@@ -733,7 +733,7 @@ const SUPPORT_CONFIG = {
     const list = options.slice();
 
     if (stepName !== "inicio" && stepName !== "despedida") {
-      list.push(["↩ Volver al menú", "inicio", true]);
+      list.push(["Volver al menú", "inicio", true]);
     }
 
     list.forEach(([label, destination, secondary]) => {
@@ -1072,7 +1072,7 @@ const SUPPORT_CONFIG = {
         : mailErrorText(status, error && error.data);
 
       showMailResult("error", "No se ha podido enviar", text, {
-        label: "✉️ Usar mi aplicación de correo",
+        label: "Usar mi aplicación de correo",
         onClick: () => openMailClient(data)
       });
     } finally {
