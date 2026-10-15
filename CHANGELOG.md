@@ -3,6 +3,13 @@
 Historia de la web de TronkStudios agrupada por versiones. Cada versión
 resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 
+## [v6.1] · Octubre de 2026 · Logo animado
+
+### Cambiado
+- El logo de la portada entra con un zoom, flota, su brillo azul late y le cruza
+  un reflejo de luz cada pocos segundos (sin animación con «reducir movimiento»).
+- The Sundered Sky aparece con la plataforma PC.
+
 ## [v6] · Octubre de 2026 · Portada, fichas, comunidad y diario
 
 ### Añadido
