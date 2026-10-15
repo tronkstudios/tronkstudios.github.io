@@ -104,7 +104,57 @@ function addNewsEntries(rows) {
   renderNews();
 }
 
+/* =========================================================
+   OCULTAR / MOSTRAR EL DIARIO
+   Se recuerda en este navegador.
+   ========================================================= */
+
+const NEWS_HIDDEN_KEY = "tronk-news-hidden";
+
+function setNewsHidden(hidden) {
+  const body = document.getElementById("news-body");
+  const toggle = document.getElementById("news-toggle");
+
+  if (!body || !toggle) {
+    return;
+  }
+
+  body.hidden = hidden;
+  toggle.setAttribute("aria-expanded", String(!hidden));
+  toggle.querySelector("span").textContent = hidden ? "Mostrar diario" : "Ocultar diario";
+
+  try {
+    localStorage.setItem(NEWS_HIDDEN_KEY, hidden ? "1" : "0");
+  } catch {
+    // Sin localStorage no se recuerda, pero funciona igual
+  }
+}
+
+function initializeNewsToggle() {
+  const toggle = document.getElementById("news-toggle");
+
+  if (!toggle) {
+    return;
+  }
+
+  toggle.addEventListener("click", () => {
+    setNewsHidden(toggle.getAttribute("aria-expanded") === "true");
+  });
+
+  let hidden = false;
+
+  try {
+    hidden = localStorage.getItem(NEWS_HIDDEN_KEY) === "1";
+  } catch {
+    hidden = false;
+  }
+
+  setNewsHidden(hidden);
+}
+
 function initializeNews() {
+  initializeNewsToggle();
+
   const moreButton = document.getElementById("news-more");
   const filters = document.querySelectorAll(".news-filter");
 
