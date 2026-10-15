@@ -578,22 +578,26 @@ function renderProfile(content, data) {
       return;
     }
 
-    const earned = badge.test(data);
-
-    // En perfiles ajenos solo se ven las conseguidas
-    if (!earned && !isMine) {
+    // Solo se ven las insignias conseguidas
+    if (!badge.test(data)) {
       return;
     }
 
-    const item = makeElement("li", earned ? "badge" : "badge badge-locked");
-    item.title = earned ? badge.how : `Cómo conseguirla: ${badge.how}`;
-    item.appendChild(makeIcon(earned ? badge.icon : "lock", "icon badge-icon"));
+    const item = makeElement("li", "badge");
+    item.title = badge.how;
+    item.appendChild(makeIcon(badge.icon, "icon badge-icon"));
     item.appendChild(makeElement("span", "badge-name", badge.name));
     badges.appendChild(item);
   });
 
   if (!badges.children.length) {
-    badges.appendChild(makeElement("li", "profile-empty", "Todavía no tiene insignias."));
+    badges.appendChild(
+      makeElement(
+        "li",
+        "profile-empty",
+        isMine ? "Todavía no tienes insignias." : "Todavía no tiene insignias."
+      )
+    );
   }
 
   content.appendChild(badges);
@@ -874,6 +878,34 @@ function updateLeaderboardHint() {
 }
 
 /* =========================================================
+   FECHAS DE LANZAMIENTO
+   La tabla game_releases es la fecha oficial (el equipo la cambia
+   desde su panel). Si existe, manda sobre la de js/projects.js.
+   ========================================================= */
+
+async function loadReleaseDates() {
+  if (!platformAvailable) {
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from("game_releases")
+    .select("project_id, release_date");
+
+  if (error || !data) {
+    return;
+  }
+
+  data.forEach((row) => {
+    if (PROJECTS[row.project_id]) {
+      PROJECTS[row.project_id].release = row.release_date
+        ? row.release_date.split("-").map(Number)
+        : null;
+    }
+  });
+}
+
+/* =========================================================
    AVISO DE LANZAMIENTO DENTRO DE LA WEB
    Si pediste «Avísame cuando salga» y el juego ya ha salido
    (fecha de js/projects.js), al entrar sale un aviso arriba.
@@ -1021,6 +1053,8 @@ async function initializePlatform() {
   if (!platformAvailable) {
     return;
   }
+
+  await loadReleaseDates();
 
   // Los nombres de las sugerencias pasan a abrir perfiles
   if (typeof renderSuggestions === "function" && allSuggestions.length) {

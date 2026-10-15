@@ -3626,13 +3626,6 @@ button.project-thumb:hover {
   font-weight: 800;
 }
 
-.badge-locked {
-  border-color: var(--border);
-  background: var(--surface-2);
-  color: var(--muted);
-  opacity: 0.75;
-}
-
 .profile-empty {
   color: var(--muted);
   font-size: 0.9rem;
@@ -4029,10 +4022,6 @@ button.project-thumb:hover {
 
 .badge .badge-icon {
   color: var(--accent);
-}
-
-.badge-locked .badge-icon {
-  color: var(--muted);
 }
 
 .profile-wish-notify {
@@ -4494,4 +4483,245 @@ button.project-thumb:hover {
   .poll-option.show-results::before {
     transition: none;
   }
+}
+
+/* =========================================================
+   CÓMO LO HICIMOS: línea temporal paso a paso (js/journey.js)
+   ========================================================= */
+
+.journey {
+  position: relative;
+  display: grid;
+  gap: 1rem;
+  margin: 1rem 0 0;
+  padding: 0 0 0 3.25rem;
+  list-style: none;
+}
+
+/* La raya vertical que une los pasos */
+.journey::before {
+  content: "";
+  position: absolute;
+  top: 0.5rem;
+  bottom: 0.5rem;
+  left: 1.2rem;
+  width: 3px;
+  border-radius: 3px;
+  background: linear-gradient(var(--brand-blue), var(--brand-cyan));
+  opacity: 0.5;
+}
+
+.journey-step {
+  position: relative;
+}
+
+.journey-step[hidden] {
+  display: none;
+}
+
+.journey-dot {
+  position: absolute;
+  top: 0.9rem;
+  left: -3.25rem;
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border: 3px solid var(--bg);
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand-blue), var(--brand-cyan));
+  color: #fff;
+  font-size: 1.05rem;
+}
+
+.journey-card {
+  padding: 1rem 1.2rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.journey-step.is-current .journey-card {
+  border-color: var(--accent);
+}
+
+.journey-card time {
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.journey-card h4 {
+  margin: 0.25rem 0 0.4rem;
+  font-size: 1.15rem;
+}
+
+.journey-card p {
+  margin: 0;
+  line-height: 1.65;
+}
+
+.journey-case {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 0.75rem;
+  margin: 0.8rem 0 0;
+  padding: 0.75rem 0.9rem;
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.journey-case dt {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.journey-case dd {
+  margin: 0;
+}
+
+/* Animación al aparecer un paso nuevo */
+.journey-step.is-new {
+  animation: journey-in 0.45s ease both;
+}
+
+@keyframes journey-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.journey-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.journey-controls[hidden] {
+  display: none;
+}
+
+.journey-arrow {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 1.1rem;
+}
+
+.journey-arrow:not(:disabled):hover {
+  border-color: var(--accent);
+}
+
+.journey-arrow:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.journey-progress {
+  min-width: 3.5rem;
+  color: var(--muted);
+  font-weight: 800;
+  text-align: center;
+}
+
+.journey-next {
+  min-height: 44px;
+}
+
+@media (max-width: 480px) {
+  .journey {
+    padding-left: 2.75rem;
+  }
+
+  .journey::before {
+    left: 0.95rem;
+  }
+
+  .journey-dot {
+    left: -2.75rem;
+    width: 2.2rem;
+    height: 2.2rem;
+    font-size: 0.9rem;
+  }
+
+  .journey-case {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .journey-step.is-new {
+    animation: none;
+  }
+}
+
+/* ---------- Diario: ocultar / mostrar ---------- */
+
+.news-toggle {
+  margin-bottom: 0;
+}
+
+.news-toggle .icon {
+  transform: rotate(-90deg);
+  transition: transform 0.2s ease;
+}
+
+.news-toggle[aria-expanded="false"] .icon {
+  transform: rotate(90deg);
+}
+
+.news-body[hidden] {
+  display: none;
+}
+
+/* ---------- Panel: fechas de lanzamiento ---------- */
+
+.team-release-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.team-release-row input[type="date"] {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.team-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 700;
+}
+
+.modal-box .team-check {
+  display: inline-flex;
+  flex-direction: row;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.modal-box .team-check input {
+  width: auto;
+  margin: 0;
 }
