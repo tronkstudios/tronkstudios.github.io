@@ -148,3 +148,39 @@ function initializeHeroParticles() {
   resize();
   start();
 }
+
+/* =========================================================
+   CIFRAS DE LA PORTADA
+   Se cuentan las tarjetas que hay de verdad en la página, así
+   el número cambia solo al añadir o quitar un juego:
+   - juegos creados: tarjetas de «Nuestros Juegos» (#juegos)
+   - juegos en desarrollo: tarjetas de «Juegos en desarrollo»
+   ========================================================= */
+
+function initializeHeroCounts() {
+  const counts = {
+    created: {
+      total: document.querySelectorAll("#juegos .card").length,
+      one: "juego creado",
+      many: "juegos creados"
+    },
+    development: {
+      total: document.querySelectorAll("#desarrollo .dev-card[data-project]").length,
+      one: "juego en desarrollo",
+      many: "juegos en desarrollo"
+    }
+  };
+
+  Object.entries(counts).forEach(([key, { total, one, many }]) => {
+    const number = document.querySelector(`[data-count="${key}"]`);
+    const label = document.querySelector(`[data-count-label="${key}"]`);
+
+    if (number) {
+      number.textContent = String(total);
+    }
+
+    if (label) {
+      label.textContent = total === 1 ? one : many;
+    }
+  });
+}
