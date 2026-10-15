@@ -56,6 +56,12 @@ function initializeHeroParticles() {
       r: 1 + Math.random() * 1.8
     }));
 
+    // Velocidad «tranquila» a la que vuelven después de un empujón
+    particles.forEach((p) => {
+      p.bx = p.vx;
+      p.by = p.vy;
+    });
+
     draw();
   }
 
@@ -89,6 +95,8 @@ function initializeHeroParticles() {
 
   function step() {
     particles.forEach((p) => {
+      p.vx += (p.bx - p.vx) * 0.03;
+      p.vy += (p.by - p.vy) * 0.03;
       p.x += p.vx;
       p.y += p.vy;
 
@@ -145,8 +153,105 @@ function initializeHeroParticles() {
     }).observe(hero);
   }
 
+  /* Empuja hacia fuera las partículas cercanas a un punto (el logo) */
+  pushHeroParticles = (clientX, clientY) => {
+    if (reduceMotion) {
+      return;
+    }
+
+    const rect = hero.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+
+    particles.forEach((p) => {
+      const dx = p.x - x;
+      const dy = p.y - y;
+      const distance = Math.hypot(dx, dy) || 1;
+
+      if (distance < 420) {
+        const force = (1 - distance / 420) * 7;
+        p.vx += (dx / distance) * force;
+        p.vy += (dy / distance) * force;
+      }
+    });
+  };
+
   resize();
   start();
+}
+
+// La define initializeHeroParticles; la usa el logo al pulsarlo
+let pushHeroParticles = () => {};
+
+/* =========================================================
+   LOGO QUE REACCIONA AL PULSARLO
+   ========================================================= */
+
+const HERO_LOGO_MOVES = ["spin", "jump", "wobble"];
+
+function initializeHeroLogo() {
+  const logo = document.querySelector(".hero-logo-react");
+  const motion = logo?.querySelector(".hero-logo-motion");
+
+  if (!logo || !motion) {
+    return;
+  }
+
+  const reduceMotion =
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function sparks(x, y) {
+    const count = reduceMotion ? 0 : 14;
+
+    for (let i = 0; i < count; i += 1) {
+      const spark = document.createElement("span");
+      const angle = (Math.PI * 2 * i) / count + Math.random() * 0.4;
+      const distance = 60 + Math.random() * 70;
+
+      spark.className = "logo-spark";
+      spark.style.left = `${x}px`;
+      spark.style.top = `${y}px`;
+      spark.style.setProperty("--dx", `${Math.cos(angle) * distance}px`);
+      spark.style.setProperty("--dy", `${Math.sin(angle) * distance}px`);
+      spark.style.setProperty("--size", `${4 + Math.random() * 6}px`);
+      spark.addEventListener("animationend", () => spark.remove());
+      logo.appendChild(spark);
+    }
+  }
+
+  function react(clientX, clientY) {
+    const rect = logo.getBoundingClientRect();
+    const x = clientX ?? rect.left + rect.width / 2;
+    const y = clientY ?? rect.top + rect.height / 2;
+
+    // Animación al azar (se reinicia si se pulsa durante otra)
+    HERO_LOGO_MOVES.forEach((move) => motion.classList.remove(`is-${move}`));
+    void motion.offsetWidth;
+    motion.classList.add(
+      `is-${HERO_LOGO_MOVES[Math.floor(Math.random() * HERO_LOGO_MOVES.length)]}`
+    );
+
+    sparks(x - rect.left, y - rect.top);
+    pushHeroParticles(rect.left + rect.width / 2, rect.top + rect.height / 2);
+  }
+
+  logo.addEventListener("click", (event) => {
+    // Con el teclado no hay posición del ratón: sale del centro
+    react(event.detail ? event.clientX : undefined, event.detail ? event.clientY : undefined);
+  });
+
+  logo.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      react();
+    }
+  });
+
+  motion.addEventListener("animationend", (event) => {
+    if (event.target === motion) {
+      HERO_LOGO_MOVES.forEach((move) => motion.classList.remove(`is-${move}`));
+    }
+  });
 }
 
 /* =========================================================

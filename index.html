@@ -97,7 +97,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="css/styles.css?v=36" />
+  <link rel="stylesheet" href="css/styles.css?v=38" />
   <link rel="stylesheet" href="css/tronk-fight.css?v=3" />
 
 
@@ -117,17 +117,17 @@
   <script src="js/suggestions.js?v=23" defer></script>
   <script src="js/projects.js?v=27" defer></script>
   <script src="js/profiles.js?v=5" defer></script>
-  <script src="js/community.js?v=2" defer></script>
-  <script src="js/team.js?v=3" defer></script>
+  <script src="js/community.js?v=3" defer></script>
+  <script src="js/team.js?v=4" defer></script>
   <script src="js/news.js?v=3" defer></script>
   <script src="js/journey.js?v=1" defer></script>
-  <script src="js/hero.js?v=3" defer></script>
+  <script src="js/hero.js?v=5" defer></script>
   <script src="js/games/audio.js?v=20" defer></script>
   <script src="js/games/antitronks.js?v=20" defer></script>
   <script src="js/games/protect-mogos.js?v=20" defer></script>
   <script src="js/games/stick-drill.js?v=20" defer></script>
   <script src="js/games/tronk-fight.js?v=4" defer></script>
-  <script src="js/app.js?v=24" defer></script>
+  <script src="js/app.js?v=25" defer></script>
 
   <!-- Sistema de soporte (chat con Tronker + formulario de correo) -->
   <script src="js/support.js?v=9" defer></script>
@@ -373,16 +373,29 @@
           </ul>
         </div>
 
-        <!-- Logo animado: flota, brilla y le cruza un reflejo de luz -->
-        <div class="hero-logo">
-          <img
-            class="hero-image"
-            src="tronkstudios-preview.jpg"
-            alt="Logo de TronkStudios: Videojuegos y determinación"
-            width="1200"
-            height="1200"
-            fetchpriority="high"
-          />
+        <!--
+          Logo animado: flota, brilla y le cruza un reflejo de luz.
+          Al pulsarlo reacciona (js/hero.js): gira, salta o tiembla,
+          suelta chispas y empuja las partículas.
+        -->
+        <div
+          class="hero-logo-react"
+          role="button"
+          tabindex="0"
+          aria-label="Logo de TronkStudios"
+        >
+          <div class="hero-logo-motion">
+            <div class="hero-logo">
+              <img
+                class="hero-image"
+                src="tronkstudios-preview.jpg"
+                alt=""
+                width="1200"
+                height="1200"
+                fetchpriority="high"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1994,6 +2007,7 @@
         <button class="team-tab" type="button" data-tab="news" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-megaphone"></use></svg> Diario</button>
         <button class="team-tab" type="button" data-tab="scores" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-trophy"></use></svg> Récords</button>
         <button class="team-tab" type="button" data-tab="releases" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg> Lanzamientos</button>
+        <button class="team-tab" type="button" data-tab="notices" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-megaphone"></use></svg> Avisos</button>
       </div>
 
       <p id="team-message" class="auth-message" aria-live="polite"></p>
