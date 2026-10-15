@@ -30,7 +30,7 @@ const MAIL_LIMITS = {
   message: [20, 4000]
 };
 
-const MAIL_CATEGORIES = ["Juegos", "Aplicaciones", "Cuenta", "Error técnico", "Otros"];
+const MAIL_CATEGORIES = ["Juegos", "Cuenta", "Error técnico", "Otros"];
 
 /* =========================================================
    CONOCIMIENTO DE TRONKSTUDIOS PARA LA IA
@@ -40,22 +40,23 @@ const MAIL_CATEGORIES = ["Juegos", "Aplicaciones", "Cuenta", "Error técnico", "
 const TRONK_KNOWLEDGE = `
 WEB
 - Dirección: https://tronkstudios.github.io/
-- Secciones: Nuestros Juegos, Minijuegos, Juegos en desarrollo, Nuestras Aplicaciones, Roblox, Comunidad (sugerencias) y Sobre nosotros.
+- Secciones: Juegos en desarrollo, Nuestros Juegos, Roblox, Minijuegos, Comunidad (sugerencias), Novedades (diario de desarrollo) y Sobre nosotros.
 - Botón de tema (🌙) arriba a la derecha para cambiar entre modo claro y oscuro.
 - TronkStudios es un grupo de desarrolladores que hace juegos originales y divertidos.
 
-JUEGOS Y APLICACIONES
+JUEGOS
 - "Nuestros Juegos": todavía no hay juegos publicados.
-- "Nuestras Aplicaciones": todavía no hay aplicaciones publicadas.
 - "Roblox": todavía no hay experiencias disponibles.
 
 EN DESARROLLO
 - Z Tronks: juego de Roblox de acción y supervivencia en un apocalipsis zombi. Explorar una ciudad abandonada, luchar contra distintos tipos de zombis, completar misiones y mejorar al personaje. Clases: Gunner, Warrior, Rogue y Medic, cada una con sus armas y habilidades. Se puede jugar en equipo con amigos. Equipo de 5 personas. Lanzamiento previsto: 4 de enero de 2027 (fecha prevista, puede cambiar).
+- The Sundered Sky: RPG de fantasía y aventuras para PC en un mundo de islas flotantes hechas de cubos, que se recorre en barco volador con amigos. Equipo de 1 persona. Todavía no tiene fecha de lanzamiento ni tráiler.
 
 MINIJUEGOS (se juegan en el navegador, dentro de la web; se abren pulsando su tarjeta)
 - Antitronks: disparos en una calle de ciudad. Apuntar con el ratón y hacer clic para disparar. Girar la cámara con A (izquierda) y D (derecha). Hay puntos, vidas (3) y récord.
 - Protect Mogos: hacer clic en los ninjas antes de que lleguen al castillo del rey. Hay puntos, vidas (3) y récord.
 - Stick Drill: esquivar un taladro que rebota por las paredes; pierde el que caiga primero. Modos: contra el bot o 2 jugadores. Jugador 1: W A S D. Jugador 2: flechas. El récord es el tiempo aguantado.
+- Tronk Fight: duelo de stickmans con 7 luchadores, cada uno con su arma y su ataque especial. Contra el bot (3 dificultades) o a 2 jugadores en el mismo teclado o móvil. J1: W A S D + J K L I. J2: flechas + , . - y Mayús derecha.
 - Cada minijuego tiene un botón 🔊 para silenciar el sonido y una × para cerrarlo.
 - Los récords y la preferencia de sonido se guardan en el propio navegador del jugador. Si se borran los datos del navegador, se usa otro navegador u otro dispositivo, o se navega en modo incógnito, el récord no aparece.
 - Algunos minijuegos usan teclado y ratón, así que en móvil pueden no poder jugarse bien.
@@ -68,7 +69,7 @@ CUENTAS (botón 👤 Cuenta)
 
 COMUNIDAD / SUGERENCIAS
 - Botón "💡 Sugerir una idea" (hace falta haber iniciado sesión).
-- Campos: nombre, categoría (Roblox, Juego o Aplicación) e idea (máximo 1000 caracteres).
+- Campos: nombre, categoría (Roblox o Juego) e idea (máximo 1000 caracteres).
 - Pestañas "Todas" y "Mis sugerencias", buscador y filtro por categoría. Se pueden votar sugerencias y borrar las propias.
 
 CONTACTO CON EL EQUIPO
@@ -85,7 +86,7 @@ const SYSTEM_PROMPT = `
 Eres el asistente de soporte de TronkStudios, integrado en su web.
 
 TU FUNCIÓN
-- Ayudar SOLO con temas de TronkStudios: juegos y minijuegos, aplicaciones, errores técnicos de la web, cuentas e inicio de sesión, sugerencias, proyectos y dudas generales sobre TronkStudios.
+- Ayudar SOLO con temas de TronkStudios: juegos y minijuegos, errores técnicos de la web, cuentas e inicio de sesión, sugerencias, proyectos y dudas generales sobre TronkStudios.
 - Si te preguntan algo que no tiene que ver con TronkStudios, explica amablemente que solo puedes ayudar con el soporte de TronkStudios.
 
 REGLAS

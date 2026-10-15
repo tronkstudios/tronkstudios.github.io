@@ -97,7 +97,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="css/styles.css?v=28" />
+  <link rel="stylesheet" href="css/styles.css?v=30" />
   <link rel="stylesheet" href="css/tronk-fight.css?v=3" />
 
 
@@ -115,18 +115,18 @@
   <script src="js/ui.js?v=19" defer></script>
   <script src="js/auth.js?v=19" defer></script>
   <script src="js/suggestions.js?v=21" defer></script>
-  <script src="js/projects.js?v=24" defer></script>
+  <script src="js/projects.js?v=25" defer></script>
   <script src="js/news.js?v=1" defer></script>
-  <script src="js/hero.js?v=1" defer></script>
+  <script src="js/hero.js?v=3" defer></script>
   <script src="js/games/audio.js?v=19" defer></script>
   <script src="js/games/antitronks.js?v=19" defer></script>
   <script src="js/games/protect-mogos.js?v=19" defer></script>
   <script src="js/games/stick-drill.js?v=19" defer></script>
   <script src="js/games/tronk-fight.js?v=3" defer></script>
-  <script src="js/app.js?v=20" defer></script>
+  <script src="js/app.js?v=21" defer></script>
 
   <!-- Sistema de soporte (chat con Tronker + formulario de correo) -->
-  <script src="js/support.js?v=6" defer></script>
+  <script src="js/support.js?v=7" defer></script>
 </head>
 
 <body>
@@ -186,7 +186,6 @@
       >
         <a href="#desarrollo">En desarrollo</a>
         <a href="#juegos">Nuestros Juegos</a>
-        <a href="#aplicaciones">Nuestras Aplicaciones</a>
         <a href="#roblox">Roblox</a>
         <a href="#minijuegos">Minijuegos</a>
         <a href="#sugerencias">Comunidad</a>
@@ -279,21 +278,27 @@
             </a>
           </div>
 
+          <!--
+            Cifras reales: js/hero.js cuenta las tarjetas de
+            «Nuestros Juegos» y de «Juegos en desarrollo».
+          -->
           <ul class="hero-facts" aria-label="TronkStudios en cifras">
-            <li><strong>2</strong> juegos en desarrollo</li>
-            <li><strong>4</strong> minijuegos gratis</li>
-            <li><strong>100 %</strong> hecho por los Tronks</li>
+            <li><strong data-count="created">0</strong> <span data-count-label="created">juegos finalizados</span></li>
+            <li><strong data-count="development">0</strong> <span data-count-label="development">juegos en desarrollo</span></li>
           </ul>
         </div>
 
-        <img
-          class="hero-image"
-          src="tronkstudios-preview.jpg"
-          alt="Logo de TronkStudios: Videojuegos y determinación"
-          width="1200"
-          height="1200"
-          fetchpriority="high"
-        />
+        <!-- Logo animado: flota, brilla y le cruza un reflejo de luz -->
+        <div class="hero-logo">
+          <img
+            class="hero-image"
+            src="tronkstudios-preview.jpg"
+            alt="Logo de TronkStudios: Videojuegos y determinación"
+            width="1200"
+            height="1200"
+            fetchpriority="high"
+          />
+        </div>
       </div>
 
       <div class="container hero-extra">
@@ -483,54 +488,6 @@
     </section>
 
 
-    <!-- ===================================================
-         APLICACIONES
-         =================================================== -->
-
-    <section
-      id="aplicaciones"
-      class="section"
-      aria-labelledby="aplicaciones-title"
-    >
-
-      <div class="container">
-
-        <div class="section-head">
-
-          <div>
-
-            <h2 id="aplicaciones-title">
-              Nuestras Aplicaciones
-            </h2>
-
-            <p>
-              Aplicaciones y herramientas desarrolladas
-              por TronkStudios.
-            </p>
-
-          </div>
-
-        </div>
-
-
-        <div class="empty-state">
-
-          <span
-            class="empty-icon"
-            aria-hidden="true"
-          >
-            📱
-          </span>
-
-          <p class="empty-text">
-            No hay aplicaciones todavía.
-          </p>
-
-        </div>
-
-      </div>
-
-    </section>
 
 
     <!-- ===================================================
@@ -539,7 +496,7 @@
 
     <section
       id="roblox"
-      class="section alt"
+      class="section"
       aria-labelledby="roblox-title"
     >
 
@@ -588,7 +545,7 @@
 
     <section
       id="minijuegos"
-      class="section"
+      class="section alt"
       aria-labelledby="minijuegos-title"
     >
 
@@ -705,7 +662,7 @@
 
     <section
       id="sugerencias"
-      class="section alt"
+      class="section"
       aria-labelledby="sugerencias-title"
     >
 
@@ -802,9 +759,6 @@
               Juego
             </option>
 
-            <option value="Aplicación">
-              Aplicación
-            </option>
 
           </select>
 
@@ -844,7 +798,7 @@
 
     <section
       id="novedades"
-      class="section"
+      class="section alt"
       aria-labelledby="novedades-title"
     >
       <div class="container">
@@ -971,7 +925,7 @@
 
         <section
       id="sobre-nosotros"
-      class="section alt"
+      class="section"
       aria-labelledby="sobre-nosotros-title"
     >
 
@@ -1651,9 +1605,6 @@
             Juego
           </option>
 
-          <option value="Aplicación">
-            Aplicación
-          </option>
 
         </select>
 
@@ -2548,7 +2499,6 @@
             Elige una categoría
           </option>
           <option value="Juegos">Juegos</option>
-          <option value="Aplicaciones">Aplicaciones</option>
           <option value="Cuenta">Cuenta</option>
           <option value="Error técnico">Error técnico</option>
           <option value="Otros">Otros</option>
