@@ -56,10 +56,18 @@ function closeModal(modal) {
     !projectModal ||
     projectModal.classList.contains("hidden");
 
+  const profileModal =
+    document.getElementById("profile-modal");
+
+  const profileClosed =
+    !profileModal ||
+    profileModal.classList.contains("hidden");
+
   if (
     accountClosed &&
     suggestionsClosed &&
-    projectClosed
+    projectClosed &&
+    profileClosed
   ) {
     document.body.classList.remove(
       "modal-open"

@@ -109,6 +109,16 @@ document.addEventListener(
     ) {
       closeModal(projectModal);
     }
+
+    const profileModal =
+      document.getElementById("profile-modal");
+
+    if (
+      profileModal &&
+      !profileModal.classList.contains("hidden")
+    ) {
+      closeModal(profileModal);
+    }
   }
 );
 
@@ -123,6 +133,8 @@ initializeHeroCounts();
 initializeProjects();
 
 initializeNews();
+
+initializePlatform();
 
 initializeCardImageFallbacks();
 
