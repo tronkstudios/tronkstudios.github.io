@@ -629,7 +629,8 @@ async function sendAutoReply(env, fields) {
 
    Necesita:
    - SUPABASE_URL (variable en wrangler.toml)
-   - SUPABASE_SERVICE_ROLE_KEY (secreto: npx wrangler secret put ...)
+   - SUPABASE_SERVICE_ROLE_KEY (secreto: npx wrangler secret put ...):
+     la clave secreta de Supabase, sb_secret_... o la antigua service_role
    - RESEND_API_KEY y un MAIL_FROM con dominio verificado en Resend
      (con onboarding@resend.dev solo llega al dueño de la cuenta).
 
@@ -642,14 +643,22 @@ function isLaunchMailConfigured(env) {
 }
 
 async function supabaseRequest(env, path, options = {}) {
+  const key = String(env.SUPABASE_SERVICE_ROLE_KEY);
+  const headers = {
+    apikey: key,
+    "content-type": "application/json",
+    ...(options.headers || {})
+  };
+
+  // Clave antigua (service_role, empieza por "eyJ"): también va en
+  // Authorization. La nueva (sb_secret_...) va solo en apikey.
+  if (key.startsWith("eyJ")) {
+    headers.authorization = `Bearer ${key}`;
+  }
+
   return fetch(`${String(env.SUPABASE_URL).replace(/\/$/, "")}${path}`, {
     ...options,
-    headers: {
-      apikey: env.SUPABASE_SERVICE_ROLE_KEY,
-      authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
-      "content-type": "application/json",
-      ...(options.headers || {})
-    }
+    headers
   });
 }
 
