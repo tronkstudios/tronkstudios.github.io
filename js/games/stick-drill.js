@@ -733,6 +733,11 @@ function initializeStickDrillGame() {
       saveRecord(record);
     }
 
+    if (best > 0) {
+      // Si hay sesión iniciada, se guarda en la cuenta (js/profiles.js)
+      window.TronkScores?.submit("stick-drill", best);
+    }
+
     const [p1, p2] = players;
     let title;
 

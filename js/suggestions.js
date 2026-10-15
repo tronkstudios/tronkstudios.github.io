@@ -356,13 +356,21 @@ function createSuggestionCard(
   header.className =
     "suggestion-header";
 
+  // Con cuenta, el nombre es un botón que abre su perfil (js/profiles.js)
   const author =
     document.createElement(
-      "strong"
+      suggestion.user_id && platformAvailable ? "button" : "strong"
     );
 
   author.className =
     "suggestion-author";
+
+  if (author.tagName === "BUTTON") {
+    author.type = "button";
+    author.classList.add("profile-link");
+    author.title = "Ver perfil";
+    author.addEventListener("click", () => openProfile(suggestion.user_id));
+  }
 
   author.textContent =
     suggestion.name ||

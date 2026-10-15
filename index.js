@@ -622,10 +622,122 @@ async function sendAutoReply(env, fields) {
 }
 
 /* =========================================================
+   AVISOS DE LANZAMIENTO (una vez al día, ver [triggers] en wrangler.toml)
+   Busca en Supabase a quien pidió «Avísame cuando salga» de un
+   juego que ya ha salido (tabla game_releases), le envía un correo
+   con Resend y lo marca como avisado para no repetirlo.
+
+   Necesita:
+   - SUPABASE_URL (variable en wrangler.toml)
+   - SUPABASE_SERVICE_ROLE_KEY (secreto: npx wrangler secret put ...)
+   - RESEND_API_KEY y un MAIL_FROM con dominio verificado en Resend
+     (con onboarding@resend.dev solo llega al dueño de la cuenta).
+
+   El texto es fijo: solo incluye el título del juego, que viene de
+   nuestra tabla game_releases, nunca texto escrito por usuarios.
+   ========================================================= */
+
+function isLaunchMailConfigured(env) {
+  return Boolean(env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY && env.RESEND_API_KEY && env.MAIL_FROM);
+}
+
+async function supabaseRequest(env, path, options = {}) {
+  return fetch(`${String(env.SUPABASE_URL).replace(/\/$/, "")}${path}`, {
+    ...options,
+    headers: {
+      apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+      authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+      "content-type": "application/json",
+      ...(options.headers || {})
+    }
+  });
+}
+
+async function sendLaunchNotifications(env) {
+  if (!isLaunchMailConfigured(env)) {
+    console.log("launch: avisos desactivados (falta configuración)");
+    return;
+  }
+
+  const response = await supabaseRequest(env, "/rest/v1/rpc/due_launch_notifications", {
+    method: "POST",
+    body: "{}"
+  });
+
+  if (!response.ok) {
+    console.error("launch: Supabase respondió", response.status);
+    return;
+  }
+
+  const pending = await response.json();
+  let sent = 0;
+
+  for (const row of pending) {
+    if (!isValidEmail(String(row.email || ""))) {
+      continue;
+    }
+
+    const title = cleanSingleLine(row.title).slice(0, 80);
+    const text =
+      "¡Hola!\n\n" +
+      `Nos pediste que te avisáramos: ¡${title} ya está disponible!\n\n` +
+      "Tienes toda la información y cómo jugar en su ficha:\n" +
+      "https://tronkstudios.github.io/#desarrollo\n\n" +
+      "Gracias por apoyarnos desde el principio.\n\n" +
+      "Recibes este correo porque pulsaste «Avísame cuando salga» en la web. " +
+      "Solo te escribiremos una vez por juego.\n\n" +
+      "—\nTronkStudios · Videojuegos y determinación";
+
+    try {
+      const mail = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${env.RESEND_API_KEY}`
+        },
+        body: JSON.stringify({
+          from: env.MAIL_FROM,
+          to: [row.email],
+          subject: `¡${title} ya está disponible! · TronkStudios`,
+          text
+        })
+      });
+
+      if (!mail.ok) {
+        console.error("launch: Resend respondió", mail.status);
+        continue;
+      }
+    } catch (error) {
+      console.error("launch: no se pudo contactar con Resend", error && error.name);
+      continue;
+    }
+
+    const query =
+      `?user_id=eq.${encodeURIComponent(row.user_id)}` +
+      `&project_id=eq.${encodeURIComponent(row.project_id)}`;
+
+    await supabaseRequest(env, `/rest/v1/wishlist${query}`, {
+      method: "PATCH",
+      headers: { prefer: "return=minimal" },
+      body: JSON.stringify({ notified_at: new Date().toISOString() })
+    });
+
+    sent += 1;
+  }
+
+  console.log(`launch: ${sent} avisos enviados`);
+}
+
+/* =========================================================
    ENTRADA DEL WORKER
    ========================================================= */
 
 export default {
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(sendLaunchNotifications(env));
+  },
+
+
   async fetch(request, env) {
     const url = new URL(request.url);
     const origin = request.headers.get("Origin") || "";
@@ -644,6 +756,7 @@ export default {
             ok: true,
             chat: isChatConfigured(env),
             contact: isContactConfigured(env),
+            launchMail: isLaunchMailConfigured(env),
             turnstile: Boolean(env.TURNSTILE_SECRET)
           },
           200,

@@ -97,7 +97,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="css/styles.css?v=30" />
+  <link rel="stylesheet" href="css/styles.css?v=31" />
   <link rel="stylesheet" href="css/tronk-fight.css?v=3" />
 
 
@@ -112,21 +112,22 @@
   -->
   <script src="js/core.js?v=19" defer></script>
   <script src="js/theme.js?v=19" defer></script>
-  <script src="js/ui.js?v=19" defer></script>
-  <script src="js/auth.js?v=19" defer></script>
-  <script src="js/suggestions.js?v=21" defer></script>
-  <script src="js/projects.js?v=25" defer></script>
+  <script src="js/ui.js?v=20" defer></script>
+  <script src="js/auth.js?v=20" defer></script>
+  <script src="js/suggestions.js?v=22" defer></script>
+  <script src="js/projects.js?v=26" defer></script>
+  <script src="js/profiles.js?v=1" defer></script>
   <script src="js/news.js?v=1" defer></script>
   <script src="js/hero.js?v=3" defer></script>
   <script src="js/games/audio.js?v=19" defer></script>
-  <script src="js/games/antitronks.js?v=19" defer></script>
-  <script src="js/games/protect-mogos.js?v=19" defer></script>
-  <script src="js/games/stick-drill.js?v=19" defer></script>
-  <script src="js/games/tronk-fight.js?v=3" defer></script>
-  <script src="js/app.js?v=21" defer></script>
+  <script src="js/games/antitronks.js?v=20" defer></script>
+  <script src="js/games/protect-mogos.js?v=20" defer></script>
+  <script src="js/games/stick-drill.js?v=20" defer></script>
+  <script src="js/games/tronk-fight.js?v=4" defer></script>
+  <script src="js/app.js?v=22" defer></script>
 
   <!-- Sistema de soporte (chat con Tronker + formulario de correo) -->
-  <script src="js/support.js?v=7" defer></script>
+  <script src="js/support.js?v=8" defer></script>
 </head>
 
 <body>
@@ -651,6 +652,23 @@
 
         </div>
 
+        <!-- Clasificación (js/profiles.js) -->
+        <div class="leaderboard" data-platform hidden>
+          <div class="leaderboard-head">
+            <h3>🏆 Clasificación</h3>
+            <p id="leaderboard-hint" class="leaderboard-hint"></p>
+          </div>
+
+          <div class="leaderboard-tabs" role="group" aria-label="Elegir minijuego">
+            <button class="leaderboard-tab" type="button" data-game="antitronks" aria-pressed="true">Antitronks</button>
+            <button class="leaderboard-tab" type="button" data-game="protect-mogos" aria-pressed="false">Protect Mogos</button>
+            <button class="leaderboard-tab" type="button" data-game="stick-drill" aria-pressed="false">Stick Drill</button>
+            <button class="leaderboard-tab" type="button" data-game="tronk-fight" aria-pressed="false">Tronk Fight</button>
+          </div>
+
+          <ol id="leaderboard-list" class="leaderboard-list" aria-live="polite"></ol>
+        </div>
+
       </div>
 
     </section>
@@ -821,6 +839,15 @@
         </div>
 
         <div id="news-list" class="news-list">
+          <article class="news-entry" data-tag="announcement">
+            <div class="news-entry-meta">
+              <time datetime="2026-10-15">15 oct 2026</time>
+              <span class="news-tag news-tag-announcement">Anuncio</span>
+            </div>
+            <h3>Perfiles, lista de deseados y clasificación</h3>
+            <p>Con tu cuenta ya tienes perfil con avatar e insignias, puedes guardar juegos en tu lista de deseados, pedir que te avisemos cuando salgan y competir en la clasificación de los minijuegos.</p>
+          </article>
+
           <article class="news-entry" data-tag="update">
             <div class="news-entry-meta">
               <time datetime="2026-10-15">15 oct 2026</time>
@@ -1504,6 +1531,16 @@
 
 
         <button
+          id="my-profile-button"
+          class="primary-button full-button profile-open-button"
+          type="button"
+          data-platform
+          hidden
+        >
+          👤 Ver mi perfil
+        </button>
+
+        <button
           id="change-password-button"
           class="secondary-button full-button"
           type="button"
@@ -1697,6 +1734,20 @@
         <span id="project-modal-badge" class="project-badge">En desarrollo</span>
       </div>
 
+      <!-- Lista de deseados y avisos (js/profiles.js) -->
+      <div id="project-wishlist" class="project-wishlist" data-platform hidden>
+        <button id="wishlist-toggle" class="wish-button" type="button" aria-pressed="false">
+          🤍 Añadir a deseados
+        </button>
+        <button id="notify-toggle" class="wish-button" type="button" aria-pressed="false">
+          🔕 Avísame cuando salga
+        </button>
+        <p id="wishlist-count" class="wishlist-count" aria-live="polite"></p>
+      </div>
+
+      <!-- Botones de tienda: salen solo si el juego tiene «stores» -->
+      <div id="project-stores" class="project-stores" hidden></div>
+
       <div class="project-stats">
         <div class="project-stat">
           <span class="project-stat-label">🎭 Género</span>
@@ -1734,6 +1785,37 @@
 
     </div>
 
+  </div>
+
+
+  <!-- =====================================================
+       PERFIL (se rellena desde js/profiles.js)
+       ===================================================== -->
+
+  <div
+    id="profile-modal"
+    class="modal hidden"
+    aria-hidden="true"
+  >
+    <div class="modal-backdrop"></div>
+
+    <div
+      class="modal-box profile-modal-box"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="profile-name"
+    >
+      <button
+        class="modal-close"
+        data-close-modal="profile-modal"
+        type="button"
+        aria-label="Cerrar"
+      >
+        ×
+      </button>
+
+      <div id="profile-content" class="profile-content"></div>
+    </div>
   </div>
 
   <!-- =====================================================
