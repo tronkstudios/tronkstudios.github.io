@@ -11,11 +11,33 @@
    DATOS
    ========================================================= */
 
-// Avatares para elegir en el perfil
+// Avatares dibujados para elegir en el perfil (img/avatars/<id>.svg)
 const PROFILE_AVATARS = [
-  "🎮", "🕹️", "👾", "🧟", "⚔️", "🛡️", "🐉", "🚀",
-  "🔥", "⚡", "🌟", "🦊", "🐺", "🤖", "👑", "🎯"
+  { id: "tronk", name: "Tronk" },
+  { id: "robot", name: "Robot" },
+  { id: "zombie", name: "Zombi" },
+  { id: "ninja", name: "Ninja" },
+  { id: "knight", name: "Caballero" },
+  { id: "wizard", name: "Mago" },
+  { id: "astronaut", name: "Astronauta" },
+  { id: "alien", name: "Alien" },
+  { id: "fox", name: "Zorro" },
+  { id: "ghost", name: "Fantasma" },
+  { id: "pirate", name: "Pirata" },
+  { id: "slime", name: "Slime" }
 ];
+
+/* Imagen del avatar. Si el valor no es uno de la lista, sale el de Tronk. */
+function avatarImage(id, className = "avatar-img") {
+  const known = PROFILE_AVATARS.some((avatar) => avatar.id === id);
+  const img = document.createElement("img");
+  img.className = className;
+  img.src = `img/avatars/${known ? id : "tronk"}.svg`;
+  img.alt = "";
+  img.width = 64;
+  img.height = 64;
+  return img;
+}
 
 // Minijuegos con récord en la cuenta. localKey = récord guardado
 // en el navegador por cada juego (para subirlo al iniciar sesión).
@@ -51,62 +73,62 @@ const FOUNDER_YEAR = 2026;
  */
 const BADGES = [
   {
-    icon: "🏅",
+    icon: "medal",
     name: "Fundador",
     how: `Crear la cuenta en ${FOUNDER_YEAR}`,
     test: (d) => new Date(d.profile.created_at).getFullYear() <= FOUNDER_YEAR
   },
   {
-    icon: "💡",
+    icon: "bulb",
     name: "Primera idea",
     how: "Proponer una idea en Comunidad",
     test: (d) => d.suggestions.length >= 1
   },
   {
-    icon: "🧠",
+    icon: "sparkles",
     name: "Mente creativa",
     how: "Proponer 5 ideas",
     test: (d) => d.suggestions.length >= 5
   },
   {
-    icon: "🔥",
+    icon: "flame",
     name: "Idea popular",
     how: "Que una de tus ideas llegue a 10 votos",
     test: (d) => d.suggestions.some((s) => (s.votes || 0) >= 10)
   },
   {
-    icon: "👍",
+    icon: "thumb",
     name: "Votante",
     how: "Votar una idea de la comunidad",
     forOthers: false,
     test: (d) => d.votes >= 1
   },
   {
-    icon: "❤️",
+    icon: "heart-fill",
     name: "Fan",
     how: "Añadir un juego a tu lista de deseados",
     test: (d) => d.wishlist.length >= 1
   },
   {
-    icon: "🔔",
+    icon: "bell",
     name: "Atento",
     how: "Pedir aviso del lanzamiento de un juego",
     test: (d) => d.wishlist.some((w) => w.notify)
   },
   {
-    icon: "🕹️",
+    icon: "gamepad",
     name: "Jugador",
     how: "Guardar un récord en un minijuego",
     test: (d) => Object.values(d.scores).some((score) => score > 0)
   },
   {
-    icon: "🏆",
+    icon: "trophy",
     name: "Todoterreno",
     how: "Tener récord en los 4 minijuegos",
     test: (d) => Object.keys(SCORE_GAMES).every((game) => d.scores[game] > 0)
   },
   {
-    icon: "🥊",
+    icon: "swords",
     name: "Luchador",
     how: "Ganar 10 combates de Tronk Fight al bot",
     test: (d) => (d.scores["tronk-fight"] || 0) >= 10
@@ -326,14 +348,20 @@ async function renderWishlistButtons(projectId) {
     project && Array.isArray(project.release) && daysUntil(project.release) <= 0;
 
   wishButton.setAttribute("aria-pressed", String(Boolean(entry)));
-  wishButton.textContent = entry ? "❤️ En tu lista de deseados" : "🤍 Añadir a deseados";
+  setIconText(
+    wishButton,
+    entry ? "heart-fill" : "heart",
+    entry ? "En tu lista de deseados" : "Añadir a deseados"
+  );
 
   // Si el juego ya ha salido, no tiene sentido pedir aviso
   notifyButton.hidden = released;
   notifyButton.setAttribute("aria-pressed", String(Boolean(entry?.notify)));
-  notifyButton.textContent = entry?.notify
-    ? "🔔 Te avisaremos cuando salga"
-    : "🔕 Avísame cuando salga";
+  setIconText(
+    notifyButton,
+    entry?.notify ? "bell" : "bell-off",
+    entry?.notify ? "Te avisaremos cuando salga" : "Avísame cuando salga"
+  );
 
   if (countText) {
     const { count, error } = await supabaseClient
@@ -496,7 +524,7 @@ function renderProfile(content, data) {
 
   /* ---------- Cabecera ---------- */
   const head = makeElement("div", "profile-head");
-  head.appendChild(makeElement("span", "profile-avatar", profile.avatar || "🎮"));
+  head.appendChild(avatarImage(profile.avatar, "profile-avatar"));
 
   const info = makeElement("div", "profile-info");
   const name = makeElement("h2", "profile-name", profile.display_name);
@@ -517,7 +545,8 @@ function renderProfile(content, data) {
   content.appendChild(head);
 
   if (isMine) {
-    const edit = makeElement("button", "secondary-button profile-edit-button", "✏️ Editar perfil");
+    const edit = makeElement("button", "secondary-button profile-edit-button");
+    setIconText(edit, "edit", "Editar perfil");
     edit.type = "button";
     edit.addEventListener("click", () => renderProfileForm(content, data));
     content.appendChild(edit);
@@ -558,7 +587,7 @@ function renderProfile(content, data) {
 
     const item = makeElement("li", earned ? "badge" : "badge badge-locked");
     item.title = earned ? badge.how : `Cómo conseguirla: ${badge.how}`;
-    item.appendChild(makeElement("span", "badge-icon", earned ? badge.icon : "🔒"));
+    item.appendChild(makeIcon(earned ? badge.icon : "lock", "icon badge-icon"));
     item.appendChild(makeElement("span", "badge-name", badge.name));
     badges.appendChild(item);
   });
@@ -592,7 +621,7 @@ function renderProfile(content, data) {
     button.append(img, makeElement("span", "", project.title));
 
     if (entry.notify) {
-      button.appendChild(makeElement("span", "profile-wish-notify", "🔔"));
+      button.appendChild(makeIcon("bell", "icon profile-wish-notify"));
     }
 
     button.addEventListener("click", () => {
@@ -650,15 +679,20 @@ function renderProfileForm(content, data) {
   const avatars = makeElement("div", "avatar-picker");
   avatars.setAttribute("role", "radiogroup");
   avatars.setAttribute("aria-label", "Avatar");
-  let chosen = profile.avatar || "🎮";
+  let chosen = PROFILE_AVATARS.some((avatar) => avatar.id === profile.avatar)
+    ? profile.avatar
+    : "tronk";
 
-  PROFILE_AVATARS.forEach((emoji) => {
-    const option = makeElement("button", "avatar-option", emoji);
+  PROFILE_AVATARS.forEach((avatar) => {
+    const option = makeElement("button", "avatar-option");
     option.type = "button";
+    option.title = avatar.name;
     option.setAttribute("role", "radio");
-    option.setAttribute("aria-checked", String(emoji === chosen));
+    option.setAttribute("aria-label", avatar.name);
+    option.setAttribute("aria-checked", String(avatar.id === chosen));
+    option.appendChild(avatarImage(avatar.id));
     option.addEventListener("click", () => {
-      chosen = emoji;
+      chosen = avatar.id;
       avatars.querySelectorAll(".avatar-option").forEach((item) => {
         item.setAttribute("aria-checked", String(item === option));
       });
@@ -788,7 +822,6 @@ async function loadLeaderboard(game) {
     return;
   }
 
-  const medals = ["🥇", "🥈", "🥉"];
 
   data.forEach((row, index) => {
     const item = makeElement("li", "leaderboard-row");
@@ -797,13 +830,23 @@ async function loadLeaderboard(game) {
       item.classList.add("is-me");
     }
 
-    item.appendChild(makeElement("span", "leaderboard-pos", medals[index] || String(index + 1)));
+    // Los tres primeros llevan copa de oro, plata y bronce
+    const position = makeElement("span", "leaderboard-pos");
+
+    if (index < 3) {
+      position.appendChild(makeIcon("trophy", `icon medal medal-${index + 1}`));
+      position.setAttribute("aria-label", `Puesto ${index + 1}`);
+    } else {
+      position.textContent = String(index + 1);
+    }
+
+    item.appendChild(position);
 
     const player = makeElement("button", "leaderboard-player profile-link");
     player.type = "button";
     player.title = "Ver perfil";
     player.append(
-      makeElement("span", "leaderboard-avatar", row.profiles?.avatar || "🎮"),
+      avatarImage(row.profiles?.avatar, "leaderboard-avatar"),
       makeElement("span", "", row.profiles?.display_name || "Tronker")
     );
     player.addEventListener("click", () => openProfile(row.user_id));
@@ -873,7 +916,8 @@ function showLaunchNotices() {
 
     const text = makeElement("p", "launch-notice-text");
     text.append(
-      makeElement("strong", "", `🎉 ¡${project.title} ya ha salido!`),
+      makeIcon("sparkles", "icon launch-notice-icon"),
+      makeElement("strong", "", ` ¡${project.title} ya ha salido!`),
       document.createTextNode(" Pediste que te avisáramos cuando saliera.")
     );
 
@@ -894,7 +938,8 @@ function showLaunchNotices() {
       openProjectModal(projectId);
     });
 
-    const close = makeElement("button", "launch-notice-close", "×");
+    const close = makeElement("button", "launch-notice-close");
+    close.appendChild(makeIcon("close"));
     close.type = "button";
     close.setAttribute("aria-label", "Cerrar aviso");
     close.addEventListener("click", dismiss);

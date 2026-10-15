@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Zombi">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4d7c0f"/>
+      <stop offset="1" stop-color="#1a2e05"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#bg)"/>
+
+  <path d="M16 30c0-11 7-18 16-18s16 7 16 18v8c0 9-7 15-16 15s-16-6-16-15z" fill="#86b049"/>
+  <path d="M16 28c2-9 8-15 16-16 6 0 11 3 14 8-5-2-8-1-11 2-4-3-11-3-19 6z" fill="#3f2a14"/>
+  <circle cx="25" cy="33" r="5" fill="#f8fafc"/>
+  <circle cx="25" cy="33" r="2" fill="#7f1d1d"/>
+  <circle cx="39" cy="34" r="3.5" fill="#f8fafc"/>
+  <circle cx="39.5" cy="34.5" r="1.5" fill="#7f1d1d"/>
+  <path d="M24 45c3-2 9-2 15 0" stroke="#1a2e05" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <path d="M28 44v3M33 44.5v3" stroke="#f8fafc" stroke-width="2" stroke-linecap="round"/>
+  <path d="M41 22l5 5M43 21l-1 4M45 24l-4 1" stroke="#1a2e05" stroke-width="1.6" stroke-linecap="round"/>
+</svg>

@@ -110,15 +110,13 @@ document.addEventListener(
       closeModal(projectModal);
     }
 
-    const profileModal =
-      document.getElementById("profile-modal");
+    ["profile-modal", "team-modal"].forEach((id) => {
+      const modal = document.getElementById(id);
 
-    if (
-      profileModal &&
-      !profileModal.classList.contains("hidden")
-    ) {
-      closeModal(profileModal);
-    }
+      if (modal && !modal.classList.contains("hidden")) {
+        closeModal(modal);
+      }
+    });
   }
 );
 
@@ -135,6 +133,10 @@ initializeProjects();
 initializeNews();
 
 initializePlatform();
+
+initializeCommunity();
+
+initializeTeamPanel();
 
 initializeCardImageFallbacks();
 
