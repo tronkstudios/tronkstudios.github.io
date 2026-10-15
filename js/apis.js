@@ -39,7 +39,7 @@ function formatNumber(value, compact = true) {
 
 function createVideoCard(video) {
   const card = document.createElement("a");
-  card.className = "video-card";
+  card.className = video.short ? "video-card is-short" : "video-card";
   card.href = video.url;
   card.target = "_blank";
   card.rel = "noopener noreferrer";
@@ -49,9 +49,16 @@ function createVideoCard(video) {
   media.className = "video-media";
 
   const img = document.createElement("img");
-  img.src = video.thumbnail;
   img.alt = "";
   img.loading = "lazy";
+
+  // Los Shorts tienen miniatura vertical (oardefault); si no existe, la normal
+  if (video.short) {
+    img.src = `https://i.ytimg.com/vi/${encodeURIComponent(video.id)}/oardefault.jpg`;
+    img.addEventListener("error", () => { img.src = video.thumbnail; }, { once: true });
+  } else {
+    img.src = video.thumbnail;
+  }
 
   media.append(img, makeIcon("play", "icon video-play"));
 
@@ -92,8 +99,22 @@ async function loadYoutubeVideos() {
       return;
     }
 
-    list.replaceChildren(...videos.slice(0, 3).map(createVideoCard));
-    box.hidden = false;
+    // Vídeos normales y Shorts van en filas distintas
+    const normal = videos.filter((video) => !video.short).slice(0, 3);
+    const shorts = videos.filter((video) => video.short).slice(0, 6);
+
+    if (normal.length) {
+      list.replaceChildren(...normal.map(createVideoCard));
+      box.hidden = false;
+    }
+
+    const shortsBox = document.getElementById("shorts");
+    const shortsList = document.getElementById("shorts-list");
+
+    if (shortsBox && shortsList && shorts.length) {
+      shortsList.replaceChildren(...shorts.map(createVideoCard));
+      shortsBox.hidden = false;
+    }
   } catch (error) {
     console.warn("TronkStudios: no se pudieron cargar los vídeos de YouTube.", error.message);
   }

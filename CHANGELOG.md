@@ -9,6 +9,16 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.10 · Shorts en la web
+
+#### Añadido
+- Fila propia de **Shorts** en Novedades, con tarjetas verticales que se deslizan
+  de lado. Los Shorts ya no ocupan el sitio de los vídeos normales (el tráiler sigue visible).
+
+#### Cambiado
+- El Worker marca cada vídeo como Short o no, enlaza los Shorts a `/shorts/` y
+  guarda la lista 10 minutos en lugar de 30, así los vídeos nuevos aparecen antes.
+
 ### 6.9 · Vídeos de YouTube y datos de Roblox
 
 #### Añadido
