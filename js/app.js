@@ -126,6 +126,8 @@ document.addEventListener(
 
 initializeHeroParticles();
 
+initializeHeroLogo();
+
 initializeHeroCounts();
 
 initializeProjects();
