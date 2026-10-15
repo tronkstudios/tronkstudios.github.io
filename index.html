@@ -97,7 +97,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="css/styles.css?v=32" />
+  <link rel="stylesheet" href="css/styles.css?v=33" />
   <link rel="stylesheet" href="css/tronk-fight.css?v=3" />
 
 
@@ -110,27 +110,90 @@
     se ejecutan en este orden y comparten variables globales
     (ver docs/adr/0002-scripts-clasicos-por-modulos.md).
   -->
-  <script src="js/core.js?v=19" defer></script>
-  <script src="js/theme.js?v=19" defer></script>
-  <script src="js/ui.js?v=20" defer></script>
-  <script src="js/auth.js?v=20" defer></script>
-  <script src="js/suggestions.js?v=22" defer></script>
-  <script src="js/projects.js?v=26" defer></script>
-  <script src="js/profiles.js?v=2" defer></script>
-  <script src="js/news.js?v=1" defer></script>
+  <script src="js/core.js?v=20" defer></script>
+  <script src="js/theme.js?v=20" defer></script>
+  <script src="js/ui.js?v=21" defer></script>
+  <script src="js/auth.js?v=21" defer></script>
+  <script src="js/suggestions.js?v=23" defer></script>
+  <script src="js/projects.js?v=27" defer></script>
+  <script src="js/profiles.js?v=3" defer></script>
+  <script src="js/community.js?v=1" defer></script>
+  <script src="js/team.js?v=1" defer></script>
+  <script src="js/news.js?v=2" defer></script>
   <script src="js/hero.js?v=3" defer></script>
-  <script src="js/games/audio.js?v=19" defer></script>
+  <script src="js/games/audio.js?v=20" defer></script>
   <script src="js/games/antitronks.js?v=20" defer></script>
   <script src="js/games/protect-mogos.js?v=20" defer></script>
   <script src="js/games/stick-drill.js?v=20" defer></script>
   <script src="js/games/tronk-fight.js?v=4" defer></script>
-  <script src="js/app.js?v=22" defer></script>
+  <script src="js/app.js?v=23" defer></script>
 
   <!-- Sistema de soporte (chat con Tronker + formulario de correo) -->
-  <script src="js/support.js?v=8" defer></script>
+  <script src="js/support.js?v=9" defer></script>
 </head>
 
 <body>
+
+  <!-- =====================================================
+       ICONOS DE TRONKSTUDIOS
+       Dibujados a mano en 24×24, con el mismo trazo. Se usan así:
+       <svg class="icon" aria-hidden="true"><use href="#i-nombre"></use></svg>
+       En JavaScript: icon("nombre") (js/ui.js).
+       ===================================================== -->
+  <svg xmlns="http://www.w3.org/2000/svg" class="icon-sprite" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="i-support" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.6"/><path d="m5.6 5.6 3.9 3.9M14.5 14.5l3.9 3.9M18.4 5.6l-3.9 3.9M9.5 14.5l-3.9 3.9"/></symbol>
+      <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></symbol>
+      <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-5.8 6.5-5.8s6.5 2.2 6.5 5.8"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.5c2.2.6 3.5 2.6 3.5 5.5"/></symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.2A8.5 8.5 0 1 1 9.8 3.5a6.8 6.8 0 0 0 10.7 10.7z"/></symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2.2M12 19.8V22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2 12h2.2M19.8 12H22M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6"/></symbol>
+      <symbol id="i-gamepad" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10a5 5 0 0 1 4.9 6l-.8 4a2.6 2.6 0 0 1-4.5 1.2L14.3 16H9.7l-2.3 2.2A2.6 2.6 0 0 1 2.9 17l-.8-4A5 5 0 0 1 7 7z"/><path d="M7.5 10.5v3M6 12h3"/><circle cx="15.5" cy="11" r=".6" fill="currentColor"/><circle cx="17.5" cy="13" r=".6" fill="currentColor"/></symbol>
+      <symbol id="i-trophy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 6H4v1.5A3.5 3.5 0 0 0 7.5 11M17 6h3v1.5a3.5 3.5 0 0 1-3.5 3.5"/><path d="M12 14v3.5M8.5 21h7M9.5 21l.5-3.5h4l.5 3.5"/></symbol>
+      <symbol id="i-medal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5 10.5 9M16 2.5 13.5 9"/><circle cx="12" cy="15" r="6"/><path d="m12 12 .9 1.9 2 .2-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.2z" fill="currentColor" stroke-width="1"/></symbol>
+      <symbol id="i-bulb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21.5h4"/><path d="M12 2.5a6.5 6.5 0 0 0-4 11.6c.7.6 1 1.3 1 2.1V18h6v-1.8c0-.8.3-1.5 1-2.1a6.5 6.5 0 0 0-4-11.6z"/></symbol>
+      <symbol id="i-ballot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h18v8H3z"/><path d="m8 9 3 3 6-7"/><path d="M5 13V9.5M19 13V9.5"/></symbol>
+      <symbol id="i-thumb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v11H3.5V10H7z"/><path d="M7 10l4-7.5a2 2 0 0 1 3 2.2L13 9h6a2 2 0 0 1 2 2.4l-1.6 7.8A2.3 2.3 0 0 1 17.1 21H7"/></symbol>
+      <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10.5 9-7 9 7"/><path d="M5.5 9v11.5h13V9"/><path d="M10 20.5v-6h4v6"/></symbol>
+      <symbol id="i-bolt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 2 4.5 13.5H12L10.5 22l9-11.5H12z"/></symbol>
+      <symbol id="i-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10.5" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><path d="M12 14.5v2.5"/></symbol>
+      <symbol id="i-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5s-8.5-5-8.5-11A4.8 4.8 0 0 1 12 6.4a4.8 4.8 0 0 1 8.5 3.1c0 6-8.5 11-8.5 11z"/></symbol>
+      <symbol id="i-heart-fill" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20.5s-8.5-5-8.5-11A4.8 4.8 0 0 1 12 6.4a4.8 4.8 0 0 1 8.5 3.1c0 6-8.5 11-8.5 11z"/></symbol>
+      <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2H4.5z"/><path d="M10 21h4"/></symbol>
+      <symbol id="i-bell-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16.5V11a6 6 0 0 1 9.4-4.9M18 11v5.5l1.5 2H8"/><path d="M10 21h4M3 3l18 18"/></symbol>
+      <symbol id="i-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12.2V4.5A1.5 1.5 0 0 1 4.5 3h7.7l9 9-9.3 9.3z"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/></symbol>
+      <symbol id="i-monitor" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="19" height="12.5" rx="2"/><path d="M8 21h8M12 16.5V21"/></symbol>
+      <symbol id="i-wrench" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 6.5a4.5 4.5 0 0 0 5.6 5.6L21 11a6 6 0 0 1-7.6 4.1l-6 6a2.3 2.3 0 0 1-3.3-3.3l6-6A6 6 0 0 1 14.1 4.2L13 5.1z"/></symbol>
+      <symbol id="i-rocket" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15.5 8.5 12C10 6.5 14 3 20.5 3.5 21 10 17.5 14 12 15.5z"/><circle cx="15" cy="9" r="1.6"/><path d="M8.5 12 5 11.5 7.5 8.5h4M12 15.5l.5 3.5 3-2.5v-4M5.5 15.5c-1.5.5-2.5 2.5-2.5 5.5 3 0 5-1 5.5-2.5"/></symbol>
+      <symbol id="i-volume" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5v14l-4.5-4.5H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18.5 6a8 8 0 0 1 0 12"/></symbol>
+      <symbol id="i-volume-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5v14l-4.5-4.5H4z"/><path d="m16 9.5 5 5M21 9.5l-5 5"/></symbol>
+      <symbol id="i-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7.5" width="16" height="12" rx="3"/><path d="M12 7.5V4M2 12.5v3M22 12.5v3"/><circle cx="12" cy="3.2" r="1" fill="currentColor"/><circle cx="9" cy="13" r="1.3" fill="currentColor"/><circle cx="15" cy="13" r="1.3" fill="currentColor"/><path d="M9.5 16.5h5"/></symbol>
+      <symbol id="i-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5"/></symbol>
+      <symbol id="i-arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+      <symbol id="i-arrow-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5A8 8 0 1 1 17.7 6.3"/><path d="M20.5 3.5V8H16"/></symbol>
+      <symbol id="i-film" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 8.5h4M3 15.5h4M17 8.5h4M17 15.5h4"/></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.9l10.2-6.5a1 1 0 0 0 0-1.8L9.5 4.6A1 1 0 0 0 8 5.5z"/></symbol>
+      <symbol id="i-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6H8l1.5-2.5h5L16 6h2.5A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><circle cx="12" cy="12.5" r="3.8"/></symbol>
+      <symbol id="i-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 3.5h3L8 15.5h11l2-8.5H6.5"/><circle cx="9.5" cy="19.5" r="1.5"/><circle cx="17.5" cy="19.5" r="1.5"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.5 5 5 10-11"/></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+      <symbol id="i-flame" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21.5c-4 0-7-2.8-7-6.6 0-3.3 2.2-5.4 3.6-7.3.3 1.7 1.1 2.9 2.4 3.4C11 7 12.6 4.2 15 2.5c0 3.4 4 6 4 11.4 0 4.3-3 7.6-7 7.6z"/><path d="M12 21.5c-1.8 0-3-1.3-3-3 0-1.9 1.6-3 2.4-4.6.9 1.4 3.6 2.4 3.6 4.6 0 1.7-1.2 3-3 3z"/></symbol>
+      <symbol id="i-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5 11.8 8.2 16.5 10l-4.7 1.8L10 16.5l-1.8-4.7L3.5 10l4.7-1.8z"/><path d="M18 14.5l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9zM18 2.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z"/></symbol>
+      <symbol id="i-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="m12 2.8 2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3-4.6-4.4 6.3-.9z"/></symbol>
+      <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19.5 8.5a2.8 2.8 0 0 0-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16M9.5 6.5V4h5v2.5M6.5 6.5l1 14h9l1-14M10 10.5v6M14 10.5v6"/></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 4 5.5v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10v-6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></symbol>
+      <symbol id="i-message" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5h16a1.5 1.5 0 0 1 1.5 1.5v10a1.5 1.5 0 0 1-1.5 1.5h-9L6 21.5v-4H4A1.5 1.5 0 0 1 2.5 16V6A1.5 1.5 0 0 1 4 4.5z"/><path d="M7 9.5h10M7 13h6"/></symbol>
+      <symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 3.5v17h17"/><path d="M8 16.5v-5M12.5 16.5V7M17 16.5v-8"/></symbol>
+      <symbol id="i-megaphone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10v4h3l9 5V5l-9 5z"/><path d="M6.5 14l1.5 6.5h3L9.5 15M19 9.5a3.5 3.5 0 0 1 0 5"/></symbol>
+      <symbol id="i-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4.5"/><path d="m11.2 11.8 9.3-9.3M17 6l3 3M14.5 8.5l2 2"/></symbol>
+      <symbol id="i-bug" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7.5" width="10" height="13" rx="5"/><path d="M9 7.5a3 3 0 0 1 6 0M12 11v9.5M3 13h4M17 13h4M4 7.5l3 2M20 7.5l-3 2M4 19.5l3-2M20 19.5l-3-2"/></symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+      <symbol id="i-swords" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2"/><path d="M14.5 6.5 18 3h3v3l-3.5 3.5M5 14l4 4M7 17l-3 3M3 19l2 2"/></symbol>
+    </defs>
+  </svg>
+
 
   <!-- =====================================================
        CABECERA
@@ -154,6 +217,28 @@
         <p class="brand-tagline">
           Juegos, creatividad y desarrollo
         </p>
+      </div>
+
+
+      <!-- Notificaciones (js/community.js). Solo con sesión iniciada. -->
+      <div class="notifications">
+        <button
+          id="notifications-button"
+          class="notifications-button"
+          type="button"
+          aria-label="Notificaciones"
+          aria-expanded="false"
+          aria-controls="notifications-panel"
+          hidden
+        >
+          <svg class="icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+          <span id="notifications-count" class="notifications-count" hidden>0</span>
+        </button>
+
+        <div id="notifications-panel" class="notifications-panel" hidden>
+          <p class="notifications-title">Notificaciones</p>
+          <ul class="notifications-list"></ul>
+        </div>
       </div>
 
       <!-- Botón de menú (solo se ve en móvil) -->
@@ -204,7 +289,7 @@
           aria-controls="support-menu-modal"
           data-open-support
         >
-          🛟 Soporte
+          <svg class="icon" aria-hidden="true"><use href="#i-support"></use></svg> Soporte
         </button>
 
         <button
@@ -212,7 +297,7 @@
           class="account-button"
           type="button"
         >
-          👤 Cuenta
+          <svg class="icon" aria-hidden="true"><use href="#i-user"></use></svg> Cuenta
         </button>
 
         <button
@@ -225,9 +310,7 @@
           <span
             class="theme-icon"
             aria-hidden="true"
-          >
-            🌙
-          </span>
+          ><svg class="icon" aria-hidden="true"><use href="#i-moon"></use></svg></span>
 
           <span class="theme-label">
             Oscuro
@@ -272,7 +355,7 @@
 
           <div class="hero-actions">
             <a class="hero-button hero-button-primary" href="#desarrollo" data-nav-link>
-              🎮 Explorar los juegos
+              <svg class="icon" aria-hidden="true"><use href="#i-gamepad"></use></svg> Explorar los juegos
             </a>
             <a class="hero-button hero-button-secondary" href="#minijuegos" data-nav-link>
               Jugar minijuegos
@@ -474,9 +557,7 @@
           <span
             class="empty-icon"
             aria-hidden="true"
-          >
-            🎮
-          </span>
+          ><svg class="icon" aria-hidden="true"><use href="#i-gamepad"></use></svg></span>
 
           <p class="empty-text">
             No hay nada todavía.
@@ -525,9 +606,7 @@
           <span
             class="empty-icon"
             aria-hidden="true"
-          >
-            🎮
-          </span>
+          ><svg class="icon" aria-hidden="true"><use href="#i-gamepad"></use></svg></span>
 
           <p class="empty-text">
             No hay experiencias disponibles todavía.
@@ -655,7 +734,7 @@
         <!-- Clasificación (js/profiles.js) -->
         <div class="leaderboard" data-platform hidden>
           <div class="leaderboard-head">
-            <h3>🏆 Clasificación</h3>
+            <h3><svg class="icon" aria-hidden="true"><use href="#i-trophy"></use></svg> Clasificación</h3>
             <p id="leaderboard-hint" class="leaderboard-hint"></p>
           </div>
 
@@ -707,7 +786,7 @@
             class="primary-button"
             type="button"
           >
-            💡 Sugerir una idea
+            <svg class="icon" aria-hidden="true"><use href="#i-bulb"></use></svg> Sugerir una idea
           </button>
 
         </div>
@@ -717,7 +796,7 @@
         <p id="suggestions-summary" class="suggestions-summary" aria-live="polite"></p>
 
         <div id="community-hint" class="community-hint" hidden>
-          <span class="community-hint-icon" aria-hidden="true">🗳️</span>
+          <span class="community-hint-icon"><svg class="icon" aria-hidden="true"><use href="#i-ballot"></use></svg></span>
           <p>
             <strong>Únete a la comunidad.</strong>
             Crea una cuenta gratis para proponer ideas y votar las que más te gusten.
@@ -725,6 +804,13 @@
           <button id="community-register" class="primary-button" type="button">
             Crear cuenta
           </button>
+        </div>
+
+
+        <!-- Encuestas del equipo (js/community.js) -->
+        <div id="polls" class="polls" hidden>
+          <h3 class="polls-title"><svg class="icon" aria-hidden="true"><use href="#i-chart"></use></svg> Encuestas</h3>
+          <div id="polls-list" class="polls-list"></div>
         </div>
 
         <div class="suggestion-tabs">
@@ -778,6 +864,22 @@
             </option>
 
 
+          </select>
+
+
+          <select
+            id="suggestion-status"
+            class="suggestion-category"
+            aria-label="Filtrar por estado"
+            data-community
+            hidden
+          >
+            <option value="all">Todos los estados</option>
+            <option value="pending">Pendiente</option>
+            <option value="reviewing">En estudio</option>
+            <option value="planned">Planeada</option>
+            <option value="done">Hecha</option>
+            <option value="rejected">Descartada</option>
           </select>
 
           <select
@@ -839,6 +941,15 @@
         </div>
 
         <div id="news-list" class="news-list">
+          <article class="news-entry" data-tag="update">
+            <div class="news-entry-meta">
+              <time datetime="2026-10-15">15 oct 2026</time>
+              <span class="news-tag news-tag-update">Actualización</span>
+            </div>
+            <h3>Encuestas, notificaciones y avatares nuevos</h3>
+            <p>Ahora puedes ver en qué estado está cada idea y lo que opina el equipo, votar en encuestas, recibir notificaciones y elegir uno de los 12 avatares dibujados para tu perfil. Además, la web estrena iconos propios.</p>
+          </article>
+
           <article class="news-entry" data-tag="announcement">
             <div class="news-entry-meta">
               <time datetime="2026-10-15">15 oct 2026</time>
@@ -863,7 +974,7 @@
               <span class="news-tag news-tag-update">Actualización</span>
             </div>
             <h3>Ahora puedes quitar tu voto</h3>
-            <p>En Comunidad, si ya has votado una idea, al pulsar otra vez 👍 se retira tu voto. También cambiamos el orden de la página: los juegos en desarrollo van primero.</p>
+            <p>En Comunidad, si ya has votado una idea, al pulsar otra vez «Votar» se retira tu voto. También cambiamos el orden de la página: los juegos en desarrollo van primero.</p>
           </article>
 
           <article class="news-entry" data-tag="announcement">
@@ -995,7 +1106,7 @@
         -->
         <div class="studio-grid">
           <article class="studio-card">
-            <span class="studio-icon" aria-hidden="true">🏠</span>
+            <span class="studio-icon"><svg class="icon" aria-hidden="true"><use href="#i-home"></use></svg></span>
             <h3>Qué es el estudio</h3>
             <p>
               TronkStudios es un estudio independiente de videojuegos.
@@ -1005,7 +1116,7 @@
           </article>
 
           <article class="studio-card">
-            <span class="studio-icon" aria-hidden="true">🎮</span>
+            <span class="studio-icon"><svg class="icon" aria-hidden="true"><use href="#i-gamepad"></use></svg></span>
             <h3>Qué juegos creamos</h3>
             <p>
               Juegos de acción, aventura y supervivencia pensados para
@@ -1015,7 +1126,7 @@
           </article>
 
           <article class="studio-card">
-            <span class="studio-icon" aria-hidden="true">⚡</span>
+            <span class="studio-icon"><svg class="icon" aria-hidden="true"><use href="#i-bolt"></use></svg></span>
             <h3>Qué nos diferencia</h3>
             <p>
               Escuchamos a quien juega: las ideas de la comunidad se votan
@@ -1025,7 +1136,7 @@
           </article>
 
           <article class="studio-card">
-            <span class="studio-icon" aria-hidden="true">🎯</span>
+            <span class="studio-icon"><svg class="icon" aria-hidden="true"><use href="#i-target"></use></svg></span>
             <h3>Nuestros objetivos</h3>
             <ul>
               <li>Lanzar Z Tronks en Roblox.</li>
@@ -1136,7 +1247,7 @@
                 <dt>Problema</dt>
                 <dd>Queríamos música y efectos en los minijuegos sin llenar el repositorio de archivos de audio pesados.</dd>
                 <dt>Solución</dt>
-                <dd>Todo el sonido (la música de piano, los disparos, los golpes) se genera en el momento con la Web Audio API, y cada minijuego tiene un botón 🔊 que recuerda si lo has silenciado.</dd>
+                <dd>Todo el sonido (la música de piano, los disparos, los golpes) se genera en el momento con la Web Audio API, y cada minijuego tiene un botón de altavoz que recuerda si lo has silenciado.</dd>
                 <dt>Resultado</dt>
                 <dd>Los minijuegos tienen sonido sin que la web pese ni un solo archivo de audio más.</dd>
               </dl>
@@ -1171,7 +1282,7 @@
         aria-controls="support-menu-modal"
         data-open-support
       >
-        🛟 ¿Necesitas ayuda? Soporte
+        <svg class="icon" aria-hidden="true"><use href="#i-support"></use></svg> ¿Necesitas ayuda? Soporte
       </button>
 
       <!-- Icono de GitHub (abre el repositorio en otra pestaña) -->
@@ -1511,9 +1622,7 @@
 
         <div class="account-info">
 
-          <div class="account-avatar">
-            👤
-          </div>
+          <div class="account-avatar"><svg class="icon" aria-hidden="true"><use href="#i-user"></use></svg></div>
 
           <div>
 
@@ -1537,7 +1646,16 @@
           data-platform
           hidden
         >
-          👤 Ver mi perfil
+          <svg class="icon" aria-hidden="true"><use href="#i-user"></use></svg> Ver mi perfil
+        </button>
+
+        <button
+          id="team-button"
+          class="secondary-button full-button team-open-button"
+          type="button"
+          hidden
+        >
+          <svg class="icon" aria-hidden="true"><use href="#i-shield"></use></svg> Panel del equipo
         </button>
 
         <button
@@ -1545,7 +1663,7 @@
           class="secondary-button full-button"
           type="button"
         >
-          🔒 Cambiar contraseña
+          <svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg> Cambiar contraseña
         </button>
 
 
@@ -1737,10 +1855,10 @@
       <!-- Lista de deseados y avisos (js/profiles.js) -->
       <div id="project-wishlist" class="project-wishlist" data-platform hidden>
         <button id="wishlist-toggle" class="wish-button" type="button" aria-pressed="false">
-          🤍 Añadir a deseados
+          <svg class="icon" aria-hidden="true"><use href="#i-heart"></use></svg> Añadir a deseados
         </button>
         <button id="notify-toggle" class="wish-button" type="button" aria-pressed="false">
-          🔕 Avísame cuando salga
+          <svg class="icon" aria-hidden="true"><use href="#i-bell-off"></use></svg> Avísame cuando salga
         </button>
         <p id="wishlist-count" class="wishlist-count" aria-live="polite"></p>
       </div>
@@ -1750,12 +1868,12 @@
 
       <div class="project-stats">
         <div class="project-stat">
-          <span class="project-stat-label">🎭 Género</span>
+          <span class="project-stat-label"><svg class="icon" aria-hidden="true"><use href="#i-tag"></use></svg> Género</span>
           <strong id="project-modal-genre"></strong>
         </div>
 
         <div class="project-stat">
-          <span class="project-stat-label">🖥️ Plataformas</span>
+          <span class="project-stat-label"><svg class="icon" aria-hidden="true"><use href="#i-monitor"></use></svg> Plataformas</span>
           <strong id="project-modal-platforms"></strong>
         </div>
 
@@ -1765,17 +1883,17 @@
         </div>
 
         <div class="project-stat">
-          <span class="project-stat-label">👥 Equipo</span>
+          <span class="project-stat-label"><svg class="icon" aria-hidden="true"><use href="#i-users"></use></svg> Equipo</span>
           <strong id="project-modal-people"></strong>
         </div>
 
         <div class="project-stat">
-          <span class="project-stat-label">🛠️ Estado</span>
+          <span class="project-stat-label"><svg class="icon" aria-hidden="true"><use href="#i-wrench"></use></svg> Estado</span>
           <strong id="project-modal-status"></strong>
         </div>
 
         <div class="project-stat">
-          <span class="project-stat-label">🚀 Lanzamiento estimado</span>
+          <span class="project-stat-label"><svg class="icon" aria-hidden="true"><use href="#i-rocket"></use></svg> Lanzamiento estimado</span>
           <strong id="project-modal-release"></strong>
           <span id="project-modal-countdown" class="project-countdown"></span>
         </div>
@@ -1787,6 +1905,48 @@
 
   </div>
 
+
+
+  <!-- =====================================================
+       PANEL DEL EQUIPO (js/team.js)
+       ===================================================== -->
+
+  <div
+    id="team-modal"
+    class="modal hidden"
+    aria-hidden="true"
+  >
+    <div class="modal-backdrop"></div>
+
+    <div
+      class="modal-box team-modal-box"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="team-modal-title"
+    >
+      <button
+        class="modal-close"
+        data-close-modal="team-modal"
+        type="button"
+        aria-label="Cerrar"
+      >
+        ×
+      </button>
+
+      <h2 id="team-modal-title"><svg class="icon" aria-hidden="true"><use href="#i-shield"></use></svg> Panel del equipo</h2>
+
+      <div class="team-tabs" role="group" aria-label="Secciones del panel">
+        <button class="team-tab" type="button" data-tab="ideas" aria-pressed="true"><svg class="icon" aria-hidden="true"><use href="#i-bulb"></use></svg> Ideas</button>
+        <button class="team-tab" type="button" data-tab="polls" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-chart"></use></svg> Encuestas</button>
+        <button class="team-tab" type="button" data-tab="news" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-megaphone"></use></svg> Diario</button>
+        <button class="team-tab" type="button" data-tab="scores" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-trophy"></use></svg> Récords</button>
+      </div>
+
+      <p id="team-message" class="auth-message" aria-live="polite"></p>
+
+      <div id="team-content" class="team-content"></div>
+    </div>
+  </div>
 
   <!-- =====================================================
        PERFIL (se rellena desde js/profiles.js)
@@ -1845,9 +2005,7 @@
           type="button"
           aria-label="Silenciar"
           aria-pressed="false"
-        >
-          🔊
-        </button>
+        ><svg class="icon" aria-hidden="true"><use href="#i-volume"></use></svg></button>
 
         <button
           id="antitronks-close"
@@ -1920,9 +2078,7 @@
           type="button"
           aria-label="Silenciar"
           aria-pressed="false"
-        >
-          🔊
-        </button>
+        ><svg class="icon" aria-hidden="true"><use href="#i-volume"></use></svg></button>
 
         <button
           id="antininja-close"
@@ -1996,9 +2152,7 @@
           type="button"
           aria-label="Silenciar"
           aria-pressed="false"
-        >
-          🔊
-        </button>
+        ><svg class="icon" aria-hidden="true"><use href="#i-volume"></use></svg></button>
 
         <button
           id="stickdrill-close"
@@ -2053,14 +2207,14 @@
                   class="antitronks-start-button"
                   type="button"
                 >
-                  🤖 CONTRA EL BOT
+                  <svg class="icon" aria-hidden="true"><use href="#i-bot"></use></svg> CONTRA EL BOT
                 </button>
                 <button
                   id="stickdrill-2p"
                   class="antitronks-start-button stickdrill-2p-button"
                   type="button"
                 >
-                  👥 2 JUGADORES
+                  <svg class="icon" aria-hidden="true"><use href="#i-users"></use></svg> 2 JUGADORES
                 </button>
               </div>
               <p class="stickdrill-keys stickdrill-keys-desktop">
@@ -2121,9 +2275,7 @@
           type="button"
           aria-label="Silenciar"
           aria-pressed="false"
-        >
-          🔊
-        </button>
+        ><svg class="icon" aria-hidden="true"><use href="#i-volume"></use></svg></button>
 
         <button
           id="tronkfight-close"
@@ -2350,7 +2502,7 @@
           class="support-option"
           type="button"
         >
-          <span class="support-option-icon" aria-hidden="true">🤖</span>
+          <span class="support-option-icon"><svg class="icon" aria-hidden="true"><use href="#i-bot"></use></svg></span>
           <span class="support-option-text">
             <strong>Hablar con Tronker</strong>
             <span>Nuestro asistente te ayuda al momento con juegos, errores, tu cuenta o la web.</span>
@@ -2362,7 +2514,7 @@
           class="support-option"
           type="button"
         >
-          <span class="support-option-icon" aria-hidden="true">✉️</span>
+          <span class="support-option-icon"><svg class="icon" aria-hidden="true"><use href="#i-mail"></use></svg></span>
           <span class="support-option-text">
             <strong>Enviar un correo</strong>
             <span>Escríbenos y te responderemos a tu correo electrónico.</span>
@@ -2402,13 +2554,11 @@
           type="button"
           data-support-back
           aria-label="Volver a las opciones de soporte"
-        >
-          ←
-        </button>
+        ><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"></use></svg></button>
 
         <div class="support-panel-heading">
           <h2 id="support-chat-title">
-            🤖 Tronker
+            <svg class="icon" aria-hidden="true"><use href="#i-bot"></use></svg> Tronker
           </h2>
           <p
             id="support-chat-status"
@@ -2424,9 +2574,7 @@
           type="button"
           title="Nueva conversación"
           aria-label="Empezar una nueva conversación"
-        >
-          ↺
-        </button>
+        ><svg class="icon" aria-hidden="true"><use href="#i-refresh"></use></svg></button>
 
         <button
           class="support-icon-button"
@@ -2497,13 +2645,11 @@
           type="button"
           data-support-back
           aria-label="Volver a las opciones de soporte"
-        >
-          ←
-        </button>
+        ><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"></use></svg></button>
 
         <div class="support-panel-heading">
           <h2 id="support-mail-title">
-            ✉️ Enviar un correo
+            <svg class="icon" aria-hidden="true"><use href="#i-mail"></use></svg> Enviar un correo
           </h2>
           <p class="support-chat-status">
             Te responderemos al correo que indiques.

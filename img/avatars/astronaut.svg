@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Astronauta">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0ea5e9"/>
+      <stop offset="1" stop-color="#0c1e4a"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#bg)"/>
+
+  <circle cx="12" cy="12" r="1.2" fill="#fff"/><circle cx="52" cy="9" r="1" fill="#fff"/><circle cx="56" cy="22" r="1.4" fill="#fff"/>
+  <circle cx="32" cy="32" r="20" fill="#f8fafc"/>
+  <rect x="17" y="21" width="30" height="21" rx="10.5" fill="#0f172a"/>
+  <path d="M22 26c2-2.5 5-3.5 8-3.5" stroke="#38bdf8" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <circle cx="40" cy="36" r="2" fill="#38bdf8" opacity=".7"/>
+  <rect x="10" y="28" width="5" height="9" rx="2" fill="#cbd5e1"/>
+  <rect x="49" y="28" width="5" height="9" rx="2" fill="#cbd5e1"/>
+  <path d="M24 52h16v6H24z" fill="#f97316"/>
+</svg>

@@ -22,7 +22,7 @@ create table if not exists public.profiles (
     check (char_length(trim(display_name)) between 2 and 30),
   bio text not null default ''
     check (char_length(bio) <= 160),
-  avatar text not null default '🎮'
+  avatar text not null default 'tronk'
     check (char_length(avatar) <= 16),
   created_at timestamptz not null default now()
 );
@@ -214,7 +214,10 @@ create policy "Récords visibles para todos"
 
 revoke insert, update, delete on public.game_scores from anon, authenticated;
 
--- Guarda un récord si es mejor que el que había
+-- Guarda un récord si es mejor que el que había.
+-- OJO: comunidad.sql la sustituye por una versión que además avisa a
+-- quien pierde el primer puesto. Si vuelves a ejecutar este archivo,
+-- ejecuta después también comunidad.sql.
 create or replace function public.submit_score(p_game text, p_score numeric)
 returns numeric
 language plpgsql

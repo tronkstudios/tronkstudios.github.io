@@ -3,6 +3,23 @@
 Historia de la web de TronkStudios agrupada por versiones. Cada versión
 resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 
+## [v8] · Octubre de 2026 · Comunidad, iconos y avatares
+
+### Añadido
+- **Estado de cada idea** (Pendiente, En estudio, Planeada, Hecha, Descartada),
+  **respuesta del equipo** y filtro por estado.
+- **Panel del equipo**: estados y respuestas, encuestas, entradas del diario y
+  borrar récords falsos (`js/team.js`).
+- **Encuestas** en Comunidad, con resultados en directo y voto que se puede cambiar.
+- **Notificaciones** en la cabecera: votos de tu idea, cambios de estado,
+  respuestas del equipo y récords superados.
+- Entradas del **diario** escritas desde el panel, guardadas en Supabase.
+- `docs/supabase/comunidad.sql` con tablas, reglas de seguridad y funciones.
+
+### Cambiado
+- **Iconos propios en SVG** en lugar de emojis en toda la web (el de YouTube se mantiene).
+- **12 avatares dibujados** para los perfiles en lugar de emojis.
+
 ## [v7.1] · Octubre de 2026 · Aviso de lanzamiento en la web
 
 ### Añadido

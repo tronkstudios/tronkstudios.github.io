@@ -228,6 +228,17 @@ function renderSuggestions(
     suggestionCategory?.value ||
     "Todas";
 
+  // Filtro por estado (js/community.js)
+  const status =
+    document.getElementById("suggestion-status")?.value ||
+    "all";
+
+  if (status !== "all") {
+    filtered = filtered.filter(
+      (suggestion) => (suggestion.status || "pending") === status
+    );
+  }
+
   if (
     currentSuggestionTab ===
     "mine"
@@ -323,9 +334,16 @@ function updateCommunityHeader() {
       0
     );
 
-    summary.textContent = ideas
-      ? `💡 ${ideas} ${ideas === 1 ? "idea" : "ideas"} · 👍 ${votes} ${votes === 1 ? "voto" : "votos"}`
-      : "";
+    summary.replaceChildren();
+
+    if (ideas) {
+      summary.append(
+        makeIcon("bulb"),
+        ` ${ideas} ${ideas === 1 ? "idea" : "ideas"} · `,
+        makeIcon("thumb"),
+        ` ${votes} ${votes === 1 ? "voto" : "votos"}`
+      );
+    }
   }
 
   if (hint) {
@@ -439,10 +457,7 @@ function createSuggestionCard(
   voteButton.className =
     "vote-button";
 
-  voteButton.textContent =
-    `👍 ${
-      suggestion.votes || 0
-    }`;
+  setIconText(voteButton, "thumb", String(suggestion.votes || 0));
 
   const alreadyVoted =
     myVotedSuggestions.has(
@@ -509,13 +524,31 @@ function createSuggestionCard(
     header
   );
 
+  // Estado de la idea y respuesta del equipo (js/community.js)
+  const tags = document.createElement("div");
+  tags.className = "suggestion-tags";
+  tags.appendChild(category);
+
+  const statusBadge =
+    communityAvailable && suggestion.status
+      ? createStatusBadge(suggestion.status)
+      : null;
+
+  if (statusBadge) {
+    tags.appendChild(statusBadge);
+  }
+
   article.appendChild(
-    category
+    tags
   );
 
   article.appendChild(
     text
   );
+
+  if (communityAvailable && suggestion.team_reply) {
+    article.appendChild(createTeamReply(suggestion.team_reply));
+  }
 
   article.appendChild(
     actions
@@ -889,3 +922,13 @@ if (suggestionSort) {
     }
   );
 }
+
+/* =========================================================
+   FILTRO POR ESTADO
+   ========================================================= */
+
+document
+  .getElementById("suggestion-status")
+  ?.addEventListener("change", () => {
+    renderSuggestions(allSuggestions);
+  });

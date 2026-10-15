@@ -56,18 +56,17 @@ function closeModal(modal) {
     !projectModal ||
     projectModal.classList.contains("hidden");
 
-  const profileModal =
-    document.getElementById("profile-modal");
-
-  const profileClosed =
-    !profileModal ||
-    profileModal.classList.contains("hidden");
+  // Perfil y panel del equipo también cuentan como ventanas abiertas
+  const othersClosed = ["profile-modal", "team-modal"].every((id) => {
+    const other = document.getElementById(id);
+    return !other || other.classList.contains("hidden");
+  });
 
   if (
     accountClosed &&
     suggestionsClosed &&
     projectClosed &&
-    profileClosed
+    othersClosed
   ) {
     document.body.classList.remove(
       "modal-open"
@@ -181,7 +180,7 @@ function showVerificationSentMessage(email) {
   authMessage.innerHTML = `
     <div class="verification-card">
       <div class="verification-heading">
-        <span class="verification-icon">✉️</span>
+        <span class="verification-icon"><svg class="icon" aria-hidden="true"><use href="#i-mail"></use></svg></span>
         <span>¡Revisa tu correo!</span>
       </div>
 

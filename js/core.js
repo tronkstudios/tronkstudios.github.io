@@ -11,6 +11,31 @@
 console.log("TronkStudios: script cargado correctamente.");
 
 /* =========================================================
+   ICONOS
+   Usa los dibujos del <svg class="icon-sprite"> de index.html.
+   makeIcon("heart") devuelve un <svg> listo para meter en la página.
+   ========================================================= */
+
+function makeIcon(name, className = "icon") {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", className);
+  svg.setAttribute("aria-hidden", "true");
+
+  const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+  use.setAttribute("href", `#i-${name}`);
+  svg.appendChild(use);
+
+  return svg;
+}
+
+/* Pone en un elemento un icono seguido de un texto */
+function setIconText(element, name, text) {
+  if (element) {
+    element.replaceChildren(makeIcon(name), document.createTextNode(` ${text}`));
+  }
+}
+
+/* =========================================================
    CONFIGURACIÓN SUPABASE
    ========================================================= */
 
