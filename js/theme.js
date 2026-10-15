@@ -42,7 +42,7 @@ function updateThemeButton(theme) {
 
   if (theme === "dark") {
     if (icon) {
-      icon.textContent = "☀️";
+      icon.replaceChildren(makeIcon("sun"));
     }
 
     if (label) {
@@ -60,7 +60,7 @@ function updateThemeButton(theme) {
     );
   } else {
     if (icon) {
-      icon.textContent = "🌙";
+      icon.replaceChildren(makeIcon("moon"));
     }
 
     if (label) {

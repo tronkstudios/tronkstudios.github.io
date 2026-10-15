@@ -31,6 +31,8 @@ js/
   suggestions.js           Sugerencias: cargar, votar, buscar y filtrar
   projects.js              Tarjetas y ficha de los juegos en desarrollo (datos en PROJECTS)
   profiles.js              Perfiles, deseados, avisos, récords, insignias y clasificación
+  community.js             Estado de las ideas, encuestas, notificaciones y diario de Supabase
+  team.js                  Panel del equipo (ideas, encuestas, diario y récords)
   news.js                  Diario de desarrollo: filtros y «Ver entradas anteriores»
   hero.js                  Fondo de partículas de la portada
   games/audio.js           Música y efectos generados con Web Audio
@@ -41,6 +43,7 @@ js/
   app.js                   Arranque, menú móvil y navegación
   support.js               Menú de soporte, chat de Tronker y formulario
 img/juegos/                Imágenes de las tarjetas
+img/avatars/               Avatares dibujados para los perfiles (SVG)
 index.js                   Backend de soporte (Cloudflare Worker)
 docs/adr/                  Decisiones de arquitectura
 docs/prompts/              Órdenes clave que le dimos a la IA
@@ -99,6 +102,35 @@ Si pasa, se borra la fila en la tabla `game_scores`.
 
 Para vender un juego, se añade su tienda en `stores` dentro de `js/projects.js`
 (por ejemplo Steam o itch.io) y sale el botón de compra en su ficha.
+
+## Comunidad y panel del equipo
+
+Tras `plataforma.sql`, ejecutar `docs/supabase/comunidad.sql` en el SQL Editor
+(pegando TODO su contenido) y después, con vuestro correo, entrar en el equipo:
+
+```sql
+insert into public.team_members (user_id)
+select id from auth.users where email = 'vuestro-correo@ejemplo.com'
+on conflict do nothing;
+```
+
+Con eso aparece **Panel del equipo** en «Cuenta», desde donde se puede:
+- poner el **estado** de cada idea (Pendiente, En estudio, Planeada, Hecha o Descartada)
+  y una **respuesta del equipo**, o borrarla;
+- crear, cerrar y borrar **encuestas**;
+- publicar **entradas del diario** sin tocar código;
+- borrar **récords falsos**.
+
+Cada persona recibe **notificaciones** (campana de la cabecera) cuando su idea
+llega a 1, 5, 10, 25, 50 o 100 votos, cuando el equipo cambia su estado o le
+responde, y cuando alguien le quita el primer puesto de un minijuego.
+
+## Iconos y avatares
+
+Los iconos están dibujados en un `<svg class="icon-sprite">` al principio de
+`index.html` y se usan con `<svg class="icon"><use href="#i-nombre"></use></svg>`
+o, desde JavaScript, con `makeIcon("nombre")` (`js/core.js`). Los avatares de
+perfil son los SVG de `img/avatars/`.
 
 ## Tronk Fight
 

@@ -107,7 +107,7 @@ const TronkSound = (() => {
     }
 
     document.querySelectorAll(".game-sound-toggle").forEach((button) => {
-      button.textContent = muted ? "🔇" : "🔊";
+      button.replaceChildren(makeIcon(muted ? "volume-off" : "volume"));
       button.setAttribute("aria-label", muted ? "Activar sonido" : "Silenciar");
       button.setAttribute("aria-pressed", muted ? "true" : "false");
     });

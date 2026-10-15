@@ -226,7 +226,7 @@ function renderProjectGallery(modal, project) {
   if (!project.gallery || project.gallery.length === 0) {
     const soon = document.createElement("div");
     soon.className = "project-thumb project-thumb-soon";
-    soon.innerHTML = '<span aria-hidden="true">📸</span> Más capturas pronto';
+    setIconText(soon, "camera", "Más capturas pronto");
     gallery.appendChild(soon);
   }
 
@@ -253,7 +253,7 @@ function renderProjectStores(modal, project) {
     link.href = store.url;
     link.target = "_blank";
     link.rel = "noopener noreferrer";
-    link.textContent = `🛒 ${store.label}`;
+    setIconText(link, "cart", store.label);
     link.setAttribute("aria-label", `${store.label} (se abre en otra pestaña)`);
     box.appendChild(link);
   });
@@ -315,7 +315,7 @@ function createNoTrailerFrame() {
   const icon = document.createElement("span");
   icon.className = "trailer-unavailable-icon";
   icon.setAttribute("aria-hidden", "true");
-  icon.textContent = "🎬";
+  icon.appendChild(makeIcon("film"));
 
   const text = document.createElement("p");
   text.textContent = "No hay tráiler disponible todavía";
@@ -381,18 +381,18 @@ function addCardMeta(card, project) {
   meta.className = "card-meta";
 
   [
-    `🎭 ${project.genre || "Por confirmar"}`,
-    `🖥️ ${projectPlatforms(project)}`,
-    `🛠️ ${projectStatus(project).label}`
-  ].forEach((text) => {
+    ["tag", project.genre || "Por confirmar"],
+    ["monitor", projectPlatforms(project)],
+    ["wrench", projectStatus(project).label]
+  ].forEach(([name, text]) => {
     const item = document.createElement("li");
-    item.textContent = text;
+    setIconText(item, name, text);
     meta.appendChild(item);
   });
 
   const more = document.createElement("p");
   more.className = "card-more";
-  more.textContent = "Ver ficha completa →";
+  more.replaceChildren(document.createTextNode("Ver ficha completa "), makeIcon("arrow-right"));
 
   card.append(meta, more);
 }
@@ -468,13 +468,10 @@ function initializeCardImageFallbacks() {
           fallback.className =
             "dev-card-media-fallback";
 
-          fallback.textContent =
-            `🎮 ${
-              img.dataset
+          setIconText(fallback, "gamepad", img.dataset
                 .fallbackLabel ||
               img.alt ||
-              "Imagen no disponible"
-            }`;
+              "Imagen no disponible");
 
           img.replaceWith(
             fallback

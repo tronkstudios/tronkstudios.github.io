@@ -105,8 +105,7 @@ async function updateAccountUI() {
     showLoginPanel();
 
     if (accountButton) {
-      accountButton.textContent =
-        "👤 Cuenta";
+      setIconText(accountButton, "user", "Cuenta");
     }
 
     return;
@@ -137,8 +136,7 @@ async function updateAccountUI() {
   }
 
   if (accountButton) {
-    accountButton.textContent =
-      `👤 ${name}`;
+    setIconText(accountButton, "user", name);
   }
 }
 
@@ -749,8 +747,7 @@ if (logoutButton) {
         );
 
         if (accountButton) {
-          accountButton.textContent =
-            "👤 Cuenta";
+          setIconText(accountButton, "user", "Cuenta");
         }
       } catch (error) {
         console.error(error);
@@ -786,6 +783,11 @@ if (isSupabaseConfigured()) {
       // Perfil, deseados y récords de la cuenta (js/profiles.js)
       if (typeof onPlatformAuthChange === "function" && event !== "TOKEN_REFRESHED") {
         onPlatformAuthChange();
+      }
+
+      // Notificaciones, encuestas y panel del equipo (js/community.js)
+      if (typeof onCommunityAuthChange === "function" && event !== "TOKEN_REFRESHED") {
+        onCommunityAuthChange();
       }
 
       // Abre la ventana una sola vez al volver del enlace
