@@ -28,7 +28,9 @@ js/
   ui.js                    Modales, cliente Supabase y mensajes
   auth.js                  Login, registro, contraseña y sesión
   suggestions.js           Sugerencias: cargar, votar, buscar y filtrar
-  projects.js              Tarjetas y ficha de los juegos en desarrollo
+  projects.js              Tarjetas y ficha de los juegos en desarrollo (datos en PROJECTS)
+  news.js                  Diario de desarrollo: filtros y «Ver entradas anteriores»
+  hero.js                  Fondo de partículas de la portada
   games/audio.js           Música y efectos generados con Web Audio
   games/antitronks.js      Minijuego Antitronks
   games/protect-mogos.js   Minijuego Protect Mogos

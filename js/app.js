@@ -116,7 +116,11 @@ document.addEventListener(
    INICIALIZACIÓN
    ========================================================= */
 
+initializeHeroParticles();
+
 initializeProjects();
+
+initializeNews();
 
 initializeCardImageFallbacks();
 
@@ -232,7 +236,7 @@ document.querySelector(".brand-link")?.addEventListener("click", (event) => {
     document.querySelector(".site-header");
 
   const navLinks =
-    document.querySelectorAll('.main-nav a[href^="#"]');
+    document.querySelectorAll('.main-nav a[href^="#"], a[data-nav-link][href^="#"]');
 
   if (!navLinks.length) {
     return;
