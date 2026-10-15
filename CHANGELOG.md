@@ -9,6 +9,15 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.9 · Vídeos de YouTube y datos de Roblox
+
+#### Añadido
+- **Últimos vídeos** del canal de YouTube en Novedades, con fecha y visualizaciones.
+- **Datos en directo de Roblox** (jugando ahora, visitas, favoritos y «me gusta»)
+  en la sección Roblox y en la ficha de cada juego publicado, con botón
+  «Jugar en Roblox». Se actualizan cada minuto.
+- Rutas `/youtube` y `/roblox` en el Worker, con caché de Cloudflare (`js/apis.js`).
+
 ### 6.8 · Se adapta a cada pantalla
 
 #### Cambiado

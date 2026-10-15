@@ -738,6 +738,173 @@ async function sendLaunchNotifications(env) {
 }
 
 /* =========================================================
+   APIS PÚBLICAS: YOUTUBE Y ROBLOX
+   La web pide los datos aquí y el Worker los trae de YouTube y de
+   Roblox (Roblox no deja que una web se los pida directamente).
+   Las respuestas se guardan unos minutos en la caché de Cloudflare
+   para ir rápido y no saturar esas APIs. No hacen falta claves.
+   ========================================================= */
+
+const YOUTUBE_CHANNEL_ID = "UCb2X1ZIDj9f89RY3uwwFaFQ";
+const YOUTUBE_CACHE_SECONDS = 1800;
+const ROBLOX_CACHE_SECONDS = 60;
+
+/* Devuelve lo guardado en caché o lo calcula y lo guarda */
+async function cachedJson(key, seconds, produce) {
+  const cache = typeof caches !== "undefined" ? caches.default : null;
+  const cacheKey = new Request(`https://cache.tronkstudios/${key}`);
+
+  if (cache) {
+    const hit = await cache.match(cacheKey);
+
+    if (hit) {
+      return hit.json();
+    }
+  }
+
+  const data = await produce();
+
+  if (cache && data) {
+    await cache.put(
+      cacheKey,
+      new Response(JSON.stringify(data), {
+        headers: {
+          "content-type": "application/json",
+          "cache-control": `max-age=${seconds}`
+        }
+      })
+    );
+  }
+
+  return data;
+}
+
+function decodeXml(text) {
+  return String(text || "")
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&amp;/g, "&");
+}
+
+/* Últimos vídeos del canal (feed RSS público de YouTube) */
+async function fetchYoutubeVideos() {
+  const response = await fetch(
+    `https://www.youtube.com/feeds/videos.xml?channel_id=${YOUTUBE_CHANNEL_ID}`
+  );
+
+  if (!response.ok) {
+    throw new Error(`youtube ${response.status}`);
+  }
+
+  const xml = await response.text();
+  const entries = xml.split("<entry>").slice(1);
+
+  return entries.slice(0, 6).map((entry) => {
+    const pick = (pattern) => (entry.match(pattern) || [])[1] || "";
+    const id = pick(/<yt:videoId>([\w-]{6,20})<\/yt:videoId>/);
+
+    return {
+      id,
+      title: decodeXml(pick(/<title>([\s\S]*?)<\/title>/)).slice(0, 150),
+      published: pick(/<published>([^<]+)<\/published>/),
+      views: Number(pick(/<media:statistics views="(\d+)"/)) || 0,
+      thumbnail: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
+      url: `https://www.youtube.com/watch?v=${id}`
+    };
+  }).filter((video) => video.id);
+}
+
+async function handleYoutube(cors) {
+  try {
+    const videos = await cachedJson("youtube", YOUTUBE_CACHE_SECONDS, fetchYoutubeVideos);
+    return json({ videos }, 200, cors);
+  } catch (error) {
+    console.error("youtube: no se pudieron cargar los vídeos", error && error.message);
+    return json({ error: "youtube_unavailable" }, 502, cors);
+  }
+}
+
+async function robloxJson(url) {
+  const response = await fetch(url, { headers: { accept: "application/json" } });
+
+  if (!response.ok) {
+    throw new Error(`roblox ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/* Datos en directo de un juego de Roblox a partir de su placeId
+   (el número de la dirección roblox.com/games/NÚMERO/...) */
+async function fetchRobloxGame(placeId) {
+  // Si el placeId no existe, Roblox responde 404: no es un error nuestro
+  const { universeId } = await robloxJson(
+    `https://apis.roblox.com/universes/v1/places/${placeId}/universe`
+  ).catch((error) => {
+    if (String(error.message).endsWith("404")) {
+      return {};
+    }
+    throw error;
+  });
+
+  if (!universeId) {
+    return null;
+  }
+
+  const [games, votes, icons] = await Promise.all([
+    robloxJson(`https://games.roblox.com/v1/games?universeIds=${universeId}`),
+    robloxJson(`https://games.roblox.com/v1/games/votes?universeIds=${universeId}`).catch(() => ({})),
+    robloxJson(
+      `https://thumbnails.roblox.com/v1/games/icons?universeIds=${universeId}&size=256x256&format=Png&isCircular=false`
+    ).catch(() => ({}))
+  ]);
+
+  const game = games.data && games.data[0];
+
+  if (!game) {
+    return null;
+  }
+
+  const vote = (votes.data && votes.data[0]) || {};
+  const icon = (icons.data && icons.data[0]) || {};
+
+  return {
+    placeId,
+    name: String(game.name || "").slice(0, 100),
+    playing: Number(game.playing) || 0,
+    visits: Number(game.visits) || 0,
+    favorites: Number(game.favoritedCount) || 0,
+    maxPlayers: Number(game.maxPlayers) || 0,
+    likes: Number(vote.upVotes) || 0,
+    dislikes: Number(vote.downVotes) || 0,
+    icon: /^https:\/\/[\w.-]+\.rbxcdn\.com\//.test(icon.imageUrl || "") ? icon.imageUrl : "",
+    url: `https://www.roblox.com/games/${placeId}`
+  };
+}
+
+async function handleRoblox(url, cors) {
+  const placeId = url.searchParams.get("place") || "";
+
+  if (!/^\d{1,15}$/.test(placeId)) {
+    return json({ error: "bad_place" }, 400, cors);
+  }
+
+  try {
+    const game = await cachedJson(`roblox-${placeId}`, ROBLOX_CACHE_SECONDS, () =>
+      fetchRobloxGame(placeId)
+    );
+
+    return game ? json({ game }, 200, cors) : json({ error: "not_found" }, 404, cors);
+  } catch (error) {
+    console.error("roblox: no se pudieron cargar los datos", error && error.message);
+    return json({ error: "roblox_unavailable" }, 502, cors);
+  }
+}
+
+/* =========================================================
    ENTRADA DEL WORKER
    ========================================================= */
 
@@ -771,6 +938,14 @@ export default {
           200,
           cors
         );
+      }
+
+      if (url.pathname === "/youtube" && request.method === "GET") {
+        return await handleYoutube(cors);
+      }
+
+      if (url.pathname === "/roblox" && request.method === "GET") {
+        return await handleRoblox(url, cors);
       }
 
       if (request.method === "POST") {
