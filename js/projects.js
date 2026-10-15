@@ -62,13 +62,13 @@ const PROJECTS = {
   }
 };
 
-/* Fases del desarrollo: texto y progreso aproximado de la barra. */
+/* Fases del desarrollo y su texto. */
 const PROJECT_STATUSES = {
-  concept: { label: "Idea", progress: 10 },
-  development: { label: "En desarrollo", progress: 40 },
-  alpha: { label: "Alfa", progress: 60 },
-  beta: { label: "Beta", progress: 80 },
-  released: { label: "Disponible", progress: 100 }
+  concept: { label: "Idea" },
+  development: { label: "En desarrollo" },
+  alpha: { label: "Alfa" },
+  beta: { label: "Beta" },
+  released: { label: "Disponible" }
 };
 
 function projectStatus(project) {
@@ -129,14 +129,6 @@ function openProjectModal(id) {
   modal.querySelector("#project-modal-genre").textContent = project.genre || "Por confirmar";
   modal.querySelector("#project-modal-platforms").textContent = projectPlatforms(project);
   modal.querySelector("#project-modal-status").textContent = status.label;
-
-  const progress = modal.querySelector("#project-modal-progress");
-  progress.style.width = `${status.progress}%`;
-  progress.parentElement.setAttribute("aria-valuenow", String(status.progress));
-  progress.parentElement.setAttribute(
-    "aria-valuetext",
-    `${status.label}, ${status.progress} %`
-  );
 
   modal.querySelector("#project-modal-category").textContent = project.category;
   modal.querySelector("#project-modal-people").textContent =

@@ -10,8 +10,7 @@ resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
   «Explorar los juegos» y «Jugar minijuegos», y un fondo de partículas
   (`js/hero.js`) que solo se anima cuando la portada se ve y respeta
   «reducir movimiento».
-- **Fichas completas** de los juegos en desarrollo: género, plataformas, estado
-  con barra de progreso, lanzamiento estimado y capturas (miniaturas que se ven
+- **Fichas completas** de los juegos en desarrollo: género, plataformas, estado, lanzamiento estimado y capturas (miniaturas que se ven
   en grande). Los datos rápidos también salen en la tarjeta.
 - **Diario de desarrollo** (sección Novedades) con fechas y etiquetas
   Desarrollo, Actualización y Anuncio, filtros y «Ver entradas anteriores».
