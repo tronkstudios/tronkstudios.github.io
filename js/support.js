@@ -56,7 +56,6 @@ const SUPPORT_CONFIG = {
   };
   const MAIL_CATEGORIES = [
     "Juegos",
-    "Aplicaciones",
     "Cuenta",
     "Error técnico",
     "Otros"
