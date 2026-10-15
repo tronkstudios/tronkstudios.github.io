@@ -531,7 +531,7 @@ function renderProfile(content, data) {
   name.id = "profile-name";
   info.appendChild(name);
 
-  const since = new Date(profile.created_at).toLocaleDateString("es-ES", {
+  const since = new Date(profile.created_at).toLocaleDateString(currentLocale(), {
     month: "long",
     year: "numeric"
   });

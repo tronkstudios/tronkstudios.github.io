@@ -124,6 +124,8 @@ document.addEventListener(
    INICIALIZACIÓN
    ========================================================= */
 
+initializePwa();
+
 initializeHeroParticles();
 
 initializeHeroLogo();

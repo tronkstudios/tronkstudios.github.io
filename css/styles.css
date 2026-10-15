@@ -4846,3 +4846,194 @@ button.project-thumb:hover {
 div.notification {
   cursor: default;
 }
+
+/* =========================================================
+   TARJETAS DE JUEGOS: fondo desenfocado y versión móvil
+   ========================================================= */
+
+.dev-card-media {
+  position: relative;
+  isolation: isolate;
+}
+
+/* La misma imagen, desenfocada, rellena los huecos de los lados */
+.dev-card-media::before {
+  content: "";
+  position: absolute;
+  inset: -20px;
+  z-index: -1;
+  background: var(--media-image) center / cover no-repeat;
+  filter: blur(18px) brightness(0.55);
+}
+
+.dev-card-media img {
+  position: relative;
+}
+
+/* Botón «Ver tráiler» de la tarjeta */
+button.card-trailer-title {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: default;
+}
+
+@media (max-width: 600px) {
+  /* Tarjetas a todo el ancho */
+  .cards-grid .card {
+    width: 100%;
+  }
+
+  /* Juegos en desarrollo: imagen de borde a borde y textos más compactos */
+  .project-card {
+    gap: 0.6rem;
+    padding: 0 0 1rem;
+    overflow: hidden;
+  }
+
+  .project-card > :not(.dev-card-media) {
+    margin-left: 1rem;
+    margin-right: 1rem;
+  }
+
+  .project-card .dev-card-media {
+    aspect-ratio: 4 / 3;
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+  }
+
+  .project-card h3 {
+    margin-top: 0.3rem;
+    font-size: 1.3rem;
+  }
+
+  .project-card .card-meta li {
+    font-size: 0.78rem;
+  }
+
+  /* Tráiler plegado: se abre con el botón */
+  button.card-trailer-title {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface-2);
+    cursor: pointer;
+  }
+
+  .card-trailer:not(.is-open) .video-frame {
+    display: none;
+  }
+
+  .card-trailer.is-open .card-trailer-title {
+    margin-bottom: 0.6rem;
+    border-color: var(--accent);
+  }
+
+  .card-trailer-title::before {
+    order: 2;
+    transition: transform 0.2s ease;
+  }
+
+  .card-trailer.is-open .card-trailer-title::before {
+    transform: rotate(90deg);
+  }
+
+  /* Minijuegos: dos por fila, con el nombre encima de la imagen */
+  #minijuegos .cards-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  #minijuegos .minigame-card {
+    position: relative;
+    width: auto;
+    padding: 0;
+    overflow: hidden;
+    gap: 0;
+  }
+
+  #minijuegos .minigame-card .dev-card-media {
+    aspect-ratio: 4 / 3;
+    border: 0;
+    border-radius: 0;
+  }
+
+  #minijuegos .minigame-card .dev-card-media img {
+    object-fit: cover;
+  }
+
+  #minijuegos .minigame-card h3 {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    padding: 1.6rem 0.7rem 0.55rem;
+    background: linear-gradient(transparent, rgba(5, 8, 15, 0.92));
+    color: #fff;
+    font-size: 0.95rem;
+  }
+
+  /* Botón de «jugar» en el centro de la imagen */
+  #minijuegos .minigame-card::after {
+    content: "";
+    position: absolute;
+    top: 38%;
+    left: 50%;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background:
+      no-repeat 55% 50% / 14px 16px
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 16'%3E%3Cpath d='M0 0l14 8-14 8z' fill='white'/%3E%3C/svg%3E"),
+      rgba(31, 120, 255, 0.85);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+}
+
+/* =========================================================
+   APP INSTALABLE (js/pwa.js)
+   ========================================================= */
+
+#install-button[hidden] {
+  display: none;
+}
+
+.offline-notice {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  left: 16px;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: fit-content;
+  margin: 0 auto;
+  padding: 0.65rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  background: var(--brand-dark);
+  color: #eef3fb;
+  font-weight: 700;
+  font-size: 0.9rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.offline-notice[hidden] {
+  display: none;
+}
+
+.offline-notice .icon {
+  color: #f59e0b;
+}
