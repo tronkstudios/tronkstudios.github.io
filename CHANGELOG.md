@@ -9,7 +9,7 @@ resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 - El logo de la portada entra con un zoom, flota, su brillo azul late y le cruza
   un reflejo de luz cada pocos segundos (sin animación con «reducir movimiento»).
 - The Sundered Sky aparece con la plataforma PC.
-- Las cifras de la portada son reales: «juegos creados» y «juegos en desarrollo»
+- Las cifras de la portada son reales: «juegos finalizados» y «juegos en desarrollo»
   se cuentan solas a partir de las tarjetas de cada sección.
 
 ### Quitado

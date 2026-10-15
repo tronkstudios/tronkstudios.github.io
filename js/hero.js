@@ -153,7 +153,7 @@ function initializeHeroParticles() {
    CIFRAS DE LA PORTADA
    Se cuentan las tarjetas que hay de verdad en la página, así
    el número cambia solo al añadir o quitar un juego:
-   - juegos creados: tarjetas de «Nuestros Juegos» (#juegos)
+   - juegos finalizados: tarjetas de «Nuestros Juegos» (#juegos)
    - juegos en desarrollo: tarjetas de «Juegos en desarrollo»
    ========================================================= */
 
@@ -161,8 +161,8 @@ function initializeHeroCounts() {
   const counts = {
     created: {
       total: document.querySelectorAll("#juegos .card").length,
-      one: "juego creado",
-      many: "juegos creados"
+      one: "juego finalizado",
+      many: "juegos finalizados"
     },
     development: {
       total: document.querySelectorAll("#desarrollo .dev-card[data-project]").length,
