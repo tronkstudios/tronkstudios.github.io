@@ -34,6 +34,10 @@ js/
   community.js             Estado de las ideas, encuestas, notificaciones y diario de Supabase
   team.js                  Panel del equipo (ideas, encuestas, diario, récords, lanzamientos y avisos)
   journey.js               «Cómo lo hicimos»: línea temporal paso a paso
+  pwa.js                   App instalable: registra sw.js, botón «Instalar app» y aviso sin conexión
+  i18n.js                  Versión en inglés: diccionario y traductor de la página
+sw.js                      Service worker: guarda la web para usarla sin internet
+manifest.webmanifest       Datos de la app instalable (nombre, iconos, colores)
   news.js                  Diario de desarrollo: filtros y «Ver entradas anteriores»
   hero.js                  Fondo de partículas de la portada
   games/audio.js           Música y efectos generados con Web Audio
@@ -138,6 +142,24 @@ Los iconos están dibujados en un `<svg class="icon-sprite">` al principio de
 `index.html` y se usan con `<svg class="icon"><use href="#i-nombre"></use></svg>`
 o, desde JavaScript, con `makeIcon("nombre")` (`js/core.js`). Los avatares de
 perfil son los SVG de `img/avatars/`.
+
+## App instalable y sin conexión
+
+La web es una PWA: en el móvil o en Chrome/Edge se puede **instalar como una app**
+(botón «Instalar app» de la portada, o «Añadir a pantalla de inicio»).
+`sw.js` guarda la página y todos los archivos que enlaza `index.html`, así que
+los **minijuegos funcionan sin internet**. Cuentas, sugerencias y vídeos
+necesitan conexión. Si algo se queda en una versión vieja, sube `CACHE_VERSION`
+en `sw.js`.
+
+## Versión en inglés
+
+El botón **ES / EN** de la cabecera cambia el idioma (se recuerda en el navegador;
+la primera vez se usa el del navegador). La web sigue escrita en español y
+`js/i18n.js` traduce cada texto con el diccionario `I18N_EN`, también lo que se
+añade después desde JavaScript. Para un texto nuevo, añade su traducción a
+`I18N_EN` (o una regla a `I18N_PATTERNS` si lleva números o nombres). Lo que
+escriben los usuarios no se traduce.
 
 ## Tronk Fight
 

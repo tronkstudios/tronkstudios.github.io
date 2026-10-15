@@ -582,7 +582,7 @@ function formatDate(
   }
 
   return date.toLocaleDateString(
-    "es-ES",
+    currentLocale(),
     {
       day: "2-digit",
       month: "2-digit",

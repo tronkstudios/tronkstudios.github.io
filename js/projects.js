@@ -87,7 +87,7 @@ function projectPlatforms(project) {
 }
 
 function formatReleaseDate([year, month, day]) {
-  return new Date(year, month - 1, day).toLocaleDateString("es-ES", {
+  return new Date(year, month - 1, day).toLocaleDateString(currentLocale(), {
     day: "numeric",
     month: "long",
     year: "numeric"

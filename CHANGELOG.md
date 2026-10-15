@@ -3,6 +3,19 @@
 Historia de la web de TronkStudios agrupada por versiones. Cada versión
 resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 
+## [v9] · Octubre de 2026 · Móvil, app instalable e inglés
+
+### Añadido
+- **Web instalable** (PWA): `manifest.webmanifest`, iconos, `sw.js` y botón
+  «Instalar app». Los minijuegos funcionan **sin internet** y sale un aviso cuando
+  no hay conexión.
+- **Versión en inglés** con el botón ES / EN de la cabecera (`js/i18n.js`): toda la
+  web, el chat de Tronker y los minijuegos.
+
+### Cambiado
+- **Tarjetas de juegos en móvil**: a todo el ancho, portada de borde a borde con
+  fondo desenfocado, tráiler plegable y minijuegos en dos columnas con botón de jugar.
+
 ## [v8.2] · Octubre de 2026 · Logo que reacciona y avisos del equipo
 
 ### Añadido
