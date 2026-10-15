@@ -9,6 +9,17 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.11 · Autor de cada sugerencia
+
+#### Añadido
+- Cada sugerencia muestra la **foto de perfil y el nombre de usuario** de quien la
+  envió. Al pulsarlos se abre su perfil. Si alguien cambia su foto o su nombre,
+  sus ideas se actualizan también.
+
+#### Cambiado
+- Con la sesión iniciada ya no hay que escribir el nombre al enviar una idea:
+  se firma con el nombre del perfil.
+
 ### 6.10 · Shorts en la web
 
 #### Añadido

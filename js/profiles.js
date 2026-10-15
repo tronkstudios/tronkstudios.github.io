@@ -774,6 +774,7 @@ function renderProfileForm(content, data) {
     Object.assign(data.profile, changes);
     renderProfile(content, data);
     loadLeaderboard(currentLeaderboardGame);
+    loadSuggestions();
   });
 
   content.appendChild(form);
