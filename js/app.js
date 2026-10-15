@@ -132,6 +132,8 @@ initializeProjects();
 
 initializeNews();
 
+initializeJourney();
+
 initializePlatform();
 
 initializeCommunity();

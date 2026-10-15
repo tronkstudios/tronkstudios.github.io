@@ -878,6 +878,34 @@ function updateLeaderboardHint() {
 }
 
 /* =========================================================
+   FECHAS DE LANZAMIENTO
+   La tabla game_releases es la fecha oficial (el equipo la cambia
+   desde su panel). Si existe, manda sobre la de js/projects.js.
+   ========================================================= */
+
+async function loadReleaseDates() {
+  if (!platformAvailable) {
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from("game_releases")
+    .select("project_id, release_date");
+
+  if (error || !data) {
+    return;
+  }
+
+  data.forEach((row) => {
+    if (PROJECTS[row.project_id]) {
+      PROJECTS[row.project_id].release = row.release_date
+        ? row.release_date.split("-").map(Number)
+        : null;
+    }
+  });
+}
+
+/* =========================================================
    AVISO DE LANZAMIENTO DENTRO DE LA WEB
    Si pediste «Avísame cuando salga» y el juego ya ha salido
    (fecha de js/projects.js), al entrar sale un aviso arriba.
@@ -1025,6 +1053,8 @@ async function initializePlatform() {
   if (!platformAvailable) {
     return;
   }
+
+  await loadReleaseDates();
 
   // Los nombres de las sugerencias pasan a abrir perfiles
   if (typeof renderSuggestions === "function" && allSuggestions.length) {

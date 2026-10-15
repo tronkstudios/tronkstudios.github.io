@@ -97,7 +97,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="css/styles.css?v=34" />
+  <link rel="stylesheet" href="css/styles.css?v=36" />
   <link rel="stylesheet" href="css/tronk-fight.css?v=3" />
 
 
@@ -116,17 +116,18 @@
   <script src="js/auth.js?v=21" defer></script>
   <script src="js/suggestions.js?v=23" defer></script>
   <script src="js/projects.js?v=27" defer></script>
-  <script src="js/profiles.js?v=4" defer></script>
-  <script src="js/community.js?v=1" defer></script>
-  <script src="js/team.js?v=1" defer></script>
-  <script src="js/news.js?v=2" defer></script>
+  <script src="js/profiles.js?v=5" defer></script>
+  <script src="js/community.js?v=2" defer></script>
+  <script src="js/team.js?v=3" defer></script>
+  <script src="js/news.js?v=3" defer></script>
+  <script src="js/journey.js?v=1" defer></script>
   <script src="js/hero.js?v=3" defer></script>
   <script src="js/games/audio.js?v=20" defer></script>
   <script src="js/games/antitronks.js?v=20" defer></script>
   <script src="js/games/protect-mogos.js?v=20" defer></script>
   <script src="js/games/stick-drill.js?v=20" defer></script>
   <script src="js/games/tronk-fight.js?v=4" defer></script>
-  <script src="js/app.js?v=23" defer></script>
+  <script src="js/app.js?v=24" defer></script>
 
   <!-- Sistema de soporte (chat con Tronker + formulario de correo) -->
   <script src="js/support.js?v=9" defer></script>
@@ -931,7 +932,19 @@
               Las últimas novedades de nuestros juegos y de la web.
             </p>
           </div>
+
+          <button
+            id="news-toggle"
+            class="secondary-button news-toggle"
+            type="button"
+            aria-expanded="true"
+            aria-controls="news-body"
+          >
+            <span>Ocultar diario</span> <svg class="icon" aria-hidden="true"><use href="#i-arrow-right"></use></svg>
+          </button>
         </div>
+
+        <div id="news-body" class="news-body">
 
         <div class="news-filters" role="group" aria-label="Filtrar novedades">
           <button class="news-filter" type="button" data-filter="all" aria-pressed="true">Todas</button>
@@ -1053,6 +1066,7 @@
         <button id="news-more" class="secondary-button news-more" type="button" hidden>
           Ver entradas anteriores
         </button>
+        </div>
       </div>
     </section>
 
@@ -1174,84 +1188,124 @@
 
           <div class="about-more-body">
           <!--
-            CÓMO LO HICIMOS: problemas reales que tuvimos al hacer la web,
-            cómo los resolvimos y qué conseguimos. REVISA Y AJUSTA los
-            textos para que suenen a vosotros.
+            CÓMO LO HICIMOS: línea temporal desde la idea hasta la web de hoy.
+            Sin JavaScript se ven todos los pasos; con JavaScript van
+            apareciendo al pulsar la flecha (js/journey.js).
           -->
           <h3 class="about-subtitle">Cómo lo hicimos</h3>
           <p class="about-intro">
-            Algunos problemas de verdad que nos encontramos haciendo esta web y cómo los resolvimos.
+            El camino desde la primera idea hasta la web que tenemos hoy. Pulsa la flecha para ir avanzando.
           </p>
 
-          <div class="case-grid">
+          <ol id="journey" class="journey">
+            <li class="journey-step">
+              <span class="journey-dot"><svg class="icon" aria-hidden="true"><use href="#i-bulb"></use></svg></span>
+              <div class="journey-card">
+                <time datetime="2026-09">Septiembre de 2026</time>
+                <h4>La idea</h4>
+                <p>Queríamos un sitio propio donde enseñar nuestros juegos. Empezamos con una primera web en un repositorio aparte, TronkWeb, hecha a mano con HTML, CSS y JavaScript, sin frameworks, y la publicamos gratis en GitHub Pages.</p>
+              </div>
+            </li>
 
-            <article class="case-card">
-              <svg class="case-icon" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
-                <rect x="6" y="10" width="36" height="28" rx="6" fill="none" stroke="currentColor" stroke-width="3"/>
-                <circle cx="17" cy="24" r="5" fill="currentColor"/>
-                <circle cx="31" cy="24" r="5" fill="none" stroke="currentColor" stroke-width="3"/>
-              </svg>
-              <h4>Stick Drill en el móvil</h4>
-              <dl>
-                <dt>Problema</dt>
-                <dd>Stick Drill se jugaba con W A S D y las flechas, así que en el móvil no se podía mover a nadie.</dd>
-                <dt>Solución</dt>
-                <dd>Añadimos dos joysticks táctiles, J1 a la izquierda y J2 a la derecha, con una zona muerta para que el stickman no se mueva solo y la misma velocidad que con el teclado.</dd>
-                <dt>Resultado</dt>
-                <dd>Ahora se puede jugar a dos en la misma pantalla del móvil, o contra el bot.</dd>
-              </dl>
-            </article>
+            <li class="journey-step">
+              <span class="journey-dot"><svg class="icon" aria-hidden="true"><use href="#i-gamepad"></use></svg></span>
+              <div class="journey-card">
+                <time datetime="2026-09-25">25 y 26 de septiembre</time>
+                <h4>Los primeros minijuegos</h4>
+                <p>Para que la web no fuera solo un escaparate, añadimos minijuegos que se juegan en el propio navegador, como Stick Drill, y fuimos ajustando el equilibrio partida a partida.</p>
+                <dl class="journey-case">
+                  <dt>Problema</dt>
+                  <dd>Queríamos música y efectos sin llenar la web de archivos de audio pesados.</dd>
+                  <dt>Solución</dt>
+                  <dd>Todo el sonido se genera en el momento con la Web Audio API, así que la web no pesa ni un solo archivo de audio más.</dd>
+                </dl>
+              </div>
+            </li>
 
-            <article class="case-card">
-              <svg class="case-icon" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
-                <rect x="6" y="8" width="36" height="32" rx="5" fill="none" stroke="currentColor" stroke-width="3"/>
-                <path d="M10 34l10-11 7 7 5-5 6 9" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
-                <circle cx="32" cy="17" r="3.5" fill="currentColor"/>
-              </svg>
-              <h4>Imágenes que no cargaban</h4>
-              <dl>
-                <dt>Problema</dt>
-                <dd>En nuestro ordenador las imágenes de las tarjetas se veían, pero en GitHub Pages salía un hueco roto.</dd>
-                <dt>Solución</dt>
-                <dd>Descubrimos que GitHub Pages distingue mayúsculas: «Antitronks.png» no es lo mismo que «antitronks.png». Pusimos todos los nombres en minúsculas y añadimos un aviso que, si una imagen falla, muestra el nombre del juego en su lugar y dice en la consola qué ruta ha fallado.</dd>
-                <dt>Resultado</dt>
-                <dd>Ninguna tarjeta vuelve a quedar rota, y si pasa algo sabemos en segundos dónde está el fallo.</dd>
-              </dl>
-            </article>
+            <li class="journey-step">
+              <span class="journey-dot"><svg class="icon" aria-hidden="true"><use href="#i-rocket"></use></svg></span>
+              <div class="journey-card">
+                <time datetime="2026-09-26">26 de septiembre</time>
+                <h4>Una sola web</h4>
+                <p>Unimos TronkWeb a este repositorio y le dimos su dirección y su nombre definitivos: tronkstudios.github.io.</p>
+              </div>
+            </li>
 
-            <article class="case-card">
-              <svg class="case-icon" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
-                <rect x="10" y="21" width="28" height="20" rx="4" fill="none" stroke="currentColor" stroke-width="3"/>
-                <path d="M16 21v-6a8 8 0 0 1 16 0v6" fill="none" stroke="currentColor" stroke-width="3"/>
-                <circle cx="24" cy="31" r="3" fill="currentColor"/>
-              </svg>
-              <h4>Soporte sin claves a la vista</h4>
-              <dl>
-                <dt>Problema</dt>
-                <dd>Para enviar correos desde la web hace falta una clave secreta, pero todo lo que subimos a GitHub Pages lo puede leer cualquiera.</dd>
-                <dt>Solución</dt>
-                <dd>Creamos un pequeño servidor aparte (un Cloudflare Worker) que guarda las claves y es el único que envía los correos. La web solo le pasa el mensaje, después de comprobar con Turnstile que no es un bot.</dd>
-                <dt>Resultado</dt>
-                <dd>El formulario de soporte funciona de verdad, contesta automáticamente al visitante y en nuestro código público no hay ni una sola clave secreta.</dd>
-              </dl>
-            </article>
+            <li class="journey-step">
+              <span class="journey-dot"><svg class="icon" aria-hidden="true"><use href="#i-camera"></use></svg></span>
+              <div class="journey-card">
+                <time datetime="2026-09-28">28 de septiembre</time>
+                <h4>Imágenes que no cargaban</h4>
+                <p>Al publicarla, algunas tarjetas salían con un hueco roto. También preparamos la vista previa grande que se ve al compartir el enlace o en Google.</p>
+                <dl class="journey-case">
+                  <dt>Problema</dt>
+                  <dd>En nuestro ordenador las imágenes se veían, pero en GitHub Pages no.</dd>
+                  <dt>Solución</dt>
+                  <dd>GitHub Pages distingue mayúsculas: «Antitronks.png» no es «antitronks.png». Pusimos todos los nombres en minúsculas y, si una imagen falla, sale el nombre del juego en su lugar.</dd>
+                </dl>
+              </div>
+            </li>
 
-            <article class="case-card">
-              <svg class="case-icon" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
-                <path d="M8 30V18h7l9-8v28l-9-8H8z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
-                <path d="M31 18a8 8 0 0 1 0 12M35 13a15 15 0 0 1 0 22" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-              </svg>
-              <h4>Sonido sin archivos</h4>
-              <dl>
-                <dt>Problema</dt>
-                <dd>Queríamos música y efectos en los minijuegos sin llenar el repositorio de archivos de audio pesados.</dd>
-                <dt>Solución</dt>
-                <dd>Todo el sonido (la música de piano, los disparos, los golpes) se genera en el momento con la Web Audio API, y cada minijuego tiene un botón de altavoz que recuerda si lo has silenciado.</dd>
-                <dt>Resultado</dt>
-                <dd>Los minijuegos tienen sonido sin que la web pese ni un solo archivo de audio más.</dd>
-              </dl>
-            </article>
+            <li class="journey-step">
+              <span class="journey-dot"><svg class="icon" aria-hidden="true"><use href="#i-support"></use></svg></span>
+              <div class="journey-card">
+                <time datetime="2026-09-28">28 de septiembre</time>
+                <h4>Soporte de verdad</h4>
+                <p>Conectamos el soporte a un servidor propio, un Cloudflare Worker, para que el formulario de correo funcionara de verdad.</p>
+                <dl class="journey-case">
+                  <dt>Problema</dt>
+                  <dd>Enviar correos necesita una clave secreta, y todo lo que subimos a GitHub Pages lo puede leer cualquiera.</dd>
+                  <dt>Solución</dt>
+                  <dd>El Worker guarda las claves y es el único que envía los correos. En el código público de la web no hay ni una sola clave secreta.</dd>
+                </dl>
+              </div>
+            </li>
 
+            <li class="journey-step">
+              <span class="journey-dot"><svg class="icon" aria-hidden="true"><use href="#i-shield"></use></svg></span>
+              <div class="journey-card">
+                <time datetime="2026-09-29">29 de septiembre</time>
+                <h4>Móvil y seguridad</h4>
+                <p>Stick Drill pasó a poder jugarse en el móvil con dos joysticks táctiles, mejoramos las contraseñas, añadimos el banner del canal de YouTube y reforzamos la seguridad de la web.</p>
+              </div>
+            </li>
+
+            <li class="journey-step">
+              <span class="journey-dot"><svg class="icon" aria-hidden="true"><use href="#i-wrench"></use></svg></span>
+              <div class="journey-card">
+                <time datetime="2026-10-05">5 de octubre</time>
+                <h4>Ordenar la casa</h4>
+                <p>El código había crecido hasta un único archivo de 8.000 líneas. Lo dividimos en 11 piezas, escribimos la documentación, el soporte empezó a contestar automáticamente y añadimos una protección contra bots.</p>
+              </div>
+            </li>
+
+            <li class="journey-step">
+              <span class="journey-dot"><svg class="icon" aria-hidden="true"><use href="#i-swords"></use></svg></span>
+              <div class="journey-card">
+                <time datetime="2026-10-05">5 y 6 de octubre</time>
+                <h4>Tronk Fight y nuevos proyectos</h4>
+                <p>Llegó Tronk Fight, un juego de lucha con 7 luchadores, contra el bot o a dos jugadores, también en el móvil. Publicamos el tráiler de Z Tronks y presentamos The Sundered Sky.</p>
+              </div>
+            </li>
+
+            <li class="journey-step">
+              <span class="journey-dot"><svg class="icon" aria-hidden="true"><use href="#i-sparkles"></use></svg></span>
+              <div class="journey-card">
+                <time datetime="2026-10-15">15 de octubre</time>
+                <h4>Una web que de verdad nos sirve</h4>
+                <p>Portada nueva, fichas completas de los juegos, diario de desarrollo, perfiles con avatares, lista de deseados, clasificación de los minijuegos y una comunidad con encuestas y panel del equipo. Por fin, la web que queríamos al empezar.</p>
+              </div>
+            </li>
+          </ol>
+
+          <div class="journey-controls" hidden>
+            <button id="journey-prev" class="journey-arrow" type="button" aria-label="Paso anterior">
+              <svg class="icon" aria-hidden="true"><use href="#i-arrow-left"></use></svg>
+            </button>
+            <span id="journey-progress" class="journey-progress" aria-live="polite">1 / 9</span>
+            <button id="journey-next" class="primary-button journey-next" type="button">
+              <span>Siguiente</span> <svg class="icon" aria-hidden="true"><use href="#i-arrow-right"></use></svg>
+            </button>
           </div>
           </div>
         </details>
@@ -1939,6 +1993,7 @@
         <button class="team-tab" type="button" data-tab="polls" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-chart"></use></svg> Encuestas</button>
         <button class="team-tab" type="button" data-tab="news" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-megaphone"></use></svg> Diario</button>
         <button class="team-tab" type="button" data-tab="scores" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-trophy"></use></svg> Récords</button>
+        <button class="team-tab" type="button" data-tab="releases" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg> Lanzamientos</button>
       </div>
 
       <p id="team-message" class="auth-message" aria-live="polite"></p>
