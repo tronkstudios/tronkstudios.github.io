@@ -952,6 +952,9 @@ function initializeAntininjaGame() {
       saveRecord(record);
     }
 
+    // Si hay sesión iniciada, se guarda en la cuenta (js/profiles.js)
+    window.TronkScores?.submit("protect-mogos", score);
+
     TronkSound.play(newRecord ? "record" : "gameOver");
 
     updateHud();

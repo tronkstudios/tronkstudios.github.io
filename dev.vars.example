@@ -4,3 +4,4 @@ AI_API_KEY=pon_aqui_tu_clave_de_ia
 RESEND_API_KEY=pon_aqui_tu_clave_de_resend
 SUPPORT_EMAIL_TO=tronkstudios7@gmail.com
 # TURNSTILE_SECRET=pon_aqui_la_clave_secreta_de_turnstile
+# SUPABASE_SERVICE_ROLE_KEY=pon_aqui_la_clave_service_role_de_supabase

@@ -16,6 +16,9 @@
  * - genre: géneros, separados por « · ».
  * - platforms: lista de plataformas. Vacía ([]) = «Por confirmar».
  * - status: fase del desarrollo. Una de las de PROJECT_STATUSES.
+ * - stores: dónde comprarlo o añadirlo a deseados, por ejemplo
+ *   [{ label: "Steam", url: "https://store.steampowered.com/app/..." }].
+ *   Vacía ([]) = no sale ningún botón.
  * - gallery: capturas o arte conceptual EXTRA (la imagen principal
  *   ya sale la primera). Sube las imágenes a img/juegos/ y añade
  *   { src: "img/juegos/...", caption: "Qué se ve" }.
@@ -34,6 +37,7 @@ const PROJECTS = {
     trailer: "VrHyQbwUtrY",
     // Año, mes (1-12), día
     release: [2027, 1, 4],
+    stores: [],
     gallery: [],
     description: [
       "Z Tronks es un juego de acción y supervivencia ambientado en un mundo devastado por un apocalipsis zombi. Los jugadores deberán explorar una ciudad abandonada, enfrentarse a diferentes tipos de zombis, completar misiones y conseguir experiencia y recursos para mejorar a su personaje.",
@@ -53,6 +57,7 @@ const PROJECTS = {
     trailer: "",
     // null = todavía no tiene fecha de lanzamiento
     release: null,
+    stores: [],
     gallery: [],
     description: [
       "The Sundered Sky es un RPG de fantasía y aventuras en un mundo hecho de cubos. Hace siglos, un gran cataclismo conocido como la Ruptura partió el antiguo continente en pedazos, y hoy sus restos flotan como islas sobre un inmenso mar de nubes.",
@@ -151,6 +156,13 @@ function openProjectModal(id) {
   });
 
   renderProjectGallery(modal, project);
+  renderProjectStores(modal, project);
+
+  modal.dataset.project = id;
+
+  if (typeof renderWishlistButtons === "function") {
+    renderWishlistButtons(id);
+  }
 
   // El tráiler va SIEMPRE al final de la descripción.
   // Si el juego aún no tiene, se avisa de que no hay tráiler.
@@ -219,6 +231,34 @@ function renderProjectGallery(modal, project) {
   }
 
   show(0);
+}
+
+/* =========================================================
+   TIENDAS: botones «Comprar en Steam», «Ver en Roblox»...
+   Solo salen si el juego tiene alguna en «stores».
+   ========================================================= */
+
+function renderProjectStores(modal, project) {
+  const box = modal.querySelector("#project-stores");
+
+  if (!box) {
+    return;
+  }
+
+  box.innerHTML = "";
+
+  (project.stores || []).forEach((store) => {
+    const link = document.createElement("a");
+    link.className = "primary-button store-button";
+    link.href = store.url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = `🛒 ${store.label}`;
+    link.setAttribute("aria-label", `${store.label} (se abre en otra pestaña)`);
+    box.appendChild(link);
+  });
+
+  box.hidden = !box.children.length;
 }
 
 /* =========================================================
