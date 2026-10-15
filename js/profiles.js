@@ -831,6 +831,80 @@ function updateLeaderboardHint() {
 }
 
 /* =========================================================
+   AVISO DE LANZAMIENTO DENTRO DE LA WEB
+   Si pediste «Avísame cuando salga» y el juego ya ha salido
+   (fecha de js/projects.js), al entrar sale un aviso arriba.
+   Al cerrarlo no vuelve a salir en este navegador.
+   ========================================================= */
+
+function launchSeenKey(projectId) {
+  return `tronk-launch-seen:${projectId}`;
+}
+
+function showLaunchNotices() {
+  document.querySelectorAll(".launch-notice").forEach((notice) => notice.remove());
+
+  if (!currentUser) {
+    return;
+  }
+
+  myWishlist.forEach((entry, projectId) => {
+    const project = PROJECTS[projectId];
+
+    if (
+      !entry.notify ||
+      !project ||
+      !Array.isArray(project.release) ||
+      daysUntil(project.release) > 0
+    ) {
+      return;
+    }
+
+    try {
+      if (localStorage.getItem(launchSeenKey(projectId))) {
+        return;
+      }
+    } catch {
+      // Sin localStorage se muestra igualmente
+    }
+
+    const notice = makeElement("div", "launch-notice");
+    notice.setAttribute("role", "status");
+
+    const text = makeElement("p", "launch-notice-text");
+    text.append(
+      makeElement("strong", "", `🎉 ¡${project.title} ya ha salido!`),
+      document.createTextNode(" Pediste que te avisáramos cuando saliera.")
+    );
+
+    const dismiss = () => {
+      try {
+        localStorage.setItem(launchSeenKey(projectId), "1");
+      } catch {
+        // Sin localStorage volverá a salir la próxima vez
+      }
+
+      notice.remove();
+    };
+
+    const open = makeElement("button", "primary-button", "Ver ficha");
+    open.type = "button";
+    open.addEventListener("click", () => {
+      dismiss();
+      openProjectModal(projectId);
+    });
+
+    const close = makeElement("button", "launch-notice-close", "×");
+    close.type = "button";
+    close.setAttribute("aria-label", "Cerrar aviso");
+    close.addEventListener("click", dismiss);
+
+    notice.append(text, open, close);
+    document.querySelector("main")?.prepend(notice);
+  });
+}
+
+/* =========================================================
    ARRANQUE Y CAMBIOS DE SESIÓN
    ========================================================= */
 
@@ -860,6 +934,8 @@ async function syncPlatformWithAccount() {
   if (currentUser) {
     await syncLocalRecords();
   }
+
+  showLaunchNotices();
 
   const projectId = currentProjectId();
 

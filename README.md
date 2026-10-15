@@ -83,11 +83,13 @@ minijuegos. Para activarlo:
 1. **Supabase → SQL Editor**: pegar `docs/supabase/plataforma.sql` y pulsar Run.
    Crea las tablas con sus reglas de seguridad (cada persona solo cambia lo suyo).
    Mientras no se ejecute, todo esto se esconde y la web funciona igual que antes.
-2. **Avisos de lanzamiento** (opcional): el Worker revisa cada día a las 9:00 UTC
+2. **Aviso de lanzamiento en la web**: funciona solo. Cuando llega la fecha de
+   `release` de `js/projects.js`, quien pidió aviso lo ve arriba al entrar con su cuenta.
+3. **Avisos por correo** (opcional): el Worker revisa cada día a las 9:00 UTC
    qué juegos han salido (tabla `game_releases`) y escribe a quien pidió aviso.
    Necesita `npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY` y un dominio
    verificado en Resend en `MAIL_FROM`.
-3. Para cambiar una fecha de lanzamiento, actualizarla en `js/projects.js`
+4. Para cambiar una fecha de lanzamiento, actualizarla en `js/projects.js`
    **y** en la tabla `game_releases`.
 
 Los récords se comprueban en el servidor (valores posibles y, en Tronk Fight,

@@ -3,6 +3,13 @@
 Historia de la web de TronkStudios agrupada por versiones. Cada versión
 resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 
+## [v7.1] · Octubre de 2026 · Aviso de lanzamiento en la web
+
+### Añadido
+- Si pediste «Avísame cuando salga» y el juego ya ha salido, al entrar en la web
+  con tu cuenta aparece arriba un aviso con un botón para ver su ficha. Al cerrarlo
+  no vuelve a salir en ese navegador. No necesita correo ni dominio.
+
 ## [v7] · Octubre de 2026 · Perfiles, deseados y clasificación
 
 ### Añadido

@@ -3859,3 +3859,48 @@ button.project-thumb:hover {
 .profile-open-button {
   margin-bottom: 0.6rem;
 }
+
+/* Aviso de lanzamiento (js/profiles.js) */
+.launch-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: min(1100px, calc(100% - 2rem));
+  margin: 1rem auto 0;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.launch-notice-text {
+  flex: 1;
+  margin: 0;
+}
+
+.launch-notice-close {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 1.3rem;
+}
+
+@media (max-width: 600px) {
+  .launch-notice {
+    flex-wrap: wrap;
+  }
+
+  .launch-notice-text {
+    flex-basis: calc(100% - 50px);
+  }
+
+  .launch-notice .primary-button {
+    order: 3;
+    width: 100%;
+  }
+}
