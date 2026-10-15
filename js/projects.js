@@ -47,7 +47,7 @@ const PROJECTS = {
     image: "img/juegos/the-sundered-sky.png",
     category: "Juego",
     genre: "RPG · Aventura · Fantasía",
-    platforms: [],
+    platforms: ["PC"],
     status: "development",
     people: 1,
     trailer: "",

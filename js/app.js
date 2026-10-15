@@ -118,6 +118,8 @@ document.addEventListener(
 
 initializeHeroParticles();
 
+initializeHeroCounts();
+
 initializeProjects();
 
 initializeNews();
