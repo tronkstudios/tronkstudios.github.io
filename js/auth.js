@@ -783,6 +783,11 @@ if (isSupabaseConfigured()) {
 
       await updateAccountUI();
 
+      // Perfil, deseados y récords de la cuenta (js/profiles.js)
+      if (typeof onPlatformAuthChange === "function" && event !== "TOKEN_REFRESHED") {
+        onPlatformAuthChange();
+      }
+
       // Abre la ventana una sola vez al volver del enlace
       if (
         passwordRecoveryMode &&

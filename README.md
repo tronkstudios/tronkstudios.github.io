@@ -13,6 +13,7 @@ ideas, y escribir al soporte (Tronker o formulario de correo).
 | Web estática | HTML + CSS + JavaScript, sin frameworks | raíz, `css/`, `js/` |
 | Minijuegos | Canvas 2D + Web Audio API (sin archivos de audio) | `js/games/` |
 | Cuentas y sugerencias | Supabase (Auth + base de datos) | `js/auth.js`, `js/suggestions.js` |
+| Perfiles, deseados, récords y clasificación | Supabase | `js/profiles.js`, `docs/supabase/plataforma.sql` |
 | Soporte | Cloudflare Worker + Resend + Turnstile | `index.js` (raíz), `js/support.js` |
 | Alojamiento | GitHub Pages | rama `master` |
 
@@ -29,6 +30,7 @@ js/
   auth.js                  Login, registro, contraseña y sesión
   suggestions.js           Sugerencias: cargar, votar, buscar y filtrar
   projects.js              Tarjetas y ficha de los juegos en desarrollo (datos en PROJECTS)
+  profiles.js              Perfiles, deseados, avisos, récords, insignias y clasificación
   news.js                  Diario de desarrollo: filtros y «Ver entradas anteriores»
   hero.js                  Fondo de partículas de la portada
   games/audio.js           Música y efectos generados con Web Audio
@@ -70,6 +72,31 @@ Las dos más importantes están explicadas en `docs/adr/`:
 6. La web muestra el mensaje de éxito.
 
 El Worker no guarda los mensajes ni los escribe en los logs.
+
+## Perfiles, deseados y clasificación
+
+Con una cuenta, cada persona tiene un **perfil** (avatar, nombre, biografía,
+insignias, lista de deseados y récords), puede **añadir juegos a deseados**,
+pedir **aviso por correo** cuando salgan y sale en la **clasificación** de los
+minijuegos. Para activarlo:
+
+1. **Supabase → SQL Editor**: pegar `docs/supabase/plataforma.sql` y pulsar Run.
+   Crea las tablas con sus reglas de seguridad (cada persona solo cambia lo suyo).
+   Mientras no se ejecute, todo esto se esconde y la web funciona igual que antes.
+2. **Avisos de lanzamiento** (opcional): el Worker revisa cada día a las 9:00 UTC
+   qué juegos han salido (tabla `game_releases`) y escribe a quien pidió aviso.
+   Necesita `npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY` y un dominio
+   verificado en Resend en `MAIL_FROM`.
+3. Para cambiar una fecha de lanzamiento, actualizarla en `js/projects.js`
+   **y** en la tabla `game_releases`.
+
+Los récords se comprueban en el servidor (valores posibles y, en Tronk Fight,
+como mucho una victoria cada 20 segundos), pero como los juegos se ejecutan
+en el navegador, alguien con conocimientos podría enviar un récord falso.
+Si pasa, se borra la fila en la tabla `game_scores`.
+
+Para vender un juego, se añade su tienda en `stores` dentro de `js/projects.js`
+(por ejemplo Steam o itch.io) y sale el botón de compra en su ficha.
 
 ## Tronk Fight
 

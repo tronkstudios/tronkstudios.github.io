@@ -1596,6 +1596,9 @@ function initializeAntitronksGame() {
       saveRecord(record);
     }
 
+    // Si hay sesión iniciada, se guarda en la cuenta (js/profiles.js)
+    window.TronkScores?.submit("antitronks", score);
+
     TronkSound.play(newRecord ? "record" : "gameOver");
 
     updateHud();

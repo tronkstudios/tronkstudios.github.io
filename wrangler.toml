@@ -7,6 +7,7 @@
 #   npx wrangler secret put RESEND_API_KEY
 #   npx wrangler secret put SUPPORT_EMAIL_TO
 #   npx wrangler secret put TURNSTILE_SECRET   (opcional)
+#   npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY   (avisos de lanzamiento)
 # =========================================================
 
 name = "tronkstudios-support"
@@ -32,6 +33,9 @@ AI_BASE_URL = ""
 # Sin dominio propio en Resend, usa exactamente este.
 MAIL_FROM = "Soporte TronkStudios <onboarding@resend.dev>"
 
+# Supabase, para los avisos de lanzamiento por correo (dirección pública)
+SUPABASE_URL = "https://qjjnqhbtovjcbwgcwhgl.supabase.co"
+
 # Límite de peticiones por visitante (IP) gestionado por Cloudflare.
 # period solo puede ser 10 o 60 segundos.
 [[ratelimits]]
@@ -43,3 +47,7 @@ simple = { limit = 8, period = 60 }
 name = "CONTACT_LIMITER"
 namespace_id = "1002"
 simple = { limit = 2, period = 60 }
+
+# Avisos de lanzamiento: se revisan una vez al día (9:00 UTC)
+[triggers]
+crons = ["0 9 * * *"]

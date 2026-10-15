@@ -3,6 +3,25 @@
 Historia de la web de TronkStudios agrupada por versiones. Cada versión
 resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 
+## [v7] · Octubre de 2026 · Perfiles, deseados y clasificación
+
+### Añadido
+- **Perfiles**: avatar, nombre, biografía, fecha de alta, ideas, votos recibidos,
+  insignias, lista de deseados y récords. Se editan desde «Cuenta → Ver mi perfil»
+  y se abren pulsando el nombre de alguien en Comunidad o en la clasificación.
+- **Lista de deseados** y **«Avísame cuando salga»** en la ficha de cada juego,
+  con cuántas personas lo tienen en su lista.
+- **Avisos por correo** del lanzamiento, enviados por el Worker una vez al día.
+- **Récords en la cuenta**: al acabar una partida con sesión iniciada; al entrar se
+  suben los récords que ya había en el navegador. Tronk Fight cuenta victorias contra el bot.
+- **Clasificación** de los 4 minijuegos (los 10 mejores).
+- **10 insignias** calculadas con datos reales (Fundador, Primera idea, Fan...).
+- Botones de **tienda** en la ficha cuando un juego tiene `stores` (Steam, itch.io...).
+- `docs/supabase/plataforma.sql` con las tablas y sus reglas de seguridad.
+
+### Cambiado
+- Tronker añade Tronk Fight y explica que con sesión los récords se guardan en la cuenta.
+
 ## [v6.1] · Octubre de 2026 · Logo animado
 
 ### Cambiado

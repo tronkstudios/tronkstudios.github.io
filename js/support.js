@@ -515,6 +515,7 @@ const SUPPORT_CONFIG = {
         ["Antitronks", "juego_tipo"],
         ["Protect Mogos", "juego_tipo"],
         ["Stick Drill", "juego_tipo"],
+        ["Tronk Fight", "juego_tipo"],
         ["Todos", "juego_tipo"]
       ]
     },
@@ -579,11 +580,11 @@ const SUPPORT_CONFIG = {
     },
     juego_record: {
       msg: [
-        "Los récords se guardan en tu navegador, no en tu cuenta. Por eso se pierden si:",
+        "Sin iniciar sesión, los récords se guardan solo en tu navegador. Por eso se pierden si:",
         "• Juegas en otro navegador o en otro dispositivo.\n" +
           "• Juegas en una ventana de incógnito.\n" +
           "• Borras los datos o las cookies del navegador.",
-        "Si juegas siempre en el mismo navegador y sin borrar datos, tu récord se mantendrá."
+        "Si inicias sesión, tus récords se guardan también en tu cuenta: los verás en tu perfil y en la clasificación de Minijuegos, desde cualquier dispositivo."
       ],
       options: [
         ["👍 Entendido", "fin_pregunta"],
@@ -618,7 +619,7 @@ const SUPPORT_CONFIG = {
     /* ---------- BORRAR CUENTA ---------- */
     borrar: {
       msg: [
-        "Borrar la cuenta elimina también tus sugerencias, y no se puede deshacer.",
+        "Borrar la cuenta elimina también tus sugerencias, tu perfil, tu lista de deseados y tus récords, y no se puede deshacer.",
         "¿Seguro que quieres seguir?"
       ],
       options: [
