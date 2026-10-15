@@ -97,37 +97,9 @@
     }
   </script>
 
-  <link rel="stylesheet" href="css/styles.css?v=26" />
+  <link rel="stylesheet" href="css/styles.css?v=28" />
   <link rel="stylesheet" href="css/tronk-fight.css?v=3" />
 
-  <!-- Estilos de la portada (imagen principal arriba del todo) -->
-  <style>
-    .hero {
-      padding: 40px 0 8px;
-    }
-
-    .hero-inner {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      gap: 16px;
-    }
-
-    .hero-image {
-      width: 100%;
-      max-width: 320px;
-      height: auto;
-      border-radius: 24px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-    }
-
-    .hero-text {
-      max-width: 560px;
-      margin: 0;
-      font-size: 1.1rem;
-    }
-  </style>
 
   <script
     src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
@@ -142,14 +114,16 @@
   <script src="js/theme.js?v=19" defer></script>
   <script src="js/ui.js?v=19" defer></script>
   <script src="js/auth.js?v=19" defer></script>
-  <script src="js/suggestions.js?v=20" defer></script>
-  <script src="js/projects.js?v=22" defer></script>
+  <script src="js/suggestions.js?v=21" defer></script>
+  <script src="js/projects.js?v=24" defer></script>
+  <script src="js/news.js?v=1" defer></script>
+  <script src="js/hero.js?v=1" defer></script>
   <script src="js/games/audio.js?v=19" defer></script>
   <script src="js/games/antitronks.js?v=19" defer></script>
   <script src="js/games/protect-mogos.js?v=19" defer></script>
   <script src="js/games/stick-drill.js?v=19" defer></script>
   <script src="js/games/tronk-fight.js?v=3" defer></script>
-  <script src="js/app.js?v=19" defer></script>
+  <script src="js/app.js?v=20" defer></script>
 
   <!-- Sistema de soporte (chat con Tronker + formulario de correo) -->
   <script src="js/support.js?v=6" defer></script>
@@ -216,6 +190,7 @@
         <a href="#roblox">Roblox</a>
         <a href="#minijuegos">Minijuegos</a>
         <a href="#sugerencias">Comunidad</a>
+        <a href="#novedades">Novedades</a>
         <a href="#sobre-nosotros">Sobre nosotros</a>
       </nav>
 
@@ -277,20 +252,51 @@
          PORTADA
          =================================================== -->
 
-    <section class="hero" aria-label="TronkStudios">
+    <section class="hero" aria-labelledby="hero-title">
+      <!-- Fondo con partículas (js/hero.js). Es solo decoración. -->
+      <canvas class="hero-particles" aria-hidden="true"></canvas>
+
       <div class="container hero-inner">
+        <div class="hero-content">
+          <p class="hero-eyebrow">Estudio independiente de videojuegos</p>
+
+          <h2 id="hero-title" class="hero-title">
+            Videojuegos y <span>determinación</span>
+          </h2>
+
+          <p class="hero-text">
+            Creamos juegos originales, desde experiencias en Roblox hasta
+            minijuegos que se juegan en el navegador. Descubre nuestros
+            proyectos, juega y ayúdanos a decidir qué construimos después.
+          </p>
+
+          <div class="hero-actions">
+            <a class="hero-button hero-button-primary" href="#desarrollo" data-nav-link>
+              🎮 Explorar los juegos
+            </a>
+            <a class="hero-button hero-button-secondary" href="#minijuegos" data-nav-link>
+              Jugar minijuegos
+            </a>
+          </div>
+
+          <ul class="hero-facts" aria-label="TronkStudios en cifras">
+            <li><strong>2</strong> juegos en desarrollo</li>
+            <li><strong>4</strong> minijuegos gratis</li>
+            <li><strong>100 %</strong> hecho por los Tronks</li>
+          </ul>
+        </div>
+
         <img
           class="hero-image"
           src="tronkstudios-preview.jpg"
-          alt="TronkStudios"
+          alt="Logo de TronkStudios: Videojuegos y determinación"
           width="1200"
           height="1200"
           fetchpriority="high"
         />
-        <p class="hero-text">
-          Descubre nuestros juegos, propón ideas y juega minijuegos épicos creados por los Tronks.
-        </p>
+      </div>
 
+      <div class="container hero-extra">
         <!--
           CANAL DE YOUTUBE
         -->
@@ -714,7 +720,8 @@
             </h2>
 
             <p>
-              Mira las ideas propuestas por la comunidad.
+              Consulta las ideas de la comunidad, vota tus favoritas
+              y propón las tuyas.
             </p>
 
           </div>
@@ -730,6 +737,20 @@
 
         </div>
 
+
+        <!-- Se rellena desde js/suggestions.js -->
+        <p id="suggestions-summary" class="suggestions-summary" aria-live="polite"></p>
+
+        <div id="community-hint" class="community-hint" hidden>
+          <span class="community-hint-icon" aria-hidden="true">🗳️</span>
+          <p>
+            <strong>Únete a la comunidad.</strong>
+            Crea una cuenta gratis para proponer ideas y votar las que más te gusten.
+          </p>
+          <button id="community-register" class="primary-button" type="button">
+            Crear cuenta
+          </button>
+        </div>
 
         <div class="suggestion-tabs">
 
@@ -787,6 +808,15 @@
 
           </select>
 
+          <select
+            id="suggestion-sort"
+            class="suggestion-category"
+            aria-label="Ordenar sugerencias"
+          >
+            <option value="recent">Más recientes</option>
+            <option value="votes">Más votadas</option>
+          </select>
+
         </div>
 
 
@@ -807,12 +837,141 @@
 
 
     <!-- ===================================================
-         SOBRE NOSOTROS
+         DIARIO DE DESARROLLO
+         Para añadir una entrada, copia un <article> y ponlo el
+         PRIMERO. data-tag: development, update o announcement.
          =================================================== -->
 
     <section
-      id="sobre-nosotros"
+      id="novedades"
       class="section"
+      aria-labelledby="novedades-title"
+    >
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <h2 id="novedades-title">
+              Diario de desarrollo
+            </h2>
+            <p>
+              Las últimas novedades de nuestros juegos y de la web.
+            </p>
+          </div>
+        </div>
+
+        <div class="news-filters" role="group" aria-label="Filtrar novedades">
+          <button class="news-filter" type="button" data-filter="all" aria-pressed="true">Todas</button>
+          <button class="news-filter" type="button" data-filter="development" aria-pressed="false">Desarrollo</button>
+          <button class="news-filter" type="button" data-filter="update" aria-pressed="false">Actualización</button>
+          <button class="news-filter" type="button" data-filter="announcement" aria-pressed="false">Anuncio</button>
+        </div>
+
+        <div id="news-list" class="news-list">
+          <article class="news-entry" data-tag="update">
+            <div class="news-entry-meta">
+              <time datetime="2026-10-15">15 oct 2026</time>
+              <span class="news-tag news-tag-update">Actualización</span>
+            </div>
+            <h3>Nueva portada y diario de desarrollo</h3>
+            <p>La web estrena portada con fondo animado, fichas de juego más completas, un apartado de comunidad renovado, la sección «Sobre TronkStudios» y este diario para contar cada novedad.</p>
+          </article>
+
+          <article class="news-entry" data-tag="update">
+            <div class="news-entry-meta">
+              <time datetime="2026-10-08">8 oct 2026</time>
+              <span class="news-tag news-tag-update">Actualización</span>
+            </div>
+            <h3>Ahora puedes quitar tu voto</h3>
+            <p>En Comunidad, si ya has votado una idea, al pulsar otra vez 👍 se retira tu voto. También cambiamos el orden de la página: los juegos en desarrollo van primero.</p>
+          </article>
+
+          <article class="news-entry" data-tag="announcement">
+            <div class="news-entry-meta">
+              <time datetime="2026-10-06">6 oct 2026</time>
+              <span class="news-tag news-tag-announcement">Anuncio</span>
+            </div>
+            <h3>The Sundered Sky entra en desarrollo</h3>
+            <p>Nuevo proyecto: un RPG de fantasía en un mundo de islas flotantes hechas de cubos, que se recorre en barco volador con amigos. Ya tiene su ficha en «Juegos en desarrollo».</p>
+          </article>
+
+          <article class="news-entry" data-tag="update">
+            <div class="news-entry-meta">
+              <time datetime="2026-10-06">6 oct 2026</time>
+              <span class="news-tag news-tag-update">Actualización</span>
+            </div>
+            <h3>Tronk Fight a dos jugadores</h3>
+            <p>Tronk Fight ya se puede jugar contra un amigo en el mismo teclado o en el mismo móvil, con un mando para cada uno. En móvil ocupa toda la pantalla y los controles no tapan a los luchadores.</p>
+          </article>
+
+          <article class="news-entry" data-tag="announcement">
+            <div class="news-entry-meta">
+              <time datetime="2026-10-05">5 oct 2026</time>
+              <span class="news-tag news-tag-announcement">Anuncio</span>
+            </div>
+            <h3>Nuevo minijuego: Tronk Fight</h3>
+            <p>Un duelo de stickmans con 7 luchadores, cada uno con su arma y su ataque especial, parrys, esquivas y un bot con 3 dificultades. Equilibrado con miles de combates simulados.</p>
+          </article>
+
+          <article class="news-entry" data-tag="announcement">
+            <div class="news-entry-meta">
+              <time datetime="2026-10-05">5 oct 2026</time>
+              <span class="news-tag news-tag-announcement">Anuncio</span>
+            </div>
+            <h3>Tráiler de Z Tronks</h3>
+            <p>Publicamos el primer tráiler de Z Tronks, que se puede ver en su tarjeta y en su ficha.</p>
+          </article>
+
+          <article class="news-entry" data-tag="development">
+            <div class="news-entry-meta">
+              <time datetime="2026-10-05">5 oct 2026</time>
+              <span class="news-tag news-tag-development">Desarrollo</span>
+            </div>
+            <h3>Ordenamos el código de la web</h3>
+            <p>Dividimos un archivo de 8.000 líneas en 11 piezas, documentamos las decisiones importantes y el soporte empezó a enviar una respuesta automática a quien nos escribe.</p>
+          </article>
+
+          <article class="news-entry" data-tag="update">
+            <div class="news-entry-meta">
+              <time datetime="2026-09-29">29 sep 2026</time>
+              <span class="news-tag news-tag-update">Actualización</span>
+            </div>
+            <h3>Stick Drill en el móvil</h3>
+            <p>Stick Drill se puede jugar en el móvil con dos joysticks táctiles, a dos jugadores en la misma pantalla o contra el bot.</p>
+          </article>
+
+          <article class="news-entry" data-tag="development">
+            <div class="news-entry-meta">
+              <time datetime="2026-09-28">28 sep 2026</time>
+              <span class="news-tag news-tag-development">Desarrollo</span>
+            </div>
+            <h3>Soporte de verdad</h3>
+            <p>Conectamos el soporte a un servidor propio: el chat con Tronker y el formulario de correo funcionan sin dejar ninguna clave secreta a la vista.</p>
+          </article>
+
+          <article class="news-entry" data-tag="announcement">
+            <div class="news-entry-meta">
+              <time datetime="2026-09-26">26 sep 2026</time>
+              <span class="news-tag news-tag-announcement">Anuncio</span>
+            </div>
+            <h3>Nace la web de TronkStudios</h3>
+            <p>Primera versión de nuestra web, hecha en un repositorio aparte (TronkWeb) y unida después a la actual.</p>
+          </article>
+        </div>
+
+        <button id="news-more" class="secondary-button news-more" type="button" hidden>
+          Ver entradas anteriores
+        </button>
+      </div>
+    </section>
+
+
+    <!-- ===================================================
+         SOBRE NOSOTROS
+         =================================================== -->
+
+        <section
+      id="sobre-nosotros"
+      class="section alt"
       aria-labelledby="sobre-nosotros-title"
     >
 
@@ -822,12 +981,11 @@
 
           <div>
 
-            <h2 id="sobre-nosotros-title">
-              Sobre nosotros
+                        <h2 id="sobre-nosotros-title">
+              Sobre TronkStudios
             </h2>
-
             <p>
-              Quiénes somos y qué hacemos.
+              Quiénes somos, qué juegos queremos crear y cómo trabajamos.
             </p>
 
           </div>
@@ -848,6 +1006,66 @@
             originales y divertidos para que la gente se lo pase bien.
             Nos esmeramos al máximo en lo que hacemos.
           </p>
+        </div>
+
+                <!--
+          EL ESTUDIO: qué somos, qué hacemos y qué nos diferencia.
+          REVISA Y AJUSTA los textos para que suenen a vosotros.
+        -->
+        <div class="studio-grid">
+          <article class="studio-card">
+            <span class="studio-icon" aria-hidden="true">🏠</span>
+            <h3>Qué es el estudio</h3>
+            <p>
+              TronkStudios es un estudio independiente de videojuegos.
+              Somos un equipo pequeño que diseña, programa y publica sus
+              propios juegos, de la primera idea al lanzamiento.
+            </p>
+          </article>
+
+          <article class="studio-card">
+            <span class="studio-icon" aria-hidden="true">🎮</span>
+            <h3>Qué juegos creamos</h3>
+            <p>
+              Juegos de acción, aventura y supervivencia pensados para
+              jugar con amigos: experiencias en Roblox, RPG con mundos
+              por explorar y minijuegos rápidos para el navegador.
+            </p>
+          </article>
+
+          <article class="studio-card">
+            <span class="studio-icon" aria-hidden="true">⚡</span>
+            <h3>Qué nos diferencia</h3>
+            <p>
+              Escuchamos a quien juega: las ideas de la comunidad se votan
+              aquí mismo y guían lo que hacemos. Y contamos el desarrollo
+              en abierto, con nuestro diario y el código de la web en GitHub.
+            </p>
+          </article>
+
+          <article class="studio-card">
+            <span class="studio-icon" aria-hidden="true">🎯</span>
+            <h3>Nuestros objetivos</h3>
+            <ul>
+              <li>Lanzar Z Tronks en Roblox.</li>
+              <li>Seguir construyendo The Sundered Sky.</li>
+              <li>Añadir más minijuegos gratis a la web.</li>
+              <li>Hacer crecer la comunidad de los Tronks.</li>
+            </ul>
+          </article>
+        </div>
+
+        <div class="studio-tech">
+          <h3 class="about-subtitle">Tecnologías que usamos</h3>
+          <ul class="tech-list" aria-label="Tecnologías">
+            <li>Roblox Studio</li>
+            <li>HTML, CSS y JavaScript</li>
+            <li>Canvas 2D</li>
+            <li>Web Audio API</li>
+            <li>Supabase</li>
+            <li>Cloudflare Workers</li>
+            <li>GitHub Pages</li>
+          </ul>
         </div>
 
         <!--
@@ -1511,16 +1729,34 @@
         ×
       </button>
 
-      <div class="project-modal-media">
+      <figure class="project-modal-media">
         <img id="project-modal-image" src="" alt="" />
-      </div>
+        <figcaption id="project-modal-caption" class="project-modal-caption"></figcaption>
+      </figure>
+
+      <div
+        id="project-modal-gallery"
+        class="project-gallery"
+        role="group"
+        aria-label="Capturas y arte conceptual"
+      ></div>
 
       <div class="project-modal-head">
         <h2 id="project-modal-title">Juego</h2>
-        <span class="project-badge">En desarrollo</span>
+        <span id="project-modal-badge" class="project-badge">En desarrollo</span>
       </div>
 
       <div class="project-stats">
+        <div class="project-stat">
+          <span class="project-stat-label">🎭 Género</span>
+          <strong id="project-modal-genre"></strong>
+        </div>
+
+        <div class="project-stat">
+          <span class="project-stat-label">🖥️ Plataformas</span>
+          <strong id="project-modal-platforms"></strong>
+        </div>
+
         <div class="project-stat">
           <span class="project-stat-label">Categoría</span>
           <strong id="project-modal-category"></strong>
@@ -1532,7 +1768,12 @@
         </div>
 
         <div class="project-stat">
-          <span class="project-stat-label">🚀 Lanzamiento</span>
+          <span class="project-stat-label">🛠️ Estado</span>
+          <strong id="project-modal-status"></strong>
+        </div>
+
+        <div class="project-stat">
+          <span class="project-stat-label">🚀 Lanzamiento estimado</span>
           <strong id="project-modal-release"></strong>
           <span id="project-modal-countdown" class="project-countdown"></span>
         </div>

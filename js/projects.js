@@ -12,18 +12,29 @@
  * Datos de los juegos en desarrollo. Para añadir otro juego:
  * copia el bloque de "z-tronks", cambia los datos y pon
  * data-project="su-id" en su tarjeta del index.html.
+ *
+ * - genre: géneros, separados por « · ».
+ * - platforms: lista de plataformas. Vacía ([]) = «Por confirmar».
+ * - status: fase del desarrollo. Una de las de PROJECT_STATUSES.
+ * - gallery: capturas o arte conceptual EXTRA (la imagen principal
+ *   ya sale la primera). Sube las imágenes a img/juegos/ y añade
+ *   { src: "img/juegos/...", caption: "Qué se ve" }.
  */
 const PROJECTS = {
   "z-tronks": {
     title: "Z Tronks",
     image: "img/juegos/z-tronks.png",
     category: "Roblox",
+    genre: "Acción · Supervivencia · Cooperativo",
+    platforms: ["Roblox"],
+    status: "development",
     people: 5,
     // ID del vídeo de YouTube del tráiler (lo que va después de youtu.be/).
     // Déjalo vacío ("") si un juego no tiene tráiler.
     trailer: "VrHyQbwUtrY",
     // Año, mes (1-12), día
     release: [2027, 1, 4],
+    gallery: [],
     description: [
       "Z Tronks es un juego de acción y supervivencia ambientado en un mundo devastado por un apocalipsis zombi. Los jugadores deberán explorar una ciudad abandonada, enfrentarse a diferentes tipos de zombis, completar misiones y conseguir experiencia y recursos para mejorar a su personaje.",
       "Cada jugador podrá elegir entre distintas clases, como Gunner, Warrior, Rogue y Medic, cada una con sus propias armas, habilidades y estilos de combate. A medida que avances, podrás desbloquear nuevas habilidades, conseguir mejor equipamiento y enfrentarte a enemigos cada vez más peligrosos.",
@@ -35,10 +46,14 @@ const PROJECTS = {
     title: "The Sundered Sky",
     image: "img/juegos/the-sundered-sky.png",
     category: "Juego",
+    genre: "RPG · Aventura · Fantasía",
+    platforms: [],
+    status: "development",
     people: 1,
     trailer: "",
     // null = todavía no tiene fecha de lanzamiento
     release: null,
+    gallery: [],
     description: [
       "The Sundered Sky es un RPG de fantasía y aventuras en un mundo hecho de cubos. Hace siglos, un gran cataclismo conocido como la Ruptura partió el antiguo continente en pedazos, y hoy sus restos flotan como islas sobre un inmenso mar de nubes.",
       "Junto a tus amigos viajarás en un barco volador por un archipiélago que se genera al azar en cada partida. Explora biomas muy distintos, descubre criaturas nunca vistas, visita ciudades de razas y facciones con sus propias ideas, y adéntrate en mazmorras llenas de tesoros. Elige tu clase, consigue armas y armaduras, fabrica equipo, doma mascotas y mejora tu barco para llegar cada vez más lejos.",
@@ -46,6 +61,25 @@ const PROJECTS = {
     ]
   }
 };
+
+/* Fases del desarrollo y su texto. */
+const PROJECT_STATUSES = {
+  concept: { label: "Idea" },
+  development: { label: "En desarrollo" },
+  alpha: { label: "Alfa" },
+  beta: { label: "Beta" },
+  released: { label: "Disponible" }
+};
+
+function projectStatus(project) {
+  return PROJECT_STATUSES[project.status] || PROJECT_STATUSES.development;
+}
+
+function projectPlatforms(project) {
+  return project.platforms && project.platforms.length
+    ? project.platforms.join(", ")
+    : "Por confirmar";
+}
 
 function formatReleaseDate([year, month, day]) {
   return new Date(year, month - 1, day).toLocaleDateString("es-ES", {
@@ -88,14 +122,14 @@ function openProjectModal(id) {
     countdown = "¡Ya disponible!";
   }
 
-  const image = modal.querySelector("#project-modal-image");
-
-  if (image) {
-    image.src = project.image;
-    image.alt = project.title;
-  }
+  const status = projectStatus(project);
 
   modal.querySelector("#project-modal-title").textContent = project.title;
+  modal.querySelector("#project-modal-badge").textContent = status.label;
+  modal.querySelector("#project-modal-genre").textContent = project.genre || "Por confirmar";
+  modal.querySelector("#project-modal-platforms").textContent = projectPlatforms(project);
+  modal.querySelector("#project-modal-status").textContent = status.label;
+
   modal.querySelector("#project-modal-category").textContent = project.category;
   modal.querySelector("#project-modal-people").textContent =
     `${project.people} ${project.people === 1 ? "persona" : "personas"}`;
@@ -116,11 +150,75 @@ function openProjectModal(id) {
     description.appendChild(p);
   });
 
+  renderProjectGallery(modal, project);
+
   // El tráiler va SIEMPRE al final de la descripción.
   // Si el juego aún no tiene, se avisa de que no hay tráiler.
   description.appendChild(createTrailer(project));
 
   openModal(modal);
+}
+
+/* =========================================================
+   CAPTURAS DE LA FICHA
+   La imagen principal va primero; al pulsar una miniatura se
+   ve en grande arriba. Si el juego aún no tiene capturas, se
+   añade un hueco de «Próximamente».
+   ========================================================= */
+
+function renderProjectGallery(modal, project) {
+  const gallery = modal.querySelector("#project-modal-gallery");
+  const mainImage = modal.querySelector("#project-modal-image");
+  const caption = modal.querySelector("#project-modal-caption");
+
+  if (!gallery || !mainImage) {
+    return;
+  }
+
+  const images = [
+    { src: project.image, caption: "Arte principal" },
+    ...(project.gallery || [])
+  ];
+
+  gallery.innerHTML = "";
+
+  function show(index) {
+    mainImage.src = images[index].src;
+    mainImage.alt = `${project.title}: ${images[index].caption}`;
+
+    if (caption) {
+      caption.textContent = images[index].caption;
+    }
+
+    gallery.querySelectorAll(".project-thumb").forEach((thumb, i) => {
+      thumb.setAttribute("aria-pressed", String(i === index));
+    });
+  }
+
+  images.forEach((item, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "project-thumb";
+    button.setAttribute("aria-label", `Ver ${item.caption}`);
+
+    const img = document.createElement("img");
+    img.src = item.src;
+    img.alt = "";
+    img.loading = "lazy";
+
+    button.appendChild(img);
+    button.addEventListener("click", () => show(index));
+    gallery.appendChild(button);
+  });
+
+  if (!project.gallery || project.gallery.length === 0) {
+    const soon = document.createElement("div");
+    soon.className = "project-thumb project-thumb-soon";
+    soon.innerHTML = '<span aria-hidden="true">📸</span> Más capturas pronto';
+    gallery.appendChild(soon);
+  }
+
+  show(0);
 }
 
 /* =========================================================
@@ -234,6 +332,31 @@ function addCardTrailer(card, project) {
   card.appendChild(wrapper);
 }
 
+/*
+ * Datos rápidos en la TARJETA: género, plataformas y fase,
+ * y un aviso de que al pulsar se abre la ficha completa.
+ */
+function addCardMeta(card, project) {
+  const meta = document.createElement("ul");
+  meta.className = "card-meta";
+
+  [
+    `🎭 ${project.genre || "Por confirmar"}`,
+    `🖥️ ${projectPlatforms(project)}`,
+    `🛠️ ${projectStatus(project).label}`
+  ].forEach((text) => {
+    const item = document.createElement("li");
+    item.textContent = text;
+    meta.appendChild(item);
+  });
+
+  const more = document.createElement("p");
+  more.className = "card-more";
+  more.textContent = "Ver ficha completa →";
+
+  card.append(meta, more);
+}
+
 function initializeProjects() {
   stopTrailerWhenModalCloses();
 
@@ -244,6 +367,7 @@ function initializeProjects() {
 
       // Con tráiler se muestra el vídeo; sin tráiler, el aviso.
       if (PROJECTS[id]) {
+        addCardMeta(card, PROJECTS[id]);
         addCardTrailer(card, PROJECTS[id]);
       }
 
