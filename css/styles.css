@@ -692,7 +692,27 @@ img {
 }
 
 .suggestion-author {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
   font-weight: 900;
+}
+
+.suggestion-author span {
+  overflow-wrap: anywhere;
+}
+
+.suggestion-avatar {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+#suggestion-form [hidden] {
+  display: none;
 }
 
 .suggestion-date {
