@@ -5147,3 +5147,245 @@ button.card-trailer-title {
   opacity: 0.6;
   font-size: 0.85em;
 }
+
+/* =========================================================
+   YOUTUBE: ÚLTIMOS VÍDEOS (js/apis.js)
+   ========================================================= */
+
+.videos {
+  margin-top: 2rem;
+}
+
+.videos[hidden],
+.roblox-games[hidden],
+.project-roblox[hidden] {
+  display: none;
+}
+
+.videos-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0.9rem;
+}
+
+.videos-title .icon {
+  color: #ff0033;
+}
+
+.videos-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.video-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  text-decoration: none;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.video-card:hover {
+  transform: translateY(-3px);
+  border-color: #ff0033;
+}
+
+.video-media {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #000;
+}
+
+.video-media img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 52px;
+  height: 52px;
+  padding: 14px 12px 14px 16px;
+  border-radius: 50%;
+  background: rgba(255, 0, 51, 0.9);
+  color: #fff;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+.video-title {
+  display: -webkit-box;
+  margin: 0.75rem 0.9rem 0.25rem;
+  overflow: hidden;
+  font-weight: 800;
+  line-height: 1.35;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.video-meta {
+  margin: 0 0.9rem 0.85rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* =========================================================
+   ROBLOX: DATOS EN DIRECTO (js/apis.js)
+   ========================================================= */
+
+.roblox-games {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr));
+  gap: 1rem;
+}
+
+.roblox-card {
+  padding: 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.roblox-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+
+.roblox-card-head img {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.roblox-card-head h3 {
+  flex: 1;
+  margin: 0;
+}
+
+.roblox-live,
+.roblox-stat.is-live strong::after {
+  color: var(--success);
+}
+
+.roblox-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+/* Punto verde que late, como «en directo» */
+.roblox-live::before,
+.roblox-stat.is-live .icon {
+  animation: roblox-pulse 1.6s ease-in-out infinite;
+}
+
+.roblox-live::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+}
+
+@keyframes roblox-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.roblox-stats {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.project-roblox {
+  padding: 1rem 1.5rem 0;
+}
+
+.roblox-stat-list {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.roblox-stat {
+  display: grid;
+  justify-items: center;
+  gap: 0.15rem;
+  padding: 0.6rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  text-align: center;
+}
+
+.roblox-stat .icon {
+  color: var(--accent);
+}
+
+.roblox-stat.is-live .icon {
+  color: var(--success);
+}
+
+.roblox-stat strong {
+  font-size: 1.15rem;
+  white-space: nowrap;
+}
+
+.roblox-stat span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.roblox-play {
+  text-decoration: none;
+}
+
+@media (max-width: 480px) {
+  .roblox-stat-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .roblox-games {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .roblox-live::before,
+  .roblox-stat.is-live .icon {
+    animation: none;
+  }
+
+  .video-card:hover {
+    transform: none;
+  }
+}
+
+.empty-state[hidden] {
+  display: none;
+}

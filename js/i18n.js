@@ -369,6 +369,15 @@ const I18N_EN = {
   "Volver al primer paso": "Back to the first step",
   "Ver el siguiente paso": "See the next step",
 
+  /* ---------- YouTube y Roblox ---------- */
+  "Últimos vídeos": "Latest videos",
+  "Jugando ahora": "Playing now",
+  "Visitas": "Visits",
+  "Favoritos": "Favorites",
+  "Me gusta": "Likes",
+  "Jugar en Roblox": "Play on Roblox",
+  "En directo": "Live",
+
   /* ---------- Pie y app ---------- */
   "Ver el CHANGELOG": "View the CHANGELOG",
   "Llega la v6 de la web": "Version 6 of the website is here",
@@ -896,6 +905,8 @@ const I18N_PATTERNS = [
   [/^hace (\d+) min$/, (_, n) => `${n} min ago`],
   [/^hace (\d+) h$/, (_, n) => `${n} h ago`],
   [/^hace (\d+) días?$/, (_, n) => `${n} ${plural(n, "day", "days")} ago`],
+  [/^(.+) · ([\d.,]+\s?[KMB]?) visualizaci(ón|ones)$/,
+    (_, date, n, form) => `${date} · ${n} ${form === "ón" ? "view" : "views"}`],
   [/^Notificaciones: (\d+) sin leer$/, (_, n) => `Notifications: ${n} unread`],
   [/^Miembro desde (.+)$/, (_, date) => `Member since ${date}`],
   [/^Crear la cuenta en (\d+)$/, (_, y) => `Create your account in ${y}`],
