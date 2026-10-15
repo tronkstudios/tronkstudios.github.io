@@ -9,6 +9,14 @@
    ========================================================= */
 
 function openSuggestionModal() {
+  // Sin cuenta no se puede enviar: se abre directamente «Cuenta»
+  if (isSupabaseConfigured() && !currentUser) {
+    openAccountForCommunity(
+      "Inicia sesión o crea una cuenta para proponer ideas."
+    );
+    return;
+  }
+
   showSuggestionMessage("");
 
   if (suggestionForm) {
@@ -35,6 +43,27 @@ if (footerSuggestionButton) {
     openSuggestionModal
   );
 }
+
+/* Abre la ventana de cuenta con un aviso (para votar o proponer). */
+function openAccountForCommunity(message, register = false) {
+  if (register) {
+    showRegisterPanel();
+  } else {
+    showLoginPanel();
+  }
+
+  openModal(accountModal);
+  showAuthMessage(message, register ? "" : "error");
+}
+
+document
+  .getElementById("community-register")
+  ?.addEventListener("click", () => {
+    openAccountForCommunity(
+      "Crea tu cuenta para proponer ideas y votar.",
+      true
+    );
+  });
 
 /* =========================================================
    CONTADOR
@@ -184,6 +213,8 @@ function renderSuggestions(
     return;
   }
 
+  updateCommunityHeader();
+
   let filtered = [
     ...allSuggestions
   ];
@@ -243,6 +274,12 @@ function renderSuggestions(
       );
   }
 
+  if (document.getElementById("suggestion-sort")?.value === "votes") {
+    filtered.sort(
+      (a, b) => (b.votes || 0) - (a.votes || 0)
+    );
+  }
+
   if (
     filtered.length === 0
   ) {
@@ -267,6 +304,33 @@ function renderSuggestions(
       );
     }
   );
+}
+
+/* =========================================================
+   RESUMEN Y AVISO DE CUENTA
+   ========================================================= */
+
+function updateCommunityHeader() {
+  const summary =
+    document.getElementById("suggestions-summary");
+  const hint =
+    document.getElementById("community-hint");
+
+  if (summary) {
+    const ideas = allSuggestions.length;
+    const votes = allSuggestions.reduce(
+      (total, suggestion) => total + (suggestion.votes || 0),
+      0
+    );
+
+    summary.textContent = ideas
+      ? `💡 ${ideas} ${ideas === 1 ? "idea" : "ideas"} · 👍 ${votes} ${votes === 1 ? "voto" : "votos"}`
+      : "";
+  }
+
+  if (hint) {
+    hint.hidden = !isSupabaseConfigured() || Boolean(currentUser);
+  }
 }
 
 /* =========================================================
@@ -617,10 +681,8 @@ async function voteSuggestion(
   // Para votar hay que iniciar sesión
   if (!currentUser) {
     await updateAccountUI();
-    openModal(accountModal);
-    showAuthMessage(
-      "Inicia sesión para votar las sugerencias.",
-      "error"
+    openAccountForCommunity(
+      "Inicia sesión para votar las sugerencias."
     );
     return;
   }
@@ -793,6 +855,24 @@ if (suggestionSearch) {
 
 if (suggestionCategory) {
   suggestionCategory.addEventListener(
+    "change",
+    () => {
+      renderSuggestions(
+        allSuggestions
+      );
+    }
+  );
+}
+
+/* =========================================================
+   ORDENAR
+   ========================================================= */
+
+const suggestionSort =
+  document.getElementById("suggestion-sort");
+
+if (suggestionSort) {
+  suggestionSort.addEventListener(
     "change",
     () => {
       renderSuggestions(
