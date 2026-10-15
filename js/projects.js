@@ -16,6 +16,10 @@
  * - genre: géneros, separados por « · ».
  * - platforms: lista de plataformas. Vacía ([]) = «Por confirmar».
  * - status: fase del desarrollo. Una de las de PROJECT_STATUSES.
+ * - roblox: { placeId: "123456" } para enseñar datos en directo
+ *   (jugadores, visitas, favoritos...). El placeId es el número de
+ *   la dirección del juego: roblox.com/games/NÚMERO/nombre.
+ *   Vacío ("") = todavía no está publicado y no sale nada.
  * - stores: dónde comprarlo o añadirlo a deseados, por ejemplo
  *   [{ label: "Steam", url: "https://store.steampowered.com/app/..." }].
  *   Vacía ([]) = no sale ningún botón.
@@ -30,6 +34,8 @@ const PROJECTS = {
     category: "Roblox",
     genre: "Acción · Supervivencia · Cooperativo",
     platforms: ["Roblox"],
+    // Cuando Z Tronks esté publicado, pon aquí su placeId
+    roblox: { placeId: "" },
     status: "development",
     people: 5,
     // ID del vídeo de YouTube del tráiler (lo que va después de youtu.be/).
@@ -162,6 +168,10 @@ function openProjectModal(id) {
 
   if (typeof renderWishlistButtons === "function") {
     renderWishlistButtons(id);
+  }
+
+  if (typeof renderProjectRoblox === "function") {
+    renderProjectRoblox(id);
   }
 
   // El tráiler va SIEMPRE al final de la descripción.

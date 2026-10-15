@@ -34,6 +34,7 @@ js/
   community.js             Estado de las ideas, encuestas, notificaciones y diario de Supabase
   team.js                  Panel del equipo (ideas, encuestas, diario, récords, lanzamientos y avisos)
   journey.js               «Cómo lo hicimos»: línea temporal paso a paso
+  apis.js                  Últimos vídeos de YouTube y datos en directo de Roblox (vía el Worker)
   pwa.js                   App instalable: registra sw.js, botón «Instalar app» y aviso sin conexión
   i18n.js                  Versión en inglés: diccionario y traductor de la página
 sw.js                      Service worker: guarda la web para usarla sin internet
@@ -142,6 +143,19 @@ Los iconos están dibujados en un `<svg class="icon-sprite">` al principio de
 `index.html` y se usan con `<svg class="icon"><use href="#i-nombre"></use></svg>`
 o, desde JavaScript, con `makeIcon("nombre")` (`js/core.js`). Los avatares de
 perfil son los SVG de `img/avatars/`.
+
+## YouTube y Roblox
+
+El Worker (`index.js`) tiene dos rutas públicas, sin claves:
+- `GET /youtube`: los últimos vídeos del canal (feed RSS de YouTube), guardados 30 minutos.
+- `GET /roblox?place=NÚMERO`: jugadores ahora, visitas, favoritos y «me gusta»
+  de un juego de Roblox, guardados 1 minuto.
+
+La web (`js/apis.js`) enseña los 3 últimos vídeos en Novedades y, para cada
+juego con `roblox.placeId` en `js/projects.js`, sus cifras en la sección Roblox
+y en su ficha (se actualizan cada minuto). El placeId es el número de la
+dirección del juego: `roblox.com/games/NÚMERO/nombre`. Tras cambiar `index.js`
+hay que volver a desplegar el Worker (`npx.cmd wrangler deploy`).
 
 ## App instalable y sin conexión
 
