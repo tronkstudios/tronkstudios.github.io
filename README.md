@@ -32,7 +32,7 @@ js/
   projects.js              Tarjetas y ficha de los juegos en desarrollo (datos en PROJECTS)
   profiles.js              Perfiles, deseados, avisos, récords, insignias y clasificación
   community.js             Estado de las ideas, encuestas, notificaciones y diario de Supabase
-  team.js                  Panel del equipo (ideas, encuestas, diario, récords y lanzamientos)
+  team.js                  Panel del equipo (ideas, encuestas, diario, récords, lanzamientos y avisos)
   journey.js               «Cómo lo hicimos»: línea temporal paso a paso
   news.js                  Diario de desarrollo: filtros y «Ver entradas anteriores»
   hero.js                  Fondo de partículas de la portada
@@ -124,7 +124,9 @@ Con eso aparece **Panel del equipo** en «Cuenta», desde donde se puede:
 - cambiar la **fecha de lanzamiento** de un juego (necesita además
   `docs/supabase/lanzamientos.sql`). Quien lo tiene en su lista de deseados
   recibe una notificación, y la fecha de la tabla `game_releases` manda sobre
-  la de `js/projects.js`.
+  la de `js/projects.js`;
+- enviar **avisos** a todos los usuarios o solo a quien tiene un juego en su
+  lista de deseados (necesita `docs/supabase/avisos.sql`). Llegan a la campana.
 
 Cada persona recibe **notificaciones** (campana de la cabecera) cuando su idea
 llega a 1, 5, 10, 25, 50 o 100 votos, cuando el equipo cambia su estado o le
