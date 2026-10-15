@@ -172,7 +172,7 @@ const menuToggle =
   document.getElementById("menu-toggle");
 
 const mobileMenuQuery =
-  window.matchMedia("(max-width: 700px)");
+  window.matchMedia("(max-width: 1023px)");
 
 function setSiteMenu(open) {
   if (!siteMenu || !menuToggle) {

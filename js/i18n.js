@@ -370,6 +370,10 @@ const I18N_EN = {
   "Ver el siguiente paso": "See the next step",
 
   /* ---------- Pie y app ---------- */
+  "Ver el CHANGELOG": "View the CHANGELOG",
+  "Llega la v6 de la web": "Version 6 of the website is here",
+  "La web se adapta a cualquier pantalla, del móvil más pequeño a un monitor 4K, se puede instalar como una app, funciona sin conexión y ya está en inglés.":
+    "The website adapts to any screen, from the smallest phone to a 4K monitor, can be installed as an app, works offline and is now available in English.",
   "Sin conexión: puedes seguir jugando a los minijuegos.": "You're offline: you can keep playing the minigames.",
   "¿Necesitas ayuda? Soporte": "Need help? Support",
   "Repositorio de TronkStudios en GitHub (se abre en otra pestaña)": "TronkStudios repository on GitHub (opens in a new tab)",
