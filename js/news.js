@@ -55,7 +55,7 @@ function createNewsEntry(row) {
 
   const time = document.createElement("time");
   time.dateTime = row.published_on;
-  time.textContent = new Date(`${row.published_on}T12:00:00`).toLocaleDateString("es-ES", {
+  time.textContent = new Date(`${row.published_on}T12:00:00`).toLocaleDateString(currentLocale(), {
     day: "numeric",
     month: "short",
     year: "numeric"
