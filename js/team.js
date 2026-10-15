@@ -90,7 +90,8 @@ const TEAM_TABS = {
   ideas: renderTeamIdeas,
   polls: renderTeamPolls,
   news: renderTeamNews,
-  scores: renderTeamScores
+  scores: renderTeamScores,
+  releases: renderTeamReleases
 };
 
 function openTeamPanel() {
@@ -100,12 +101,17 @@ function openTeamPanel() {
 
   closeModal(accountModal);
   openModal(document.getElementById("team-modal"));
+  teamMessage("");
   showTeamTab(currentTeamTab);
 }
 
 function showTeamTab(tab) {
+  // El mensaje solo se borra al cambiar de pestaña, no al recargarla
+  if (tab !== currentTeamTab) {
+    teamMessage("");
+  }
+
   currentTeamTab = tab;
-  teamMessage("");
 
   document.querySelectorAll(".team-tab").forEach((button) => {
     button.setAttribute("aria-pressed", String(button.dataset.tab === tab));
@@ -499,6 +505,91 @@ async function renderTeamScores(content) {
         }
       })
     );
+    content.appendChild(card);
+  });
+}
+
+/* =========================================================
+   LANZAMIENTOS: cambiar la fecha de estreno
+   Quien tiene el juego en su lista de deseados recibe un aviso.
+   ========================================================= */
+
+function releaseToInput(release) {
+  if (!Array.isArray(release)) {
+    return "";
+  }
+
+  const [year, month, day] = release;
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+async function renderTeamReleases(content) {
+  await loadReleaseDates();
+  content.replaceChildren(
+    teamElement(
+      "p",
+      "profile-empty",
+      "Al guardar una fecha nueva, quien tenga el juego en su lista de deseados recibe una notificación."
+    )
+  );
+
+  Object.entries(PROJECTS).forEach(([id, project]) => {
+    const card = teamElement("article", "team-card");
+
+    card.append(
+      teamElement(
+        "p",
+        "team-card-meta",
+        Array.isArray(project.release)
+          ? `Ahora: ${formatReleaseDate(project.release)}`
+          : "Ahora: sin fecha"
+      ),
+      teamElement("p", "team-card-text", project.title)
+    );
+
+    const row = teamElement("div", "team-release-row");
+
+    const date = document.createElement("input");
+    date.type = "date";
+    date.value = releaseToInput(project.release);
+    date.setAttribute("aria-label", `Fecha de lanzamiento de ${project.title}`);
+
+    const noDateLabel = teamElement("label", "team-check");
+    const noDate = document.createElement("input");
+    noDate.type = "checkbox";
+    noDate.checked = !Array.isArray(project.release);
+    date.disabled = noDate.checked;
+    noDate.addEventListener("change", () => {
+      date.disabled = noDate.checked;
+    });
+    noDateLabel.append(noDate, document.createTextNode(" Sin fecha"));
+
+    row.append(date, noDateLabel);
+
+    const actions = teamElement("div", "team-card-actions");
+    actions.appendChild(
+      teamButton("primary-button", "calendar", "Guardar fecha", async () => {
+        if (!noDate.checked && !date.value) {
+          teamMessage("Elige una fecha o marca «Sin fecha».", "error");
+          return;
+        }
+
+        const ok = await teamAction(
+          supabaseClient.rpc("set_release_date", {
+            p_project: id,
+            p_title: project.title,
+            p_date: noDate.checked ? null : date.value
+          }),
+          `Fecha de ${project.title} guardada. Se ha avisado a quien lo tiene en deseados.`
+        );
+
+        if (ok) {
+          showTeamTab("releases");
+        }
+      })
+    );
+
+    card.append(row, actions);
     content.appendChild(card);
   });
 }

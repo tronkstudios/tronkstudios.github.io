@@ -3,6 +3,19 @@
 Historia de la web de TronkStudios agrupada por versiones. Cada versión
 resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 
+## [v8.1] · Octubre de 2026 · Historia, diario plegable y fechas de estreno
+
+### Añadido
+- **Cómo lo hicimos** pasa a ser una línea temporal con todo el proceso, desde la
+  idea hasta la web actual, que va apareciendo paso a paso con una flecha.
+- El **diario de desarrollo** se puede ocultar y mostrar (se recuerda en el navegador).
+- Pestaña **Lanzamientos** en el panel del equipo: cambiar la fecha de estreno de
+  cada juego avisa a quien lo tiene en su lista de deseados
+  (`docs/supabase/lanzamientos.sql`).
+
+### Cambiado
+- El perfil solo muestra las insignias conseguidas.
+
 ## [v8] · Octubre de 2026 · Comunidad, iconos y avatares
 
 ### Añadido

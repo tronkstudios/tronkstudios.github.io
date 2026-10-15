@@ -25,7 +25,8 @@ const NOTIFICATION_ICONS = {
   votes: "thumb",
   status: "sparkles",
   reply: "message",
-  record: "trophy"
+  record: "trophy",
+  release: "calendar"
 };
 
 // Cada cuánto se miran las notificaciones nuevas (ms)
