@@ -23,6 +23,18 @@ function openSuggestionModal() {
     suggestionForm.reset();
   }
 
+  // Con perfil, se firma con el nombre de la cuenta (no hace falta escribirlo)
+  const useProfileName =
+    platformAvailable && Boolean(currentUser);
+
+  if (suggestionName) {
+    suggestionName.hidden = useProfileName;
+    suggestionName.required = !useProfileName;
+    suggestionName.labels?.forEach((label) => {
+      label.hidden = useProfileName;
+    });
+  }
+
   updateCharacterCounter();
 
   openModal(
@@ -154,7 +166,10 @@ async function loadSuggestions() {
       return;
     }
 
-    await loadMyVotes();
+    await Promise.all([
+      loadMyVotes(),
+      loadSuggestionAuthors(data || [])
+    ]);
 
     renderSuggestions(
       data || []
@@ -168,6 +183,79 @@ async function loadSuggestions() {
       </div>
     `;
   }
+}
+
+/* =========================================================
+   AUTORES (foto y nombre de su perfil, js/profiles.js)
+   ========================================================= */
+
+// id de usuario → { display_name, avatar }
+let suggestionAuthors = new Map();
+
+async function loadSuggestionAuthors(suggestions) {
+  const ids = [
+    ...new Set(
+      suggestions
+        .map((suggestion) => suggestion.user_id)
+        .filter(Boolean)
+    )
+  ];
+
+  // No espera a platformAvailable (se comprueba a la vez al arrancar):
+  // si no existe la tabla de perfiles, se queda el nombre escrito
+  if (!ids.length) {
+    return;
+  }
+
+  try {
+    const { data, error } = await supabaseClient
+      .from("profiles")
+      .select("id, display_name, avatar")
+      .in("id", ids);
+
+    if (error) {
+      console.warn("No se pudieron cargar los autores:", error.message);
+      return;
+    }
+
+    suggestionAuthors = new Map(
+      (data || []).map((profile) => [profile.id, profile])
+    );
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+/* Nombre que se muestra: el del perfil; si no hay, el que escribió */
+function suggestionAuthorName(suggestion) {
+  return (
+    suggestionAuthors.get(suggestion.user_id)?.display_name ||
+    suggestion.name ||
+    "Usuario"
+  );
+}
+
+/* Nombre del perfil de quien envía (para la columna name) */
+async function myDisplayName(user) {
+  try {
+    const { data } = await supabaseClient
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (data?.display_name) {
+      return data.display_name;
+    }
+  } catch (error) {
+    console.error(error);
+  }
+
+  return (
+    user.user_metadata?.name ||
+    user.email?.split("@")[0] ||
+    "Usuario"
+  ).slice(0, 30);
 }
 
 /* =========================================================
@@ -273,7 +361,7 @@ function renderSuggestions(
       filtered.filter(
         (suggestion) => {
           const text =
-            `${suggestion.name || ""} ${
+            `${suggestionAuthorName(suggestion)} ${
               suggestion.idea || ""
             } ${
               suggestion.category ||
@@ -379,7 +467,7 @@ function createSuggestionCard(
   // Con cuenta, el nombre es un botón que abre su perfil (js/profiles.js)
   const author =
     document.createElement(
-      suggestion.user_id && platformAvailable ? "button" : "strong"
+      suggestion.user_id && (platformAvailable || suggestionAuthors.has(suggestion.user_id)) ? "button" : "strong"
     );
 
   author.className =
@@ -392,9 +480,19 @@ function createSuggestionCard(
     author.addEventListener("click", () => openProfile(suggestion.user_id));
   }
 
-  author.textContent =
-    suggestion.name ||
-    "Usuario";
+  const profile =
+    suggestionAuthors.get(suggestion.user_id);
+
+  const authorName =
+    document.createElement("span");
+
+  authorName.textContent =
+    suggestionAuthorName(suggestion);
+
+  author.append(
+    avatarImage(profile?.avatar, "suggestion-avatar"),
+    authorName
+  );
 
   const date =
     document.createElement(
@@ -623,8 +721,9 @@ if (suggestionForm) {
       }
 
       const name =
-        suggestionName?.value.trim() ||
-        "";
+        suggestionName && !suggestionName.hidden
+          ? suggestionName.value.trim()
+          : await myDisplayName(user);
 
       const categoryInput =
         document.getElementById(
