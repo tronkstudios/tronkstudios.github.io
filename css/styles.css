@@ -6100,3 +6100,20 @@ body.modal-open .mascot:not(.in-game) {
     animation: none;
   }
 }
+
+/* ----- Minijuegos: al hacer clic y arrastrar no se arrastra ni se selecciona nada ----- */
+
+.antitronks-modal,
+.antitronks-modal *,
+#tf-root,
+#tf-root * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+}
+
+.antitronks-modal canvas,
+#tf-root canvas {
+  -webkit-tap-highlight-color: transparent;
+}
