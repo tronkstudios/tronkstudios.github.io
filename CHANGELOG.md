@@ -15,6 +15,15 @@ pantalla. Estas son sus partes, de la más reciente a la primera.
 - **Tronker responde preguntas escritas** con IA gratis (Workers AI de Cloudflare),
   sin perder los botones de siempre. Si la IA no está disponible, vuelve a los botones.
 - Lo que sabe Tronker se ha puesto al día con todo lo nuevo de la web.
+- **Sistema de frases** (`js/tronker.js`): sin IA, o cuando se acaba el uso gratis
+  del día, Tronker entiende las preguntas escritas y lleva a la conversación
+  adecuada. Aguanta faltas de ortografía, tildes, plurales y sinónimos.
+- **Conversaciones nuevas** en el guion: juegos en desarrollo (con la fecha
+  actualizada), controles de cada minijuego, perfil e insignias, retos, lista de
+  deseados, notificaciones, instalar la app, idioma y atajos, Trabaja con nosotros
+  y qué es TronkStudios. Hay botones para abrir la ficha de un juego, empezar
+  un minijuego o ir a una sección.
+- Si escribes mientras Tronker está escribiendo, tu pregunta espera su turno.
 
 #### Arreglado
 - Las **× de cerrar** ya no se ven torcidas: ahora son un icono dibujado y centrado.
