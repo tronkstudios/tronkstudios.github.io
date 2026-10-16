@@ -9,6 +9,27 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.12 · Retos de la comunidad y más detalles
+
+#### Añadido
+- **Retos de la comunidad** en Minijuegos: una barra que se llena con las partidas
+  de todos («entre todos, derrotad 10.000 ninjas esta semana»), con tu aporte y el
+  tiempo que queda. El equipo los crea y borra desde la pestaña **Retos** del panel
+  (`docs/supabase/retos.sql`).
+- **Pantalla completa** en los minijuegos: en el móvil se pone sola al abrir un
+  juego; en el ordenador, con un botón nuevo junto al de sonido.
+- **Atajos de teclado** en el ordenador: D, J, R, M, S, N y A van a cada sección;
+  I vuelve arriba, C abre la cuenta, T cambia el tema y «?» enseña la lista.
+- **Sonidos de la interfaz** al pulsar botones, votar, enviar ideas y conseguir
+  insignias, con un botón en la cabecera para apagarlos.
+- **Aviso de insignia nueva** cuando consigues una.
+- **Fondos animados** en cada sección, con dibujos a juego: nubes y zombis en
+  En desarrollo, cubos en Roblox, shuriken y mira en Minijuegos, bombillas en
+  Comunidad… Solo se mueven cuando la sección se ve, y se paran si el sistema
+  pide menos movimiento.
+- **Trabaja con nosotros** en Sobre nosotros: arte, música y sonido, programación y
+  pruebas. Abre el formulario de soporte con la categoría «Trabajar con nosotros».
+
 ### 6.11 · Autor de cada sugerencia
 
 #### Añadido

@@ -235,6 +235,7 @@ const TronkScores = {
 
     myScores[game] = Number(data) || score;
     refreshLeaderboardIfShowing(game);
+    window.dispatchEvent(new Event("tronk:activity"));
   },
 
   async addWin() {
@@ -251,6 +252,7 @@ const TronkScores = {
 
     myScores["tronk-fight"] = Number(data) || 0;
     refreshLeaderboardIfShowing("tronk-fight");
+    window.dispatchEvent(new Event("tronk:activity"));
   }
 };
 
@@ -417,6 +419,7 @@ async function toggleWishlist() {
 
   await loadMyWishlist();
   renderWishlistButtons(projectId);
+  window.dispatchEvent(new Event("tronk:activity"));
 }
 
 async function toggleNotify() {
@@ -455,6 +458,7 @@ async function toggleNotify() {
 
   await loadMyWishlist();
   renderWishlistButtons(projectId);
+  window.dispatchEvent(new Event("tronk:activity"));
 }
 
 /* =========================================================
@@ -1022,6 +1026,12 @@ async function syncPlatformWithAccount() {
   }
 
   loadLeaderboard(currentLeaderboardGame);
+
+  // Tu aporte a los retos (js/challenges.js)
+  loadChallenges();
+
+  // ¿Insignias nuevas? (js/extras.js)
+  window.dispatchEvent(new Event("tronk:activity"));
 }
 
 async function initializePlatform() {

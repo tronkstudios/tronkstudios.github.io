@@ -146,6 +146,10 @@ initializeCommunity();
 
 initializeTeamPanel();
 
+initializeChallenges();
+
+initializeExtras();
+
 initializeCardImageFallbacks();
 
 loadSuggestions();
