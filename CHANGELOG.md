@@ -9,6 +9,16 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.13 · Tronker con IA
+
+#### Añadido
+- **Tronker responde preguntas escritas** con IA gratis (Workers AI de Cloudflare),
+  sin perder los botones de siempre. Si la IA no está disponible, vuelve a los botones.
+- Lo que sabe Tronker se ha puesto al día con todo lo nuevo de la web.
+
+#### Arreglado
+- Las **× de cerrar** ya no se ven torcidas: ahora son un icono dibujado y centrado.
+
 ### 6.12 · Retos de la comunidad y más detalles
 
 #### Añadido

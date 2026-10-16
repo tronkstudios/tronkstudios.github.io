@@ -878,6 +878,18 @@ const I18N_EN = {
   "El servidor ha tardado demasiado en responder. Es posible que el mensaje no se haya enviado.": "The server took too long to respond. The message may not have been sent.",
   "No se ha podido enviar": "Couldn't send",
 
+  /* ---------- Tronker con IA ---------- */
+  "Escribe tu pregunta...": "Type your question...",
+  "Escribe tu pregunta para Tronker": "Type your question for Tronker",
+  "Enviar pregunta": "Send question",
+  "Escribe tu pregunta o elige una opción. La conversación no se guarda.": "Type your question or pick an option. The conversation is not saved.",
+  "En línea · Responde con IA": "Online · Answers with AI",
+  "Pregúntame lo que quieras sobre la web, los juegos o tu cuenta, o elige una opción.": "Ask me anything about the website, the games or your account, or pick an option.",
+  "Vas muy rápido. Espera un minuto y vuelve a preguntarme.": "You're going too fast. Wait a minute and ask me again.",
+  "Ahora mismo no puedo pensar respuestas. Elige una de estas opciones o escribe al equipo.": "I can't come up with answers right now. Pick one of these options or write to the team.",
+  "No he sabido qué responder. ¿Puedes preguntarlo de otra forma?": "I didn't know what to answer. Can you ask it another way?",
+  "Enviar un correo al equipo": "Email the team",
+
   /* ---------- Retos, atajos, sonidos y Trabaja con nosotros ---------- */
   "Retos de la comunidad": "Community challenges",
   "Cada partida suma. ¡Entre todos podemos!": "Every game counts. Together we can do it!",
