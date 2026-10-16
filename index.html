@@ -103,7 +103,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="css/styles.css?v=51" />
+  <link rel="stylesheet" href="css/styles.css?v=52" />
   <link rel="stylesheet" href="css/tronk-fight.css?v=3" />
 
 
@@ -140,7 +140,7 @@
   <script src="js/app.js?v=29" defer></script>
 
   <!-- Sistema de soporte (chat con Tronker + formulario de correo) -->
-  <script src="js/support.js?v=10" defer></script>
+  <script src="js/support.js?v=11" defer></script>
 </head>
 
 <body>
@@ -1520,9 +1520,7 @@
         data-close-modal="account-modal"
         type="button"
         aria-label="Cerrar"
-      >
-        ×
-      </button>
+      ><svg class="icon close-icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
 
 
       <h2 id="account-modal-title">
@@ -1897,9 +1895,7 @@
         data-close-modal="suggestion-modal"
         type="button"
         aria-label="Cerrar"
-      >
-        ×
-      </button>
+      ><svg class="icon close-icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
 
 
       <h2 id="suggestion-modal-title">
@@ -2014,9 +2010,7 @@
         data-close-modal="project-modal"
         type="button"
         aria-label="Cerrar"
-      >
-        ×
-      </button>
+      ><svg class="icon close-icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
 
       <figure class="project-modal-media">
         <img id="project-modal-image" src="" alt="" />
@@ -2115,9 +2109,7 @@
         data-close-modal="team-modal"
         type="button"
         aria-label="Cerrar"
-      >
-        ×
-      </button>
+      ><svg class="icon close-icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
 
       <h2 id="team-modal-title"><svg class="icon" aria-hidden="true"><use href="#i-shield"></use></svg> Panel del equipo</h2>
 
@@ -2159,9 +2151,7 @@
         data-close-modal="profile-modal"
         type="button"
         aria-label="Cerrar"
-      >
-        ×
-      </button>
+      ><svg class="icon close-icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
 
       <div id="profile-content" class="profile-content"></div>
     </div>
@@ -2189,9 +2179,7 @@
         data-close-modal="shortcuts-modal"
         type="button"
         aria-label="Cerrar"
-      >
-        ×
-      </button>
+      ><svg class="icon close-icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
 
       <h2 id="shortcuts-title"><svg class="icon" aria-hidden="true"><use href="#i-keyboard"></use></svg> Atajos de teclado</h2>
       <ul id="shortcuts-list" class="shortcuts-list"></ul>
@@ -2232,9 +2220,7 @@
           class="antitronks-close"
           type="button"
           aria-label="Cerrar Antitronks"
-        >
-          ×
-        </button>
+        ><svg class="icon close-icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
       </header>
 
       <div class="antitronks-game" id="antitronks-game">
@@ -2305,9 +2291,7 @@
           class="antitronks-close"
           type="button"
           aria-label="Cerrar Protect Mogos"
-        >
-          ×
-        </button>
+        ><svg class="icon close-icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
       </header>
 
       <div class="antitronks-game" id="antininja-game">
@@ -2379,9 +2363,7 @@
           class="antitronks-close"
           type="button"
           aria-label="Cerrar Stick Drill"
-        >
-          ×
-        </button>
+        ><svg class="icon close-icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
       </header>
 
       <!--
@@ -2502,9 +2484,7 @@
           class="antitronks-close"
           type="button"
           aria-label="Cerrar Tronk Fight"
-        >
-          ×
-        </button>
+        ><svg class="icon close-icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
       </header>
 
 <div id="tf-root" class="tf-root">
@@ -2703,9 +2683,7 @@
         type="button"
         aria-label="Cerrar soporte"
         data-support-close
-      >
-        ×
-      </button>
+      ><svg class="icon close-icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
 
       <h2 id="support-menu-title">
         Soporte
@@ -2801,9 +2779,7 @@
           type="button"
           aria-label="Cerrar chat"
           data-support-close
-        >
-          ×
-        </button>
+        ><svg class="icon close-icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
 
       </header>
 
@@ -2823,8 +2799,23 @@
         aria-label="Elige una respuesta"
       ></div>
 
+      <!-- Pregunta libre a la IA (solo si el Worker tiene la IA activada) -->
+      <form id="support-chat-form" class="support-chat-form" hidden>
+        <textarea
+          id="support-chat-input"
+          class="support-chat-input"
+          rows="1"
+          maxlength="1000"
+          placeholder="Escribe tu pregunta..."
+          aria-label="Escribe tu pregunta para Tronker"
+        ></textarea>
+        <button id="support-chat-send" class="primary-button support-send-button" type="submit" aria-label="Enviar pregunta">
+          <svg class="icon" aria-hidden="true"><use href="#i-arrow-right"></use></svg>
+        </button>
+      </form>
+
       <p class="support-chat-footnote">
-        Elige una opción para continuar. La conversación no se guarda.
+        <span id="support-chat-hint">Elige una opción para continuar. La conversación no se guarda.</span>
         <button
           class="support-link-button"
           type="button"
@@ -2881,9 +2872,7 @@
           type="button"
           aria-label="Cerrar formulario"
           data-support-close
-        >
-          ×
-        </button>
+        ><svg class="icon close-icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
 
       </header>
 
@@ -3009,6 +2998,6 @@
 
   <!-- Versión en inglés. Va aquí, sin defer, para traducir antes de
        que se vea la página (ver js/i18n.js). -->
-  <script src="js/i18n.js?v=5"></script>
+  <script src="js/i18n.js?v=6"></script>
 </body>
 </html>

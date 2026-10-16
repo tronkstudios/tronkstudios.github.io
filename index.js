@@ -13,8 +13,7 @@
 
    Este backend:
      - no guarda conversaciones ni mensajes;
-     - no escribe el contenido de los mensajes en los logs;
-     - no se conecta a Supabase.
+     - no escribe el contenido de los mensajes en los logs.
    ========================================================= */
 
 const MAX_BODY_BYTES = 24000;
@@ -39,51 +38,58 @@ const MAIL_CATEGORIES = ["Juegos", "Cuenta", "Error técnico", "Otros", "Trabaja
 
 const TRONK_KNOWLEDGE = `
 WEB
-- Dirección: https://tronkstudios.github.io/
-- Secciones: Juegos en desarrollo, Nuestros Juegos, Roblox, Minijuegos, Comunidad (sugerencias), Novedades (diario de desarrollo) y Sobre nosotros.
-- Botón de tema (🌙) arriba a la derecha para cambiar entre modo claro y oscuro.
-- TronkStudios es un grupo de desarrolladores que hace juegos originales y divertidos.
+- Dirección: https://tronkstudios.github.io/ (también se puede instalar como app en el móvil con el botón "Instalar app" de la portada).
+- Secciones: En desarrollo, Nuestros Juegos, Roblox, Minijuegos, Comunidad, Novedades y Sobre nosotros.
+- Arriba a la derecha: campana de notificaciones, Soporte, Cuenta, botón de tema claro/oscuro, botón de sonidos de la web y botón de idioma (ES/EN).
+- En ordenador hay atajos de teclado: pulsa "?" para ver la lista (M lleva a Minijuegos, S a Comunidad, etc.).
+- TronkStudios es un estudio independiente de videojuegos: un equipo pequeño que diseña, programa y publica sus propios juegos. Hacemos juegos de todo tipo, desde modo historia hasta juegos sencillos para pasar un rato, basándonos en las sugerencias de la comunidad.
+- Objetivos: crear juegos que hagan que la gente disfrute y viva buenas experiencias, crear una comunidad sana y cumplir nuestras promesas.
 
-JUEGOS
-- "Nuestros Juegos": todavía no hay juegos publicados.
-- "Roblox": todavía no hay experiencias disponibles.
+JUEGOS EN DESARROLLO
+- Z Tronks: juego de Roblox de acción y supervivencia en un apocalipsis zombi. Explorar una ciudad abandonada, luchar contra distintos tipos de zombis, completar misiones y mejorar al personaje. Clases: Gunner, Warrior, Rogue y Medic. Se puede jugar en equipo con amigos. Lanzamiento previsto: 4 de enero de 2027 (puede cambiar; la fecha actualizada está en su ficha). Tiene tráiler en YouTube.
+- The Sundered Sky: RPG de fantasía y aventuras para PC en un mundo de islas flotantes hechas de cubos, que se recorre en barco volador con amigos. Todavía no tiene fecha de lanzamiento.
+- En la ficha de cada juego (pulsando su tarjeta) hay galería, plataformas, botón "Lista de deseados" y "Avisarme cuando salga". Si el equipo cambia la fecha, llega una notificación.
+- Todavía no hay juegos publicados en "Nuestros Juegos" ni en "Roblox".
 
-EN DESARROLLO
-- Z Tronks: juego de Roblox de acción y supervivencia en un apocalipsis zombi. Explorar una ciudad abandonada, luchar contra distintos tipos de zombis, completar misiones y mejorar al personaje. Clases: Gunner, Warrior, Rogue y Medic, cada una con sus armas y habilidades. Se puede jugar en equipo con amigos. Equipo de 5 personas. Lanzamiento previsto: 4 de enero de 2027 (fecha prevista, puede cambiar).
-- The Sundered Sky: RPG de fantasía y aventuras para PC en un mundo de islas flotantes hechas de cubos, que se recorre en barco volador con amigos. Equipo de 1 persona. Todavía no tiene fecha de lanzamiento ni tráiler.
+MINIJUEGOS (gratis, en el navegador; se abren pulsando su tarjeta)
+- Antitronks: disparar a los malos sin dar a los civiles. Apuntar con el ratón y hacer clic; girar la cámara con A y D. 3 vidas.
+- Protect Mogos: hacer clic o tocar los ninjas antes de que lleguen al castillo. 3 vidas.
+- Stick Drill: esquivar un taladro que rebota; pierde el que caiga primero. Contra el bot o 2 jugadores (W A S D y flechas; en móvil, joysticks).
+- Tronk Fight: duelo de stickmans con 7 luchadores, contra el bot (3 dificultades) o 2 jugadores. J1: W A S D + J K L I. J2: flechas + , . - y Mayús derecha.
+- Cada minijuego tiene botón de sonido, botón de pantalla completa y una × para cerrar. En el móvil se ponen a pantalla completa solos.
+- Con la sesión iniciada, los récords se guardan en la cuenta y salen en la Clasificación. Sin sesión, solo en ese navegador.
+- Retos de la comunidad: el equipo crea retos (por ejemplo "entre todos, derrotad 10.000 ninjas esta semana"). Cada partida con la sesión iniciada suma a la barra. Al superarlo llega un aviso.
 
-MINIJUEGOS (se juegan en el navegador, dentro de la web; se abren pulsando su tarjeta)
-- Antitronks: disparos en una calle de ciudad. Apuntar con el ratón y hacer clic para disparar. Girar la cámara con A (izquierda) y D (derecha). Hay puntos, vidas (3) y récord.
-- Protect Mogos: hacer clic en los ninjas antes de que lleguen al castillo del rey. Hay puntos, vidas (3) y récord.
-- Stick Drill: esquivar un taladro que rebota por las paredes; pierde el que caiga primero. Modos: contra el bot o 2 jugadores. Jugador 1: W A S D. Jugador 2: flechas. El récord es el tiempo aguantado.
-- Tronk Fight: duelo de stickmans con 7 luchadores, cada uno con su arma y su ataque especial. Contra el bot (3 dificultades) o a 2 jugadores en el mismo teclado o móvil. J1: W A S D + J K L I. J2: flechas + , . - y Mayús derecha.
-- Cada minijuego tiene un botón 🔊 para silenciar el sonido y una × para cerrarlo.
-- Los récords y la preferencia de sonido se guardan en el propio navegador del jugador. Si se borran los datos del navegador, se usa otro navegador u otro dispositivo, o se navega en modo incógnito, el récord no aparece.
-- Algunos minijuegos usan teclado y ratón, así que en móvil pueden no poder jugarse bien.
+CUENTAS (botón Cuenta)
+- Registro con nombre, correo y contraseña (mínimo 6 caracteres). Llega un correo de verificación que hay que confirmar antes de iniciar sesión; si no llega, mirar en spam y comprobar que el correo está bien escrito.
+- Desde Cuenta se puede cambiar o recuperar la contraseña y cerrar sesión.
+- Perfil: avatar dibujado a elegir, nombre, biografía, insignias (Fundador, Primera idea, Votante, Jugador, Luchador...), récords y lista de deseados.
+- Para borrar la cuenta hay que escribir al equipo con "Enviar un correo".
 
-CUENTAS (botón 👤 Cuenta)
-- Registro con nombre, correo electrónico y contraseña (mínimo 6 caracteres).
-- Tras registrarse llega un correo de verificación; hay que confirmarlo antes de poder iniciar sesión. Si no llega, revisar spam o correo no deseado y comprobar que el correo está bien escrito.
-- Inicio de sesión con correo y contraseña. Desde el mismo botón se cierra sesión.
-- La cuenta sirve para participar en la comunidad (publicar sugerencias).
+COMUNIDAD
+- "Sugerir una idea" (hace falta sesión): categoría e idea (máximo 1000 caracteres). Cada idea sale con la foto y el nombre del perfil de quien la envió.
+- Se pueden votar ideas, buscarlas, filtrarlas y ordenarlas. El equipo pone un estado (Pendiente, En estudio, Planeada, Hecha o Descartada) y puede responder.
+- Encuestas del equipo para votar. Notificaciones en la campana cuando votan tu idea, el equipo te responde, te superan un récord o hay avisos.
 
-COMUNIDAD / SUGERENCIAS
-- Botón "💡 Sugerir una idea" (hace falta haber iniciado sesión).
-- Campos: nombre, categoría (Roblox o Juego) e idea (máximo 1000 caracteres).
-- Pestañas "Todas" y "Mis sugerencias", buscador y filtro por categoría. Se pueden votar sugerencias y borrar las propias.
+NOVEDADES
+- Diario de desarrollo (se puede ocultar), últimos vídeos y Shorts del canal de YouTube.
+
+TRABAJA CON NOSOTROS
+- Al final de "Sobre nosotros": arte, música y sonido, programación y pruebas. Abre el formulario de correo con la categoría "Trabajar con nosotros".
 
 CONTACTO CON EL EQUIPO
-- Botón "Soporte" → "Enviar un correo": formulario para escribir al equipo, que responde por correo.
+- Botón "Soporte" y luego "Enviar un correo": formulario para escribir al equipo, que responde por correo.
 
 SOLUCIONES GENERALES QUE PUEDES PROPONER
-- Recargar la página (en ordenador, Ctrl + F5 o Cmd + Mayús + R para forzar la recarga).
+- Recargar la página (en ordenador, Ctrl + F5 o Cmd + Mayús + R).
 - Probar en otro navegador actualizado o desactivar extensiones como bloqueadores.
 - Comprobar la conexión a internet.
 - Si un minijuego no responde al teclado, hacer clic dentro del juego primero.
+- Si un minijuego no suena, comprobar el botón de sonido del juego y el volumen del dispositivo.
 `.trim();
 
 const SYSTEM_PROMPT = `
-Eres el asistente de soporte de TronkStudios, integrado en su web.
+Eres Tronker, el asistente de TronkStudios integrado en su web. Eres simpático, cercano y hablas de tú.
 
 TU FUNCIÓN
 - Ayudar SOLO con temas de TronkStudios: juegos y minijuegos, errores técnicos de la web, cuentas e inicio de sesión, sugerencias, proyectos y dudas generales sobre TronkStudios.
@@ -147,6 +153,30 @@ const PROVIDERS = {
         .map((block) => block.text)
         .join("\n")
         .trim();
+    }
+  },
+
+  // Workers AI de Cloudflare: GRATIS dentro del uso diario incluido.
+  // No necesita clave: solo el enlace [ai] de wrangler.toml y AI_MODEL
+  // (por ejemplo "@cf/meta/llama-3.3-70b-instruct-fp8-fast").
+  "workers-ai": {
+    isConfigured: (env) => Boolean(env.AI && typeof env.AI.run === "function" && env.AI_MODEL),
+    async complete({ env, system, messages, signal }) {
+      const run = env.AI.run(env.AI_MODEL, {
+        messages: [{ role: "system", content: system }, ...messages],
+        max_tokens: MAX_REPLY_TOKENS,
+        temperature: 0.3
+      });
+
+      // El enlace no acepta «signal»: se corta a mano si tarda demasiado
+      const timeout = new Promise((_, reject) => {
+        signal.addEventListener("abort", () => reject(new ProviderError(504)), { once: true });
+      });
+
+      const data = await Promise.race([run, timeout]);
+      const content = data && data.response;
+
+      return typeof content === "string" ? content.trim() : "";
     }
   },
 
@@ -959,8 +989,11 @@ export default {
           return json({ error: "forbidden" }, 403, cors);
         }
 
-        // /chat desactivado: Tronker funciona con un guion fijo y
-        // no usa IA, así que nadie puede gastar tu clave de IA.
+        // Chat de Tronker con IA. Con "workers-ai" es gratis: si se acaba
+        // el uso diario incluido, falla y la web vuelve a los botones.
+        if (url.pathname === "/chat") {
+          return await handleChat(request, env, cors);
+        }
 
         if (url.pathname === "/contact") {
           return await handleContact(request, env, cors);

@@ -81,6 +81,10 @@ const SUPPORT_CONFIG = {
   const chatOptions = document.getElementById("support-chat-options");
   const chatStatus = document.getElementById("support-chat-status");
   const chatReset = document.getElementById("support-chat-reset");
+  const chatForm = document.getElementById("support-chat-form");
+  const chatInput = document.getElementById("support-chat-input");
+  const chatSend = document.getElementById("support-chat-send");
+  const chatHint = document.getElementById("support-chat-hint");
 
   const mailForm = document.getElementById("support-mail-form");
   const mailNotice = document.getElementById("support-mail-notice");
@@ -342,10 +346,14 @@ const SUPPORT_CONFIG = {
 
   const GUION = {
     inicio: {
-      msg: [
-        "¡Hola! Soy Tronker, el asistente de soporte de TronkStudios.",
-        "Elige la opción que describe tu problema."
-      ],
+      get msg() {
+        return [
+          "¡Hola! Soy Tronker, el asistente de soporte de TronkStudios.",
+          aiEnabled
+            ? "Pregúntame lo que quieras sobre la web, los juegos o tu cuenta, o elige una opción."
+            : "Elige la opción que describe tu problema."
+        ];
+      },
       options: [
         ["No puedo iniciar sesión", "login"],
         ["Olvidé o quiero cambiar mi contraseña", "pass"],
@@ -804,15 +812,142 @@ const SUPPORT_CONFIG = {
     }
   }
 
-  function startChat() {
+  /* ---------- Preguntas libres a la IA (Worker /chat) ---------- */
+
+  // Conversación con la IA (solo en memoria, se borra al reiniciar)
+  let aiHistory = [];
+  let aiEnabled = false;
+
+  function setAiMode(enabled) {
+    aiEnabled = enabled;
+
+    if (chatForm) {
+      chatForm.hidden = !enabled;
+    }
+
+    if (chatHint) {
+      chatHint.textContent = enabled
+        ? "Escribe tu pregunta o elige una opción. La conversación no se guarda."
+        : "Elige una opción para continuar. La conversación no se guarda.";
+    }
+
+    chatStatus.textContent = enabled ? "En línea · Responde con IA" : "Asistente de soporte";
+  }
+
+  // La IA escribe en texto plano, pero por si acaso se quitan marcas
+  function cleanReply(text) {
+    return String(text || "")
+      .replace(/\[CONTACTO\]/g, "")
+      .replace(/\*\*|__|^#+\s*/gm, "")
+      .trim();
+  }
+
+  async function askTronker(question) {
+    const run = chatRun;
+
+    chatBusy = true;
+    chatOptions.innerHTML = "";
+    chatInput.value = "";
+    chatInput.disabled = true;
+    chatSend.disabled = true;
+
+    addBubble(question, "from-user");
+    aiHistory.push({ role: "user", content: question });
+
+    const typing = showTyping();
+    let reply = "";
+    let failure = "";
+
+    try {
+      const response = await fetchWithTimeout(`${apiBase()}/chat`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ messages: aiHistory.slice(-12) })
+      });
+      const data = await readJson(response);
+
+      if (response.ok && typeof data.reply === "string") {
+        reply = data.reply;
+      } else {
+        failure = response.status === 429 ? "rate" : "down";
+      }
+    } catch {
+      failure = "down";
+    }
+
+    typing.remove();
+
+    if (run !== chatRun) {
+      return;
+    }
+
+    chatBusy = false;
+    chatInput.disabled = false;
+    chatSend.disabled = false;
+
+    if (failure) {
+      // La pregunta no ha tenido respuesta: no se queda en la conversación
+      aiHistory.pop();
+
+      addBubble(
+        failure === "rate"
+          ? "Vas muy rápido. Espera un minuto y vuelve a preguntarme."
+          : "Ahora mismo no puedo pensar respuestas. Elige una de estas opciones o escribe al equipo.",
+        "from-ai"
+      );
+      renderOptions("ai", failure === "rate" ? [] : [...GUION.inicio.options]);
+    } else {
+      const needsTeam = reply.includes("[CONTACTO]");
+      const text = cleanReply(reply) || "No he sabido qué responder. ¿Puedes preguntarlo de otra forma?";
+
+      aiHistory.push({ role: "assistant", content: text });
+      addBubble(text, "from-ai");
+      renderOptions("ai", needsTeam ? [["Enviar un correo al equipo", "@correo"]] : []);
+    }
+
+    if (activeModal === chatModal) {
+      chatInput.focus({ preventScroll: true });
+    }
+  }
+
+  chatForm?.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const question = chatInput.value.trim().slice(0, 1000);
+
+    if (!question || chatBusy || !aiEnabled) {
+      return;
+    }
+
+    askTronker(question);
+  });
+
+  // Intro envía; Mayús + Intro hace un salto de línea
+  chatInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+      event.preventDefault();
+      chatForm.requestSubmit();
+    }
+  });
+
+  async function startChat() {
     chatStarted = true;
     chatRun += 1;
     chatBusy = false;
+    aiHistory = [];
     chatMessages.innerHTML = "";
     chatOptions.innerHTML = "";
-    chatStatus.textContent = "Asistente de soporte";
     chatStatus.classList.add("is-online");
     chatStatus.classList.remove("is-offline");
+
+    const run = chatRun;
+    const health = await checkHealth();
+
+    if (run !== chatRun) {
+      return;
+    }
+
+    setAiMode(Boolean(health && health.chat));
     goToStep("inicio");
   }
 
