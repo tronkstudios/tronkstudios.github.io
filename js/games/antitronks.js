@@ -213,6 +213,8 @@ function initializeAntitronksGame() {
   let score = 0;
   // Malos derribados en la partida (para los retos de la comunidad)
   let defeated = 0;
+  // Malos seguidos sin fallar (para la mascota, js/mascot.js)
+  let streak = 0;
   let lives = 3;
   let record = loadRecord();
 
@@ -1549,12 +1551,20 @@ function initializeAntitronksGame() {
       TronkSound.play(headshot ? "headshot" : "hitBody");
       score += headshot ? 2 : 1;
       defeated += 1;
+      streak += 1;
+
+      if (streak % 5 === 0) {
+        window.TronkMascot?.react("combo");
+      } else if (headshot) {
+        window.TronkMascot?.react("great");
+      }
       updateHud();
       addFloater(sx, sy - 14, headshot ? "¡A LA CABEZA! +2" : "+1", headshot ? "#ffd24a" : "#ffffff");
       showMessage(headshot ? "¡DISPARO A LA CABEZA!" : "ENEMIGO ELIMINADO", 450);
     } else {
       addFloater(sx, sy - 14, "¡CIVIL!", "#ff5252");
       TronkSound.play("civilian");
+      window.TronkMascot?.react("oops");
       damagePlayer("¡HAS DISPARADO A UN CIVIL!");
     }
   }
@@ -1566,9 +1576,16 @@ function initializeAntitronksGame() {
   function damagePlayer(reason) {
     TronkSound.play("playerHurt");
     lives -= 1;
+    streak = 0;
     updateHud();
     damageFlash();
     showMessage(reason, 650);
+
+    if (lives === 1) {
+      window.TronkMascot?.react("lastLife");
+    } else if (lives > 1) {
+      window.TronkMascot?.react("hurt");
+    }
 
     if (lives <= 0) {
       gameOver();
@@ -1601,6 +1618,7 @@ function initializeAntitronksGame() {
 
     // Si hay sesión iniciada, se guarda en la cuenta (js/profiles.js)
     window.TronkScores?.submit("antitronks", score);
+    window.TronkMascot?.react(newRecord && score > 0 ? "record" : "gameover");
     window.TronkChallenges?.add("antitronks", defeated);
 
     TronkSound.play(newRecord ? "record" : "gameOver");
@@ -1634,6 +1652,7 @@ function initializeAntitronksGame() {
 
     score = 0;
     defeated = 0;
+    streak = 0;
     lives = 3;
     cameraAngle = 0;
     spawnTimer = 0;
@@ -1668,6 +1687,7 @@ function initializeAntitronksGame() {
   function startGame() {
     score = 0;
     defeated = 0;
+    streak = 0;
     lives = 3;
     cameraAngle = 0;
     spawnTimer = 0;
