@@ -314,6 +314,12 @@ function initializeGameFullscreen() {
   const modals = document.querySelectorAll(".antitronks-modal");
 
   modals.forEach((modal) => {
+    // Al hacer clic y arrastrar en un juego, el navegador no debe arrastrar
+    // la imagen ni seleccionar texto (pasaba en Safari y Firefox)
+    ["dragstart", "selectstart"].forEach((name) => {
+      modal.addEventListener(name, (event) => event.preventDefault());
+    });
+
     const header = modal.querySelector(".antitronks-header");
     const close = header?.querySelector(".antitronks-close");
 

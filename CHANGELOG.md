@@ -9,6 +9,13 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.16 · Arrastrar en los minijuegos
+
+#### Arreglado
+- Al hacer clic y arrastrar dentro de un minijuego (por ejemplo, en Protect Mogos)
+  el navegador ya no arrastra la imagen del juego ni selecciona texto. Pasaba sobre
+  todo en Safari, Firefox y en el móvil al mantener pulsado.
+
 ### 6.15 · Tronker en 3D
 
 #### Añadido
