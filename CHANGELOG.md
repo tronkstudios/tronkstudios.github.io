@@ -9,6 +9,26 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.17 · Tronker más vivo
+
+#### Añadido
+- **Animaciones nuevas** para la mascota: baile, voltereta hacia atrás, pensar con la
+  mano en la barbilla, encogerse de hombros, saludo militar, turbo con el propulsor,
+  escáner del visor (efecto Tron), acercarse a mirar, sacudirse, señalar y bostezar
+  antes de dormirse. Al pulsarlo, a veces da una voltereta.
+- **Comenta lo que tienes debajo del ratón**: si te quedas un momento sobre una
+  sección o una tarjeta (un minijuego, Z Tronks, los retos, una idea, los vídeos...),
+  hay una probabilidad de que diga algo sobre eso y lo señale con el brazo.
+
+#### Cambiado
+- La mascota **sale al instante**: viene en el HTML con una imagen del robot y pasa
+  al 3D en cuanto está listo (antes esperaba a que cargara toda la página). Si el
+  navegador no puede con el 3D, se queda la imagen en lugar de desaparecer.
+
+#### Arreglado
+- El marco brillante al usar los accesos rápidos del menú se cortaba en el móvil
+  (solo se veían las líneas de arriba y abajo). Ahora nunca se sale de la pantalla.
+
 ### 6.16 · Arrastrar en los minijuegos
 
 #### Arreglado
