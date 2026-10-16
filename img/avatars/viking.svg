@@ -7,12 +7,22 @@
   </defs>
   <rect width="64" height="64" rx="16" fill="url(#bg)"/>
 
-  <path d="M12 26c-6-4-6-12-2-16 0 5 4 9 8 10zM52 26c6-4 6-12 2-16 0 5-4 9-8 10z" fill="#f5f5f4"/>
-  <path d="M14 30c0-12 8-17 18-17s18 5 18 17z" fill="#9ca3af"/>
-  <path d="M32 13v17" stroke="#6b7280" stroke-width="3"/>
-  <circle cx="32" cy="36" r="13" fill="#fcd2b0"/>
-  <circle cx="27" cy="34" r="1.8" fill="#1f2937"/>
-  <circle cx="37" cy="34" r="1.8" fill="#1f2937"/>
-  <path d="M17 38c2 14 8 20 15 20s13-6 15-20c-4 3-8 4-15 4s-11-1-15-4z" fill="#ea580c"/>
-  <path d="M26 42c4 2 8 2 12 0" stroke="#7c2d12" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <path d="M10 64c2-10 10-14 22-14s20 4 22 14z" fill="#78350f"/>
+  <path d="M12 64c1-6 6-10 12-11M52 64c-1-6-6-10-12-11" stroke="#a16207" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <circle cx="32" cy="34" r="13" fill="#fcd2b0"/>
+  <path d="M19 37c1 15 7 21 13 21s12-6 13-21c-3 3-7 4-13 4s-10-1-13-4z" fill="#ea580c"/>
+  <path d="M27 42c3 2 7 2 10 0" stroke="#7c2d12" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <path d="M27 48l5 3 5-3" stroke="#c2410c" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <circle cx="27" cy="33" r="1.9" fill="#1f2937"/>
+  <circle cx="37" cy="33" r="1.9" fill="#1f2937"/>
+  <path d="M32 33v4" stroke="#e8a77f" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M17 29c0-11 7-17 15-17s15 6 15 17z" fill="#9ca3af"/>
+  <path d="M16 27h32v4H16z" fill="#6b7280"/>
+  <circle cx="21" cy="29" r="1" fill="#d1d5db"/>
+  <circle cx="32" cy="29" r="1" fill="#d1d5db"/>
+  <circle cx="43" cy="29" r="1" fill="#d1d5db"/>
+  <path d="M32 12v15" stroke="#6b7280" stroke-width="3"/>
+  <path d="M18 24C11 22 7 16 8 8c3 5 7 8 12 9z" fill="#f5f5f4"/>
+  <path d="M46 24c7-2 11-8 10-16-3 5-7 8-12 9z" fill="#f5f5f4"/>
+  <path d="M18 24c-2-1-3-2-4-3M46 24c2-1 3-2 4-3" stroke="#d6d3d1" stroke-width="1.5" fill="none"/>
 </svg>

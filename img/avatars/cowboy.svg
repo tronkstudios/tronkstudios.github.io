@@ -7,13 +7,20 @@
   </defs>
   <rect width="64" height="64" rx="16" fill="url(#bg)"/>
 
-  <ellipse cx="32" cy="27" rx="26" ry="5" fill="#78350f"/>
-  <path d="M19 26c0-9 4-15 13-15s13 6 13 15z" fill="#92400e"/>
-  <path d="M19 22h26v3H19z" fill="#facc15"/>
-  <path d="M32 11c-2 3-2 6 0 8 2-2 2-5 0-8z" fill="#78350f"/>
-  <circle cx="32" cy="41" r="13" fill="#fcd2b0"/>
-  <circle cx="27" cy="39" r="1.8" fill="#1f2937"/>
-  <circle cx="37" cy="39" r="1.8" fill="#1f2937"/>
-  <path d="M26 46c4 3 8 3 12 0" stroke="#1f2937" stroke-width="2.2" fill="none" stroke-linecap="round"/>
-  <path d="M23 54l9 5 9-5v10H23z" fill="#dc2626"/>
+  <path d="M12 64c2-9 9-13 20-13s18 4 20 13z" fill="#1d4ed8"/>
+  <path d="M27 46v6h10v-6" fill="#f1bf98"/>
+  <path d="M22 50l10 9 10-9-2 6-8 5-8-5z" fill="#dc2626"/>
+  <circle cx="32" cy="38" r="12" fill="#fcd2b0"/>
+  <path d="M20.5 35c0-3 1.5-6 3.5-7M43.5 35c0-3-1.5-6-3.5-7" stroke="#78350f" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <circle cx="27.5" cy="37" r="1.8" fill="#1f2937"/>
+  <circle cx="36.5" cy="37" r="1.8" fill="#1f2937"/>
+  <path d="M26.5 43c3.5 2.5 7.5 2.5 11 0" stroke="#1f2937" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <g transform="translate(0 -4)">
+  <path d="M19 34c0-14 5-22 13-22s13 8 13 22z" fill="#a0522d"/>
+  <path d="M25 14c3 3 11 3 14 0" stroke="#8b4513" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M19 25h26v4H19z" fill="#facc15"/>
+  <path d="M5 28c8 3 46 3 54 0" stroke="#7c3a12" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M5 28c3 5 15 8 27 8s24-3 27-8c-6 3-15 4-27 4S11 31 5 28z" fill="#5b2a0c"/>
+  <path d="M8 29c7 3 41 3 48 0" stroke="#7c3a12" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  </g>
 </svg>

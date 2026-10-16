@@ -35,8 +35,11 @@ pantalla. Estas son sus partes, de la más reciente a la primera.
 - Donde ponía «malos» ahora pone **Antitronks** (y «ANTITRONK ELIMINADO» en el juego).
 
 #### Arreglado
-- Fallos de dibujo en los avatares del caballero (penacho suelto) y del ninja
-  (los ojos parecían un bigote).
+- Fallos de dibujo en los avatares: el penacho del caballero estaba suelto, los
+  ojos del ninja parecían un bigote, los cuernos del vikingo flotaban, el sombrero
+  del vaquero dejaba ver la frente, y el pelo del rey, la bruja, el vampiro, el
+  gamer, el mago y el zombi (que tenía calva) estaba mal. Ahora todos tienen
+  cuello y cuerpo, y el pelo cae por detrás de forma natural.
 
 ### 6.18 · Animaciones de Tronker mejor hechas
 
