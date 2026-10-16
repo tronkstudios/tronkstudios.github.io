@@ -6075,6 +6075,19 @@ body.modal-open .mascot:not(.in-game) {
     border-radius: 16px 4px 16px 16px;
     transform-origin: top right;
   }
+
+  /* Protect Mogos: abajo a la derecha, sobre la torre del castillo (ahí nadie toca) */
+  .mascot.in-game[data-game="antininja"] {
+    top: auto;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+
+  .mascot.in-game[data-game="antininja"] .mascot-bubble {
+    top: auto;
+    bottom: 78%;
+    border-radius: 16px 16px 4px 16px;
+    transform-origin: bottom right;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
