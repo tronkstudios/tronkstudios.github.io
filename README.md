@@ -169,8 +169,11 @@ gratis dentro del uso diario incluido y sin ninguna clave. Basta con el bloque
 `[ai]` de `wrangler.toml` y `AI_PROVIDER = "workers-ai"`.
 - Lo que sabe Tronker está en `TRONK_KNOWLEDGE` (`index.js`). Cuando cambie la
   web, actualízalo y vuelve a desplegar el Worker.
-- Si se acaba el uso gratis del día o la IA falla, Tronker lo dice y enseña los
-  botones de siempre (el guion fijo de `js/support.js`).
+- Si se acaba el uso gratis del día o la IA falla, Tronker sigue entendiendo
+  lo que escribe la gente con el **sistema de frases** (`js/tronker.js`): busca
+  la conversación del guion de `js/support.js` que mejor encaja, aunque haya
+  faltas de ortografía o no haya tildes. Para que entienda más cosas, añade
+  frases de ejemplo en `INTENTS`.
 - Cada visitante puede enviar como mucho 8 preguntas por minuto.
 - Para usar otra IA (Claude u otra compatible con OpenAI), cambia `AI_PROVIDER`
   y `AI_MODEL`, y guarda la clave con `npx.cmd wrangler secret put AI_API_KEY`.

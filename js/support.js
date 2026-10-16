@@ -346,14 +346,10 @@ const SUPPORT_CONFIG = {
 
   const GUION = {
     inicio: {
-      get msg() {
-        return [
-          "¡Hola! Soy Tronker, el asistente de soporte de TronkStudios.",
-          aiEnabled
-            ? "Pregúntame lo que quieras sobre la web, los juegos o tu cuenta, o elige una opción."
-            : "Elige la opción que describe tu problema."
-        ];
-      },
+      msg: [
+        "¡Hola! Soy Tronker, el asistente de soporte de TronkStudios.",
+        "Pregúntame lo que quieras sobre la web, los juegos o tu cuenta, o elige una opción."
+      ],
       options: [
         ["No puedo iniciar sesión", "login"],
         ["Olvidé o quiero cambiar mi contraseña", "pass"],
@@ -362,6 +358,7 @@ const SUPPORT_CONFIG = {
         ["Quiero reportar un fallo", "bug"],
         ["Quiero enviar una sugerencia", "sugerencia"],
         ["Quiero borrar mi cuenta", "borrar"],
+        ["Tengo una duda sobre la web o los juegos", "info"],
         ["Hablar con el equipo", "humano"]
       ]
     },
@@ -667,6 +664,223 @@ const SUPPORT_CONFIG = {
       ]
     },
 
+    /* ---------- DUDAS SOBRE LA WEB Y LOS JUEGOS ---------- */
+    info: {
+      msg: "¡Claro! ¿Sobre qué tienes dudas?",
+      options: [
+        ["Los juegos en desarrollo", "info_juegos"],
+        ["Los minijuegos y sus controles", "info_minijuegos"],
+        ["Mi perfil, avatar e insignias", "info_perfil"],
+        ["Los retos de la comunidad", "info_retos"],
+        ["Lista de deseados y avisos", "info_deseados"],
+        ["Las notificaciones", "info_notificaciones"],
+        ["Instalar la web como app", "info_app"],
+        ["Idioma, tema, sonidos y atajos", "info_ajustes"],
+        ["Quiero trabajar con vosotros", "info_trabajar"],
+        ["¿Qué es TronkStudios?", "info_estudio"]
+      ]
+    },
+    info_juegos: {
+      msg: "Ahora mismo tenemos dos juegos en desarrollo. ¿Cuál te interesa?",
+      options: [
+        ["Z Tronks", "info_ztronks"],
+        ["The Sundered Sky", "info_sundered"],
+        ["Otra duda", "info"]
+      ]
+    },
+    info_ztronks: {
+      get msg() {
+        const release = typeof PROJECTS !== "undefined" ? PROJECTS["z-tronks"]?.release : null;
+        const date = Array.isArray(release) && typeof formatReleaseDate === "function"
+          ? formatReleaseDate(release)
+          : "";
+
+        return [
+          "Z Tronks es nuestro juego de Roblox de acción y supervivencia en un apocalipsis zombi: explora una ciudad abandonada, lucha contra zombis, completa misiones y mejora a tu personaje.",
+          "Hay cuatro clases (Gunner, Warrior, Rogue y Medic) y se puede jugar en equipo con amigos.",
+          date
+            ? `Sale el ${date} (fecha prevista, puede cambiar). Si lo añades a tu lista de deseados y pulsas «Avisarme», te avisaremos cuando salga.`
+            : "Todavía no tiene fecha. Si lo añades a tu lista de deseados y pulsas «Avisarme», te avisaremos cuando salga."
+        ];
+      },
+      options: [
+        ["Ver su ficha", "@ficha:z-tronks"],
+        ["Otra duda", "info"]
+      ]
+    },
+    info_sundered: {
+      msg: [
+        "The Sundered Sky es un RPG de fantasía y aventuras para PC en un mundo de islas flotantes hechas de cubos, que se recorre en barco volador con amigos.",
+        "Todavía no tiene fecha de lanzamiento. Puedes añadirlo a tu lista de deseados para que te avisemos."
+      ],
+      options: [
+        ["Ver su ficha", "@ficha:the-sundered-sky"],
+        ["Otra duda", "info"]
+      ]
+    },
+    info_minijuegos: {
+      msg: "Hay cuatro minijuegos gratis que se juegan aquí mismo, en el navegador. ¿De cuál quieres saber los controles?",
+      options: [
+        ["Antitronks", "info_antitronks"],
+        ["Protect Mogos", "info_mogos"],
+        ["Stick Drill", "info_stickdrill"],
+        ["Tronk Fight", "info_tronkfight"],
+        ["Tengo un problema con uno", "juego"]
+      ]
+    },
+    info_antitronks: {
+      msg: [
+        "Antitronks: dispara a los malos sin dar a los civiles.",
+        "Apunta con el ratón y haz clic para disparar. Gira la cámara con A y D. Tienes 3 vidas, y los disparos a la cabeza dan el doble de puntos."
+      ],
+      options: [
+        ["Jugar ahora", "@jugar:antitronks"],
+        ["Tengo un problema con este", "juego_tipo"],
+        ["Otro minijuego", "info_minijuegos"]
+      ]
+    },
+    info_mogos: {
+      msg: [
+        "Protect Mogos: protege el castillo del rey.",
+        "Haz clic (o toca la pantalla) en los ninjas antes de que lleguen al castillo. Tienes 3 vidas."
+      ],
+      options: [
+        ["Jugar ahora", "@jugar:antininja"],
+        ["Tengo un problema con este", "juego_tipo"],
+        ["Otro minijuego", "info_minijuegos"]
+      ]
+    },
+    info_stickdrill: {
+      msg: [
+        "Stick Drill: esquiva el taladro que rebota por las paredes; pierde el que caiga primero.",
+        "Contra el bot o a 2 jugadores. Jugador 1: W A S D. Jugador 2: flechas. En el móvil se juega con los joysticks. Tu récord es el tiempo que aguantas."
+      ],
+      options: [
+        ["Jugar ahora", "@jugar:stickdrill"],
+        ["Tengo un problema con este", "juego_tipo"],
+        ["Otro minijuego", "info_minijuegos"]
+      ]
+    },
+    info_tronkfight: {
+      msg: [
+        "Tronk Fight: duelo de stickmans con 7 luchadores, cada uno con su arma y su ataque especial.",
+        "Contra el bot (3 dificultades) o a 2 jugadores en el mismo teclado o móvil. Jugador 1: W A S D para moverse y J K L I para atacar. Jugador 2: flechas y , . - y Mayús derecha."
+      ],
+      options: [
+        ["Jugar ahora", "@jugar:tronkfight"],
+        ["Tengo un problema con este", "juego_tipo"],
+        ["Otro minijuego", "info_minijuegos"]
+      ]
+    },
+    info_perfil: {
+      msg: [
+        "Con la sesión iniciada, pulsa «Cuenta» y luego «Mi perfil».",
+        "Ahí puedes elegir tu avatar dibujado, cambiar tu nombre y escribir una biografía. También salen tus insignias, tus récords y tu lista de deseados.",
+        "Las insignias se consiguen haciendo cosas: proponer ideas, votar, guardar récords, ganar combates en Tronk Fight… Solo se ven las que ya tienes, y cuando consigues una nueva te avisamos."
+      ],
+      options: [
+        ["Abrir mi cuenta", "@cuenta"],
+        ["Otra duda", "info"]
+      ]
+    },
+    info_retos: {
+      msg: [
+        "Los retos de la comunidad están en Minijuegos. Por ejemplo: «entre todos, derrotad 10.000 ninjas esta semana».",
+        "Cada partida que juegas con la sesión iniciada suma a la barra. Ahí ves cuánto falta, cuánto has aportado tú y el tiempo que queda. Si se supera, todos los que han ayudado reciben un aviso."
+      ],
+      options: [
+        ["Ir a Minijuegos", "@seccion:minijuegos"],
+        ["Otra duda", "info"]
+      ]
+    },
+    info_deseados: {
+      msg: [
+        "Abre la ficha de un juego (pulsando su tarjeta) y pulsa «Lista de deseados». Si además pulsas «Avisarme cuando salga», recibirás un aviso cuando se publique o si cambia su fecha.",
+        "Tu lista de deseados sale en tu perfil. Hace falta haber iniciado sesión."
+      ],
+      options: [
+        ["Ver los juegos", "@seccion:desarrollo"],
+        ["Otra duda", "info"]
+      ]
+    },
+    info_notificaciones: {
+      msg: [
+        "La campana de arriba te avisa cuando votan tu idea, cuando el equipo le cambia el estado o te responde, cuando alguien te supera un récord, cuando cambia la fecha de un juego de tu lista y cuando el equipo envía un aviso.",
+        "El número rojo son las que no has leído. Al abrir la campana se marcan como leídas."
+      ],
+      options: [
+        ["Entendido", "fin_pregunta"],
+        ["Otra duda", "info"]
+      ]
+    },
+    info_app: {
+      msg: [
+        "Puedes instalar la web como una app con el botón «Instalar app» de la portada.",
+        "En iPhone: abre la web en Safari, pulsa Compartir y luego «Añadir a pantalla de inicio». Instalada, los minijuegos funcionan incluso sin internet."
+      ],
+      options: [
+        ["Entendido", "fin_pregunta"],
+        ["Otra duda", "info"]
+      ]
+    },
+    info_ajustes: {
+      msg: [
+        "Arriba a la derecha tienes los botones de tema (claro u oscuro), sonidos de la web (el altavoz) e idioma (ES / EN).",
+        "En el ordenador también hay atajos de teclado: pulsa «?» para ver la lista. Por ejemplo, M te lleva a Minijuegos y S a Comunidad."
+      ],
+      options: [
+        ["Entendido", "fin_pregunta"],
+        ["Otra duda", "info"]
+      ]
+    },
+    info_trabajar: {
+      msg: [
+        "¡Nos encantaría! Buscamos gente para arte, música y sonido, programación y pruebas.",
+        "Al final de «Sobre nosotros» está «Trabaja con nosotros»: elige lo tuyo y cuéntanos quién eres y qué sabes hacer. Si tienes un portfolio o vídeos, añade el enlace."
+      ],
+      options: [
+        ["Ver «Trabaja con nosotros»", "@seccion:trabaja-con-nosotros"],
+        ["Otra duda", "info"]
+      ]
+    },
+    info_estudio: {
+      msg: [
+        "TronkStudios es un estudio independiente de videojuegos: un equipo pequeño que diseña, programa y publica sus propios juegos.",
+        "Hacemos juegos de todo tipo, desde modo historia hasta juegos sencillos para pasar un rato, y muchas ideas salen de las sugerencias de la comunidad.",
+        "Queremos crear juegos que hagan disfrutar a la gente, una comunidad sana y cumplir lo que prometemos."
+      ],
+      options: [
+        ["Ver «Sobre nosotros»", "@seccion:sobre-nosotros"],
+        ["Otra duda", "info"]
+      ]
+    },
+
+    /* ---------- CHARLA (para el sistema de frases) ---------- */
+    saludo: {
+      msg: "¡Hola! ¿En qué te puedo ayudar? Puedes escribirme tu duda o elegir una opción.",
+      options: [
+        ["Tengo un problema", "inicio"],
+        ["Tengo una duda sobre la web o los juegos", "info"]
+      ]
+    },
+    quien: {
+      msg: [
+        "Soy Tronker, el asistente de TronkStudios.",
+        "Te ayudo con la web, los juegos, los minijuegos y tu cuenta. Si algo necesita a una persona, te paso con el equipo."
+      ],
+      options: [
+        ["Tengo un problema", "inicio"],
+        ["Tengo una duda", "info"]
+      ]
+    },
+    gracias: {
+      msg: "¡De nada! ¿Puedo ayudarte con algo más?",
+      options: [
+        ["Sí, otra cosa", "inicio"],
+        ["No, eso es todo", "despedida"]
+      ]
+    },
+
     /* ---------- CIERRES ---------- */
     resuelto: {
       msg: "¡Genial, me alegro de que esté solucionado! ¿Puedo ayudarte con algo más?",
@@ -745,6 +959,15 @@ const SUPPORT_CONFIG = {
       openFromChat("new-suggestion-button");
     } else if (destination === "@cerrar") {
       closeSupport();
+    } else if (destination.startsWith("@ficha:")) {
+      closeSupport();
+      document.querySelector(`[data-project="${destination.slice(7)}"]`)?.click();
+    } else if (destination.startsWith("@jugar:")) {
+      closeSupport();
+      document.querySelector(`[data-minigame="${destination.slice(7)}"]`)?.click();
+    } else if (destination.startsWith("@seccion:")) {
+      closeSupport();
+      document.getElementById(destination.slice(9))?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }
 
@@ -818,20 +1041,47 @@ const SUPPORT_CONFIG = {
   let aiHistory = [];
   let aiEnabled = false;
 
+  // Sin IA (o si se acaba el uso gratis del día), Tronker entiende
+  // las preguntas con el sistema de frases de js/tronker.js
   function setAiMode(enabled) {
     aiEnabled = enabled;
 
     if (chatForm) {
-      chatForm.hidden = !enabled;
+      chatForm.hidden = false;
     }
 
     if (chatHint) {
-      chatHint.textContent = enabled
-        ? "Escribe tu pregunta o elige una opción. La conversación no se guarda."
-        : "Elige una opción para continuar. La conversación no se guarda.";
+      chatHint.textContent = "Escribe tu pregunta o elige una opción. La conversación no se guarda.";
     }
 
-    chatStatus.textContent = enabled ? "En línea · Responde con IA" : "Asistente de soporte";
+    chatStatus.textContent = enabled ? "En línea · Responde con IA" : "En línea · Respuestas rápidas";
+  }
+
+  // Responde sin IA: busca la conversación del guion que encaja
+  async function answerWithPhrases(question, alreadyShown = false) {
+    if (!alreadyShown) {
+      addBubble(question, "from-user");
+    }
+
+    const found = window.TronkerPhrases?.match(question);
+
+    if (found && GUION[found.step]) {
+      await goToStep(found.step);
+      return;
+    }
+
+    chatBusy = true;
+    chatOptions.innerHTML = "";
+    const typing = showTyping();
+    await wait(600);
+    typing.remove();
+    chatBusy = false;
+
+    addBubble(
+      "No estoy seguro de haberte entendido. Prueba a decirlo con otras palabras o elige una de estas opciones:",
+      "from-ai"
+    );
+    renderOptions("ai", [...GUION.inicio.options]);
   }
 
   // La IA escribe en texto plano, pero por si acaso se quitan marcas
@@ -889,13 +1139,13 @@ const SUPPORT_CONFIG = {
       // La pregunta no ha tenido respuesta: no se queda en la conversación
       aiHistory.pop();
 
-      addBubble(
-        failure === "rate"
-          ? "Vas muy rápido. Espera un minuto y vuelve a preguntarme."
-          : "Ahora mismo no puedo pensar respuestas. Elige una de estas opciones o escribe al equipo.",
-        "from-ai"
-      );
-      renderOptions("ai", failure === "rate" ? [] : [...GUION.inicio.options]);
+      // Si la IA no está (o se acabó el uso gratis del día), seguimos
+      // con el sistema de frases el resto de la conversación
+      if (failure === "down") {
+        setAiMode(false);
+      }
+
+      await answerWithPhrases(question, true);
     } else {
       const needsTeam = reply.includes("[CONTACTO]");
       const text = cleanReply(reply) || "No he sabido qué responder. ¿Puedes preguntarlo de otra forma?";
@@ -910,16 +1160,36 @@ const SUPPORT_CONFIG = {
     }
   }
 
-  chatForm?.addEventListener("submit", (event) => {
+  chatForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     const question = chatInput.value.trim().slice(0, 1000);
 
-    if (!question || chatBusy || !aiEnabled) {
+    if (!question) {
       return;
     }
 
-    askTronker(question);
+    // Si Tronker aún está escribiendo, la pregunta espera su turno
+    const run = chatRun;
+
+    for (let tries = 0; chatBusy && tries < 150; tries += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    if (chatBusy || run !== chatRun || chatInput.value.trim().slice(0, 1000) !== question) {
+      return;
+    }
+
+    if (aiEnabled) {
+      askTronker(question);
+    } else {
+      chatInput.value = "";
+      answerWithPhrases(question).then(() => {
+        if (activeModal === chatModal) {
+          chatInput.focus({ preventScroll: true });
+        }
+      });
+    }
   });
 
   // Intro envía; Mayús + Intro hace un salto de línea
