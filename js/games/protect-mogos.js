@@ -561,6 +561,8 @@ function initializeAntininjaGame() {
   let gameTime = 0;
 
   let score = 0;
+  // Ninjas derrotados en la partida (para los retos de la comunidad)
+  let defeated = 0;
   let lives = 3;
   let record = loadRecord();
 
@@ -838,6 +840,7 @@ function initializeAntininjaGame() {
     n.fallDir = Math.random() < 0.5 ? -1 : 1;
 
     score += points;
+    defeated += 1;
     updateHud();
 
     spawnParticles(p.x, p.y, "#e8e8e8", 12, 0.9, 7);
@@ -954,6 +957,7 @@ function initializeAntininjaGame() {
 
     // Si hay sesión iniciada, se guarda en la cuenta (js/profiles.js)
     window.TronkScores?.submit("protect-mogos", score);
+    window.TronkChallenges?.add("protect-mogos", defeated);
 
     TronkSound.play(newRecord ? "record" : "gameOver");
 
@@ -987,6 +991,7 @@ function initializeAntininjaGame() {
     cancelAnimationFrame(animationFrame);
 
     score = 0;
+    defeated = 0;
     lives = 3;
     spawnTimer = 0;
     nextSpawn = 700;
@@ -1021,6 +1026,7 @@ function initializeAntininjaGame() {
 
   function startGame() {
     score = 0;
+    defeated = 0;
     lives = 3;
     spawnTimer = 0;
     nextSpawn = 500;

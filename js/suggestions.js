@@ -781,6 +781,9 @@ if (suggestionForm) {
           "success"
         );
 
+        window.TronkUISound?.play("success");
+        window.dispatchEvent(new Event("tronk:activity"));
+
         suggestionForm.reset();
 
         updateCharacterCounter();
@@ -863,9 +866,11 @@ async function voteSuggestion(
       myVotedSuggestions.delete(id);
     } else {
       myVotedSuggestions.add(id);
+      window.TronkUISound?.play("success");
     }
 
     await loadSuggestions();
+    window.dispatchEvent(new Event("tronk:activity"));
   } catch (error) {
     console.error(error);
     flashVoteButton(

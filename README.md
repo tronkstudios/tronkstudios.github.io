@@ -131,7 +131,12 @@ Con eso aparece **Panel del equipo** en «Cuenta», desde donde se puede:
   recibe una notificación, y la fecha de la tabla `game_releases` manda sobre
   la de `js/projects.js`;
 - enviar **avisos** a todos los usuarios (necesita `docs/supabase/avisos.sql`).
-  Llegan a la campana.
+  Llegan a la campana;
+- crear y borrar **retos de la comunidad** (pestaña «Retos», necesita
+  `docs/supabase/retos.sql`). Por ejemplo: «Entre todos, derrotad 10.000 ninjas
+  esta semana». Cada partida con la sesión iniciada suma a la barra que sale en
+  Minijuegos. Hay un máximo por partida y una pausa de 8 segundos entre partidas,
+  para que nadie haga trampas. Al superarlo, quien ha ayudado recibe un aviso.
 
 Cada persona recibe **notificaciones** (campana de la cabecera) cuando su idea
 llega a 1, 5, 10, 25, 50 o 100 votos, cuando el equipo cambia su estado o le

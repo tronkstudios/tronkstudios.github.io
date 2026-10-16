@@ -876,7 +876,60 @@ const I18N_EN = {
   "Completa la verificación anti-bots antes de enviar.": "Complete the anti-bot check before sending.",
   "Mensaje enviado": "Message sent",
   "El servidor ha tardado demasiado en responder. Es posible que el mensaje no se haya enviado.": "The server took too long to respond. The message may not have been sent.",
-  "No se ha podido enviar": "Couldn't send"
+  "No se ha podido enviar": "Couldn't send",
+
+  /* ---------- Retos, atajos, sonidos y Trabaja con nosotros ---------- */
+  "Retos de la comunidad": "Community challenges",
+  "Cada partida suma. ¡Entre todos podemos!": "Every game counts. Together we can do it!",
+  "Jugar": "Play",
+  "¡Superado!": "Completed!",
+  "Superado": "Completed",
+  "No se consiguió": "Not reached",
+  "Terminado": "Ended",
+  "Inicia sesión para que tus partidas cuenten.": "Sign in so your games count.",
+  "Juega una partida para ayudar.": "Play a game to help.",
+  "Queda menos de 1 hora": "Less than 1 hour left",
+  "Retos": "Challenges",
+  "Nuevo reto": "New challenge",
+  "Ej.: Entre todos, derrotad 10.000 ninjas esta semana": "E.g.: Together, defeat 10,000 ninjas this week",
+  "Título del reto": "Challenge title",
+  "Minijuego": "Minigame",
+  "Objetivo": "Goal",
+  "Duración (días)": "Duration (days)",
+  "Crear reto": "Create challenge",
+  "Reto creado. Ya sale en Minijuegos.": "Challenge created. It now shows in Minigames.",
+  "Todavía no hay retos.": "No challenges yet.",
+  "¿Eliminar este reto y todo su progreso?": "Delete this challenge and all its progress?",
+  "Reto eliminado.": "Challenge deleted.",
+  "Revisa el título, el objetivo y la duración (1 a 60 días).": "Check the title, goal and duration (1 to 60 days).",
+  "Ejecuta docs/supabase/retos.sql en Supabase para usar los retos.": "Run docs/supabase/retos.sql in Supabase to use challenges.",
+  "Antitronks (malos derribados)": "Antitronks (bad guys taken down)",
+  "Protect Mogos (ninjas derrotados)": "Protect Mogos (ninjas defeated)",
+  "Stick Drill (segundos aguantados)": "Stick Drill (seconds survived)",
+  "Tronk Fight (victorias)": "Tronk Fight (wins)",
+  "Sonidos de la web": "Website sounds",
+  "Sonidos de la web: activados": "Website sounds: on",
+  "Sonidos de la web: desactivados": "Website sounds: off",
+  "Atajos de teclado": "Keyboard shortcuts",
+  "Atajos de teclado (?)": "Keyboard shortcuts (?)",
+  "Nuestros juegos": "Our games",
+  "Sugerencias y comunidad": "Suggestions and community",
+  "Volver al inicio": "Back to top",
+  "Cambiar tema claro / oscuro": "Switch light / dark theme",
+  "Ver estos atajos": "Show these shortcuts",
+  "Salir de pantalla completa": "Exit full screen",
+  "Trabaja con nosotros": "Work with us",
+  "¿Dibujas, haces música, programas o te encanta probar juegos? Buscamos gente con ganas de crear juegos con nosotros. Elige lo tuyo y escríbenos.": "Do you draw, make music, code or love testing games? We're looking for people who want to make games with us. Pick what you do and write to us.",
+  "Arte": "Art",
+  "Personajes, escenarios, iconos y animaciones.": "Characters, scenery, icons and animations.",
+  "Música y sonido": "Music and sound",
+  "Bandas sonoras y efectos para los juegos.": "Soundtracks and sound effects for the games.",
+  "Programación": "Programming",
+  "Roblox (Luau), juegos web y herramientas.": "Roblox (Luau), web games and tools.",
+  "Pruebas": "Testing",
+  "Jugar antes que nadie y contarnos los fallos.": "Play before anyone else and tell us about bugs.",
+  "Trabajar con nosotros": "Work with us",
+  "Cuéntanos quién eres, qué sabes hacer y, si tienes, un enlace a tus trabajos (portfolio, YouTube, GitHub...).": "Tell us who you are, what you can do and, if you have one, a link to your work (portfolio, YouTube, GitHub...).",
 };
 
 /* =========================================================
@@ -886,12 +939,34 @@ const I18N_EN = {
 
 const MONTHS_EN = {
   ene: "Jan", feb: "Feb", mar: "Mar", abr: "Apr", may: "May", jun: "Jun",
-  jul: "Jul", ago: "Aug", sep: "Sep", oct: "Oct", nov: "Nov", dic: "Dec"
+  jul: "Jul", ago: "Aug", sep: "Sep", oct: "Oct", nov: "Nov", dic: "Dec",
+
 };
 
 const plural = (n, one, many) => (Number(n) === 1 ? one : many);
 
+const CHALLENGE_UNITS_EN = {
+  "malos derribados": "bad guys taken down",
+  "malo derribado": "bad guy taken down",
+  "ninjas derrotados": "ninjas defeated",
+  "ninja derrotado": "ninja defeated",
+  "segundos aguantados": "seconds survived",
+  "segundo aguantado": "second survived",
+  "victorias": "wins",
+  "victoria": "win"
+};
+
 const I18N_PATTERNS = [
+  [/^Quedan (\d+) días$/, (_, n) => `${n} days left`],
+  [/^Quedan (\d+) horas?$/, (_, n) => `${n} ${plural(n, "hour", "hours")} left`],
+  [/^(malos derribados|malo derribado|ninjas derrotados|ninja derrotado|segundos aguantados|segundo aguantado|victorias|victoria) · (\d+)%$/,
+    (_, u, n) => `${CHALLENGE_UNITS_EN[u]} · ${n}%`],
+  [/^Tu aporte: ([\d.,]+) (.+)$/, (_, n, u) => `Your contribution: ${n} ${CHALLENGE_UNITS_EN[u] || u}`],
+  [/^Ayudaste con ([\d.,]+) (.+)\. ¡Gracias!$/, (_, n, u) => `You helped with ${n} ${CHALLENGE_UNITS_EN[u] || u}. Thanks!`],
+  [/^¡Nueva insignia: (.+)!$/, (_, b) => `New badge: ${I18N_EN[b] || b}!`],
+  [/^Quiero ayudar: (.+)$/, (_, r) => `I want to help: ${I18N_EN[r] || r}`],
+  [/^(.+) · (Quedan \d+ días|Quedan \d+ horas?|Queda menos de 1 hora|Superado|Terminado) · (.+)$/,
+    (_, g, st, n) => `${g} · ${t(st)} · ${n}`],
   [/^(\d{1,2}) (ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic) (\d{4})$/,
     (_, d, m, y) => `${MONTHS_EN[m]} ${d}, ${y}`],
   [/^¡Faltan (\d+) días!$/, (_, n) => `${n} days to go!`],
