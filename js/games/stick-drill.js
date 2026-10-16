@@ -736,6 +736,8 @@ function initializeStickDrillGame() {
     if (best > 0) {
       // Si hay sesión iniciada, se guarda en la cuenta (js/profiles.js)
       window.TronkScores?.submit("stick-drill", best);
+      // Retos de la comunidad (js/challenges.js)
+      window.TronkChallenges?.add("stick-drill", best);
     }
 
     const [p1, p2] = players;

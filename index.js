@@ -30,7 +30,7 @@ const MAIL_LIMITS = {
   message: [20, 4000]
 };
 
-const MAIL_CATEGORIES = ["Juegos", "Cuenta", "Error técnico", "Otros"];
+const MAIL_CATEGORIES = ["Juegos", "Cuenta", "Error técnico", "Otros", "Trabajar con nosotros"];
 
 /* =========================================================
    CONOCIMIENTO DE TRONKSTUDIOS PARA LA IA

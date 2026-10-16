@@ -92,7 +92,8 @@ const TEAM_TABS = {
   news: renderTeamNews,
   scores: renderTeamScores,
   releases: renderTeamReleases,
-  notices: renderTeamNotices
+  notices: renderTeamNotices,
+  challenges: renderTeamChallenges
 };
 
 function openTeamPanel() {
