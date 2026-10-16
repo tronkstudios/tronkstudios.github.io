@@ -5885,3 +5885,30 @@ body.game-focus {
     transition: none;
   }
 }
+
+/* ----- Botones de cerrar: icono dibujado, siempre centrado ----- */
+
+.modal-close,
+.antitronks-close,
+.support-icon-button {
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  line-height: 1;
+}
+
+.close-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.antitronks-close .close-icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Sin IA en el Worker, Tronker solo tiene botones */
+.modal-box .support-chat-form[hidden],
+.support-chat-form[hidden] {
+  display: none;
+}
