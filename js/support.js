@@ -58,7 +58,8 @@ const SUPPORT_CONFIG = {
     "Juegos",
     "Cuenta",
     "Error técnico",
-    "Otros"
+    "Otros",
+    "Trabajar con nosotros"
   ];
   const MIN_FILL_TIME_MS = 3000;
   const MAIL_COOLDOWN_MS = 60000;
@@ -254,11 +255,23 @@ const SUPPORT_CONFIG = {
     scrollChatToBottom();
   }
 
+  const mailPlaceholder = mailFields.message?.placeholder || "";
+
   function openMail() {
+    mailFields.message.placeholder = mailPlaceholder;
     showModal(mailModal, mailFields.name);
     mailOpenedAt = Date.now();
     prepareMailForm();
   }
+
+  /* «Trabaja con nosotros» (js/extras.js): abre el formulario ya preparado */
+  window.openJoinMail = (role) => {
+    openMail();
+    mailFields.category.value = "Trabajar con nosotros";
+    mailFields.subject.value = `Quiero ayudar: ${role}`.slice(0, 120);
+    mailFields.message.placeholder =
+      "Cuéntanos quién eres, qué sabes hacer y, si tienes, un enlace a tus trabajos (portfolio, YouTube, GitHub...).";
+  };
 
   // Botones «Soporte» (navegación y pie de página)
   document.querySelectorAll("[data-open-support]").forEach((button) => {

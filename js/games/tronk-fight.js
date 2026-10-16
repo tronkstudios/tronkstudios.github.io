@@ -2429,6 +2429,7 @@ function showResult(M) {
   if (won) Sound.crowd("cheer");
   // Victoria contra el bot: se suma en la cuenta (js/profiles.js)
   if (won && !M.pvp) window.TronkScores?.addWin();
+  if (won && !M.pvp) window.TronkChallenges?.add("tronk-fight", 1);
   const S = M.stats[0], S2 = M.stats[1];
   $("#tf-r-stats").innerHTML = M.pvp
     ? `<li><strong>${M.wins[0]} - ${M.wins[1]}</strong>Rondas</li>` +

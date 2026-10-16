@@ -211,6 +211,8 @@ function initializeAntitronksGame() {
   let gameTime = 0;
 
   let score = 0;
+  // Malos derribados en la partida (para los retos de la comunidad)
+  let defeated = 0;
   let lives = 3;
   let record = loadRecord();
 
@@ -1546,6 +1548,7 @@ function initializeAntitronksGame() {
       const headshot = hit.part === "head";
       TronkSound.play(headshot ? "headshot" : "hitBody");
       score += headshot ? 2 : 1;
+      defeated += 1;
       updateHud();
       addFloater(sx, sy - 14, headshot ? "¡A LA CABEZA! +2" : "+1", headshot ? "#ffd24a" : "#ffffff");
       showMessage(headshot ? "¡DISPARO A LA CABEZA!" : "ENEMIGO ELIMINADO", 450);
@@ -1598,6 +1601,7 @@ function initializeAntitronksGame() {
 
     // Si hay sesión iniciada, se guarda en la cuenta (js/profiles.js)
     window.TronkScores?.submit("antitronks", score);
+    window.TronkChallenges?.add("antitronks", defeated);
 
     TronkSound.play(newRecord ? "record" : "gameOver");
 
@@ -1629,6 +1633,7 @@ function initializeAntitronksGame() {
     cancelAnimationFrame(animationFrame);
 
     score = 0;
+    defeated = 0;
     lives = 3;
     cameraAngle = 0;
     spawnTimer = 0;
@@ -1662,6 +1667,7 @@ function initializeAntitronksGame() {
 
   function startGame() {
     score = 0;
+    defeated = 0;
     lives = 3;
     cameraAngle = 0;
     spawnTimer = 0;
