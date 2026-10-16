@@ -19,11 +19,12 @@ compatibility_date = "2025-09-01"
 # Para probar en local puedes añadir: ,http://127.0.0.1:5500
 ALLOWED_ORIGINS = "https://tronkstudios.github.io"
 
-# Proveedor de IA: "anthropic" o "openai-compatible"
-AI_PROVIDER = "anthropic"
+# Proveedor de IA del chat de Tronker: "workers-ai" (gratis, de Cloudflare,
+# sin clave), "anthropic" u "openai-compatible" (estos dos necesitan AI_API_KEY)
+AI_PROVIDER = "workers-ai"
 
 # Modelo del proveedor elegido (cámbialo si usas otro proveedor)
-AI_MODEL = "claude-haiku-4-5-20251001"
+AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
 
 # Solo para "openai-compatible": dirección base de la API, por ejemplo
 # "https://api.proveedor.com/v1". Con "anthropic" se deja vacío.
@@ -35,6 +36,10 @@ MAIL_FROM = "Soporte TronkStudios <onboarding@resend.dev>"
 
 # Supabase, para los avisos de lanzamiento por correo (dirección pública)
 SUPABASE_URL = "https://qjjnqhbtovjcbwgcwhgl.supabase.co"
+
+# Workers AI (IA gratis de Cloudflare para el chat de Tronker)
+[ai]
+binding = "AI"
 
 # Límite de peticiones por visitante (IP) gestionado por Cloudflare.
 # period solo puede ser 10 o 60 segundos.

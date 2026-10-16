@@ -152,7 +152,7 @@ perfil son los SVG de `img/avatars/`.
 ## YouTube y Roblox
 
 El Worker (`index.js`) tiene dos rutas públicas, sin claves:
-- `GET /youtube`: los últimos vídeos del canal (feed RSS de YouTube), guardados 30 minutos.
+- `GET /youtube`: los últimos vídeos y Shorts del canal (feed RSS de YouTube), guardados 10 minutos.
 - `GET /roblox?place=NÚMERO`: jugadores ahora, visitas, favoritos y «me gusta»
   de un juego de Roblox, guardados 1 minuto.
 
@@ -161,6 +161,22 @@ juego con `roblox.placeId` en `js/projects.js`, sus cifras en la sección Roblox
 y en su ficha (se actualizan cada minuto). El placeId es el número de la
 dirección del juego: `roblox.com/games/NÚMERO/nombre`. Tras cambiar `index.js`
 hay que volver a desplegar el Worker (`npx.cmd wrangler deploy`).
+
+## Tronker con IA (gratis)
+
+El chat de Tronker responde preguntas escritas con **Workers AI de Cloudflare**,
+gratis dentro del uso diario incluido y sin ninguna clave. Basta con el bloque
+`[ai]` de `wrangler.toml` y `AI_PROVIDER = "workers-ai"`.
+- Lo que sabe Tronker está en `TRONK_KNOWLEDGE` (`index.js`). Cuando cambie la
+  web, actualízalo y vuelve a desplegar el Worker.
+- Si se acaba el uso gratis del día o la IA falla, Tronker sigue entendiendo
+  lo que escribe la gente con el **sistema de frases** (`js/tronker.js`): busca
+  la conversación del guion de `js/support.js` que mejor encaja, aunque haya
+  faltas de ortografía o no haya tildes. Para que entienda más cosas, añade
+  frases de ejemplo en `INTENTS`.
+- Cada visitante puede enviar como mucho 8 preguntas por minuto.
+- Para usar otra IA (Claude u otra compatible con OpenAI), cambia `AI_PROVIDER`
+  y `AI_MODEL`, y guarda la clave con `npx.cmd wrangler secret put AI_API_KEY`.
 
 ## App instalable y sin conexión
 
