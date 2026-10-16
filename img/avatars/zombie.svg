@@ -1,19 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Zombi">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#4d7c0f"/>
+      <stop offset="0" stop-color="#65a30d"/>
       <stop offset="1" stop-color="#1a2e05"/>
     </linearGradient>
   </defs>
   <rect width="64" height="64" rx="16" fill="url(#bg)"/>
 
-  <path d="M16 30c0-11 7-18 16-18s16 7 16 18v8c0 9-7 15-16 15s-16-6-16-15z" fill="#86b049"/>
-  <path d="M16 28c2-9 8-15 16-16 6 0 11 3 14 8-5-2-8-1-11 2-4-3-11-3-19 6z" fill="#3f2a14"/>
-  <circle cx="25" cy="33" r="5" fill="#f8fafc"/>
-  <circle cx="25" cy="33" r="2" fill="#7f1d1d"/>
-  <circle cx="39" cy="34" r="3.5" fill="#f8fafc"/>
-  <circle cx="39.5" cy="34.5" r="1.5" fill="#7f1d1d"/>
-  <path d="M24 45c3-2 9-2 15 0" stroke="#1a2e05" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-  <path d="M28 44v3M33 44.5v3" stroke="#f8fafc" stroke-width="2" stroke-linecap="round"/>
-  <path d="M41 22l5 5M43 21l-1 4M45 24l-4 1" stroke="#1a2e05" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M14 64c2-9 9-13 18-13s16 4 18 13z" fill="#57534e"/>
+  <path d="M22 53l4 6 3-5 3 6 3-6 3 5 4-6" fill="#78716c"/>
+  <path d="M27 46v6h10v-6" fill="#6b8f2a"/>
+  <rect x="16" y="20" width="32" height="30" rx="14" fill="#84cc16"/>
+  <path d="M15 32c-1-10 6-16 17-16s18 6 17 16l-3-5-2 4-3-6-3 5-3-6-3 6-3-6-3 6-2-5-3 6z" fill="#3f2a14"/>
+  <path d="M24 17l-2-4M33 15l1-4M41 18l3-3" stroke="#3f2a14" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M38 30l6 4M40 29l-1 3M42 31l-1 3" stroke="#14532d" stroke-width="1.6" stroke-linecap="round"/>
+  <circle cx="25" cy="36" r="4.5" fill="#fff"/>
+  <circle cx="26" cy="36.5" r="2" fill="#7f1d1d"/>
+  <circle cx="39" cy="37" r="3" fill="#fff"/>
+  <circle cx="39" cy="37.5" r="1.4" fill="#7f1d1d"/>
+  <path d="M23 45c4-1.5 14-1.5 18 0" stroke="#1a2e05" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M27 44.5v4M33 44.3v4" stroke="#f5f5f4" stroke-width="2.4" stroke-linecap="round"/>
 </svg>

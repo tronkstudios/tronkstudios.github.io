@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Rey">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f59e0b"/>
+      <stop offset="1" stop-color="#7c2d12"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#bg)"/>
+
+  <path d="M12 64c2-9 9-13 20-13s18 4 20 13z" fill="#dc2626"/>
+  <path d="M20 52h24l-4 6h-16z" fill="#f8fafc"/>
+  <circle cx="26" cy="55" r="1.2" fill="#111827"/>
+  <circle cx="32" cy="57" r="1.2" fill="#111827"/>
+  <circle cx="38" cy="55" r="1.2" fill="#111827"/>
+  <path d="M15 40c-3-4-2-10 1-13-1-6 4-11 9-11 2-3 12-3 14 0 5 0 10 5 9 11 3 3 4 9 1 13 1 4-2 7-5 7H20c-3 0-6-3-5-7z" fill="#92400e"/>
+  <circle cx="17" cy="40" r="4" fill="#92400e"/>
+  <circle cx="47" cy="40" r="4" fill="#92400e"/>
+  <circle cx="18" cy="46" r="3.5" fill="#7c2d12"/>
+  <circle cx="46" cy="46" r="3.5" fill="#7c2d12"/>
+  <circle cx="32" cy="37" r="12" fill="#fcd9b8"/>
+  <path d="M21 31c3-5 7-6 11-6s8 1 11 6c-4-2-7-2-11-2s-7 0-11 2z" fill="#92400e"/>
+  <circle cx="27" cy="37" r="1.9" fill="#1f2937"/>
+  <circle cx="37" cy="37" r="1.9" fill="#1f2937"/>
+  <circle cx="23.5" cy="41" r="2.4" fill="#fca5a5" opacity=".8"/>
+  <circle cx="40.5" cy="41" r="2.4" fill="#fca5a5" opacity=".8"/>
+  <path d="M28 43c2.5 2.5 5.5 2.5 8 0" stroke="#1f2937" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M20 24l3-11 5 6 4-9 4 9 5-6 3 11z" fill="#facc15" stroke="#ca8a04" stroke-width="1.4" stroke-linejoin="round"/>
+  <path d="M20 24h24" stroke="#ca8a04" stroke-width="2.4"/>
+  <circle cx="23" cy="13" r="1.8" fill="#ef4444"/>
+  <circle cx="32" cy="10" r="1.8" fill="#3b82f6"/>
+  <circle cx="41" cy="13" r="1.8" fill="#22c55e"/>
+</svg>

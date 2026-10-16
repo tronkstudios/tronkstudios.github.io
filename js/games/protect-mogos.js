@@ -513,6 +513,8 @@ function initializeAntininjaGame() {
   const overlay = document.getElementById("antininja-overlay");
   const overlayTitle = document.getElementById("antininja-overlay-title");
   const overlayText = document.getElementById("antininja-overlay-text");
+  const overlayBox = overlay?.querySelector(".antitronks-overlay-box");
+  const hud = modal?.querySelector(".antitronks-hud");
   const scoreElement = document.getElementById("antininja-score");
   const recordElement = document.getElementById("antininja-record");
   const livesElement = document.getElementById("antininja-lives");
@@ -563,8 +565,10 @@ function initializeAntininjaGame() {
   let score = 0;
   // Ninjas derrotados en la partida (para los retos de la comunidad)
   let defeated = 0;
-  // Ninjas seguidos sin que llegue ninguno (para la mascota, js/mascot.js)
+  // Ninjas seguidos sin que llegue ninguno: racha (privada, js/games/results.js)
+  // y la mascota (js/mascot.js)
   let streak = 0;
+  let bestStreakGame = 0;
   let lives = 3;
   let record = loadRecord();
 
@@ -844,6 +848,8 @@ function initializeAntininjaGame() {
     score += points;
     defeated += 1;
     streak += 1;
+    bestStreakGame = Math.max(bestStreakGame, streak);
+    TronkResults.showStreak(hud, streak);
 
     if (n.y > 0.8) {
       // Lo ha parado justo antes del castillo
@@ -931,6 +937,7 @@ function initializeAntininjaGame() {
 
     lives -= 1;
     streak = 0;
+    TronkResults.showStreak(hud, 0);
     updateHud();
     TronkSound.play("castleHit");
 
@@ -986,14 +993,25 @@ function initializeAntininjaGame() {
     overlay?.classList.remove("hidden");
 
     if (overlayTitle) {
-      overlayTitle.textContent = newRecord ? "¡NUEVO RÉCORD!" : "GAME OVER";
+      overlayTitle.textContent = "GAME OVER";
     }
 
+    // Resultados aparte de la descripción (js/games/results.js)
+    const newBestStreak = TronkResults.saveStreak("protect-mogos", bestStreakGame);
+
     if (overlayText) {
-      overlayText.textContent = newRecord
-        ? `Has conseguido ${score} punto${score === 1 ? "" : "s"}. ¡Es tu mejor marca!`
-        : `Has conseguido ${score} punto${score === 1 ? "" : "s"}. Tu récord es ${record}.`;
+      overlayText.hidden = true;
     }
+
+    TronkResults.render(overlayBox, {
+      newRecord: newRecord && score > 0,
+      tiles: [
+        { label: "Puntos", value: score, gold: newRecord && score > 0 },
+        { label: "Récord", value: record },
+        { label: newBestStreak ? "Mejor racha (¡nueva!)" : "Racha de la partida", value: bestStreakGame, gold: newBestStreak }
+      ]
+    });
+    TronkResults.showStreak(hud, 0);
 
     if (startButton) {
       startButton.textContent = "REINTENTAR";
@@ -1034,8 +1052,17 @@ function initializeAntininjaGame() {
     }
 
     if (overlayText) {
-      overlayText.textContent = record > 0 ? `${INTRO_TEXT} Tu récord: ${record} puntos.` : INTRO_TEXT;
+      overlayText.textContent = INTRO_TEXT;
+      overlayText.hidden = false;
     }
+
+    TronkResults.render(overlayBox, {
+      tiles: [
+        record > 0 ? { label: "Tu récord", value: record } : null,
+        TronkResults.bestStreak("protect-mogos") > 0 ? { label: "Mejor racha", value: TronkResults.bestStreak("protect-mogos") } : null
+      ]
+    });
+    TronkResults.showStreak(hud, 0);
 
     if (startButton) {
       startButton.textContent = "JUGAR";
@@ -1049,6 +1076,7 @@ function initializeAntininjaGame() {
     score = 0;
     defeated = 0;
     streak = 0;
+    bestStreakGame = 0;
     lives = 3;
     spawnTimer = 0;
     nextSpawn = 500;
@@ -1339,7 +1367,7 @@ function initializeAntininjaGame() {
   });
 
   closeButton?.addEventListener("click", closeGame);
-  backdrop?.addEventListener("click", closeGame);
+  // Pulsar fuera del juego no lo cierra: solo la × o la tecla Escape
   startButton?.addEventListener("click", startGame);
 
   // Ratón y táctil: clic / toque sobre el ninja.

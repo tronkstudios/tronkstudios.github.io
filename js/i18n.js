@@ -511,12 +511,12 @@ const I18N_EN = {
   "Activar sonido": "Unmute",
   "JUGAR": "PLAY",
   "Cerrar Antitronks": "Close Antitronks",
-  "Apunta con el ratón y haz clic para disparar. Gira la cámara con A (izquierda) y D (derecha).":
-    "Aim with the mouse and click to shoot. Turn the camera with A (left) and D (right).",
-  "Apunta con el ratón y haz clic para disparar. Gira la cámara con A (izquierda) y D (derecha). ¡No dispares a los civiles (manos arriba)!":
-    "Aim with the mouse and click to shoot. Turn the camera with A (left) and D (right). Don't shoot civilians (hands up)!",
+  "Apunta con el ratón y haz clic para disparar a los Antitronks. Gira la cámara con A (izquierda) y D (derecha).":
+    "Aim with the mouse and click to shoot the Antitronks. Turn the camera with A (left) and D (right).",
+  "Apunta con el ratón y haz clic para disparar a los Antitronks. Gira la cámara con A (izquierda) y D (derecha). ¡No dispares a los civiles (manos arriba)!":
+    "Aim with the mouse and click to shoot the Antitronks. Turn the camera with A (left) and D (right). Don't shoot civilians (hands up)!",
   "GAME OVER": "GAME OVER",
-  "ENEMIGO ELIMINADO": "ENEMY DOWN",
+  "ANTITRONK ELIMINADO": "ANTITRONK DOWN",
   "¡A LA CABEZA! +2": "HEADSHOT! +2",
   "¡DISPARO A LA CABEZA!": "HEADSHOT!",
   "¡CIVIL!": "CIVILIAN!",
@@ -878,6 +878,49 @@ const I18N_EN = {
   "El servidor ha tardado demasiado en responder. Es posible que el mensaje no se haya enviado.": "The server took too long to respond. The message may not have been sent.",
   "No se ha podido enviar": "Couldn't send",
 
+  /* ---------- Avatares nuevos ---------- */
+  "Rey": "King",
+  "Samurái": "Samurai",
+  "Vikingo": "Viking",
+  "Gato": "Cat",
+  "Perro": "Dog",
+  "Dragón": "Dragon",
+  "Dinosaurio": "Dinosaur",
+  "Vaquero": "Cowboy",
+  "Vampiro": "Vampire",
+  "Momia": "Mummy",
+  "Rana": "Frog",
+  "Pingüino": "Penguin",
+  "Búho": "Owl",
+  "Cíborg": "Cyborg",
+  "Bruja": "Witch",
+  "Tiburón": "Shark",
+  "Calabaza": "Pumpkin",
+  "OVNI": "UFO",
+
+  /* ---------- Ficha de los retos ---------- */
+  "Este reto no tiene descripción.": "This challenge has no description.",
+  "Empezó": "Started",
+  "Termina": "Ends",
+  "Terminó": "Ended",
+  "Tu aporte": "Your contribution",
+  "Inicia sesión para que cuenten tus partidas": "Sign in so your games count",
+  "Mejores contribuidores": "Top contributors",
+  "Todavía nadie ha aportado. ¡Sé el primero!": "Nobody has contributed yet. Be the first!",
+  "No se pudieron cargar los contribuidores.": "Couldn't load the contributors.",
+  "Descripción (opcional): qué hay que hacer, premio, curiosidades...": "Description (optional): what to do, prizes, fun facts...",
+  "Descripción del reto": "Challenge description",
+  "Reto creado sin descripción: vuelve a ejecutar docs/supabase/retos.sql para poder añadirla.": "Challenge created without a description: run docs/supabase/retos.sql again to be able to add one.",
+
+  /* ---------- Resultados de los minijuegos ---------- */
+  "Puntos": "Points",
+  "Récord": "Record",
+  "Tu récord": "Your record",
+  "Mejor racha": "Best streak",
+  "Mejor racha (¡nueva!)": "Best streak (new!)",
+  "Racha de la partida": "Game streak",
+  " ¡NUEVO RÉCORD!": " NEW RECORD!",
+
   /* ---------- Mascota 3D ---------- */
   "Esta es la web de TronkStudios.": "This is the TronkStudios website.",
   "Más abajo tienes los juegos y los minijuegos.": "The games and minigames are further down.",
@@ -1009,8 +1052,8 @@ const I18N_EN = {
   "Ver su ficha": "See its page",
   "Hay cuatro minijuegos gratis que se juegan aquí mismo, en el navegador. ¿De cuál quieres saber los controles?": "There are four free minigames you can play right here in the browser. Which one do you want the controls for?",
   "Tengo un problema con uno": "I have a problem with one",
-  "Antitronks: dispara a los malos sin dar a los civiles.": "Antitronks: shoot the bad guys without hitting the civilians.",
-  "Apunta con el ratón y haz clic para disparar. Gira la cámara con A y D. Tienes 3 vidas, y los disparos a la cabeza dan el doble de puntos.": "Aim with the mouse and click to shoot. Turn the camera with A and D. You have 3 lives, and headshots give double points.",
+  "Antitronks: dispara a los Antitronks sin dar a los civiles.": "Antitronks: shoot the Antitronks without hitting the civilians.",
+  "Apunta con el ratón y haz clic para disparar. Gira la cámara con A y D. Tienes 3 vidas, y los disparos a la cabeza dan el doble de puntos.": "Aim with the mouse and click to shoot the Antitronks. Turn the camera with A and D. You have 3 lives, and headshots give double points.",
   "Jugar ahora": "Play now",
   "Tengo un problema con este": "I have a problem with this one",
   "Otro minijuego": "Another minigame",
@@ -1088,7 +1131,7 @@ const I18N_EN = {
   "Reto eliminado.": "Challenge deleted.",
   "Revisa el título, el objetivo y la duración (1 a 60 días).": "Check the title, goal and duration (1 to 60 days).",
   "Ejecuta docs/supabase/retos.sql en Supabase para usar los retos.": "Run docs/supabase/retos.sql in Supabase to use challenges.",
-  "Antitronks (malos derribados)": "Antitronks (bad guys taken down)",
+  "Antitronks (Antitronks derribados)": "Antitronks (Antitronks taken down)",
   "Protect Mogos (ninjas derrotados)": "Protect Mogos (ninjas defeated)",
   "Stick Drill (segundos aguantados)": "Stick Drill (seconds survived)",
   "Tronk Fight (victorias)": "Tronk Fight (wins)",
@@ -1131,8 +1174,8 @@ const MONTHS_EN = {
 const plural = (n, one, many) => (Number(n) === 1 ? one : many);
 
 const CHALLENGE_UNITS_EN = {
-  "malos derribados": "bad guys taken down",
-  "malo derribado": "bad guy taken down",
+  "Antitronks derribados": "Antitronks taken down",
+  "Antitronk derribado": "Antitronk taken down",
   "ninjas derrotados": "ninjas defeated",
   "ninja derrotado": "ninja defeated",
   "segundos aguantados": "seconds survived",
@@ -1142,13 +1185,18 @@ const CHALLENGE_UNITS_EN = {
 };
 
 const I18N_PATTERNS = [
+  [/^Ver el reto: (.+)$/, (_, x) => `See the challenge: ${x}`],
+  [/^Jugar a (.+)$/, (_, x) => `Play ${x}`],
+  [/^Y (\d+) personas? más ayudando$/, (_, n) => `And ${n} more ${plural(n, "person", "people")} helping`],
+  [/^(.+) · faltan ([\d.,]+)$/, (_, a, n) => `${t(a)} · ${n} to go`],
+  [/^RACHA ×(\d+)$/, (_, n) => `STREAK ×${n}`],
   [/^¡(\d+) segundos!$/, (_, n) => `${n} seconds!`],
   [/^¡Gana el jugador (\d)!$/, (_, n) => `Player ${n} wins!`],
   [/^Sale el (.+) \(fecha prevista, puede cambiar\)\. Si lo añades a tu lista de deseados y pulsas «Avisarme», te avisaremos cuando salga\.$/,
     (_, d) => `It comes out on ${t(d)} (planned date, it may change). If you add it to your wishlist and press “Notify me”, we'll let you know when it's out.`],
   [/^Quedan (\d+) días$/, (_, n) => `${n} days left`],
   [/^Quedan (\d+) horas?$/, (_, n) => `${n} ${plural(n, "hour", "hours")} left`],
-  [/^(malos derribados|malo derribado|ninjas derrotados|ninja derrotado|segundos aguantados|segundo aguantado|victorias|victoria) · (\d+)%$/,
+  [/^(Antitronks derribados|Antitronk derribado|ninjas derrotados|ninja derrotado|segundos aguantados|segundo aguantado|victorias|victoria) · (\d+)%$/,
     (_, u, n) => `${CHALLENGE_UNITS_EN[u]} · ${n}%`],
   [/^Tu aporte: ([\d.,]+) (.+)$/, (_, n, u) => `Your contribution: ${n} ${CHALLENGE_UNITS_EN[u] || u}`],
   [/^Ayudaste con ([\d.,]+) (.+)\. ¡Gracias!$/, (_, n, u) => `You helped with ${n} ${CHALLENGE_UNITS_EN[u] || u}. Thanks!`],

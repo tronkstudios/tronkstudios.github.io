@@ -6167,3 +6167,304 @@ body.modal-open .mascot:not(.in-game) {
     right: calc(-1 * min(8px, (100vw - 100%) / 2 - 6px));
   }
 }
+
+/* ----- Resultados de los minijuegos (js/games/results.js) ----- */
+
+.game-result {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0 0 1.2rem;
+}
+
+.game-result[hidden] {
+  display: none;
+}
+
+/* Cinta dorada: solo con récord nuevo, imposible de confundir con el texto */
+.game-result-record {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  justify-self: center;
+  padding: 0.5rem 1.1rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ffe27a, #f5b301 55%, #ffcf3f);
+  color: #2b1d00;
+  text-shadow: none;
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  box-shadow: 0 0 0 3px rgba(255, 210, 74, 0.25), 0 6px 22px rgba(245, 179, 1, 0.45);
+  animation: game-record-in 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+}
+
+.game-result-record .icon {
+  width: 1.2em;
+  height: 1.2em;
+}
+
+@keyframes game-record-in {
+  from {
+    opacity: 0;
+    transform: scale(0.5) rotate(-6deg);
+  }
+}
+
+.game-result-tiles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.game-result-tile {
+  min-width: 84px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.game-result-tile dt {
+  color: #aeb6c2;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.game-result-tile dd {
+  margin: 0.1rem 0 0;
+  color: #fff;
+  font-size: 1.35rem;
+  font-weight: 900;
+}
+
+.game-result-tile.is-gold {
+  border-color: rgba(255, 210, 74, 0.7);
+  background: rgba(255, 210, 74, 0.12);
+}
+
+.game-result-tile.is-gold dd {
+  color: #ffd24a;
+}
+
+/* Contador de racha en el marcador (solo lo ves tú) */
+.game-streak {
+  position: absolute;
+  top: 58px;
+  left: 14px;
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+  background: rgba(255, 106, 0, 0.85);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 900;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.game-streak.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+.game-streak.is-pop {
+  animation: game-streak-pop 0.3s ease;
+}
+
+@keyframes game-streak-pop {
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+.antininja-hud .game-streak {
+  top: 50px;
+  left: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-result-record,
+  .game-streak.is-pop {
+    animation: none;
+  }
+}
+
+/* ----- Ficha de un reto (js/challenges.js) ----- */
+
+.challenge-card[role="button"] {
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.challenge-card[role="button"]:hover,
+.challenge-card[role="button"]:focus-visible {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.challenge-modal-box {
+  width: min(560px, 100%);
+}
+
+.challenge-modal-content {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.challenge-modal-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-right: 2.4rem;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.challenge-modal-title {
+  margin: 0;
+  font-size: 1.5rem;
+  overflow-wrap: anywhere;
+}
+
+.challenge-modal-text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.challenge-modal-text.is-empty {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.challenge-modal-progress {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+
+.challenge-modal-progress.is-done {
+  border-color: var(--success);
+}
+
+.challenge-modal-percent {
+  font-size: 1.7rem;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.challenge-modal-progress.is-done .challenge-fill {
+  background: linear-gradient(90deg, var(--success), #4ade80);
+}
+
+.challenge-modal-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
+  gap: 0.6rem;
+  margin: 0;
+}
+
+.challenge-modal-facts div {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.challenge-modal-facts dt {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.challenge-modal-facts dd {
+  margin: 0.15rem 0 0;
+  font-weight: 800;
+}
+
+.challenge-top {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.challenge-top-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.challenge-top-row.is-me {
+  border-color: var(--accent);
+}
+
+.challenge-top-pos {
+  display: inline-grid;
+  place-items: center;
+  width: 1.8rem;
+  font-weight: 900;
+  color: var(--muted);
+}
+
+.challenge-top-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.challenge-top-name span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.challenge-top-amount {
+  margin-left: auto;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.challenge-top-more {
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.challenge-modal-play {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* 36 avatares: la lista se desplaza en vez de ocupar media pantalla */
+.avatar-picker {
+  max-height: 248px;
+  overflow-y: auto;
+  padding: 2px;
+  scrollbar-width: thin;
+}
+
+@media (max-width: 480px) {
+  .avatar-picker {
+    grid-template-columns: repeat(6, 1fr);
+    max-height: 220px;
+  }
+}

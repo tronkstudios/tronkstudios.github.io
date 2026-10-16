@@ -103,7 +103,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="css/styles.css?v=58" />
+  <link rel="stylesheet" href="css/styles.css?v=60" />
   <!-- La mascota 3D (js/mascot.js) usa Three.js: se descarga a la vez que la página -->
   <link rel="modulepreload" href="js/vendor/three.module.min.js" />
   <link rel="stylesheet" href="css/tronk-fight.css?v=3" />
@@ -124,18 +124,19 @@
   <script src="js/auth.js?v=21" defer></script>
   <script src="js/suggestions.js?v=27" defer></script>
   <script src="js/projects.js?v=31" defer></script>
-  <script src="js/profiles.js?v=8" defer></script>
+  <script src="js/profiles.js?v=9" defer></script>
   <script src="js/community.js?v=4" defer></script>
-  <script src="js/challenges.js?v=1" defer></script>
+  <script src="js/challenges.js?v=3" defer></script>
   <script src="js/team.js?v=7" defer></script>
   <script src="js/news.js?v=4" defer></script>
   <script src="js/journey.js?v=1" defer></script>
   <script src="js/hero.js?v=5" defer></script>
   <script src="js/games/audio.js?v=20" defer></script>
-  <script src="js/games/antitronks.js?v=22" defer></script>
-  <script src="js/games/protect-mogos.js?v=22" defer></script>
-  <script src="js/games/stick-drill.js?v=23" defer></script>
-  <script src="js/games/tronk-fight.js?v=7" defer></script>
+  <script src="js/games/results.js?v=1" defer></script>
+  <script src="js/games/antitronks.js?v=23" defer></script>
+  <script src="js/games/protect-mogos.js?v=23" defer></script>
+  <script src="js/games/stick-drill.js?v=24" defer></script>
+  <script src="js/games/tronk-fight.js?v=8" defer></script>
   <script src="js/apis.js?v=3" defer></script>
   <script src="js/pwa.js?v=1" defer></script>
   <script src="js/extras.js?v=2" defer></script>
@@ -144,7 +145,7 @@
 
   <!-- Sistema de soporte (chat con Tronker + formulario de correo) -->
   <script src="js/tronker.js?v=1" defer></script>
-  <script src="js/support.js?v=14" defer></script>
+  <script src="js/support.js?v=15" defer></script>
 </head>
 
 <body>
@@ -2137,6 +2138,34 @@
        PERFIL (se rellena desde js/profiles.js)
        ===================================================== -->
 
+  <!-- =====================================================
+       FICHA DE UN RETO DE LA COMUNIDAD (js/challenges.js)
+       ===================================================== -->
+
+  <div
+    id="challenge-modal"
+    class="modal hidden"
+    aria-hidden="true"
+  >
+    <div class="modal-backdrop"></div>
+
+    <div
+      class="modal-box challenge-modal-box"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="challenge-modal-title"
+    >
+      <button
+        class="modal-close"
+        data-close-modal="challenge-modal"
+        type="button"
+        aria-label="Cerrar"
+      ><svg class="icon close-icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
+
+      <div id="challenge-content" class="challenge-modal-content"></div>
+    </div>
+  </div>
+
   <div
     id="profile-modal"
     class="modal hidden"
@@ -2244,7 +2273,7 @@
             <div class="antitronks-overlay-box">
               <h3 id="antitronks-overlay-title">ANTITRONKS</h3>
               <p id="antitronks-overlay-text">
-                Apunta con el ratón y haz clic para disparar. Gira la cámara con A (izquierda) y D (derecha).
+                Apunta con el ratón y haz clic para disparar a los Antitronks. Gira la cámara con A (izquierda) y D (derecha).
               </p>
               <button
                 id="antitronks-start"
@@ -3014,6 +3043,6 @@
 
   <!-- Versión en inglés. Va aquí, sin defer, para traducir antes de
        que se vea la página (ver js/i18n.js). -->
-  <script src="js/i18n.js?v=10"></script>
+  <script src="js/i18n.js?v=12"></script>
 </body>
 </html>

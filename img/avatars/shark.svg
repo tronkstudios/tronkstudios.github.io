@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Tiburón">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0284c7"/>
+      <stop offset="1" stop-color="#082f49"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#bg)"/>
+
+  <path d="M28 21l6-14 6 15z" fill="#64748b"/>
+  <path d="M8 40c0-12 10-20 24-20s24 8 24 20c0 8-10 14-24 14S8 48 8 40z" fill="#94a3b8"/>
+  <path d="M13 41c5 8 33 8 38 0z" fill="#7f1d1d"/>
+  <path d="M13 41h38l-3 4-3-4-3 4-3-4-3 4-3-4-3 4-3-4-3 4-3-4-3 4-3-4z" fill="#fff"/>
+  <path d="M18 47l3-3 3 3 3-3 3 3 3-3 3 3 3-3 3 3 3-3 3 3c-6 3-24 3-28 0z" fill="#fff"/>
+  <circle cx="22" cy="32" r="2.6" fill="#111827"/>
+  <circle cx="42" cy="32" r="2.6" fill="#111827"/>
+  <circle cx="22.8" cy="31.2" r=".8" fill="#fff"/>
+  <circle cx="42.8" cy="31.2" r=".8" fill="#fff"/>
+  <path d="M48 27l2 5M52 30l1 4" stroke="#64748b" stroke-width="1.6" stroke-linecap="round"/>
+</svg>

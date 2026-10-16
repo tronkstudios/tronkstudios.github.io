@@ -381,9 +381,15 @@ function initializeStickDrillGame() {
     return Math.min(0.95, 0.33 + time * 0.012);
   }
 
+  // Solo la descripción: el récord va aparte, en el panel de resultados
   function introWithRecord() {
-    const intro = touchMode ? TOUCH_INTRO_TEXT : INTRO_TEXT;
-    return record > 0 ? `${intro} Récord: ${fmt(record)}.` : intro;
+    return touchMode ? TOUCH_INTRO_TEXT : INTRO_TEXT;
+  }
+
+  function renderIntroResults() {
+    TronkResults.render(overlay?.querySelector(".antitronks-overlay-box"), {
+      tiles: [record > 0 ? { label: "Tu récord", value: fmt(record) } : null]
+    });
   }
 
   /* =======================================================
@@ -584,7 +590,10 @@ function initializeStickDrillGame() {
 
     if (overlayText) {
       overlayText.textContent = introWithRecord();
+      overlayText.hidden = false;
     }
+
+    renderIntroResults();
 
     flash?.classList.remove("active");
     message?.classList.remove("visible");
@@ -760,14 +769,25 @@ function initializeStickDrillGame() {
     overlay?.classList.remove("hidden");
 
     if (overlayTitle) {
-      overlayTitle.textContent = newRecord ? `${title} ¡NUEVO RÉCORD!` : title;
+      overlayTitle.textContent = title;
     }
 
+    // Resultados aparte del título (js/games/results.js)
+    const t1 = p1.alive ? time : p1.deathTime;
+    const t2 = p2.alive ? time : p2.deathTime;
+
     if (overlayText) {
-      const t1 = p1.alive ? time : p1.deathTime;
-      const t2 = p2.alive ? time : p2.deathTime;
-      overlayText.textContent = `${p1.label}: ${fmt(t1)} · ${p2.label}: ${fmt(t2)}. Récord: ${fmt(record)}.`;
+      overlayText.hidden = true;
     }
+
+    TronkResults.render(overlay?.querySelector(".antitronks-overlay-box"), {
+      newRecord: newRecord && best > 0,
+      tiles: [
+        { label: p1.label, value: fmt(t1) },
+        { label: p2.label, value: fmt(t2) },
+        { label: "Récord", value: fmt(record), gold: newRecord && best > 0 }
+      ]
+    });
 
     updateHud();
     draw();
@@ -1185,7 +1205,12 @@ function initializeStickDrillGame() {
   });
 
   closeButton?.addEventListener("click", closeGame);
-  backdrop?.addEventListener("click", closeGame);
+  // Pulsar fuera del juego no lo cierra: solo la × o la tecla Escape
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !modal.classList.contains("hidden")) {
+      closeGame();
+    }
+  });
   botButton?.addEventListener("click", () => startRound("bot"));
   duoButton?.addEventListener("click", () => startRound("duo"));
 

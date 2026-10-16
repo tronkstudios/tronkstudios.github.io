@@ -11,7 +11,7 @@
 
 // Qué cuenta en cada minijuego
 const CHALLENGE_GAMES = {
-  antitronks: { title: "Antitronks", unit: "malos derribados", one: "malo derribado" },
+  antitronks: { title: "Antitronks", unit: "Antitronks derribados", one: "Antitronk derribado" },
   "protect-mogos": { title: "Protect Mogos", unit: "ninjas derrotados", one: "ninja derrotado" },
   "stick-drill": { title: "Stick Drill", unit: "segundos aguantados", one: "segundo aguantado" },
   "tronk-fight": { title: "Tronk Fight", unit: "victorias", one: "victoria" }
@@ -31,6 +31,33 @@ let myChallengeAmounts = {};
    CARGAR
    ========================================================= */
 
+const CHALLENGE_COLUMNS = "id, title, game, goal, progress, starts_at, ends_at, completed_at";
+
+// Pide los retos con su descripción; si aún no se ha vuelto a ejecutar
+// retos.sql (no existe la columna), los pide sin ella.
+async function selectChallenges(build) {
+  const withDescription = await build(`${CHALLENGE_COLUMNS}, description`);
+
+  if (withDescription.error && /description/i.test(withDescription.error.message || "")) {
+    return build(CHALLENGE_COLUMNS);
+  }
+
+  return withDescription;
+}
+
+/* Porcentaje exacto, con hasta 10 decimales (0,0333333333 %) */
+function exactPercent(challenge) {
+  if (!challenge.goal) {
+    return 0;
+  }
+
+  return Math.min(100, (Number(challenge.progress) / Number(challenge.goal)) * 100);
+}
+
+function formatPercent(value) {
+  return `${new Intl.NumberFormat(currentLocale(), { maximumFractionDigits: 10 }).format(value)}%`;
+}
+
 async function loadChallenges() {
   if (!isSupabaseConfigured()) {
     return;
@@ -40,12 +67,14 @@ async function loadChallenges() {
   const now = new Date().toISOString();
 
   try {
-    const { data, error } = await supabaseClient
-      .from("challenges")
-      .select("id, title, game, goal, progress, starts_at, ends_at, completed_at")
-      .lte("starts_at", now)
-      .gte("ends_at", since)
-      .order("ends_at", { ascending: true });
+    const { data, error } = await selectChallenges((columns) =>
+      supabaseClient
+        .from("challenges")
+        .select(columns)
+        .lte("starts_at", now)
+        .gte("ends_at", since)
+        .order("ends_at", { ascending: true })
+    );
 
     if (error) {
       // Si no se ha ejecutado retos.sql, el bloque no aparece
@@ -115,7 +144,7 @@ function timeLeftText(endsAt) {
 
 function createChallengeCard(challenge) {
   const done = Boolean(challenge.completed_at) || challenge.progress >= challenge.goal;
-  const percent = Math.min(100, Math.round((challenge.progress / challenge.goal) * 100));
+  const percent = exactPercent(challenge);
   const ended = !done && new Date(challenge.ends_at) < new Date();
 
   const card = document.createElement("article");
@@ -150,7 +179,7 @@ function createChallengeCard(challenge) {
   bar.setAttribute("aria-valuemin", "0");
   bar.setAttribute("aria-valuemax", String(challenge.goal));
   bar.setAttribute("aria-valuenow", String(Math.min(challenge.progress, challenge.goal)));
-  bar.setAttribute("aria-label", `Progreso: ${percent}%`);
+  bar.setAttribute("aria-label", `Progreso: ${formatPercent(percent)}`);
 
   const fill = document.createElement("span");
   fill.className = "challenge-fill";
@@ -164,7 +193,7 @@ function createChallengeCard(challenge) {
   progress.textContent = `${formatNumber(challenge.progress, false)} / ${formatNumber(challenge.goal, false)}`;
 
   const unit = document.createElement("span");
-  unit.textContent = ` ${challengeUnit(challenge.game, challenge.goal)} · ${percent}%`;
+  unit.textContent = ` ${challengeUnit(challenge.game, challenge.goal)} · ${formatPercent(percent)}`;
 
   numbers.append(progress, unit);
 
@@ -197,14 +226,223 @@ function createChallengeCard(challenge) {
     play.type = "button";
     play.className = "secondary-button challenge-play";
     setIconText(play, "play", "Jugar");
-    play.addEventListener("click", () => {
-      const key = challenge.game === "protect-mogos" ? "antininja" : challenge.game.replace("-", "");
-      document.querySelector(`[data-minigame="${key}"]`)?.click();
+    play.addEventListener("click", (event) => {
+      event.stopPropagation();
+      playChallenge(challenge);
     });
     card.appendChild(play);
   }
 
+  // Al pulsar la tarjeta se abre la ficha del reto
+  card.tabIndex = 0;
+  card.setAttribute("role", "button");
+  card.setAttribute("aria-label", `Ver el reto: ${challenge.title}`);
+  card.addEventListener("click", () => openChallenge(challenge));
+  card.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openChallenge(challenge);
+    }
+  });
+
   return card;
+}
+
+function playChallenge(challenge) {
+  const key = challenge.game === "protect-mogos" ? "antininja" : challenge.game.replace("-", "");
+  closeModal(document.getElementById("challenge-modal"));
+  document.querySelector(`[data-minigame="${key}"]`)?.click();
+}
+
+/* =========================================================
+   FICHA DEL RETO (como las de los juegos en desarrollo)
+   ========================================================= */
+
+function challengeElement(tag, className, text) {
+  const element = document.createElement(tag);
+
+  if (className) {
+    element.className = className;
+  }
+
+  if (text !== undefined) {
+    element.textContent = text;
+  }
+
+  return element;
+}
+
+function formatDay(value) {
+  return new Date(value).toLocaleDateString(currentLocale(), { day: "numeric", month: "long", year: "numeric" });
+}
+
+async function openChallenge(challenge) {
+  const modal = document.getElementById("challenge-modal");
+  const content = document.getElementById("challenge-content");
+
+  if (!modal || !content) {
+    return;
+  }
+
+  const done = Boolean(challenge.completed_at) || challenge.progress >= challenge.goal;
+  const ended = !done && new Date(challenge.ends_at) < new Date();
+  const percent = exactPercent(challenge);
+  const info = CHALLENGE_GAMES[challenge.game] || { title: challenge.game };
+
+  content.replaceChildren();
+
+  // Cabecera: juego, estado y título
+  const head = challengeElement("div", "challenge-modal-head");
+  head.append(challengeElement("span", "challenge-game", info.title));
+
+  const state = challengeElement("span", "challenge-time");
+  if (done) {
+    setIconText(state, "check", "¡Superado!");
+  } else {
+    setIconText(state, "calendar", ended ? "No se consiguió" : timeLeftText(challenge.ends_at));
+  }
+  head.appendChild(state);
+
+  const title = challengeElement("h2", "challenge-modal-title", challenge.title);
+  title.id = "challenge-modal-title";
+  title.dataset.noTranslate = "";
+
+  content.append(head, title);
+
+  // Descripción
+  const description = challengeElement(
+    "p",
+    challenge.description ? "challenge-modal-text" : "challenge-modal-text is-empty",
+    challenge.description || "Este reto no tiene descripción."
+  );
+  if (challenge.description) {
+    description.dataset.noTranslate = "";
+  }
+  content.appendChild(description);
+
+  // Progreso exacto
+  const progress = challengeElement("div", done ? "challenge-modal-progress is-done" : "challenge-modal-progress");
+  progress.appendChild(challengeElement("strong", "challenge-modal-percent", formatPercent(percent)));
+
+  const bar = challengeElement("div", "challenge-bar");
+  const fill = challengeElement("span", "challenge-fill");
+  fill.style.width = `${percent}%`;
+  bar.appendChild(fill);
+  progress.appendChild(bar);
+
+  const remaining = Math.max(0, challenge.goal - challenge.progress);
+  progress.appendChild(
+    challengeElement(
+      "p",
+      "challenge-numbers",
+      `${formatNumber(challenge.progress, false)} / ${formatNumber(challenge.goal, false)} ${challengeUnit(challenge.game, challenge.goal)}` +
+        (remaining && !done ? ` · faltan ${formatNumber(remaining, false)}` : "")
+    )
+  );
+  content.appendChild(progress);
+
+  // Datos
+  const facts = challengeElement("dl", "challenge-modal-facts");
+  [
+    ["Minijuego", info.title],
+    ["Empezó", formatDay(challenge.starts_at)],
+    [done || ended ? "Terminó" : "Termina", formatDay(challenge.completed_at || challenge.ends_at)],
+    ["Tu aporte", currentUser
+      ? `${formatNumber(myChallengeAmounts[challenge.id] || 0, false)} ${challengeUnit(challenge.game, myChallengeAmounts[challenge.id] || 0)}`
+      : "Inicia sesión para que cuenten tus partidas"]
+  ].forEach(([label, value]) => {
+    const item = challengeElement("div");
+    item.append(challengeElement("dt", "", label), challengeElement("dd", "", value));
+    facts.appendChild(item);
+  });
+  content.appendChild(facts);
+
+  // Mejores contribuidores
+  content.appendChild(challengeElement("h3", "profile-section-title", "Mejores contribuidores"));
+  const list = challengeElement("ol", "challenge-top");
+  list.appendChild(challengeElement("li", "profile-loading", "Cargando..."));
+  content.appendChild(list);
+
+  if (!done && !ended) {
+    const play = challengeElement("button", "primary-button challenge-modal-play");
+    play.type = "button";
+    setIconText(play, "play", `Jugar a ${info.title}`);
+    play.addEventListener("click", () => playChallenge(challenge));
+    content.appendChild(play);
+  }
+
+  openModal(modal);
+  modal.querySelector(".modal-close")?.focus();
+
+  renderTopContributors(list, challenge);
+}
+
+async function renderTopContributors(list, challenge) {
+  try {
+    const { data, error, count } = await supabaseClient
+      .from("challenge_contributions")
+      .select("user_id, amount", { count: "exact" })
+      .eq("challenge_id", challenge.id)
+      .order("amount", { ascending: false })
+      .limit(5);
+
+    list.replaceChildren();
+
+    if (error || !data || !data.length) {
+      list.appendChild(challengeElement("li", "profile-empty", "Todavía nadie ha aportado. ¡Sé el primero!"));
+      return;
+    }
+
+    const { data: profiles } = await supabaseClient
+      .from("profiles")
+      .select("id, display_name, avatar")
+      .in("id", data.map((row) => row.user_id));
+
+    const byId = new Map((profiles || []).map((profile) => [profile.id, profile]));
+
+    data.forEach((row, index) => {
+      const profile = byId.get(row.user_id);
+      const item = challengeElement("li", row.user_id === currentUser?.id ? "challenge-top-row is-me" : "challenge-top-row");
+
+      const position = challengeElement("span", "challenge-top-pos");
+      if (index < 3) {
+        position.appendChild(makeIcon("medal", `icon medal medal-${index + 1}`));
+      } else {
+        position.textContent = String(index + 1);
+      }
+
+      const name = challengeElement("button", "challenge-top-name profile-link");
+      name.type = "button";
+      name.append(
+        typeof avatarImage === "function" ? avatarImage(profile?.avatar, "leaderboard-avatar") : document.createTextNode(""),
+        challengeElement("span", "", profile?.display_name || "Tronker")
+      );
+      name.addEventListener("click", () => {
+        closeModal(document.getElementById("challenge-modal"));
+        openProfile(row.user_id);
+      });
+
+      const amount = Number(row.amount) || 0;
+      const share = challenge.progress ? (amount / challenge.progress) * 100 : 0;
+      const value = challengeElement(
+        "span",
+        "challenge-top-amount",
+        `${formatNumber(amount, false)} · ${formatPercent(share)}`
+      );
+
+      item.append(position, name, value);
+      list.appendChild(item);
+    });
+
+    if (count > data.length) {
+      list.appendChild(
+        challengeElement("li", "challenge-top-more", `Y ${count - data.length} ${count - data.length === 1 ? "persona más" : "personas más"} ayudando`)
+      );
+    }
+  } catch (error) {
+    console.error(error);
+    list.replaceChildren(challengeElement("li", "profile-empty", "No se pudieron cargar los contribuidores."));
+  }
 }
 
 function renderChallenges() {
@@ -259,11 +497,13 @@ window.TronkChallenges = TronkChallenges;
    ========================================================= */
 
 async function renderTeamChallenges(content) {
-  const { data, error } = await supabaseClient
-    .from("challenges")
-    .select("id, title, game, goal, progress, starts_at, ends_at, completed_at")
-    .order("created_at", { ascending: false })
-    .limit(30);
+  const { data, error } = await selectChallenges((columns) =>
+    supabaseClient
+      .from("challenges")
+      .select(columns)
+      .order("created_at", { ascending: false })
+      .limit(30)
+  );
 
   content.replaceChildren();
 
@@ -319,7 +559,13 @@ async function renderTeamChallenges(content) {
   submit.type = "submit";
   setIconText(submit, "target", "Crear reto");
 
-  form.append(title, game, row, submit);
+  const description = document.createElement("textarea");
+  description.rows = 3;
+  description.maxLength = 500;
+  description.placeholder = "Descripción (opcional): qué hay que hacer, premio, curiosidades...";
+  description.setAttribute("aria-label", "Descripción del reto");
+
+  form.append(title, description, game, row, submit);
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -333,22 +579,34 @@ async function renderTeamChallenges(content) {
     }
 
     const ends = new Date(Date.now() + daysValue * 86400000);
+    const newChallenge = {
+      title: title.value.trim(),
+      description: description.value.trim(),
+      game: game.value,
+      goal: goalValue,
+      starts_at: new Date().toISOString(),
+      ends_at: ends.toISOString()
+    };
 
-    const ok = await teamAction(
-      supabaseClient.from("challenges").insert({
-        title: title.value.trim(),
-        game: game.value,
-        goal: goalValue,
-        starts_at: new Date().toISOString(),
-        ends_at: ends.toISOString()
-      }),
-      "Reto creado. Ya sale en Minijuegos."
-    );
+    let insert = await supabaseClient.from("challenges").insert(newChallenge);
+    let note = "Reto creado. Ya sale en Minijuegos.";
 
-    if (ok) {
-      loadChallenges();
-      showTeamTab("challenges");
+    // Sin la columna «description» (retos.sql antiguo) se crea sin ella
+    if (insert.error && /description/i.test(insert.error.message || "")) {
+      delete newChallenge.description;
+      insert = await supabaseClient.from("challenges").insert(newChallenge);
+      note = "Reto creado sin descripción: vuelve a ejecutar docs/supabase/retos.sql para poder añadirla.";
     }
+
+    if (insert.error) {
+      console.warn("Panel del equipo:", insert.error.message);
+      teamMessage(`No se pudo hacer: ${insert.error.message}`, "error");
+      return;
+    }
+
+    teamMessage(note, newChallenge.description === undefined ? "error" : "success");
+    loadChallenges();
+    showTeamTab("challenges");
   });
 
   content.appendChild(form);
@@ -405,6 +663,15 @@ async function renderTeamChallenges(content) {
 
 function initializeChallenges() {
   loadChallenges();
+
+  // Escape cierra la ficha del reto
+  document.addEventListener("keydown", (event) => {
+    const modal = document.getElementById("challenge-modal");
+
+    if (event.key === "Escape" && modal && !modal.classList.contains("hidden")) {
+      closeModal(modal);
+    }
+  });
 
   setInterval(() => {
     if (!document.hidden && challengesAvailable) {
