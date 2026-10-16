@@ -36,6 +36,46 @@ const LINES = {
   roundLose: ["Venga, la siguiente."]
 };
 
+// Lo que comenta según la sección o tarjeta que tenga el ratón encima
+const AREA_LINES = {
+  hero: ["Esta es la web de TronkStudios.", "Más abajo tienes los juegos y los minijuegos."],
+  desarrollo: ["Estos son los juegos que estamos haciendo.", "Pulsa una tarjeta para ver la ficha completa."],
+  "project:z-tronks": ["Z Tronks: zombis, misiones y cuatro clases.", "Añádelo a deseados y te aviso cuando salga."],
+  "project:the-sundered-sky": ["The Sundered Sky: islas flotantes y barcos voladores.", "Todavía no tiene fecha, pero va avanzando."],
+  juegos: ["Aquí saldrán los juegos ya terminados.", "De momento está vacío, pero no por mucho tiempo."],
+  roblox: ["Aquí verás los juegos de Roblox con jugadores en directo.", "Cuando salga Z Tronks, aparecerá aquí."],
+  minijuegos: ["Todos se juegan aquí mismo, gratis.", "Con la sesión iniciada, tus récords salen en la clasificación."],
+  "game:antitronks": ["Antitronks: ojo con los civiles.", "Disparar a la cabeza da el doble de puntos."],
+  "game:antininja": ["Protect Mogos: que no lleguen al castillo.", "Cuanto más aguantas, más rápidos van."],
+  "game:stickdrill": ["Stick Drill: esquiva el taladro.", "Se puede jugar contra un amigo en el mismo teclado."],
+  "game:tronkfight": ["Tronk Fight: siete luchadores para elegir.", "Llena la barra y usa el ataque especial."],
+  challenges: ["Cada partida tuya suma a la barra del reto.", "Si se supera el reto, os llega un aviso a todos."],
+  leaderboard: ["A ver quién va primero.", "Solo cuentan las partidas con la sesión iniciada."],
+  sugerencias: ["Aquí la comunidad propone ideas.", "Puedes votar las ideas que más te gusten."],
+  suggestion: ["Si te gusta esta idea, vótala.", "El equipo responde a las ideas por aquí."],
+  polls: ["Vota en la encuesta, que el equipo la mira."],
+  novedades: ["Aquí el equipo cuenta en qué está trabajando."],
+  videos: ["Estos son los últimos vídeos del canal.", "Los Shorts nuevos salen aquí solos."],
+  "sobre-nosotros": ["Aquí te contamos quiénes somos.", "Un poco más abajo está cómo empezó todo."],
+  journey: ["Pulsa la flecha para ver la siguiente parte."],
+  join: ["Si dibujas, haces música o programas, escríbenos.", "Elige lo tuyo y te sale el formulario."]
+};
+
+// De lo más concreto (una tarjeta) a lo más general (la sección)
+const AREA_SELECTORS = [
+  ["[data-minigame]", (el) => `game:${el.dataset.minigame}`],
+  ["[data-project]", (el) => `project:${el.dataset.project}`],
+  [".challenge-card, #challenges", () => "challenges"],
+  [".leaderboard", () => "leaderboard"],
+  [".poll-card, #polls", () => "polls"],
+  [".suggestion-card", () => "suggestion"],
+  [".join, .join-card", () => "join"],
+  ["#videos, #shorts", () => "videos"],
+  [".journey, #journey", () => "journey"],
+  [".hero", () => "hero"],
+  ["main .section[id]", (el) => el.id]
+];
+
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
 
 // Qué hace el robot con cada cosa que pasa en un juego
@@ -60,33 +100,17 @@ const REACTIONS = {
    DOM: contenedor, lienzo y bocadillo
    ========================================================= */
 
-const root = document.createElement("div");
-root.className = "mascot is-loading";
-root.id = "mascot";
-
-const button = document.createElement("button");
-button.type = "button";
-button.className = "mascot-button";
-button.setAttribute("aria-label", "Hablar con Tronker");
-button.title = "Hablar con Tronker";
+// El robot ya viene en index.html (con su imagen), para que salga al
+// instante; aquí solo se le añade el lienzo 3D.
+const root = document.getElementById("mascot");
+const button = root.querySelector(".mascot-button");
+const bubble = root.querySelector(".mascot-bubble");
+const hideButton = root.querySelector(".mascot-hide");
 
 const canvas = document.createElement("canvas");
 canvas.className = "mascot-canvas";
 canvas.setAttribute("aria-hidden", "true");
 button.appendChild(canvas);
-
-const bubble = document.createElement("div");
-bubble.className = "mascot-bubble";
-bubble.setAttribute("aria-hidden", "true");
-
-const hideButton = document.createElement("button");
-hideButton.type = "button";
-hideButton.className = "mascot-hide";
-hideButton.setAttribute("aria-label", "Ocultar a Tronker");
-hideButton.title = "Ocultar a Tronker";
-hideButton.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg>';
-
-root.append(bubble, button, hideButton);
 
 /* =========================================================
    ESTADO
@@ -104,7 +128,7 @@ const state = {
   nextIdle: performance.now() + 6000,
   nextBlink: performance.now() + 2500,
   blinkStart: -1,
-  lastBubble: 0,
+  lastBubble: -Infinity,
   pointer: { x: 0, y: 0, has: false },
   look: { x: 0, y: 0 },
   combo: 0
@@ -134,11 +158,15 @@ function setMood(mood, ms = 1600) {
 }
 
 function act(name) {
-  if (reduceMotion && (name === "spin" || name === "jump")) {
+  if (reduceMotion && ["spin", "jump", "flip", "boost", "dance"].includes(name)) {
     name = "nod";
   }
 
-  const durations = { wave: 1600, jump: 750, spin: 1100, shake: 700, cheer: 1300, nod: 700, look: 2600, stretch: 1600 };
+  const durations = {
+    wave: 1600, jump: 750, spin: 1100, shake: 700, cheer: 1300, nod: 700, look: 2600, stretch: 1600,
+    dance: 2600, flip: 1150, think: 2400, shrug: 1200, salute: 1500, boost: 1500, wiggle: 900,
+    scan: 1300, point: 2200, peek: 1800
+  };
   state.actions.push({ name, start: performance.now(), dur: durations[name] || 1000 });
 }
 
@@ -160,10 +188,13 @@ function touch() {
    API PARA EL RESTO DE LA WEB
    ========================================================= */
 
-let lastReaction = 0;
+let lastReaction = -Infinity;
 
 const TronkMascot = {
   say,
+
+  // Para probar una animación: TronkMascot.act("dance")
+  act,
 
   // Lo llaman los minijuegos: react("great"), react("close"), react("record")...
   react(type, text) {
@@ -254,14 +285,14 @@ button.addEventListener("click", () => {
 
   touch();
   setMood("happy", 1200);
-  act("jump");
+  act(pick(["jump", "jump", "flip", "wiggle"]));
 
   if (typeof window.openTronkerChat === "function") {
     window.openTronkerChat();
   }
 });
 
-let lastHoverLine = 0;
+let lastHoverLine = -Infinity;
 
 button.addEventListener("pointerenter", (event) => {
   if (event.pointerType !== "mouse" || state.inGame) {
@@ -330,6 +361,73 @@ function watchGames() {
 
   document.addEventListener("fullscreenchange", updateGameMode);
   document.addEventListener("webkitfullscreenchange", updateGameMode);
+}
+
+/* ----- Comentarios según la sección que tiene el ratón ----- */
+
+const area = { key: "", since: 0, rolled: false };
+const usedLines = new Set();
+
+function areaAt(element) {
+  if (!element || !element.closest || root.contains(element)) {
+    return "";
+  }
+
+  for (const [selector, key] of AREA_SELECTORS) {
+    const found = element.closest(selector);
+
+    if (found) {
+      return key(found);
+    }
+  }
+
+  return "";
+}
+
+function watchAreas() {
+  let lastCheck = 0;
+
+  window.addEventListener("pointermove", (event) => {
+    if (event.pointerType !== "mouse" || performance.now() - lastCheck < 200) {
+      return;
+    }
+
+    lastCheck = performance.now();
+    const key = areaAt(event.target);
+
+    if (key !== area.key) {
+      area.key = key;
+      area.since = performance.now();
+      area.rolled = false;
+    }
+  }, { passive: true });
+
+  // Si el ratón se queda un rato en el mismo sitio, hay una probabilidad de que hable
+  setInterval(() => {
+    const now = performance.now();
+
+    if (
+      !area.key || area.rolled || now - area.since < 1300 ||
+      state.inGame || state.hidden || state.sleeping ||
+      document.querySelector(".modal:not(.hidden)") ||
+      now - state.lastBubble < 14000
+    ) {
+      return;
+    }
+
+    area.rolled = true;
+    const lines = (AREA_LINES[area.key] || []).filter((line) => !usedLines.has(line));
+
+    if (!lines.length || Math.random() > 0.4) {
+      return;
+    }
+
+    const line = pick(lines);
+    usedLines.add(line);
+    setMood("happy", 1800);
+    act("point");
+    say(line, 3200);
+  }, 500);
 }
 
 /* =========================================================
@@ -526,6 +624,12 @@ function buildRobot() {
   flat.visible = false;
   face.add(flat);
 
+  // Barra del escáner (efecto Tron): barre el visor de lado a lado
+  const scanBar = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.34, 0.01), mat.neon);
+  scanBar.position.set(0, 0.02, 0.01);
+  scanBar.visible = false;
+  face.add(scanBar);
+
   // Antena con luz
   const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.26, 10), mat.darkMetal);
   antenna.position.set(0.2, R * 0.92 + 0.08, -0.05);
@@ -670,7 +774,7 @@ function buildRobot() {
 
   return {
     robot, headPivot, head, eyes, happyEyes, smile, mouthO, flat, face,
-    antennaTip, torso, flame, flameCore, arms, shadow, mat, NEON
+    antennaTip, torso, flame, flameCore, arms, shadow, mat, NEON, scanBar
   };
 }
 
@@ -678,16 +782,16 @@ async function init3d() {
   try {
     THREE = await import("./vendor/three.module.min.js");
   } catch (error) {
-    console.warn("TronkStudios: no se pudo cargar la mascota 3D.", error);
-    root.remove();
+    console.warn("TronkStudios: no se pudo cargar la mascota 3D; se queda la imagen.", error);
+    root.classList.add("is-still");
     return;
   }
 
   try {
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: "low-power" });
   } catch {
-    // Sin WebGL no hay mascota (la web sigue igual)
-    root.remove();
+    // Sin WebGL se queda la imagen del robot
+    root.classList.add("is-still");
     return;
   }
 
@@ -816,8 +920,19 @@ function loop(now) {
   const { robot, headPivot, head, arms, flame, flameCore, shadow, face, torso } = parts;
 
   /* ----- Comportamiento ----- */
+  if (!state.inGame && !state.sleeping && !state.yawned && now - state.lastInput > 38000) {
+    // Antes de dormirse, bosteza y se estira
+    state.yawned = true;
+    setMood("surprised", 1400);
+    act("stretch");
+  }
+
   if (!state.inGame && !state.sleeping && now - state.lastInput > 45000) {
     state.sleeping = true;
+  }
+
+  if (now - state.lastInput < 1000) {
+    state.yawned = false;
   }
 
   if (now > state.nextBlink && !state.sleeping) {
@@ -832,12 +947,16 @@ function loop(now) {
 
   if (now > state.nextIdle && !state.sleeping && !state.actions.length) {
     state.nextIdle = now + 6000 + Math.random() * 9000;
-    const options = state.inGame ? ["look", "nod"] : ["look", "look", "wave", "nod", "stretch", "spin"];
+    const options = state.inGame
+      ? ["look", "nod", "scan"]
+      : ["look", "look", "scan", "wave", "nod", "stretch", "spin", "dance", "think", "shrug", "salute", "boost", "wiggle", "flip", "peek"];
     const choice = pick(options);
     act(choice);
 
-    if (choice === "spin") {
-      setMood("excited", 1200);
+    const moods = { spin: "excited", dance: "happy", flip: "excited", boost: "excited", salute: "happy", think: "normal", shrug: "worried" };
+
+    if (moods[choice]) {
+      setMood(moods[choice], 1600);
     }
   }
 
@@ -854,6 +973,10 @@ function loop(now) {
   let headY = 0;
   let headZ = sleepy * 0.28;
   let squash = 1;
+  let rotX = 0;
+  let boost = 0;
+  let lean = 0;
+  parts.scanBar.visible = false;
 
   const breath = 1 + Math.sin(t * 2.1 + 1) * 0.015 * motion;
   torso.scale.set(1, breath, 1);
@@ -940,6 +1063,83 @@ function loop(now) {
         y += env * 0.12;
         headX -= env * 0.25;
         break;
+      case "dance":
+        // Balanceo de caderas, brazos alternos y cabeza al ritmo
+        rotZ += Math.sin(p * Math.PI * 8) * 0.12 * env;
+        rotY += Math.sin(p * Math.PI * 4) * 0.35 * env;
+        y += Math.abs(Math.sin(p * Math.PI * 8)) * 0.1 * motion;
+        headZ += Math.sin(p * Math.PI * 8 + 1) * 0.15 * env;
+        armPose.forEach((arm, index) => {
+          const beat = Math.sin(p * Math.PI * 8 + index * Math.PI);
+          arm.z = lerp(arm.z, (index ? 1 : -1) * (1.3 + beat * 0.9), env);
+          arm.elbow = lerp(arm.elbow, -1.2, env);
+        });
+        break;
+      case "flip": {
+        // Voltereta hacia atrás
+        y += Math.sin(p * Math.PI) * 0.75 * motion;
+        rotX -= ease(Math.min(1, Math.max(0, (p - 0.1) / 0.8))) * Math.PI * 2;
+        armPose.forEach((arm) => (arm.z += (arm.z > 0 ? 1 : -1) * env * 1.4));
+        boost += env;
+        break;
+      }
+      case "think": {
+        // Mano en la barbilla y la cabeza ladeada
+        const hand = armPose[1];
+        hand.z = lerp(hand.z, 0.75, env);
+        hand.x = lerp(hand.x, -0.9, env);
+        hand.elbow = lerp(hand.elbow, -2.3, env);
+        headZ += env * -0.2;
+        headX += env * -0.1;
+        headY += env * 0.25;
+        break;
+      }
+      case "shrug":
+        armPose.forEach((arm, index) => {
+          arm.z = lerp(arm.z, (index ? 1 : -1) * 0.9, env);
+          arm.elbow = lerp(arm.elbow, -1.5, env);
+        });
+        headZ += env * 0.22;
+        y += env * 0.05;
+        break;
+      case "salute": {
+        const hand = armPose[1];
+        hand.z = lerp(hand.z, 2.2, Math.min(1, env * 1.5));
+        hand.elbow = lerp(hand.elbow, -2.0, Math.min(1, env * 1.5));
+        headX += env * -0.08;
+        break;
+      }
+      case "boost":
+        // Sube con el propulsor a tope y vuelve a bajar
+        y += Math.sin(p * Math.PI) * 0.9 * motion;
+        boost += env * 1.6;
+        armPose.forEach((arm) => (arm.z += (arm.z > 0 ? 1 : -1) * env * 0.4));
+        break;
+      case "wiggle":
+        rotZ += Math.sin(p * Math.PI * 10) * 0.14 * (1 - p);
+        squash = 1 + Math.sin(p * Math.PI * 10) * 0.04 * (1 - p);
+        break;
+      case "scan":
+        parts.scanBar.visible = true;
+        parts.scanBar.position.x = Math.sin((p - 0.5) * Math.PI) * 0.3;
+        headX += env * -0.05;
+        break;
+      case "point": {
+        // Señala hacia el ratón con el brazo de la izquierda de la pantalla
+        const arm = armPose[0];
+        const dx = state.pointer.x - cx;
+        const dy = cy - state.pointer.y;
+        const angle = Math.max(-3.0, Math.min(-0.4, Math.atan2(dx, -dy)));
+        arm.z = lerp(arm.z, angle, Math.min(1, env * 1.8));
+        arm.elbow = lerp(arm.elbow, 0, env);
+        break;
+      }
+      case "peek":
+        // Se acerca a la pantalla con curiosidad
+        lean += env;
+        headX += env * 0.15;
+        headZ += Math.sin(p * Math.PI * 2) * 0.15;
+        break;
       default:
         break;
     }
@@ -951,6 +1151,8 @@ function loop(now) {
   robot.position.y = lerp(robot.position.y, y, 0.25);
   robot.rotation.y = rotY;
   robot.rotation.z = rotZ;
+  robot.rotation.x = rotX;
+  robot.position.z = lerp(robot.position.z, lean * 0.8, 0.2);
   robot.scale.set(1 + (1 - squash) * 0.5, squash, 1 + (1 - squash) * 0.5);
 
   headPivot.rotation.y = lerp(headPivot.rotation.y, headY, 0.18);
@@ -967,7 +1169,7 @@ function loop(now) {
 
   // Llama del propulsor que tiembla; sombra que cambia con la altura
   const flicker = 0.85 + Math.random() * 0.3;
-  flame.scale.set(1, flicker * (state.sleeping ? 0.6 : 1), 1);
+  flame.scale.set(1 + boost * 0.3, flicker * (state.sleeping ? 0.6 : 1) * (1 + boost), 1 + boost * 0.3);
   flameCore.scale.set(1, 0.9 + Math.random() * 0.2, 1);
   flame.material.opacity = 0.45 + Math.random() * 0.2;
 
@@ -984,21 +1186,18 @@ function loop(now) {
    ========================================================= */
 
 function start() {
-  document.body.appendChild(root);
   footerToggle();
   watchGames();
+  watchAreas();
 
   const go = () => init3d();
 
   if ("requestIdleCallback" in window) {
-    requestIdleCallback(go, { timeout: 2500 });
+    requestIdleCallback(go, { timeout: 500 });
   } else {
-    setTimeout(go, 1200);
+    setTimeout(go, 200);
   }
 }
 
-if (document.readyState === "complete") {
-  start();
-} else {
-  window.addEventListener("load", start, { once: true });
-}
+// Los módulos se ejecutan cuando el HTML ya está leído: el robot sale ya
+start();
