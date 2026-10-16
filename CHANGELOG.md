@@ -9,6 +9,22 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.18 · Animaciones de Tronker mejor hechas
+
+#### Cambiado
+- Las animaciones de la mascota se han rehecho con **fotogramas clave**: cada gesto
+  tiene preparación y remate (se agacha antes de saltar, se aplasta al aterrizar y
+  se recoloca), y todo se mueve con suavizado real, igual de fluido a cualquier
+  velocidad de pantalla. Los tiempos son los mismos.
+- **Brazos con codo de verdad**, que se doblan hacia delante: al pensar, la mano va
+  a la mandíbula (antes se iba detrás de la cabeza); al saludar, a la sien; al
+  encogerse de hombros, abre las manos.
+- Al **acercarse a mirar** ya no se hace más grande: se inclina hacia delante desde
+  la cintura, con los brazos hacia atrás y la cabeza levantada.
+- Aplastar y estirar sin cambiar de volumen, **antena con rebote** al mover la
+  cabeza y el cuerpo acompaña un poco la mirada.
+- El turbo y la voltereta ya no se salen por arriba.
+
 ### 6.17 · Tronker más vivo
 
 #### Añadido
