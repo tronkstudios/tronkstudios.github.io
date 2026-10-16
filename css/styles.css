@@ -5956,7 +5956,38 @@ body.game-focus {
 
 .mascot.is-loading .mascot-canvas {
   opacity: 0;
-  transform: translateY(40px) scale(0.6);
+}
+
+/* Imagen mientras carga el 3D (o si el navegador no puede con el 3D) */
+.mascot-still {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  animation: mascot-float 2.4s ease-in-out infinite;
+}
+
+.mascot.is-loading .mascot-still,
+.mascot.is-still .mascot-still {
+  opacity: 1;
+}
+
+.mascot.is-still .mascot-canvas {
+  display: none;
+}
+
+.mascot-button {
+  position: relative;
+}
+
+@keyframes mascot-float {
+  50% {
+    transform: translateY(-5px);
+  }
 }
 
 .mascot-bubble {
@@ -6091,6 +6122,10 @@ body.modal-open .mascot:not(.in-game) {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .mascot-still {
+    animation: none;
+  }
+
   .mascot-canvas,
   .mascot-bubble {
     transition: none;
@@ -6116,4 +6151,19 @@ body.modal-open .mascot:not(.in-game) {
 .antitronks-modal canvas,
 #tf-root canvas {
   -webkit-tap-highlight-color: transparent;
+}
+
+/* El marco brillante de los accesos rápidos nunca se sale por los lados de la
+   pantalla (en el móvil se cortaba y solo se veían las líneas de arriba y abajo):
+   como mucho llega a 8 px del borde. */
+.nav-highlight {
+  left: calc(-1 * min(14px, (100vw - 100%) / 2 - 8px));
+  right: calc(-1 * min(14px, (100vw - 100%) / 2 - 8px));
+}
+
+@media (max-width: 600px) {
+  .nav-highlight {
+    left: calc(-1 * min(8px, (100vw - 100%) / 2 - 6px));
+    right: calc(-1 * min(8px, (100vw - 100%) / 2 - 6px));
+  }
 }
