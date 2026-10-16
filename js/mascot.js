@@ -630,15 +630,19 @@ function buildRobot() {
   scanBar.visible = false;
   face.add(scanBar);
 
-  // Antena con luz
+  // Antena con luz, en un pivote para que rebote al mover la cabeza
+  const antennaPivot = new THREE.Group();
+  antennaPivot.position.set(0.17, R * 0.9, -0.05);
+  antennaPivot.rotation.z = -0.25;
+  head.add(antennaPivot);
+
   const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.26, 10), mat.darkMetal);
-  antenna.position.set(0.2, R * 0.92 + 0.08, -0.05);
-  antenna.rotation.z = -0.25;
-  head.add(antenna);
+  antenna.position.y = 0.13;
+  antennaPivot.add(antenna);
 
   const antennaTip = new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 12), new THREE.MeshBasicMaterial({ color: NEON }));
-  antennaTip.position.set(0.235, R * 0.92 + 0.22, -0.05);
-  head.add(antennaTip);
+  antennaTip.position.y = 0.28;
+  antennaPivot.add(antennaTip);
 
   // Cuello de anillos
   for (let i = 0; i < 3; i += 1) {
@@ -774,7 +778,7 @@ function buildRobot() {
 
   return {
     robot, headPivot, head, eyes, happyEyes, smile, mouthO, flat, face,
-    antennaTip, torso, flame, flameCore, arms, shadow, mat, NEON, scanBar
+    antennaTip, antennaPivot, torso, flame, flameCore, arms, shadow, mat, NEON, scanBar
   };
 }
 
@@ -850,6 +854,218 @@ async function init3d() {
 
 const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
 const lerp = (a, b, t) => a + (b - a) * t;
+const clamp01 = (t) => Math.max(0, Math.min(1, t));
+
+// Acerca «current» a «target» de forma suave, igual a cualquier velocidad de pantalla
+const damp = (current, target, speed, dt) => current + (target - current) * (1 - Math.exp(-speed * dt));
+
+// Fotogramas clave: kf(p, [[0, 0], [0.3, 1], [1, 0]]) con transiciones suaves
+function kf(p, keys) {
+  if (p <= keys[0][0]) {
+    return keys[0][1];
+  }
+
+  for (let i = 0; i < keys.length - 1; i += 1) {
+    const [t0, v0] = keys[i];
+    const [t1, v1] = keys[i + 1];
+
+    if (p <= t1) {
+      const local = (p - t0) / (t1 - t0 || 1);
+      return lerp(v0, v1, 0.5 - 0.5 * Math.cos(Math.PI * local));
+    }
+  }
+
+  return keys[keys.length - 1][1];
+}
+
+// Entra, se mantiene y sale (para mezclar un gesto con la postura normal)
+const hold = (p, inEnd = 0.2, outStart = 0.8) => kf(p, [[0, 0], [inEnd, 1], [outStart, 1], [1, 0]]);
+const TAU = Math.PI * 2;
+
+/* Cada animación devuelve cuánto se mueve el cuerpo y la cabeza y a qué
+   postura van los brazos (L = izquierda de la pantalla, R = derecha). */
+const ACTIONS = {
+  wave(p) {
+    const w = hold(p, 0.15, 0.82);
+    return {
+      R: { z: 2.25, fwd: 0.3, bend: 0.45, swing: Math.sin(p * Math.PI * 9) * 0.55 * w, w },
+      hz: 0.12 * w,
+      hy: 0.12 * w,
+      rz: -0.05 * w
+    };
+  },
+
+  jump(p, { motion }) {
+    const arms = { z: kf(p, [[0, 0.22], [0.18, 0.1], [0.42, 1.4], [0.78, 0.7], [1, 0.22]]), bend: 0.35, w: hold(p, 0.08, 0.9) };
+    return {
+      y: kf(p, [[0, 0], [0.18, -0.08], [0.45, 0.45 * motion], [0.78, 0.04], [0.86, -0.06], [1, 0]]),
+      sq: kf(p, [[0, 0], [0.18, -0.13], [0.3, 0.1], [0.6, 0.02], [0.86, -0.11], [0.95, 0.02], [1, 0]]),
+      hx: kf(p, [[0, 0], [0.18, 0.14], [0.45, -0.14], [0.86, 0.12], [1, 0]]),
+      L: arms,
+      R: arms
+    };
+  },
+
+  spin(p) {
+    const arms = { z: 1.15, bend: 0.2, w: hold(p, 0.2, 0.8) };
+    return {
+      spinY: kf(p, [[0, 0], [0.15, -0.35], [0.85, TAU + 0.12], [1, TAU]]),
+      y: kf(p, [[0, 0], [0.15, -0.04], [0.5, 0.22], [0.85, 0], [1, 0]]),
+      sq: kf(p, [[0, 0], [0.15, -0.06], [0.5, 0.04], [0.88, -0.06], [1, 0]]),
+      L: arms,
+      R: arms
+    };
+  },
+
+  shake(p) {
+    const decay = 1 - p;
+    return {
+      hy: Math.sin(p * Math.PI * 6) * 0.5 * decay,
+      hz: Math.sin(p * Math.PI * 6 + 1) * 0.1 * decay,
+      rz: Math.sin(p * Math.PI * 6) * 0.05 * decay
+    };
+  },
+
+  cheer(p, { motion }) {
+    const w = hold(p, 0.15, 0.85);
+    const pump = 0.25 + Math.abs(Math.sin(p * Math.PI * 4)) * 0.7;
+    const arms = { z: 2.65, fwd: 0.15, bend: pump, w };
+    const hop = Math.abs(Math.sin(p * Math.PI * 4));
+    return {
+      y: hop * 0.24 * motion * w,
+      sq: (hop < 0.25 ? -0.08 : 0.04) * w,
+      hx: -0.15 * w,
+      L: arms,
+      R: arms
+    };
+  },
+
+  nod(p) {
+    return { hx: kf(p, [[0, 0], [0.2, 0.32], [0.4, -0.06], [0.6, 0.26], [0.8, -0.04], [1, 0]]) };
+  },
+
+  look(p) {
+    const hy = kf(p, [[0, 0], [0.15, 0.75], [0.4, 0.75], [0.58, -0.75], [0.82, -0.75], [1, 0]]);
+    return { hy, ry: hy * 0.25, hx: -0.08 * hold(p, 0.15, 0.85) };
+  },
+
+  stretch(p) {
+    const w = hold(p, 0.3, 0.72);
+    const arms = { z: 2.95, fwd: 0.1, bend: 0.05, w };
+    return { y: 0.14 * w, sq: 0.07 * w, hx: -0.32 * w, L: arms, R: arms };
+  },
+
+  dance(p, { motion }) {
+    const w = hold(p, 0.1, 0.9);
+    const beat = p * 8;
+    const bounce = Math.abs(Math.sin(beat * Math.PI));
+    const side = Math.sin(beat * Math.PI);
+    return {
+      y: bounce * 0.12 * motion * w,
+      sq: (bounce - 0.5) * 0.06 * w,
+      rz: side * 0.13 * w,
+      ry: Math.sin(beat * Math.PI / 2) * 0.45 * w,
+      hz: -side * 0.16 * w,
+      hx: bounce * 0.1 * w,
+      L: { z: 1.05 + side * 0.85, fwd: 0.35, bend: 1.15 - side * 0.5, w },
+      R: { z: 1.05 - side * 0.85, fwd: 0.35, bend: 1.15 + side * 0.5, w }
+    };
+  },
+
+  flip(p, { motion }) {
+    const arms = {
+      z: kf(p, [[0, 0.22], [0.15, 0.05], [0.3, 2.4], [0.55, 1.2], [0.85, 1.6], [1, 0.22]]),
+      bend: kf(p, [[0, 0.3], [0.35, 0.4], [0.55, 1.6], [0.8, 0.4], [1, 0.3]]),
+      w: hold(p, 0.08, 0.92)
+    };
+    return {
+      y: kf(p, [[0, 0], [0.15, -0.1], [0.5, 0.5 * motion], [0.85, 0.04], [0.92, -0.07], [1, 0]]),
+      spinX: -TAU * ease(clamp01((p - 0.18) / 0.62)),
+      sq: kf(p, [[0, 0], [0.15, -0.15], [0.25, 0.1], [0.82, 0], [0.92, -0.13], [1, 0]]),
+      boost: kf(p, [[0, 0], [0.2, 1.3], [0.45, 0.4], [1, 0]]),
+      L: arms,
+      R: arms
+    };
+  },
+
+  think(p) {
+    const w = hold(p, 0.2, 0.85);
+    return {
+      // Mano en la mandíbula (con golpecitos), con el codo por delante
+      // del pecho; el otro brazo recogido delante de la tripa.
+      R: { z: -0.2, fwd: 1.5, bend: 0.85 + Math.sin(p * Math.PI * 7) * 0.08 * w, swing: -0.6, w },
+      L: { z: -0.35, fwd: 0.75, bend: 1.3, swing: 0, w: w * 0.7 },
+      hz: -0.18 * w,
+      hy: 0.25 * w,
+      hx: -0.14 * w,
+      ry: -0.12 * w
+    };
+  },
+
+  shrug(p) {
+    const w = kf(p, [[0, 0], [0.22, 1], [0.32, 0.92], [0.72, 1], [1, 0]]);
+    const arms = { z: 0.85, fwd: 0.15, bend: 1.4, swing: 0.2, w };
+    return { y: 0.05 * w, sq: 0.03 * w, hz: 0.25 * w, hx: 0.05 * w, L: arms, R: arms };
+  },
+
+  salute(p) {
+    const w = kf(p, [[0, 0], [0.16, 1.05], [0.24, 1], [0.8, 1], [1, 0]]);
+    return {
+      // Codo arriba y fuera, mano en la sien
+      R: { z: 2.55, fwd: -0.3, bend: 1.3, swing: 1.2, w: Math.min(1, w) },
+      y: kf(p, [[0, 0], [0.16, 0.06], [0.3, 0], [1, 0]]),
+      hx: -0.06 * Math.min(1, w),
+      rz: 0
+    };
+  },
+
+  boost(p, { motion }) {
+    const w = hold(p, 0.15, 0.85);
+    const arms = { z: 0.5, fwd: -0.5, bend: 0.2, w };
+    return {
+      y: kf(p, [[0, 0], [0.15, -0.08], [0.45, 0.42 * motion], [0.7, 0.38 * motion], [1, 0]]),
+      boost: kf(p, [[0, 0], [0.15, 0.3], [0.3, 1.9], [0.6, 1.1], [0.85, 0.5], [1, 0]]),
+      sq: kf(p, [[0, 0], [0.15, -0.1], [0.3, 0.08], [0.85, 0], [0.93, -0.06], [1, 0]]),
+      hx: 0.18 * w,
+      L: arms,
+      R: arms
+    };
+  },
+
+  wiggle(p) {
+    const decay = 1 - p;
+    const rz = Math.sin(p * Math.PI * 10) * 0.16 * decay;
+    return { rz, hz: -rz * 1.3, sq: Math.sin(p * Math.PI * 10 + 1) * 0.05 * decay };
+  },
+
+  scan(p) {
+    return { scan: Math.sin(p * Math.PI * 3 - Math.PI / 2) * 0.3, hx: -0.06 * hold(p) };
+  },
+
+  point(p, { cx, cy }) {
+    // Señala al ratón con el brazo de la izquierda de la pantalla
+    const dx = state.pointer.x - cx;
+    const dy = cy - state.pointer.y;
+    const angle = Math.max(0.4, Math.min(3.0, -Math.atan2(dx, -dy)));
+    const w = hold(p, 0.18, 0.85);
+    return { L: { z: angle, fwd: 0.25, bend: 0.1, w }, hz: 0.08 * w, rz: 0.04 * w };
+  },
+
+  peek(p) {
+    // Se inclina hacia delante desde la cintura para mirarte de cerca:
+    // brazos hacia atrás para equilibrarse y la cabeza levantada hacia ti
+    const lean = hold(p, 0.3, 0.75);
+    const arms = { z: 0.4, fwd: -0.35, bend: 0.25, w: lean };
+    return {
+      rx: 0.4 * lean,
+      y: -0.05 * lean,
+      hx: -0.3 * lean,
+      hz: kf(p, [[0, 0], [0.35, 0.22], [0.55, -0.18], [0.75, 0.18], [1, 0]]),
+      L: arms,
+      R: arms
+    };
+  }
+};
 const MOOD_COLORS = { normal: 0x37e6ff, happy: 0x5dffb0, excited: 0xff6ad5, worried: 0xffc24a, surprised: 0xffffff, sad: 0x6aa0ff, sleep: 0x2d6b80 };
 
 function applyMood(now) {
@@ -963,20 +1179,35 @@ function loop(now) {
   applyMood(now);
 
   /* ----- Postura base: flotar, respirar, mirar al ratón ----- */
+  const dt = Math.min(0.05, Math.max(0.001, (now - (state.lastFrame || now)) / 1000)) || 0.016;
+  state.lastFrame = now;
+
   const motion = reduceMotion ? 0.35 : 1;
   const sleepy = state.sleeping ? 1 : 0;
 
-  let y = Math.sin(t * 2.1) * 0.07 * motion - sleepy * 0.08;
-  let rotY = Math.sin(t * 0.7) * 0.12 * motion;
-  let rotZ = Math.sin(t * 1.3) * 0.03 * motion;
-  let headX = 0;
-  let headY = 0;
-  let headZ = sleepy * 0.28;
-  let squash = 1;
-  let rotX = 0;
-  let boost = 0;
-  let lean = 0;
-  parts.scanBar.visible = false;
+  // Pose objetivo. Los brazos: z = abrir hacia fuera, fwd = levantar hacia
+  // delante, bend = doblar el codo hacia delante, swing = girar el antebrazo.
+  const pose = {
+    y: Math.sin(t * 2.1) * 0.07 * motion - sleepy * 0.08,
+    ry: Math.sin(t * 0.7) * 0.12 * motion,
+    rz: Math.sin(t * 1.3) * 0.03 * motion,
+    hx: 0,
+    hy: 0,
+    hz: sleepy * 0.28,
+    sq: 0,
+    rx: sleepy * 0.08,
+    boost: 0,
+    arms: arms.map(({ side }) => ({
+      z: 0.22 + Math.sin(t * 2.1 + side) * 0.04 * motion - sleepy * 0.1,
+      fwd: 0.08 + Math.sin(t * 1.6 + side) * 0.05 * motion,
+      bend: 0.3 + sleepy * 0.25,
+      swing: 0
+    }))
+  };
+
+  // Giros completos (voltereta, vuelta): van aparte para no «desenrollarse»
+  let spinY = 0;
+  let spinX = 0;
 
   const breath = 1 + Math.sin(t * 2.1 + 1) * 0.015 * motion;
   torso.scale.set(1, breath, 1);
@@ -996,176 +1227,104 @@ function loop(now) {
     targetY = (state.pointer.y - cy) / window.innerHeight;
   }
 
-  state.look.x = lerp(state.look.x, Math.max(-1, Math.min(1, targetX * 2.2)), 0.08);
-  state.look.y = lerp(state.look.y, Math.max(-1, Math.min(1, targetY * 2.2)), 0.08);
+  state.look.x = damp(state.look.x, Math.max(-1, Math.min(1, targetX * 2.2)), 5, dt);
+  state.look.y = damp(state.look.y, Math.max(-1, Math.min(1, targetY * 2.2)), 5, dt);
 
   if (!state.sleeping) {
-    headY = state.look.x * 0.75;
-    headX = state.look.y * 0.4;
+    pose.hy = state.look.x * 0.75;
+    pose.hx = state.look.y * 0.4;
+    // El cuerpo acompaña un poco la mirada
+    pose.ry += state.look.x * 0.18;
   }
 
   face.position.x = state.look.x * 0.035;
+  parts.scanBar.visible = false;
 
-  // Brazos en reposo
-  const armPose = arms.map(({ side }) => ({
-    z: side * (0.22 + Math.sin(t * 2.1) * 0.04 * motion) + sleepy * side * -0.1,
-    x: Math.sin(t * 1.6 + side) * 0.06 * motion,
-    elbow: -0.25 - sleepy * 0.2
-  }));
-
-  /* ----- Acciones (se suman a la postura base) ----- */
+  /* ----- Acciones: cada una con sus fotogramas clave ----- */
   state.actions = state.actions.filter((action) => {
     const p = Math.min(1, (now - action.start) / action.dur);
-    const env = Math.sin(p * Math.PI);
+    const anim = ACTIONS[action.name];
 
-    switch (action.name) {
-      case "wave": {
-        // El brazo de la derecha de la pantalla, arriba y saludando
-        const right = armPose[1];
-        right.z = lerp(right.z, 2.5, Math.min(1, env * 1.6));
-        right.elbow = lerp(right.elbow, -0.6 + Math.sin(p * Math.PI * 7) * 0.5, Math.min(1, env * 1.6));
-        headZ += env * 0.12;
-        break;
-      }
-      case "jump": {
-        y += Math.sin(p * Math.PI) * 0.5 * motion;
-        squash = p < 0.15 ? 1 - Math.sin((p / 0.15) * Math.PI) * 0.12 : p > 0.85 ? 1 - Math.sin(((p - 0.85) / 0.15) * Math.PI) * 0.1 : 1.04;
-        armPose.forEach((arm) => (arm.z += arm.z > 0 ? env * 0.7 : -env * 0.7));
-        break;
-      }
-      case "spin":
-        rotY += ease(p) * Math.PI * 2;
-        y += env * 0.2 * motion;
-        break;
-      case "shake":
-        headZ += Math.sin(p * Math.PI * 8) * 0.28 * (1 - p);
-        rotZ += Math.sin(p * Math.PI * 8) * 0.06 * (1 - p);
-        break;
-      case "cheer":
-        armPose.forEach((arm, index) => {
-          arm.z = lerp(arm.z, (index ? 1 : -1) * (2.6 + Math.sin(p * Math.PI * 8) * 0.25), Math.min(1, env * 1.8));
-          arm.elbow = lerp(arm.elbow, -0.2, env);
+    if (anim) {
+      const out = anim(p, { motion, cx, cy });
+
+      ["y", "ry", "rz", "rx", "hx", "hy", "hz", "sq", "boost"].forEach((key) => {
+        if (out[key]) {
+          pose[key] += out[key];
+        }
+      });
+
+      spinY += out.spinY || 0;
+      spinX += out.spinX || 0;
+
+      ["L", "R"].forEach((name, index) => {
+        const arm = out[name];
+
+        if (!arm) {
+          return;
+        }
+
+        const target = pose.arms[index];
+        const w = arm.w === undefined ? 1 : arm.w;
+        ["z", "fwd", "bend", "swing"].forEach((key) => {
+          if (arm[key] !== undefined) {
+            target[key] = lerp(target[key], arm[key], w);
+          }
         });
-        y += Math.abs(Math.sin(p * Math.PI * 3)) * 0.22 * motion;
-        break;
-      case "nod":
-        headX += Math.sin(p * Math.PI * 3) * 0.22 * (1 - p * 0.5);
-        break;
-      case "look":
-        headY += Math.sin(p * Math.PI * 2) * 0.7 * env;
-        headX += Math.sin(p * Math.PI) * -0.12;
-        break;
-      case "stretch":
-        armPose.forEach((arm, index) => {
-          arm.z = lerp(arm.z, (index ? 1 : -1) * 2.9, env);
-          arm.elbow = lerp(arm.elbow, 0, env);
-        });
-        y += env * 0.12;
-        headX -= env * 0.25;
-        break;
-      case "dance":
-        // Balanceo de caderas, brazos alternos y cabeza al ritmo
-        rotZ += Math.sin(p * Math.PI * 8) * 0.12 * env;
-        rotY += Math.sin(p * Math.PI * 4) * 0.35 * env;
-        y += Math.abs(Math.sin(p * Math.PI * 8)) * 0.1 * motion;
-        headZ += Math.sin(p * Math.PI * 8 + 1) * 0.15 * env;
-        armPose.forEach((arm, index) => {
-          const beat = Math.sin(p * Math.PI * 8 + index * Math.PI);
-          arm.z = lerp(arm.z, (index ? 1 : -1) * (1.3 + beat * 0.9), env);
-          arm.elbow = lerp(arm.elbow, -1.2, env);
-        });
-        break;
-      case "flip": {
-        // Voltereta hacia atrás
-        y += Math.sin(p * Math.PI) * 0.75 * motion;
-        rotX -= ease(Math.min(1, Math.max(0, (p - 0.1) / 0.8))) * Math.PI * 2;
-        armPose.forEach((arm) => (arm.z += (arm.z > 0 ? 1 : -1) * env * 1.4));
-        boost += env;
-        break;
-      }
-      case "think": {
-        // Mano en la barbilla y la cabeza ladeada
-        const hand = armPose[1];
-        hand.z = lerp(hand.z, 0.75, env);
-        hand.x = lerp(hand.x, -0.9, env);
-        hand.elbow = lerp(hand.elbow, -2.3, env);
-        headZ += env * -0.2;
-        headX += env * -0.1;
-        headY += env * 0.25;
-        break;
-      }
-      case "shrug":
-        armPose.forEach((arm, index) => {
-          arm.z = lerp(arm.z, (index ? 1 : -1) * 0.9, env);
-          arm.elbow = lerp(arm.elbow, -1.5, env);
-        });
-        headZ += env * 0.22;
-        y += env * 0.05;
-        break;
-      case "salute": {
-        const hand = armPose[1];
-        hand.z = lerp(hand.z, 2.2, Math.min(1, env * 1.5));
-        hand.elbow = lerp(hand.elbow, -2.0, Math.min(1, env * 1.5));
-        headX += env * -0.08;
-        break;
-      }
-      case "boost":
-        // Sube con el propulsor a tope y vuelve a bajar
-        y += Math.sin(p * Math.PI) * 0.9 * motion;
-        boost += env * 1.6;
-        armPose.forEach((arm) => (arm.z += (arm.z > 0 ? 1 : -1) * env * 0.4));
-        break;
-      case "wiggle":
-        rotZ += Math.sin(p * Math.PI * 10) * 0.14 * (1 - p);
-        squash = 1 + Math.sin(p * Math.PI * 10) * 0.04 * (1 - p);
-        break;
-      case "scan":
+      });
+
+      if (out.scan !== undefined) {
         parts.scanBar.visible = true;
-        parts.scanBar.position.x = Math.sin((p - 0.5) * Math.PI) * 0.3;
-        headX += env * -0.05;
-        break;
-      case "point": {
-        // Señala hacia el ratón con el brazo de la izquierda de la pantalla
-        const arm = armPose[0];
-        const dx = state.pointer.x - cx;
-        const dy = cy - state.pointer.y;
-        const angle = Math.max(-3.0, Math.min(-0.4, Math.atan2(dx, -dy)));
-        arm.z = lerp(arm.z, angle, Math.min(1, env * 1.8));
-        arm.elbow = lerp(arm.elbow, 0, env);
-        break;
+        parts.scanBar.position.x = out.scan;
       }
-      case "peek":
-        // Se acerca a la pantalla con curiosidad
-        lean += env;
-        headX += env * 0.15;
-        headZ += Math.sin(p * Math.PI * 2) * 0.15;
-        break;
-      default:
-        break;
     }
 
     return p < 1;
   });
 
-  /* ----- Aplicar ----- */
-  robot.position.y = lerp(robot.position.y, y, 0.25);
-  robot.rotation.y = rotY;
-  robot.rotation.z = rotZ;
-  robot.rotation.x = rotX;
-  robot.position.z = lerp(robot.position.z, lean * 0.8, 0.2);
-  robot.scale.set(1 + (1 - squash) * 0.5, squash, 1 + (1 - squash) * 0.5);
+  /* ----- Aplicar con suavizado (igual de fluido a 30 que a 120 fps) ----- */
+  state.body = state.body || { y: 0, ry: 0, rz: 0, rx: 0, sq: 0, boost: 0 };
+  const body = state.body;
+  body.y = damp(body.y, pose.y, 22, dt);
+  body.ry = damp(body.ry, pose.ry, 10, dt);
+  body.rz = damp(body.rz, pose.rz, 12, dt);
+  body.sq = damp(body.sq, pose.sq, 26, dt);
+  body.rx = damp(body.rx, pose.rx, 9, dt);
+  body.boost = damp(body.boost, pose.boost, 10, dt);
 
-  headPivot.rotation.y = lerp(headPivot.rotation.y, headY, 0.18);
-  headPivot.rotation.x = lerp(headPivot.rotation.x, headX, 0.18);
-  headPivot.rotation.z = lerp(headPivot.rotation.z, headZ, 0.18);
+  robot.position.y = body.y;
+  robot.rotation.set(spinX + body.rx, body.ry + spinY, body.rz);
+
+  // Aplastar y estirar sin cambiar el volumen
+  const sy = 1 + body.sq;
+  const sxz = 1 / Math.sqrt(Math.max(0.5, sy));
+  robot.scale.set(sxz, sy, sxz);
+
+  const prevHy = headPivot.rotation.y;
+  const prevHz = headPivot.rotation.z;
+  headPivot.rotation.x = damp(headPivot.rotation.x, pose.hx, 12, dt);
+  headPivot.rotation.y = damp(headPivot.rotation.y, pose.hy, 12, dt);
+  headPivot.rotation.z = damp(headPivot.rotation.z, pose.hz, 12, dt);
   head.position.y = 0.46 + Math.sin(t * 2.1 + 0.6) * 0.012 * motion;
 
   arms.forEach((arm, index) => {
-    const pose = armPose[index];
-    arm.shoulder.rotation.z = lerp(arm.shoulder.rotation.z, pose.z, 0.2);
-    arm.shoulder.rotation.x = lerp(arm.shoulder.rotation.x, pose.x, 0.2);
-    arm.elbow.rotation.z = lerp(arm.elbow.rotation.z, pose.elbow * arm.side * -1, 0.2);
+    const target = pose.arms[index];
+    arm.shoulder.rotation.z = damp(arm.shoulder.rotation.z, arm.side * target.z, 14, dt);
+    arm.shoulder.rotation.x = damp(arm.shoulder.rotation.x, -target.fwd, 14, dt);
+    arm.elbow.rotation.x = damp(arm.elbow.rotation.x, -target.bend, 16, dt);
+    arm.elbow.rotation.z = damp(arm.elbow.rotation.z, arm.side * target.swing, 16, dt);
   });
+
+  // La antena rebota como un muelle cuando la cabeza o el cuerpo se mueven
+  state.antenna = state.antenna || { a: 0, v: 0 };
+  const antennaSpring = state.antenna;
+  const headKick = (headPivot.rotation.z - prevHz) + (headPivot.rotation.y - prevHy) * 0.4;
+  antennaSpring.v += (-antennaSpring.a * 170 - antennaSpring.v * 8) * dt - headKick * 9;
+  antennaSpring.a += antennaSpring.v * dt;
+  antennaSpring.a = Math.max(-0.7, Math.min(0.7, antennaSpring.a));
+  parts.antennaPivot.rotation.z = -0.25 + antennaSpring.a;
+
+  const boost = body.boost;
 
   // Llama del propulsor que tiembla; sombra que cambia con la altura
   const flicker = 0.85 + Math.random() * 0.3;
