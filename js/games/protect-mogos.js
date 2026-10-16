@@ -563,6 +563,8 @@ function initializeAntininjaGame() {
   let score = 0;
   // Ninjas derrotados en la partida (para los retos de la comunidad)
   let defeated = 0;
+  // Ninjas seguidos sin que llegue ninguno (para la mascota, js/mascot.js)
+  let streak = 0;
   let lives = 3;
   let record = loadRecord();
 
@@ -841,6 +843,16 @@ function initializeAntininjaGame() {
 
     score += points;
     defeated += 1;
+    streak += 1;
+
+    if (n.y > 0.8) {
+      // Lo ha parado justo antes del castillo
+      window.TronkMascot?.react("close");
+    } else if (streak % 8 === 0) {
+      window.TronkMascot?.react("combo");
+    } else if (points > 1) {
+      window.TronkMascot?.react("great");
+    }
     updateHud();
 
     spawnParticles(p.x, p.y, "#e8e8e8", 12, 0.9, 7);
@@ -918,8 +930,15 @@ function initializeAntininjaGame() {
     const p = ninjaPos(n);
 
     lives -= 1;
+    streak = 0;
     updateHud();
     TronkSound.play("castleHit");
+
+    if (lives === 1) {
+      window.TronkMascot?.react("lastLife");
+    } else if (lives > 1) {
+      window.TronkMascot?.react("hurt");
+    }
 
     kingHurt = 900;
     shake = 280;
@@ -957,6 +976,7 @@ function initializeAntininjaGame() {
 
     // Si hay sesión iniciada, se guarda en la cuenta (js/profiles.js)
     window.TronkScores?.submit("protect-mogos", score);
+    window.TronkMascot?.react(newRecord && score > 0 ? "record" : "gameover");
     window.TronkChallenges?.add("protect-mogos", defeated);
 
     TronkSound.play(newRecord ? "record" : "gameOver");
@@ -992,6 +1012,7 @@ function initializeAntininjaGame() {
 
     score = 0;
     defeated = 0;
+    streak = 0;
     lives = 3;
     spawnTimer = 0;
     nextSpawn = 700;
@@ -1027,6 +1048,7 @@ function initializeAntininjaGame() {
   function startGame() {
     score = 0;
     defeated = 0;
+    streak = 0;
     lives = 3;
     spawnTimer = 0;
     nextSpawn = 500;

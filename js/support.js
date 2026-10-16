@@ -259,6 +259,9 @@ const SUPPORT_CONFIG = {
     scrollChatToBottom();
   }
 
+  // La mascota 3D (js/mascot.js) abre el chat al pulsarla
+  window.openTronkerChat = openChat;
+
   const mailPlaceholder = mailFields.message?.placeholder || "";
 
   function openMail() {

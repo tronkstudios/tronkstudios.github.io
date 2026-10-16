@@ -340,6 +340,8 @@ function startAttack(f, M) {
   }
 }
 function startSpecial(f, M) {
+  // La mascota (js/mascot.js) celebra tu ataque especial
+  if (M.mode === "play" && (f.side === 0 || M.pvp)) window.TronkMascot?.react("special");
   setState(f, "special");
   f.meter -= 100;
   const id = f.w.special.id;
@@ -1063,6 +1065,7 @@ function popText(M, text, x, y, color) { M.texts.push({ text, x, y, t: 0, color 
 function knockout(M, a, d) {
   setState(d, "ko"); d.vy = -8; d.vx = -sgn(a.x - d.x || 1) * 7;
   M.phase = "ko"; M.phaseT = 0; M.winner = a.side;
+  if (M.mode === "play" && !M.pvp) mascotRound(a.side === 0, a.hp);
   if (M.mode !== "sim") {
     M.slow = 70; banner(M, "K.O.", 90, "#ff4f8e"); fx(M, "ko", { pitch: d.ch.pitch }); say(M, "ko"); if (M.mode === "play") setTimeout(() => Sound.crowd("cheer"), 500); M.shake = 16;
     blood(M, d.x, d.y - 100, -sgn(a.x - d.x || 1), 40);
@@ -1072,7 +1075,13 @@ function timeUp(M) {
   const [a, b] = M.f;
   M.phase = "timeup"; M.phaseT = 0;
   M.winner = a.hp > b.hp ? 0 : b.hp > a.hp ? 1 : -1;
+  if (M.mode === "play" && !M.pvp && M.winner >= 0) mascotRound(M.winner === 0, M.f[M.winner].hp);
   banner(M, "¡Tiempo!", 90, "#ffd23f"); say(M, "tiempo");
+}
+// Comentario de la mascota al acabar una ronda contra el bot
+function mascotRound(won, hp) {
+  if (won && hp <= 25) window.TronkMascot?.react("close", "¡Por los pelos!");
+  else window.TronkMascot?.react(won ? "roundWin" : "roundLose");
 }
 function endRound(M) {
   if (M.winner >= 0) M.wins[M.winner]++;
@@ -2430,6 +2439,8 @@ function showResult(M) {
   // Victoria contra el bot: se suma en la cuenta (js/profiles.js)
   if (won && !M.pvp) window.TronkScores?.addWin();
   if (won && !M.pvp) window.TronkChallenges?.add("tronk-fight", 1);
+  if (M.pvp) window.TronkMascot?.react("win", `¡Gana el jugador ${won ? 1 : 2}!`);
+  else window.TronkMascot?.react(won ? "win" : "lose");
   const S = M.stats[0], S2 = M.stats[1];
   $("#tf-r-stats").innerHTML = M.pvp
     ? `<li><strong>${M.wins[0]} - ${M.wins[1]}</strong>Rondas</li>` +

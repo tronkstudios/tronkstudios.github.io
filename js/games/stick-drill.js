@@ -307,6 +307,8 @@ function initializeStickDrillGame() {
   let lastTime = 0;
 
   let time = 0;
+  // Último aviso de «llevas X segundos» (js/mascot.js)
+  let milestone = 0;
   let countdown = 0;
   let lastCount = 0;
 
@@ -490,6 +492,7 @@ function initializeStickDrillGame() {
   function setupRound() {
     modal.dataset.mode = mode;
     time = 0;
+    milestone = 0;
     extraIndex = 0;
     particles = [];
     pending = [];
@@ -740,6 +743,8 @@ function initializeStickDrillGame() {
       window.TronkChallenges?.add("stick-drill", best);
     }
 
+    window.TronkMascot?.react(newRecord && best > 0 ? "record" : "gameover");
+
     const [p1, p2] = players;
     let title;
 
@@ -831,7 +836,8 @@ function initializeStickDrillGame() {
     }
   }
 
-  function drillHitsPlayer(d, p) {
+  // extra > 0: «casi le da» (para la mascota)
+  function drillHitsPlayer(d, p, extra = 0) {
     const a = Math.atan2(d.vy, d.vx);
     const c = Math.cos(a);
     const s = Math.sin(a);
@@ -843,7 +849,7 @@ function initializeStickDrillGame() {
       [-DRILL_LEN * 0.28, DRILL_WID * 0.46]
     ];
 
-    return parts.some(([off, r]) => Math.hypot(p.x - (d.x + c * off), p.y - (d.y + s * off)) < r + PLAYER_R);
+    return parts.some(([off, r]) => Math.hypot(p.x - (d.x + c * off), p.y - (d.y + s * off)) < r + PLAYER_R + extra);
   }
 
   function update(dt) {
@@ -869,6 +875,12 @@ function initializeStickDrillGame() {
     }
 
     time += dt;
+
+    // Cada 15 segundos aguantando, la mascota anima
+    if (Math.floor(time / 15) > milestone && players.some((p) => p.alive && !p.isBot)) {
+      milestone = Math.floor(time / 15);
+      window.TronkMascot?.react("great", `¡${milestone * 15} segundos!`);
+    }
 
     // Nuevos taladros con el tiempo (primero aparece un aviso).
     if (extraIndex < EXTRA_DRILLS_AT.length && time >= EXTRA_DRILLS_AT[extraIndex]) {
@@ -970,6 +982,10 @@ function initializeStickDrillGame() {
         if (state !== "playing") {
           return;
         }
+      } else if (!p.isBot && time - (p.nearAt || -9) > 3 && drills.some((d) => drillHitsPlayer(d, p, PLAYER_R * 0.8))) {
+        // El taladro ha pasado rozando
+        p.nearAt = time;
+        window.TronkMascot?.react("close");
       }
     }
 
