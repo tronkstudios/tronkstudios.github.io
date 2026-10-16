@@ -9,6 +9,35 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.19 · Minijuegos, retos y avatares
+
+#### Añadido
+- **Rachas privadas** en Antitronks y Protect Mogos: contador «RACHA ×N» en el
+  marcador y tu mejor racha al empezar y al acabar. Solo se guardan en tu
+  navegador; no salen en ninguna clasificación.
+- **Ficha de cada reto** al pulsarlo, como las de los juegos en desarrollo:
+  título, descripción, progreso exacto, fechas, tu aporte y los 5 mejores
+  contribuidores (con lo que ha aportado cada uno). El equipo puede escribir la
+  descripción al crear el reto (vuelve a ejecutar `docs/supabase/retos.sql`).
+- **24 avatares nuevos** (36 en total): Tronker, Antitronk, el rey de Protect
+  Mogos, stickman, samurái, vikingo, gato, perro, panda, dragón, dinosaurio,
+  vaquero, chef, vampiro, momia, rana, pingüino, búho, cíborg, gamer, bruja,
+  tiburón, calabaza y OVNI.
+
+#### Cambiado
+- Los minijuegos **solo se cierran con la × o con Escape**: pulsar fuera ya no los
+  cierra (y Antitronks y Stick Drill ahora también se cierran con Escape).
+- En la ventana de inicio y fin de partida, la **descripción del juego va aparte**
+  del **récord**: casillas con tus cifras y una cinta dorada «¡NUEVO RÉCORD!» que
+  solo sale cuando lo consigues.
+- El **porcentaje de los retos es exacto**, con hasta 10 decimales. Antes se
+  redondeaba y con objetivos grandes se quedaba en 0 % aunque sí sumaba.
+- Donde ponía «malos» ahora pone **Antitronks** (y «ANTITRONK ELIMINADO» en el juego).
+
+#### Arreglado
+- Fallos de dibujo en los avatares del caballero (penacho suelto) y del ninja
+  (los ojos parecían un bigote).
+
 ### 6.18 · Animaciones de Tronker mejor hechas
 
 #### Cambiado

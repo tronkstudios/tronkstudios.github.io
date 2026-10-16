@@ -25,6 +25,11 @@ create table if not exists public.challenges (
   check (ends_at > starts_at)
 );
 
+-- Descripción del reto (se ve en su ficha). Si ya tenías la tabla, se añade aquí.
+alter table public.challenges
+  add column if not exists description text not null default ''
+    check (char_length(description) <= 500);
+
 alter table public.challenges enable row level security;
 
 drop policy if exists "Retos visibles para todos" on public.challenges;
@@ -46,7 +51,7 @@ create policy "El equipo borra retos"
 
 -- El progreso solo lo cambia add_challenge_progress (nunca la web)
 revoke insert, update, delete on public.challenges from anon, authenticated;
-grant insert (title, game, goal, starts_at, ends_at) on public.challenges to authenticated;
+grant insert (title, description, game, goal, starts_at, ends_at) on public.challenges to authenticated;
 grant delete on public.challenges to authenticated;
 
 /* Lo que ha aportado cada jugador a cada reto */
@@ -102,7 +107,7 @@ begin
 
   -- Máximo razonable en una sola partida
   v_max := case p_game
-    when 'antitronks' then 300      -- malos derribados
+    when 'antitronks' then 300      -- Antitronks derribados
     when 'protect-mogos' then 400   -- ninjas derrotados
     when 'stick-drill' then 600     -- segundos aguantados
     when 'tronk-fight' then 1       -- victorias

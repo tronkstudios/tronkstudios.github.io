@@ -774,7 +774,7 @@ const SUPPORT_CONFIG = {
     },
     info_antitronks: {
       msg: [
-        "Antitronks: dispara a los malos sin dar a los civiles.",
+        "Antitronks: dispara a los Antitronks sin dar a los civiles.",
         "Apunta con el ratón y haz clic para disparar. Gira la cámara con A y D. Tienes 3 vidas, y los disparos a la cabeza dan el doble de puntos."
       ],
       options: [

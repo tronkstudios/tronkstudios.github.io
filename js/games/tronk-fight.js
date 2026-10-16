@@ -2624,6 +2624,6 @@ function closeGame() {
 card.addEventListener("click", openGame);
 card.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openGame(); } });
 document.getElementById("tronkfight-close")?.addEventListener("click", closeGame);
-modal.querySelector(".antitronks-backdrop")?.addEventListener("click", closeGame);
+// Pulsar fuera del juego no lo cierra (solo la × o Escape)
 
 })();

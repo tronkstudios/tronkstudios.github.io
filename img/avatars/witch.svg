@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Bruja">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#16a34a"/>
+      <stop offset="1" stop-color="#052e16"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#bg)"/>
+
+  <path d="M14 30c-3 12-1 23 5 28M50 30c3 12 1 23-5 28" stroke="#f97316" stroke-width="5" stroke-linecap="round" fill="none"/>
+  <circle cx="32" cy="40" r="14" fill="#86efac"/>
+  <ellipse cx="32" cy="27" rx="25" ry="5" fill="#3b0764"/>
+  <path d="M21 26l9-21c1-2 3-2 4 0l9 21z" fill="#4c1d95"/>
+  <path d="M33 6c5-1 9 2 9 7" stroke="#4c1d95" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M22 22h20" stroke="#f59e0b" stroke-width="3"/>
+  <circle cx="27" cy="38" r="2" fill="#1f2937"/>
+  <circle cx="37" cy="38" r="2" fill="#1f2937"/>
+  <path d="M32 39l2.5 4.5h-4z" fill="#4ade80" stroke="#15803d" stroke-width="1.2" stroke-linejoin="round"/>
+  <path d="M26 47c4 2.5 8 2.5 12 0" stroke="#1f2937" stroke-width="2" fill="none" stroke-linecap="round"/>
+</svg>

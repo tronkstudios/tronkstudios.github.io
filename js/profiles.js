@@ -24,7 +24,31 @@ const PROFILE_AVATARS = [
   { id: "fox", name: "Zorro" },
   { id: "ghost", name: "Fantasma" },
   { id: "pirate", name: "Pirata" },
-  { id: "slime", name: "Slime" }
+  { id: "slime", name: "Slime" },
+  { id: "tronker", name: "Tronker" },
+  { id: "antitronk", name: "Antitronk" },
+  { id: "king", name: "Rey" },
+  { id: "stickman", name: "Stickman" },
+  { id: "samurai", name: "Samurái" },
+  { id: "viking", name: "Vikingo" },
+  { id: "cat", name: "Gato" },
+  { id: "dog", name: "Perro" },
+  { id: "panda", name: "Panda" },
+  { id: "dragon", name: "Dragón" },
+  { id: "dino", name: "Dinosaurio" },
+  { id: "cowboy", name: "Vaquero" },
+  { id: "chef", name: "Chef" },
+  { id: "vampire", name: "Vampiro" },
+  { id: "mummy", name: "Momia" },
+  { id: "frog", name: "Rana" },
+  { id: "penguin", name: "Pingüino" },
+  { id: "owl", name: "Búho" },
+  { id: "cyborg", name: "Cíborg" },
+  { id: "gamer", name: "Gamer" },
+  { id: "witch", name: "Bruja" },
+  { id: "shark", name: "Tiburón" },
+  { id: "pumpkin", name: "Calabaza" },
+  { id: "ufo", name: "OVNI" }
 ];
 
 /* Imagen del avatar. Si el valor no es uno de la lista, sale el de Tronk. */

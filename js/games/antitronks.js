@@ -19,6 +19,8 @@ function initializeAntitronksGame() {
   const startButton = document.getElementById("antitronks-start");
   const overlay = document.getElementById("antitronks-overlay");
   const overlayTitle = document.getElementById("antitronks-overlay-title");
+  const overlayBox = overlay?.querySelector(".antitronks-overlay-box");
+  const hud = modal?.querySelector(".antitronks-hud");
   const overlayText = document.getElementById("antitronks-overlay-text");
   const scoreElement = document.getElementById("antitronks-score");
   const livesElement = document.getElementById("antitronks-lives");
@@ -65,7 +67,7 @@ function initializeAntitronksGame() {
   const FACADE_Z = 27;
 
   const INTRO_TEXT =
-    "Apunta con el ratón y haz clic para disparar. Gira la cámara con A (izquierda) y D (derecha). ¡No dispares a los civiles (manos arriba)!";
+    "Apunta con el ratón y haz clic para disparar a los Antitronks. Gira la cámara con A (izquierda) y D (derecha). ¡No dispares a los civiles (manos arriba)!";
 
   const RECORD_KEY = "antitronks-record";
 
@@ -211,10 +213,12 @@ function initializeAntitronksGame() {
   let gameTime = 0;
 
   let score = 0;
-  // Malos derribados en la partida (para los retos de la comunidad)
+  // Antitronks derribados en la partida (para los retos de la comunidad)
   let defeated = 0;
-  // Malos seguidos sin fallar (para la mascota, js/mascot.js)
+  // Antitronks seguidos sin fallar: racha (privada, js/games/results.js)
+  // y la mascota (js/mascot.js)
   let streak = 0;
+  let bestStreakGame = 0;
   let lives = 3;
   let record = loadRecord();
 
@@ -1552,6 +1556,8 @@ function initializeAntitronksGame() {
       score += headshot ? 2 : 1;
       defeated += 1;
       streak += 1;
+      bestStreakGame = Math.max(bestStreakGame, streak);
+      TronkResults.showStreak(hud, streak);
 
       if (streak % 5 === 0) {
         window.TronkMascot?.react("combo");
@@ -1560,7 +1566,7 @@ function initializeAntitronksGame() {
       }
       updateHud();
       addFloater(sx, sy - 14, headshot ? "¡A LA CABEZA! +2" : "+1", headshot ? "#ffd24a" : "#ffffff");
-      showMessage(headshot ? "¡DISPARO A LA CABEZA!" : "ENEMIGO ELIMINADO", 450);
+      showMessage(headshot ? "¡DISPARO A LA CABEZA!" : "ANTITRONK ELIMINADO", 450);
     } else {
       addFloater(sx, sy - 14, "¡CIVIL!", "#ff5252");
       TronkSound.play("civilian");
@@ -1577,6 +1583,7 @@ function initializeAntitronksGame() {
     TronkSound.play("playerHurt");
     lives -= 1;
     streak = 0;
+    TronkResults.showStreak(hud, 0);
     updateHud();
     damageFlash();
     showMessage(reason, 650);
@@ -1625,15 +1632,22 @@ function initializeAntitronksGame() {
 
     updateHud();
 
-    if (overlayTitle && newRecord) {
-      overlayTitle.textContent = "¡NUEVO RÉCORD!";
-    }
+    // Resultados aparte de la descripción (js/games/results.js)
+    const newBestStreak = TronkResults.saveStreak("antitronks", bestStreakGame);
 
     if (overlayText) {
-      overlayText.textContent = newRecord
-        ? `Has conseguido ${score} punto${score === 1 ? "" : "s"}. ¡Es tu mejor marca!`
-        : `Has conseguido ${score} punto${score === 1 ? "" : "s"}. Tu récord es ${record}.`;
+      overlayText.hidden = true;
     }
+
+    TronkResults.render(overlayBox, {
+      newRecord: newRecord && score > 0,
+      tiles: [
+        { label: "Puntos", value: score, gold: newRecord && score > 0 },
+        { label: "Récord", value: record },
+        { label: newBestStreak ? "Mejor racha (¡nueva!)" : "Racha de la partida", value: bestStreakGame, gold: newBestStreak }
+      ]
+    });
+    TronkResults.showStreak(hud, 0);
 
     if (startButton) {
       startButton.textContent = "REINTENTAR";
@@ -1669,8 +1683,17 @@ function initializeAntitronksGame() {
     }
 
     if (overlayText) {
-      overlayText.textContent = record > 0 ? `${INTRO_TEXT} Tu récord: ${record} puntos.` : INTRO_TEXT;
+      overlayText.textContent = INTRO_TEXT;
+      overlayText.hidden = false;
     }
+
+    TronkResults.render(overlayBox, {
+      tiles: [
+        record > 0 ? { label: "Tu récord", value: record } : null,
+        TronkResults.bestStreak("antitronks") > 0 ? { label: "Mejor racha", value: TronkResults.bestStreak("antitronks") } : null
+      ]
+    });
+    TronkResults.showStreak(hud, 0);
 
     if (startButton) {
       startButton.textContent = "JUGAR";
@@ -1688,6 +1711,7 @@ function initializeAntitronksGame() {
     score = 0;
     defeated = 0;
     streak = 0;
+    bestStreakGame = 0;
     lives = 3;
     cameraAngle = 0;
     spawnTimer = 0;
@@ -1892,7 +1916,12 @@ function initializeAntitronksGame() {
   });
 
   closeButton?.addEventListener("click", closeGame);
-  backdrop?.addEventListener("click", closeGame);
+  // Pulsar fuera del juego no lo cierra: solo la × o la tecla Escape
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !modal.classList.contains("hidden")) {
+      closeGame();
+    }
+  });
   startButton?.addEventListener("click", startGame);
 
   // Ratón: la mira sigue al ratón.

@@ -14,12 +14,16 @@
    Si algún día algo se queda «pegado» en una versión vieja, sube el
    número de CACHE_VERSION. */
 
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 2;
 const CACHE_NAME = `tronkstudios-v${CACHE_VERSION}`;
 
 const AVATARS = [
   "tronk", "robot", "zombie", "ninja", "knight", "wizard",
-  "astronaut", "alien", "fox", "ghost", "pirate", "slime"
+  "astronaut", "alien", "fox", "ghost", "pirate", "slime",
+  "tronker", "antitronk", "king", "stickman", "samurai", "viking",
+  "cat", "dog", "panda", "dragon", "dino", "cowboy",
+  "chef", "vampire", "mummy", "frog", "penguin", "owl",
+  "cyborg", "gamer", "witch", "shark", "pumpkin", "ufo"
 ];
 
 const CORE_FILES = [

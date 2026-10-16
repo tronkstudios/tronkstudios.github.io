@@ -52,7 +52,7 @@ JUEGOS EN DESARROLLO
 - Todavía no hay juegos publicados en "Nuestros Juegos" ni en "Roblox".
 
 MINIJUEGOS (gratis, en el navegador; se abren pulsando su tarjeta)
-- Antitronks: disparar a los malos sin dar a los civiles. Apuntar con el ratón y hacer clic; girar la cámara con A y D. 3 vidas.
+- Antitronks: disparar a los Antitronks sin dar a los civiles. Apuntar con el ratón y hacer clic; girar la cámara con A y D. 3 vidas.
 - Protect Mogos: hacer clic o tocar los ninjas antes de que lleguen al castillo. 3 vidas.
 - Stick Drill: esquivar un taladro que rebota; pierde el que caiga primero. Contra el bot o 2 jugadores (W A S D y flechas; en móvil, joysticks).
 - Tronk Fight: duelo de stickmans con 7 luchadores, contra el bot (3 dificultades) o 2 jugadores. J1: W A S D + J K L I. J2: flechas + , . - y Mayús derecha.
