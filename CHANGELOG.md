@@ -9,6 +9,16 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.14 · Tronker: escribiendo o por temas
+
+#### Cambiado
+- Al abrir el chat, Tronker pregunta primero **cómo prefieres hablar**: escribiendo
+  tus preguntas o eligiendo entre temas. Puedes cambiar de modo cuando quieras.
+- El menú ya no tiene una lista larga de opciones: ahora hay **6 temas** (Mi cuenta,
+  Juegos y minijuegos, Perfil, retos y comunidad, La web y TronkStudios, Algo no
+  funciona y Hablar con el equipo), y cada uno abre sus propias opciones.
+- La caja para escribir solo sale en el modo escribiendo.
+
 ### 6.13 · Tronker con IA
 
 #### Añadido
