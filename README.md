@@ -162,6 +162,17 @@ y en su ficha (se actualizan cada minuto). El placeId es el número de la
 dirección del juego: `roblox.com/games/NÚMERO/nombre`. Tras cambiar `index.js`
 hay que volver a desplegar el Worker (`npx.cmd wrangler deploy`).
 
+## Mascota 3D
+
+`js/mascot.js` dibuja a Tronker en 3D con Three.js (`js/vendor/three.module.min.js`,
+licencia MIT en `js/vendor/three.LICENSE.txt`). Se carga cuando la página ya está
+lista y, si el navegador no tiene WebGL, simplemente no aparece.
+- Al pulsarlo abre el chat (`window.openTronkerChat`, de `js/support.js`).
+- Los minijuegos le avisan con `window.TronkMascot?.react("great")`. Tipos: `start`,
+  `great`, `combo`, `close`, `oops`, `hurt`, `lastLife`, `special`, `record`,
+  `gameover`, `win`, `lose`, `roundWin` y `roundLose`. Las frases están en `LINES`.
+- Jugando se dibuja a 30 imágenes por segundo para no quitarle potencia al juego.
+
 ## Tronker con IA (gratis)
 
 El chat de Tronker responde preguntas escritas con **Workers AI de Cloudflare**,

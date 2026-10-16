@@ -9,6 +9,23 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.15 · Tronker en 3D
+
+#### Añadido
+- **Mascota 3D** (`js/mascot.js`): un robot con casco estilo Tron (visor negro y
+  líneas de neón) y cuerpo de clanker (metal, remaches, brazos con pinzas y un
+  propulsor que lo hace flotar). Al pulsarlo se abre el chat de Tronker.
+- Tiene vida propia: flota, respira, parpadea, sigue el ratón con la cabeza,
+  saluda, mira alrededor, se estira y se duerme si no haces nada. Sus ojos y su
+  antena cambian de forma y de color según cómo se siente.
+- **Te ve jugar**: en los minijuegos se hace pequeño y comenta lo que pasa
+  («¡Buena!», «¡Por los pelos!», «¡Última vida!», «¡Nuevo récord!»...).
+- Al entrar en la web saluda con «¿Qué pasa, Tronk?». Se puede ocultar (y volver
+  a mostrar desde el pie de la página).
+- Más grande en ordenador y más pequeño en el móvil. Jugando en el móvil se pone
+  donde no estorba (en Protect Mogos, abajo a la derecha, sobre la torre del castillo). Three.js va dentro de la web
+  (`js/vendor`) y se carga cuando la página ya está lista.
+
 ### 6.14 · Tronker: escribiendo o por temas
 
 #### Cambiado
