@@ -345,21 +345,77 @@ const SUPPORT_CONFIG = {
      ========================================================= */
 
   const GUION = {
-    inicio: {
+    /* ---------- LO PRIMERO: ¿ESCRIBIENDO O POR TEMAS? ---------- */
+    modo: {
       msg: [
-        "¡Hola! Soy Tronker, el asistente de soporte de TronkStudios.",
-        "Pregúntame lo que quieras sobre la web, los juegos o tu cuenta, o elige una opción."
+        "¡Hola! Soy Tronker, el asistente de TronkStudios.",
+        "¿Cómo prefieres hablar conmigo?"
       ],
       options: [
+        ["Escribiendo mis preguntas", "@modo:escribir"],
+        ["Eligiendo entre temas", "@modo:temas"]
+      ]
+    },
+    escribir: {
+      msg: "¡Genial! Escríbeme abajo lo que quieras saber sobre la web, los juegos o tu cuenta.",
+      options: []
+    },
+
+    /* ---------- TEMAS ---------- */
+    inicio: {
+      msg: "¿De qué tema quieres hablar?",
+      options: [
+        ["Mi cuenta", "tema_cuenta"],
+        ["Juegos y minijuegos", "tema_juegos"],
+        ["Perfil, retos y comunidad", "tema_comunidad"],
+        ["La web y TronkStudios", "tema_web"],
+        ["Algo no funciona", "tema_fallos"],
+        ["Hablar con el equipo", "humano"],
+        ["Prefiero escribir", "@modo:escribir", true]
+      ]
+    },
+    tema_cuenta: {
+      msg: "¿Qué necesitas con tu cuenta?",
+      options: [
         ["No puedo iniciar sesión", "login"],
-        ["Olvidé o quiero cambiar mi contraseña", "pass"],
-        ["No puedo crear una cuenta", "registro"],
+        ["Mi contraseña", "pass"],
+        ["Crear una cuenta", "registro"],
+        ["Borrar mi cuenta", "borrar"]
+      ]
+    },
+    tema_juegos: {
+      msg: "¿Qué quieres saber?",
+      options: [
+        ["Los juegos en desarrollo", "info_juegos"],
+        ["Cómo se juega a los minijuegos", "info_minijuegos"],
+        ["Un minijuego va mal", "juego"]
+      ]
+    },
+    tema_comunidad: {
+      msg: "¿Sobre qué tienes dudas?",
+      options: [
+        ["Perfil, avatar e insignias", "info_perfil"],
+        ["Retos de la comunidad", "info_retos"],
+        ["Lista de deseados", "info_deseados"],
+        ["Notificaciones", "info_notificaciones"],
+        ["Enviar una idea", "sugerencia"]
+      ]
+    },
+    tema_web: {
+      msg: "¿Qué quieres saber?",
+      options: [
+        ["Instalar la web como app", "info_app"],
+        ["Idioma, tema, sonidos y atajos", "info_ajustes"],
+        ["¿Qué es TronkStudios?", "info_estudio"],
+        ["Trabajar con vosotros", "info_trabajar"]
+      ]
+    },
+    tema_fallos: {
+      msg: "Vamos a arreglarlo. ¿Qué falla?",
+      options: [
+        ["No puedo entrar en mi cuenta", "login"],
         ["Un minijuego no carga o va mal", "juego"],
-        ["Quiero reportar un fallo", "bug"],
-        ["Quiero enviar una sugerencia", "sugerencia"],
-        ["Quiero borrar mi cuenta", "borrar"],
-        ["Tengo una duda sobre la web o los juegos", "info"],
-        ["Hablar con el equipo", "humano"]
+        ["Otra cosa de la web", "bug"]
       ]
     },
 
@@ -665,27 +721,12 @@ const SUPPORT_CONFIG = {
     },
 
     /* ---------- DUDAS SOBRE LA WEB Y LOS JUEGOS ---------- */
-    info: {
-      msg: "¡Claro! ¿Sobre qué tienes dudas?",
-      options: [
-        ["Los juegos en desarrollo", "info_juegos"],
-        ["Los minijuegos y sus controles", "info_minijuegos"],
-        ["Mi perfil, avatar e insignias", "info_perfil"],
-        ["Los retos de la comunidad", "info_retos"],
-        ["Lista de deseados y avisos", "info_deseados"],
-        ["Las notificaciones", "info_notificaciones"],
-        ["Instalar la web como app", "info_app"],
-        ["Idioma, tema, sonidos y atajos", "info_ajustes"],
-        ["Quiero trabajar con vosotros", "info_trabajar"],
-        ["¿Qué es TronkStudios?", "info_estudio"]
-      ]
-    },
     info_juegos: {
       msg: "Ahora mismo tenemos dos juegos en desarrollo. ¿Cuál te interesa?",
       options: [
         ["Z Tronks", "info_ztronks"],
         ["The Sundered Sky", "info_sundered"],
-        ["Otra duda", "info"]
+        ["Otra duda", "inicio"]
       ]
     },
     info_ztronks: {
@@ -705,7 +746,7 @@ const SUPPORT_CONFIG = {
       },
       options: [
         ["Ver su ficha", "@ficha:z-tronks"],
-        ["Otra duda", "info"]
+        ["Otra duda", "inicio"]
       ]
     },
     info_sundered: {
@@ -715,7 +756,7 @@ const SUPPORT_CONFIG = {
       ],
       options: [
         ["Ver su ficha", "@ficha:the-sundered-sky"],
-        ["Otra duda", "info"]
+        ["Otra duda", "inicio"]
       ]
     },
     info_minijuegos: {
@@ -780,7 +821,7 @@ const SUPPORT_CONFIG = {
       ],
       options: [
         ["Abrir mi cuenta", "@cuenta"],
-        ["Otra duda", "info"]
+        ["Otra duda", "inicio"]
       ]
     },
     info_retos: {
@@ -790,7 +831,7 @@ const SUPPORT_CONFIG = {
       ],
       options: [
         ["Ir a Minijuegos", "@seccion:minijuegos"],
-        ["Otra duda", "info"]
+        ["Otra duda", "inicio"]
       ]
     },
     info_deseados: {
@@ -800,7 +841,7 @@ const SUPPORT_CONFIG = {
       ],
       options: [
         ["Ver los juegos", "@seccion:desarrollo"],
-        ["Otra duda", "info"]
+        ["Otra duda", "inicio"]
       ]
     },
     info_notificaciones: {
@@ -810,7 +851,7 @@ const SUPPORT_CONFIG = {
       ],
       options: [
         ["Entendido", "fin_pregunta"],
-        ["Otra duda", "info"]
+        ["Otra duda", "inicio"]
       ]
     },
     info_app: {
@@ -820,7 +861,7 @@ const SUPPORT_CONFIG = {
       ],
       options: [
         ["Entendido", "fin_pregunta"],
-        ["Otra duda", "info"]
+        ["Otra duda", "inicio"]
       ]
     },
     info_ajustes: {
@@ -830,7 +871,7 @@ const SUPPORT_CONFIG = {
       ],
       options: [
         ["Entendido", "fin_pregunta"],
-        ["Otra duda", "info"]
+        ["Otra duda", "inicio"]
       ]
     },
     info_trabajar: {
@@ -840,7 +881,7 @@ const SUPPORT_CONFIG = {
       ],
       options: [
         ["Ver «Trabaja con nosotros»", "@seccion:trabaja-con-nosotros"],
-        ["Otra duda", "info"]
+        ["Otra duda", "inicio"]
       ]
     },
     info_estudio: {
@@ -851,16 +892,15 @@ const SUPPORT_CONFIG = {
       ],
       options: [
         ["Ver «Sobre nosotros»", "@seccion:sobre-nosotros"],
-        ["Otra duda", "info"]
+        ["Otra duda", "inicio"]
       ]
     },
 
     /* ---------- CHARLA (para el sistema de frases) ---------- */
     saludo: {
-      msg: "¡Hola! ¿En qué te puedo ayudar? Puedes escribirme tu duda o elegir una opción.",
+      msg: "¡Hola! ¿En qué te puedo ayudar? Escríbeme tu duda.",
       options: [
-        ["Tengo un problema", "inicio"],
-        ["Tengo una duda sobre la web o los juegos", "info"]
+        ["Ver los temas", "inicio"]
       ]
     },
     quien: {
@@ -869,8 +909,7 @@ const SUPPORT_CONFIG = {
         "Te ayudo con la web, los juegos, los minijuegos y tu cuenta. Si algo necesita a una persona, te paso con el equipo."
       ],
       options: [
-        ["Tengo un problema", "inicio"],
-        ["Tengo una duda", "info"]
+        ["Ver los temas", "inicio"]
       ]
     },
     gracias: {
@@ -976,8 +1015,10 @@ const SUPPORT_CONFIG = {
 
     const list = options.slice();
 
-    if (stepName !== "inicio" && stepName !== "despedida") {
-      list.push(["Volver al menú", "inicio", true]);
+    if (stepName === "escribir" || (chatMode === "write" && stepName !== "modo")) {
+      list.push(["Prefiero elegir temas", "@modo:temas", true]);
+    } else if (!["inicio", "despedida", "modo"].includes(stepName)) {
+      list.push(["Volver a los temas", "inicio", true]);
     }
 
     list.forEach(([label, destination, secondary]) => {
@@ -991,9 +1032,21 @@ const SUPPORT_CONFIG = {
           return;
         }
 
+        if (destination.startsWith("@modo:")) {
+          addBubble(label, "from-user");
+          setChatMode(destination === "@modo:escribir" ? "write" : "topics");
+          goToStep(destination === "@modo:escribir" ? "escribir" : "inicio");
+          return;
+        }
+
         if (destination.startsWith("@")) {
           runAction(destination);
           return;
+        }
+
+        // Ir a los temas desde «escribiendo» cambia al modo de temas
+        if (destination === "inicio" && chatMode === "write") {
+          setChatMode("topics");
         }
 
         addBubble(label, "from-user");
@@ -1030,8 +1083,12 @@ const SUPPORT_CONFIG = {
 
     const first = chatOptions.querySelector("button");
 
-    if (first && activeModal === chatModal) {
-      first.focus({ preventScroll: true });
+    if (activeModal === chatModal) {
+      if (chatMode === "write") {
+        chatInput?.focus({ preventScroll: true });
+      } else if (first) {
+        first.focus({ preventScroll: true });
+      }
     }
   }
 
@@ -1041,18 +1098,28 @@ const SUPPORT_CONFIG = {
   let aiHistory = [];
   let aiEnabled = false;
 
+  // «choose» (aún no ha elegido), «write» (escribiendo) o «topics» (por temas)
+  let chatMode = "choose";
+
+  function setChatMode(mode) {
+    chatMode = mode;
+
+    if (chatForm) {
+      chatForm.hidden = mode !== "write";
+    }
+
+    if (chatHint) {
+      chatHint.textContent =
+        mode === "write"
+          ? "Escribe tu pregunta. La conversación no se guarda."
+          : "Elige una opción para continuar. La conversación no se guarda.";
+    }
+  }
+
   // Sin IA (o si se acaba el uso gratis del día), Tronker entiende
   // las preguntas con el sistema de frases de js/tronker.js
   function setAiMode(enabled) {
     aiEnabled = enabled;
-
-    if (chatForm) {
-      chatForm.hidden = false;
-    }
-
-    if (chatHint) {
-      chatHint.textContent = "Escribe tu pregunta o elige una opción. La conversación no se guarda.";
-    }
 
     chatStatus.textContent = enabled ? "En línea · Responde con IA" : "En línea · Respuestas rápidas";
   }
@@ -1078,10 +1145,10 @@ const SUPPORT_CONFIG = {
     chatBusy = false;
 
     addBubble(
-      "No estoy seguro de haberte entendido. Prueba a decirlo con otras palabras o elige una de estas opciones:",
+      "No estoy seguro de haberte entendido. Prueba a decirlo con otras palabras o mira los temas.",
       "from-ai"
     );
-    renderOptions("ai", [...GUION.inicio.options]);
+    renderOptions("ai", []);
   }
 
   // La IA escribe en texto plano, pero por si acaso se quitan marcas
@@ -1218,7 +1285,8 @@ const SUPPORT_CONFIG = {
     }
 
     setAiMode(Boolean(health && health.chat));
-    goToStep("inicio");
+    setChatMode("choose");
+    goToStep("modo");
   }
 
   chatReset.addEventListener("click", startChat);
