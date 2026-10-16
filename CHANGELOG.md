@@ -37,7 +37,8 @@ pantalla. Estas son sus partes, de la más reciente a la primera.
 #### Arreglado
 - Fallos de dibujo en los avatares: el penacho del caballero estaba suelto, los
   ojos del ninja parecían un bigote, los cuernos del vikingo flotaban, el sombrero
-  del vaquero dejaba ver la frente, y el pelo del rey, la bruja, el vampiro, el
+  del vaquero dejaba ver la frente, el samurái parecía llevar un sombrero de bruja
+  (ahora lleva casco kabuto con cuernos dorados y armadura), y el pelo del rey, la bruja, el vampiro, el
   gamer, el mago y el zombi (que tenía calva) estaba mal. Ahora todos tienen
   cuello y cuerpo, y el pelo cae por detrás de forma natural.
 
