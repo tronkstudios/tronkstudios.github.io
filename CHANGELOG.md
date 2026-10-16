@@ -22,7 +22,8 @@ pantalla. Estas son sus partes, de la más reciente a la primera.
   («¡Buena!», «¡Por los pelos!», «¡Última vida!», «¡Nuevo récord!»...).
 - Al entrar en la web saluda con «¿Qué pasa, Tronk?». Se puede ocultar (y volver
   a mostrar desde el pie de la página).
-- Más grande en ordenador y más pequeño en el móvil. Three.js va dentro de la web
+- Más grande en ordenador y más pequeño en el móvil. Jugando en el móvil se pone
+  donde no estorba (en Protect Mogos, abajo a la derecha, sobre la torre del castillo). Three.js va dentro de la web
   (`js/vendor`) y se carga cuando la página ya está lista.
 
 ### 6.14 · Tronker: escribiendo o por temas

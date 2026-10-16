@@ -304,6 +304,8 @@ function updateGameMode() {
   const wasInGame = state.inGame;
   state.inGame = Boolean(open);
   root.classList.toggle("in-game", state.inGame);
+  // Cada juego puede ponerlo en un sitio distinto (ver css: .mascot[data-game])
+  root.dataset.game = open ? open.id.replace("-modal", "") : "";
 
   // A pantalla completa solo se ve lo de dentro del juego: el robot se mete dentro
   const full = document.fullscreenElement || document.webkitFullscreenElement;
