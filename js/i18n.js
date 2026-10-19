@@ -249,6 +249,8 @@ const I18N_EN = {
   "Las últimas novedades de nuestros juegos y de la web.": "The latest news about our games and the website.",
   "Ocultar diario": "Hide diary",
   "Mostrar diario": "Show diary",
+  "Mostrar más": "Show more",
+  "Todas las sugerencias": "All suggestions",
   "Filtrar novedades": "Filter news",
   "Desarrollo": "Development",
   "Actualización": "Update",
@@ -1185,6 +1187,10 @@ const CHALLENGE_UNITS_EN = {
 };
 
 const I18N_PATTERNS = [
+  [/^Clasificación · (.+)$/, (_, g) => `Leaderboard · ${g}`],
+  [/^(\d+) jugadores con récord$/, (_, n) => `${n} players with a record`],
+  [/^1 jugador con récord$/, () => "1 player with a record"],
+  [/^(\d+) sugerencias$/, (_, n) => `${n} suggestions`],
   [/^Ver el reto: (.+)$/, (_, x) => `See the challenge: ${x}`],
   [/^Jugar a (.+)$/, (_, x) => `Play ${x}`],
   [/^Y (\d+) personas? más ayudando$/, (_, n) => `And ${n} more ${plural(n, "person", "people")} helping`],

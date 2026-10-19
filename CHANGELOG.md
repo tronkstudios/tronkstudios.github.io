@@ -9,6 +9,15 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.21 · Listas más cortas con «Mostrar más»
+
+#### Cambiado
+- **Clasificación:** en la página salen los 5 primeros (y tu puesto, si estás
+  más abajo). «Mostrar más» abre una tarjeta con la clasificación completa.
+- **Sugerencias:** en la página salen 4 (respetando la búsqueda, el filtro y
+  el orden). «Mostrar más» abre una tarjeta con todas; se puede votar dentro
+  y se actualiza sola.
+
 ### 6.20 · Avatares con cuerpo
 
 #### Cambiado

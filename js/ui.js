@@ -48,39 +48,73 @@ function closeModal(modal) {
     "true"
   );
 
-  const accountClosed =
-    !accountModal ||
-    accountModal.classList.contains(
-      "hidden"
-    );
-
-  const suggestionsClosed =
-    !suggestionModal ||
-    suggestionModal.classList.contains(
-      "hidden"
-    );
-
-  const projectModal =
-    document.getElementById("project-modal");
-
-  const projectClosed =
-    !projectModal ||
-    projectModal.classList.contains("hidden");
-
-  // Perfil y panel del equipo también cuentan como ventanas abiertas
-  const othersClosed = ["profile-modal", "team-modal"].every((id) => {
-    const other = document.getElementById(id);
-    return !other || other.classList.contains("hidden");
-  });
-
-  if (
-    accountClosed &&
-    suggestionsClosed &&
-    projectClosed &&
-    othersClosed
-  ) {
+  if (!document.querySelector(".modal:not(.hidden)")) {
     document.body.classList.remove(
       "modal-open"
+    );
+  }
+}
+
+/* =========================================================
+   LISTA COMPLETA EN UNA TARJETA
+   «Mostrar más» de la clasificación y de las sugerencias: en la página
+   se ven solo unas pocas y aquí salen todas.
+   ========================================================= */
+
+function openListModal(kind, title, subtitle, fill) {
+  const modal = document.getElementById("list-modal");
+  const content = document.getElementById("list-modal-content");
+
+  if (!modal || !content) {
+    return;
+  }
+
+  document.getElementById("list-modal-title").textContent = title;
+  document.getElementById("list-modal-subtitle").textContent = subtitle || "";
+
+  modal.dataset.kind = kind;
+
+  // Se guarda para volver a pintarla si cambian los datos (p. ej. al votar)
+  modal.refill = fill;
+  content.replaceChildren();
+  fill(content);
+  content.scrollTop = 0;
+  openModal(modal);
+}
+
+function refillListModal(kind, fill) {
+  const modal = document.getElementById("list-modal");
+
+  if (!modal || modal.classList.contains("hidden") || modal.dataset.kind !== kind) {
+    return;
+  }
+
+  if (fill) {
+    modal.refill = fill;
+  }
+
+  const content = document.getElementById("list-modal-content");
+  const scroll = content.scrollTop;
+  content.replaceChildren();
+  modal.refill(content);
+  content.scrollTop = scroll;
+}
+
+/* Botón «Mostrar más (N)» debajo de una lista */
+function setShowMoreButton(button, hiddenCount, label) {
+  if (!button) {
+    return;
+  }
+
+  button.hidden = hiddenCount <= 0;
+
+  if (hiddenCount > 0) {
+    button.replaceChildren(
+      document.createTextNode(label),
+      Object.assign(document.createElement("span"), {
+        className: "show-more-count",
+        textContent: `+${hiddenCount}`
+      })
     );
   }
 }
