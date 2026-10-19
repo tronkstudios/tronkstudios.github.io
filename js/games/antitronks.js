@@ -1738,7 +1738,7 @@ function initializeAntitronksGame() {
     modal.setAttribute("aria-hidden", "false");
     document.body.classList.add("antitronks-open");
 
-    TronkSound.startMusic("night");
+    TronkSound.startMusic("action");
 
     resize();
     resetGame();

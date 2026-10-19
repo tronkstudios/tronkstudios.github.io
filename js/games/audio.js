@@ -5,7 +5,7 @@
    Se carga como script clásico (ver docs/adr/0002). */
 
 /* =========================================================
-   SONIDO DE LOS MINIJUEGOS (música de piano + efectos)
+   SONIDO DE LOS MINIJUEGOS (música de cada juego + efectos)
    Todo se genera con Web Audio: no hace falta subir archivos
    de audio al repositorio.
    ========================================================= */
@@ -274,9 +274,12 @@ const TronkSound = (() => {
       noise({ dur: 0.05, vol: 0.15, type: "highpass", freq: 2500 });
     },
 
-    flip() {
-      noise({ dur: 0.35, vol: 0.12, type: "bandpass", freq: 400, to: 2600, q: 2, attack: 0.05 });
-      tone({ freq: 260, to: 720, type: "sine", dur: 0.3, vol: 0.12 });
+    // El ninja morado esquiva con una voltereta: «fsssh» de aire + «fiu»
+    dodge() {
+      noise({ dur: 0.2, vol: 0.5, type: "bandpass", freq: 3600, to: 700, q: 1.4, attack: 0.012 });
+      noise({ dur: 0.14, vol: 0.28, type: "bandpass", freq: 2400, to: 500, q: 1.6, delay: 0.1, attack: 0.01 });
+      tone({ freq: 700, to: 1900, type: "sine", dur: 0.11, vol: 0.16, delay: 0.02 });
+      tone({ freq: 1500, to: 900, type: "triangle", dur: 0.12, vol: 0.05, delay: 0.13 });
     },
 
     escaped() {
@@ -353,48 +356,266 @@ const TronkSound = (() => {
     }
   }
 
-  /* ---------------- Música de piano ---------------- */
+  /* ---------------- Música de cada minijuego ----------------
+     Cada juego tiene su estilo (todo generado, sin archivos):
+     - action (Antitronks): acción nocturna, bajo de sintetizador y batería.
+     - ninja (Protect Mogos): koto, taikos y flauta en escala japonesa.
+     - chiptune (Stick Drill): 8 bits rápido, como una recreativa.
+     (Tronk Fight tiene su propia música de combate.) */
 
   const midi = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
-  /*
-   * calm: tranquila y alegre (Protect Mogos), Do mayor.
-   * night: suave y algo misteriosa (Antitronks), La menor.
-   * Cada acorde: [bajo, notas del arpegio...].
-   */
+  // Nota con envoltura sencilla, hacia la música
+  function voice(type, freq, time, length, vol, {
+    to = null,
+    attack = 0.005,
+    cutoff = null,
+    cutoffTo = null,
+    detune = 0,
+    wet = false
+  } = {}) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    let node = osc;
+
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, time);
+    osc.detune.value = detune;
+
+    if (to) {
+      osc.frequency.exponentialRampToValueAtTime(Math.max(20, to), time + length);
+    }
+
+    if (cutoff) {
+      const filter = ctx.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(cutoff, time);
+
+      if (cutoffTo) {
+        filter.frequency.exponentialRampToValueAtTime(cutoffTo, time + length);
+      }
+
+      osc.connect(filter);
+      node = filter;
+    }
+
+    gain.gain.setValueAtTime(0.0001, time);
+    gain.gain.exponentialRampToValueAtTime(vol, time + attack);
+    gain.gain.exponentialRampToValueAtTime(0.0001, time + length);
+
+    node.connect(gain);
+    gain.connect(musicBus);
+
+    if (wet) {
+      gain.connect(reverb);
+    }
+
+    osc.start(time);
+    osc.stop(time + length + 0.05);
+  }
+
+  function hiss(time, length, vol, { type = "highpass", freq = 7000, to = null, q = 0.8, wet = false } = {}) {
+    const src = ctx.createBufferSource();
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+
+    src.buffer = noiseBuffer;
+    filter.type = type;
+    filter.Q.value = q;
+    filter.frequency.setValueAtTime(freq, time);
+
+    if (to) {
+      filter.frequency.exponentialRampToValueAtTime(to, time + length);
+    }
+
+    gain.gain.setValueAtTime(0.0001, time);
+    gain.gain.exponentialRampToValueAtTime(vol, time + 0.003);
+    gain.gain.exponentialRampToValueAtTime(0.0001, time + length);
+
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(musicBus);
+
+    if (wet) {
+      gain.connect(reverb);
+    }
+
+    src.start(time, Math.random() * 0.5);
+    src.stop(time + length + 0.05);
+  }
+
+  /* --- Instrumentos --- */
+
+  const kick = (t, v = 0.7) => {
+    voice("sine", 150, t, 0.28, v, { to: 42 });
+    // «Clic» para que se oiga también en altavoces pequeños (móvil)
+    voice("triangle", 900, t, 0.03, v * 0.18, { to: 300 });
+  };
+  const snare = (t, v = 0.28) => {
+    hiss(t, 0.16, v, { freq: 1600 });
+    voice("triangle", 200, t, 0.09, v * 0.8, { to: 140 });
+  };
+  const hat = (t, v = 0.06) => hiss(t, 0.035, v, { freq: 8000 });
+
+  // Koto: cuerda pulsada, brillante al principio y se apaga rápido
+  function koto(note, t, v = 0.16, length = 0.9) {
+    const f = midi(note);
+    voice("sawtooth", f * 1.01, t, length, v * 0.5, { to: f, attack: 0.002, cutoff: 4200, cutoffTo: 500, wet: true });
+    voice("triangle", f, t, length * 1.2, v, { attack: 0.002, wet: true });
+  }
+
+  // Taiko: tambor grave japonés
+  function taiko(t, v = 0.7) {
+    voice("sine", 105, t, 0.5, v, { to: 48 });
+    hiss(t, 0.12, v * 0.35, { type: "lowpass", freq: 420 });
+  }
+
+  // Bloque de madera
+  const woodblock = (t, v = 0.07) => voice("triangle", 1250, t, 0.06, v, { to: 900 });
+
+  // Flauta (shakuhachi): entra suave, con soplo y vibrato
+  function flute(note, t, length, v = 0.07) {
+    const f = midi(note);
+    const osc = ctx.createOscillator();
+    const lfo = ctx.createOscillator();
+    const depth = ctx.createGain();
+    const gain = ctx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(f * 0.97, t);
+    osc.frequency.exponentialRampToValueAtTime(f, t + 0.12);
+    lfo.frequency.value = 5;
+    depth.gain.setValueAtTime(0, t);
+    depth.gain.linearRampToValueAtTime(f * 0.012, t + length * 0.6);
+    lfo.connect(depth);
+    depth.connect(osc.frequency);
+
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(v, t + 0.14);
+    gain.gain.setValueAtTime(v, t + length * 0.7);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + length);
+
+    osc.connect(gain);
+    gain.connect(musicBus);
+    gain.connect(reverb);
+    osc.start(t);
+    lfo.start(t);
+    osc.stop(t + length + 0.05);
+    lfo.stop(t + length + 0.05);
+
+    hiss(t, 0.25, v * 0.5, { type: "bandpass", freq: f * 2, q: 2, wet: true });
+  }
+
   const SONGS = {
-    calm: {
-      bpm: 72,
+    /* Antitronks: acción de noche, La menor */
+    action: {
+      bpm: 112,
+      volume: 0.66,
+      step(i, t, s) {
+        const bar = Math.floor(i / 16) % 4;
+        const st = i % 16;
+        const roots = [45, 41, 48, 43];
+        const chords = [[57, 60, 64], [57, 60, 65], [55, 60, 64], [55, 59, 62]];
+        const root = roots[bar];
+
+        if (st === 0 || st === 8 || (st === 10 && bar % 2 === 1)) kick(t, 0.6);
+        if (st === 4 || st === 12) snare(t, 0.2);
+        if (st % 2 === 1) hat(t, st % 4 === 3 ? 0.05 : 0.03);
+
+        // Bajo en semicorcheas con el filtro que se abre y se cierra
+        const octave = st % 4 === 2 ? 12 : 0;
+        voice("sawtooth", midi(root + octave), t, s * 0.9, 0.13, { cutoff: 1500, cutoffTo: 300 });
+
+        // Colchón de acordes al empezar cada compás
+        if (st === 0) {
+          chords[bar].forEach((note) => {
+            voice("sawtooth", midi(note), t, s * 16, 0.04, { attack: 0.4, cutoff: 1400, detune: -6, wet: true });
+            voice("sawtooth", midi(note), t, s * 16, 0.04, { attack: 0.4, cutoff: 1400, detune: 6, wet: true });
+          });
+        }
+
+        // En la segunda mitad, un arpegio agudo que sube la tensión
+        if (Math.floor(i / 64) % 2 === 1 && st % 2 === 0) {
+          const note = chords[bar][(st / 2) % 3] + 12;
+          voice("square", midi(note), t, s * 1.6, 0.035, { cutoff: 2400, wet: true });
+        }
+      }
+    },
+
+    /* Protect Mogos: ninjas y castillo japonés (escala miyako-bushi en Re) */
+    ninja: {
+      bpm: 100,
       volume: 0.5,
-      chords: [
-        [48, 60, 64, 67, 71],
-        [45, 57, 60, 64, 67],
-        [41, 57, 60, 64, 69],
-        [43, 59, 62, 67, 71]
+      melody: [
+        62, 0, 63, 67, 69, 0, 67, 63,
+        62, 0, 58, 57, 58, 0, 0, 0,
+        69, 0, 70, 69, 67, 0, 63, 67,
+        67, 69, 70, 74, 70, 0, 62, 0
       ],
-      pattern: [1, 2, 3, 4, 3, 2, 3, 2]
+      flute: [[74, 0, 8], [70, 16, 6], [69, 32, 8], [67, 48, 4], [62, 52, 10]],
+      step(i, t, s) {
+        const st = i % 16;
+        const loop = i % 64;
+
+        if (st === 0) taiko(t, 0.75);
+        if (st === 10) taiko(t, 0.4);
+        if (st === 12) taiko(t, 0.3);
+        if (loop >= 56 && st % 2 === 0) taiko(t, 0.25 + (st - 8) * 0.04);
+        if (st % 8 === 4) woodblock(t);
+
+        // Bordón grave
+        if (st === 0) koto(loop >= 32 ? 45 : 50, t, 0.14, 1.6);
+
+        // Melodía de koto en corcheas
+        if (st % 2 === 0) {
+          const note = this.melody[(loop / 2) % 32];
+
+          if (note) {
+            koto(note, t, 0.13);
+          }
+        }
+
+        // Flauta solo en una de cada dos vueltas
+        if (Math.floor(i / 64) % 2 === 1) {
+          this.flute.forEach(([note, at, len]) => {
+            if (loop === at) flute(note + 12, t, s * len * 2, 0.06);
+          });
+        }
+      }
     },
-    tense: {
-      bpm: 92,
-      volume: 0.38,
-      chords: [
-        [38, 57, 62, 65, 69],
-        [34, 58, 62, 65, 70],
-        [41, 57, 60, 65, 69],
-        [36, 55, 60, 64, 67]
-      ],
-      pattern: [1, 2, 3, 4, 3, 2, 4, 2]
-    },
-    night: {
-      bpm: 66,
-      volume: 0.35,
-      chords: [
-        [45, 57, 60, 64, 69],
-        [41, 57, 60, 64, 65],
-        [48, 55, 60, 64, 67],
-        [40, 56, 59, 62, 64]
-      ],
-      pattern: [1, 3, 2, 4, 1, 3, 2, 3]
+
+    /* Stick Drill: recreativa de 8 bits, rápida y frenética (Mi menor) */
+    chiptune: {
+      bpm: 150,
+      volume: 0.6,
+      step(i, t, s) {
+        const bar = Math.floor(i / 16) % 4;
+        const st = i % 16;
+        const roots = [40, 36, 38, 35];
+        const chords = [[64, 67, 71], [64, 67, 72], [62, 66, 69], [63, 66, 71]];
+
+        // Batería de 8 bits
+        if (st === 0 || st === 8 || st === 11) voice("square", 130, t, 0.09, 0.12, { to: 40, cutoff: 1200 });
+        if (st === 4 || st === 12) hiss(t, 0.1, 0.12, { freq: 2500 });
+        if (st % 2 === 0) hiss(t, 0.02, 0.035, { freq: 9000 });
+
+        // Bajo en corcheas: tónica y octava
+        if (st % 2 === 0) {
+          voice("triangle", midi(roots[bar] + 12 + (st % 4 === 2 ? 12 : 0)), t, s * 1.7, 0.26);
+          voice("square", midi(roots[bar] + 12), t, s * 1.2, 0.03, { cutoff: 900 });
+        }
+
+        // Arpegio rapidísimo de onda cuadrada
+        const chord = chords[bar];
+        const note = [chord[0], chord[1], chord[2], chord[0] + 12][st % 4] + (st >= 8 ? 12 : 0);
+        voice("square", midi(note), t, s * 0.8, 0.055, { cutoff: 3500 });
+
+        // Melodía en la segunda vuelta
+        if (Math.floor(i / 64) % 2 === 1 && (st === 0 || st === 6 || st === 12)) {
+          const lead = chord[[2, 1, 0][st / 6]] + 12;
+          voice("square", midi(lead), t, s * 5, 0.06, { cutoff: 2800, detune: 8 });
+        }
+      }
     }
   };
 
@@ -403,67 +624,21 @@ const TronkSound = (() => {
   let step = 0;
   let nextTime = 0;
 
-  function pianoNote(freq, time, velocity, length) {
-    const out = ctx.createGain();
-    const filter = ctx.createBiquadFilter();
-
-    filter.type = "lowpass";
-    filter.frequency.setValueAtTime(2800, time);
-    filter.frequency.exponentialRampToValueAtTime(900, time + length);
-
-    out.gain.setValueAtTime(0.0001, time);
-    out.gain.exponentialRampToValueAtTime(velocity, time + 0.008);
-    out.gain.exponentialRampToValueAtTime(velocity * 0.35, time + 0.25);
-    out.gain.exponentialRampToValueAtTime(0.0001, time + length);
-
-    // Mezcla de parciales para que suene a piano suave.
-    [
-      [1, "triangle", 1],
-      [2, "sine", 0.35],
-      [3, "sine", 0.12],
-      [1.003, "sine", 0.5]
-    ].forEach(([mult, type, level]) => {
-      const osc = ctx.createOscillator();
-      const g = ctx.createGain();
-      osc.type = type;
-      osc.frequency.value = freq * mult;
-      g.gain.value = level;
-      osc.connect(g);
-      g.connect(filter);
-      osc.start(time);
-      osc.stop(time + length + 0.05);
-    });
-
-    filter.connect(out);
-    out.connect(musicBus);
-    out.connect(reverb);
-  }
-
   function scheduleMusic() {
     if (!song || !ctx) {
       return;
     }
 
-    const eighth = 60 / song.bpm / 2;
+    const sixteenth = 60 / song.bpm / 4;
 
-    while (nextTime < ctx.currentTime + 0.3) {
-      const chord = song.chords[Math.floor(step / 8) % song.chords.length];
-      const inBar = step % 8;
-      const human = 0.85 + Math.random() * 0.3;
-
-      if (inBar === 0) {
-        pianoNote(midi(chord[0]), nextTime, 0.22 * human, eighth * 7);
+    while (nextTime < ctx.currentTime + 0.25) {
+      try {
+        song.step(step, nextTime, sixteenth);
+      } catch (error) {
+        console.warn("TronkSound:", error);
       }
 
-      pianoNote(midi(chord[song.pattern[inBar]]), nextTime, 0.11 * human, eighth * 4);
-
-      // De vez en cuando, una nota aguda de melodía.
-      if ((inBar === 0 || inBar === 5) && Math.random() < 0.45) {
-        const top = chord[1 + Math.floor(Math.random() * 4)] + 12;
-        pianoNote(midi(top), nextTime + 0.01, 0.07 * human, eighth * 6);
-      }
-
-      nextTime += eighth;
+      nextTime += sixteenth;
       step++;
     }
   }
