@@ -136,6 +136,11 @@ async function loadSuggestions() {
     </div>
   `;
 
+  setShowMoreButton(
+    document.getElementById("suggestions-more"),
+    0
+  );
+
   try {
     const {
       data,
@@ -381,6 +386,11 @@ function renderSuggestions(
     );
   }
 
+  const more =
+    document.getElementById("suggestions-more");
+
+  setShowMoreButton(more, 0);
+
   if (
     filtered.length === 0
   ) {
@@ -390,21 +400,63 @@ function renderSuggestions(
       </div>
     `;
 
+    refillListModal("suggestions", fullSuggestionsFill([]));
     return;
   }
 
   suggestionsList.innerHTML =
     "";
 
-  filtered.forEach(
-    (suggestion) => {
-      suggestionsList.appendChild(
-        createSuggestionCard(
-          suggestion
-        )
-      );
-    }
+  // En la página se ven unas pocas; todas, en «Mostrar más»
+  filtered
+    .slice(0, SUGGESTIONS_PREVIEW)
+    .forEach(
+      (suggestion) => {
+        suggestionsList.appendChild(
+          createSuggestionCard(
+            suggestion
+          )
+        );
+      }
+    );
+
+  setShowMoreButton(
+    more,
+    filtered.length - SUGGESTIONS_PREVIEW,
+    "Mostrar más"
   );
+
+  if (more) {
+    more.onclick = () =>
+      openListModal(
+        "suggestions",
+        "Todas las sugerencias",
+        `${filtered.length} sugerencias`,
+        fullSuggestionsFill(filtered)
+      );
+  }
+
+  // Si la tarjeta está abierta (p. ej. tras votar), se actualiza
+  refillListModal("suggestions", fullSuggestionsFill(filtered));
+}
+
+const SUGGESTIONS_PREVIEW = 4;
+
+function fullSuggestionsFill(suggestions) {
+  return (content) => {
+    if (!suggestions.length) {
+      const empty = document.createElement("div");
+      empty.className = "suggestions-loading";
+      empty.textContent = "No hay sugerencias para mostrar.";
+      content.appendChild(empty);
+      return;
+    }
+
+    const list = document.createElement("div");
+    list.className = "suggestions-list";
+    suggestions.forEach((suggestion) => list.appendChild(createSuggestionCard(suggestion)));
+    content.appendChild(list);
+  };
 }
 
 /* =========================================================

@@ -813,8 +813,13 @@ function renderProfileForm(content, data) {
    CLASIFICACIÓN DE LOS MINIJUEGOS
    ========================================================= */
 
+// En la página se ven los primeros; el resto, en «Mostrar más»
+const LEADERBOARD_PREVIEW = 5;
+const LEADERBOARD_MAX = 100;
+
 async function loadLeaderboard(game) {
   const list = document.getElementById("leaderboard-list");
+  const more = document.getElementById("leaderboard-more");
 
   if (!list || !platformAvailable) {
     return;
@@ -833,7 +838,7 @@ async function loadLeaderboard(game) {
     .gt("score", 0)
     .order("score", { ascending: false })
     .order("updated_at", { ascending: true })
-    .limit(10);
+    .limit(LEADERBOARD_MAX);
 
   // Si mientras cargaba se ha pulsado otra pestaña, no se pinta
   if (game !== currentLeaderboardGame) {
@@ -841,6 +846,7 @@ async function loadLeaderboard(game) {
   }
 
   list.innerHTML = "";
+  setShowMoreButton(more, 0);
 
   if (error) {
     console.warn("No se pudo cargar la clasificación:", error.message);
@@ -855,39 +861,79 @@ async function loadLeaderboard(game) {
     return;
   }
 
-
-  data.forEach((row, index) => {
-    const item = makeElement("li", "leaderboard-row");
-
-    if (currentUser && row.user_id === currentUser.id) {
-      item.classList.add("is-me");
-    }
-
-    // Los tres primeros llevan copa de oro, plata y bronce
-    const position = makeElement("span", "leaderboard-pos");
-
-    if (index < 3) {
-      position.appendChild(makeIcon("trophy", `icon medal medal-${index + 1}`));
-      position.setAttribute("aria-label", `Puesto ${index + 1}`);
-    } else {
-      position.textContent = String(index + 1);
-    }
-
-    item.appendChild(position);
-
-    const player = makeElement("button", "leaderboard-player profile-link");
-    player.type = "button";
-    player.title = "Ver perfil";
-    player.append(
-      avatarImage(row.profiles?.avatar, "leaderboard-avatar"),
-      makeElement("span", "", row.profiles?.display_name || "Tronker")
-    );
-    player.addEventListener("click", () => openProfile(row.user_id));
-
-    item.appendChild(player);
-    item.appendChild(makeElement("strong", "leaderboard-score", formatScore(game, row.score)));
-    list.appendChild(item);
+  data.slice(0, LEADERBOARD_PREVIEW).forEach((row, index) => {
+    list.appendChild(leaderboardRow(game, row, index));
   });
+
+  // Si tú estás más abajo, se ve tu puesto al final de la lista corta
+  const myIndex = currentUser ? data.findIndex((row) => row.user_id === currentUser.id) : -1;
+
+  if (myIndex >= LEADERBOARD_PREVIEW) {
+    list.appendChild(makeElement("li", "leaderboard-gap", "···"));
+    list.appendChild(leaderboardRow(game, data[myIndex], myIndex));
+  }
+
+  setShowMoreButton(more, data.length - LEADERBOARD_PREVIEW, "Mostrar más");
+
+  if (more) {
+    more.onclick = () => openFullLeaderboard(game, data);
+  }
+
+  refillListModal("leaderboard", fullLeaderboardFill(game, data));
+}
+
+function leaderboardRow(game, row, index) {
+  const item = makeElement("li", "leaderboard-row");
+
+  if (currentUser && row.user_id === currentUser.id) {
+    item.classList.add("is-me");
+  }
+
+  // Los tres primeros llevan copa de oro, plata y bronce
+  const position = makeElement("span", "leaderboard-pos");
+
+  if (index < 3) {
+    position.appendChild(makeIcon("trophy", `icon medal medal-${index + 1}`));
+    position.setAttribute("aria-label", `Puesto ${index + 1}`);
+  } else {
+    position.textContent = String(index + 1);
+  }
+
+  item.appendChild(position);
+
+  const player = makeElement("button", "leaderboard-player profile-link");
+  player.type = "button";
+  player.title = "Ver perfil";
+  player.append(
+    avatarImage(row.profiles?.avatar, "leaderboard-avatar"),
+    makeElement("span", "", row.profiles?.display_name || "Tronker")
+  );
+  player.addEventListener("click", () => openProfile(row.user_id));
+
+  item.appendChild(player);
+  item.appendChild(makeElement("strong", "leaderboard-score", formatScore(game, row.score)));
+  return item;
+}
+
+/* Tarjeta con la clasificación entera del minijuego */
+function openFullLeaderboard(game, rows) {
+  const tab = document.querySelector(`.leaderboard-tab[data-game="${game}"]`);
+  const name = tab ? tab.textContent.trim() : game;
+
+  openListModal(
+    "leaderboard",
+    `Clasificación · ${name}`,
+    rows.length === 1 ? "1 jugador con récord" : `${rows.length} jugadores con récord`,
+    fullLeaderboardFill(game, rows)
+  );
+}
+
+function fullLeaderboardFill(game, rows) {
+  return (content) => {
+    const list = makeElement("ol", "leaderboard-list");
+    rows.forEach((row, index) => list.appendChild(leaderboardRow(game, row, index)));
+    content.appendChild(list);
+  };
 }
 
 function refreshLeaderboardIfShowing(game) {
