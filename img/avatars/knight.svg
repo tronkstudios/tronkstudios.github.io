@@ -4,18 +4,26 @@
       <stop offset="0" stop-color="#64748b"/>
       <stop offset="1" stop-color="#1e293b"/>
     </linearGradient>
+    <clipPath id="frame"><rect width="64" height="64" rx="16"/></clipPath>
   </defs>
   <rect width="64" height="64" rx="16" fill="url(#bg)"/>
-
-  <path d="M32 9c6-4 13-3 16 2-5 0-9 2-12 6z" fill="#dc2626"/>
-  <path d="M33 13c3-3 8-3 11-1" stroke="#991b1b" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-  <path d="M15 34c0-12 7-20 17-20s17 8 17 20v14c0 3-2 5-5 5H20c-3 0-5-2-5-5z" fill="#e2e8f0"/>
-  <path d="M32 14v39" stroke="#94a3b8" stroke-width="2.5"/>
-  <rect x="19" y="29" width="26" height="7" rx="3.5" fill="#0f172a"/>
-  <circle cx="25" cy="32.5" r="1.6" fill="#38bdf8"/>
-  <circle cx="39" cy="32.5" r="1.6" fill="#38bdf8"/>
-  <path d="M22 41h20M22 46h20" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"/>
-  <circle cx="20" cy="41" r="1.2" fill="#64748b"/>
-  <circle cx="44" cy="41" r="1.2" fill="#64748b"/>
-  <path d="M18 53h28v11H18z" fill="#94a3b8"/>
+  <g clip-path="url(#frame)">
+  <path d="M8 64c1-8 7-12 14-13h20c7 1 13 5 14 13z" fill="#94a3b8"/>
+  <path d="M8 60c0-5 4-9 10-9 4 0 6 3 6 6-4-1-10 0-16 3zM56 60c0-5-4-9-10-9-4 0-6 3-6 6 4-1 10 0 16 3z" fill="#cbd5e1"/>
+  <path d="M22 64V52h20v12z" fill="#b91c1c"/>
+  <path d="M30.5 54h3v10h-3zM26 57.5h12v3H26z" fill="#facc15"/>
+  <path d="M23 47h18v6H23z" fill="#64748b"/>
+  <path d="M16 6c3 1 6 4 8 8-3 0-6-1-8-3 2 0 3-1 3-2-1 0-2-1-3-3z" fill="#dc2626"/>
+  <path d="M20 9c5-2 11-1 14 3l-3 3c-3-3-7-4-11-3z" fill="#ef4444"/>
+  <path d="M16 23c0-6 4-10 10-10h12c6 0 10 4 10 10v20c0 4-3 6-6 6H22c-3 0-6-2-6-6z" fill="#e2e8f0"/>
+  <path d="M16 23c0-6 4-10 10-10h12c6 0 10 4 10 10v3H16z" fill="#cbd5e1"/>
+  <rect x="18" y="28" width="28" height="4.5" rx="2.25" fill="#0f172a"/>
+  <circle cx="25" cy="30.25" r="1.3" fill="#38bdf8"/>
+  <circle cx="39" cy="30.25" r="1.3" fill="#38bdf8"/>
+  <g fill="#475569">
+    <circle cx="22" cy="38" r="1"/><circle cx="25" cy="38" r="1"/><circle cx="22" cy="41" r="1"/><circle cx="25" cy="41" r="1"/>
+    <circle cx="39" cy="38" r="1"/><circle cx="42" cy="38" r="1"/><circle cx="39" cy="41" r="1"/><circle cx="42" cy="41" r="1"/>
+  </g>
+  <path d="M18 45h28" stroke="#94a3b8" stroke-width="1.6" stroke-linecap="round"/>
+  </g>
 </svg>

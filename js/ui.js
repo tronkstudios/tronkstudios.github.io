@@ -8,11 +8,21 @@
    MODALES GENERALES
    ========================================================= */
 
+// La última ventana abierta va siempre delante (p. ej. «Inicia sesión»
+// encima de la ficha de un juego)
+let modalLayer = 1000;
+
 function openModal(modal) {
   if (!modal) {
     return;
   }
 
+  if (!document.querySelector(".modal:not(.hidden)")) {
+    modalLayer = 1000;
+  }
+
+  modalLayer += 1;
+  modal.style.zIndex = String(modalLayer);
   modal.classList.remove("hidden");
 
   modal.setAttribute(
@@ -31,6 +41,7 @@ function closeModal(modal) {
   }
 
   modal.classList.add("hidden");
+  modal.style.zIndex = "";
 
   modal.setAttribute(
     "aria-hidden",

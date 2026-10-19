@@ -9,6 +9,18 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.20 · Avatares con cuerpo
+
+#### Cambiado
+- **Todos los avatares tienen cuerpo** (hombros, ropa o tronco según el
+  personaje) y ya nada se sale del recuadro redondeado.
+- **Rana, chef y mago redibujados**; el sombrero del mago ya tapa la frente.
+- **Caballero nuevo**: yelmo ancho con penacho, hombreras y sobreveste.
+
+#### Corregido
+- El aviso de **iniciar sesión** (por ejemplo al pulsar «Avísame cuando
+  salga») ahora sale delante de la ficha del juego, no detrás.
+
 ### 6.19 · Minijuegos, retos y avatares
 
 #### Añadido

@@ -4,8 +4,10 @@
       <stop offset="0" stop-color="#65a30d"/>
       <stop offset="1" stop-color="#1a2e05"/>
     </linearGradient>
+    <clipPath id="frame"><rect width="64" height="64" rx="16"/></clipPath>
   </defs>
   <rect width="64" height="64" rx="16" fill="url(#bg)"/>
+  <g clip-path="url(#frame)">
 
   <path d="M14 64c2-9 9-13 18-13s16 4 18 13z" fill="#57534e"/>
   <path d="M22 53l4 6 3-5 3 6 3-6 3 5 4-6" fill="#78716c"/>
@@ -20,4 +22,5 @@
   <circle cx="39" cy="37.5" r="1.4" fill="#7f1d1d"/>
   <path d="M23 45c4-1.5 14-1.5 18 0" stroke="#1a2e05" stroke-width="2.5" fill="none" stroke-linecap="round"/>
   <path d="M27 44.5v4M33 44.3v4" stroke="#f5f5f4" stroke-width="2.4" stroke-linecap="round"/>
+  </g>
 </svg>
