@@ -9,6 +9,12 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.26 · Tronker sabe la fecha
+
+#### Cambiado
+- La IA de Tronker recibe la fecha y la hora de España en cada conversación,
+  así puede responder «¿qué día es hoy?» o «¿cuánto falta para...?».
+
 ### 6.25 · Comentarios, rachas, retos entre amigos y páginas de juego
 
 #### Añadido
