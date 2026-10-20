@@ -9,6 +9,16 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.33 · Pie de página ordenado y acceso grande a la galería
+
+#### Cambiado
+- **Pie de página** como antes: © a la izquierda y los botones a la derecha
+  en una sola fila; los enlaces a los minijuegos van en una fila aparte,
+  debajo y separados con una línea. El botón «Modo jefe» tiene el mismo
+  estilo que los demás y no sale en el móvil.
+- **Acceso grande a la Galería de fans** al final de la sección Comunidad:
+  un cartel de colores con el botón «Abrir la galería» (en otra pestaña).
+
 ### 6.32 · Podio de los 3 mejores
 
 #### Añadido
