@@ -9,6 +9,12 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.34 · La galería se abre en una pestaña
+
+#### Corregido
+- Con la web instalada como app, los enlaces a la galería se abrían dentro
+  de la app. Ahora se abren en una pestaña nueva del navegador.
+
 ### 6.33 · Pie de página ordenado y acceso grande a la galería
 
 #### Cambiado
