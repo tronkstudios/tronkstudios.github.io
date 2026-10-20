@@ -275,6 +275,7 @@ const TronkScores = {
     }
 
     myScores[game] = Number(data) || score;
+    TronkPodium.forget(game);
     refreshLeaderboardIfShowing(game);
     window.dispatchEvent(new Event("tronk:activity"));
   },
@@ -883,6 +884,17 @@ async function loadLeaderboard(game) {
   list.innerHTML = "";
   setShowMoreButton(more, 0);
 
+  // Podio de los 3 mejores, encima de la lista
+  let podium = document.getElementById("leaderboard-podium");
+
+  if (!podium) {
+    podium = makeElement("div", "podium-wrap");
+    podium.id = "leaderboard-podium";
+    list.before(podium);
+  }
+
+  podium.hidden = true;
+
   if (error) {
     console.warn("No se pudo cargar la clasificación:", error.message);
     list.appendChild(makeElement("li", "leaderboard-empty", "No se pudo cargar la clasificación."));
@@ -896,19 +908,25 @@ async function loadLeaderboard(game) {
     return;
   }
 
-  data.slice(0, LEADERBOARD_PREVIEW).forEach((row, index) => {
-    list.appendChild(leaderboardRow(game, row, index));
+  // Los 3 primeros, en el podio; debajo, del 4.º en adelante
+  podium.replaceChildren(buildPodium(game, data.slice(0, 3)));
+  podium.hidden = false;
+
+  const listEnd = 3 + LEADERBOARD_PREVIEW;
+
+  data.slice(3, listEnd).forEach((row, index) => {
+    list.appendChild(leaderboardRow(game, row, index + 3));
   });
 
   // Si tú estás más abajo, se ve tu puesto al final de la lista corta
   const myIndex = currentUser ? data.findIndex((row) => row.user_id === currentUser.id) : -1;
 
-  if (myIndex >= LEADERBOARD_PREVIEW) {
+  if (myIndex >= listEnd) {
     list.appendChild(makeElement("li", "leaderboard-gap", "···"));
     list.appendChild(leaderboardRow(game, data[myIndex], myIndex));
   }
 
-  setShowMoreButton(more, data.length - LEADERBOARD_PREVIEW, "Mostrar más");
+  setShowMoreButton(more, data.length - listEnd, "Mostrar más");
 
   if (more) {
     more.onclick = () => openFullLeaderboard(game, data);
@@ -916,6 +934,102 @@ async function loadLeaderboard(game) {
 
   refillListModal("leaderboard", fullLeaderboardFill(game, data));
 }
+
+/* =========================================================
+   PODIO: los 3 mejores de cada juego en pedestales
+   (en la Clasificación y en la pantalla de inicio de cada minijuego)
+   ========================================================= */
+
+function buildPodium(game, rows, compact = false) {
+  const podium = makeElement("ol", compact ? "podium is-compact" : "podium");
+  podium.setAttribute("aria-label", "Podio");
+
+  [0, 1, 2].forEach((place) => {
+    const row = rows[place];
+    const spot = makeElement("li", `podium-spot place-${place + 1}`);
+
+    if (currentUser && row && row.user_id === currentUser.id) {
+      spot.classList.add("is-me");
+    }
+
+    const who = makeElement(row ? "button" : "div", "podium-player");
+
+    if (row) {
+      who.type = "button";
+      who.title = "Ver perfil";
+      who.addEventListener("click", () => openProfile(row.user_id));
+    }
+
+    const avatarBox = makeElement("span", "podium-avatar");
+
+    if (place === 0 && row) {
+      avatarBox.appendChild(makeElement("span", "podium-crown", "👑"));
+    }
+
+    avatarBox.appendChild(row ? avatarImage(row.profiles?.avatar, "podium-avatar-img") : makeElement("span", "podium-empty-avatar", "?"));
+
+    who.append(
+      avatarBox,
+      makeElement("span", "podium-name", row ? row.profiles?.display_name || "Tronker" : "¿Tú?"),
+      makeElement("span", "podium-score", row ? formatScore(game, row.score) : "—")
+    );
+
+    const block = makeElement("span", "podium-block");
+    block.appendChild(makeElement("strong", "podium-rank", String(place + 1)));
+    block.setAttribute("aria-label", `Puesto ${place + 1}`);
+
+    spot.append(who, block);
+    podium.appendChild(spot);
+  });
+
+  return podium;
+}
+
+// Podio pequeño en la pantalla de inicio de los minijuegos (js/games/results.js)
+const podiumCache = new Map();
+
+const TronkPodium = {
+  async fill(container, game) {
+    if (!container || !platformAvailable || !SCORE_GAMES[game]) {
+      container?.remove();
+      return;
+    }
+
+    let rows = podiumCache.get(game);
+
+    if (!rows || Date.now() - rows.at > 60000) {
+      const { data, error } = await supabaseClient
+        .from("game_scores")
+        .select("user_id, score, profiles(display_name, avatar)")
+        .eq("game", game)
+        .gt("score", 0)
+        .order("score", { ascending: false })
+        .order("updated_at", { ascending: true })
+        .limit(3);
+
+      if (error) {
+        container.remove();
+        return;
+      }
+
+      rows = { at: Date.now(), data: data || [] };
+      podiumCache.set(game, rows);
+    }
+
+    if (!rows.data.length) {
+      container.remove();
+      return;
+    }
+
+    container.replaceChildren(buildPodium(game, rows.data, true));
+  },
+
+  forget(game) {
+    podiumCache.delete(game);
+  }
+};
+
+window.TronkPodium = TronkPodium;
 
 function leaderboardRow(game, row, index) {
   const item = makeElement("li", "leaderboard-row");
@@ -1197,6 +1311,41 @@ async function syncPlatformWithAccount() {
   // ¿Insignias nuevas? (js/extras.js)
   window.dispatchEvent(new Event("tronk:activity"));
 }
+
+/* La clasificación va recogida: «Mostrar los mejores jugadores» */
+function initializeLeaderboardToggle() {
+  const toggle = document.getElementById("leaderboard-toggle");
+  const body = document.getElementById("leaderboard-body");
+
+  if (!toggle || !body) {
+    return;
+  }
+
+  const set = (open) => {
+    body.hidden = !open;
+    toggle.setAttribute("aria-expanded", String(open));
+    toggle.querySelector("span").textContent = open ? "Ocultar los mejores jugadores" : "Mostrar los mejores jugadores";
+
+    try {
+      localStorage.setItem("tronk-leaderboard-open", open ? "1" : "0");
+    } catch {
+      // Sin almacenamiento
+    }
+  };
+
+  let saved = false;
+
+  try {
+    saved = localStorage.getItem("tronk-leaderboard-open") === "1";
+  } catch {
+    saved = false;
+  }
+
+  set(saved);
+  toggle.addEventListener("click", () => set(body.hidden));
+}
+
+initializeLeaderboardToggle();
 
 async function initializePlatform() {
   setPlatformVisible(false);

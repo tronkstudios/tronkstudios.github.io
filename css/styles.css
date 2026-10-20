@@ -8215,3 +8215,268 @@ body.boss-on #toast-box {
     scrollbar-color: var(--scroll-thumb) transparent;
   }
 }
+
+/* ----- Podio de los 3 mejores (js/profiles.js · buildPodium) ----- */
+
+.podium-wrap {
+  margin: 0.4rem 0 1rem;
+}
+
+.podium-wrap[hidden] {
+  display: none;
+}
+
+.podium {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: 0.5rem;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+/* Orden de un podio de verdad: 2.º · 1.º · 3.º */
+.podium-spot.place-1 { order: 2; --medal: #f5b301; --medal-dark: #b07d00; --height: 118px; }
+.podium-spot.place-2 { order: 1; --medal: #c3cbd6; --medal-dark: #808b99; --height: 86px; }
+.podium-spot.place-3 { order: 3; --medal: #d98a4e; --medal-dark: #9a5526; --height: 64px; }
+
+.podium-spot {
+  display: grid;
+  justify-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.podium-player {
+  display: grid;
+  justify-items: center;
+  gap: 0.15rem;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  text-align: center;
+}
+
+button.podium-player {
+  cursor: pointer;
+}
+
+button.podium-player:hover .podium-name,
+button.podium-player:focus-visible .podium-name {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.podium-avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.podium-avatar-img,
+.podium-empty-avatar {
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  box-shadow: 0 0 0 3px var(--medal), 0 8px 18px rgba(0, 0, 0, 0.25);
+}
+
+.place-1 .podium-avatar-img {
+  width: 70px;
+  height: 70px;
+  border-radius: 18px;
+}
+
+.podium-empty-avatar {
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-weight: 900;
+  font-size: 1.4rem;
+  box-shadow: 0 0 0 2px var(--border);
+}
+
+.podium-crown {
+  position: absolute;
+  top: -22px;
+  font-size: 1.4rem;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.35));
+  animation: podium-crown 2.4s ease-in-out infinite;
+}
+
+@keyframes podium-crown {
+  50% { transform: translateY(-3px) rotate(-6deg); }
+}
+
+.podium-name {
+  max-width: 100%;
+  overflow: hidden;
+  font-weight: 900;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.podium-score {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.podium-spot.is-me .podium-name {
+  color: var(--accent);
+}
+
+/* El pedestal */
+.podium-block {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: var(--height);
+  border-radius: 12px 12px 4px 4px;
+  background: linear-gradient(180deg, var(--medal), var(--medal-dark));
+  box-shadow: inset 0 6px 0 rgba(255, 255, 255, 0.25), inset 0 -8px 0 rgba(0, 0, 0, 0.18), 0 10px 22px rgba(0, 0, 0, 0.25);
+  animation: podium-rise 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+.place-2 .podium-block { animation-delay: 0.1s; }
+.place-3 .podium-block { animation-delay: 0.2s; }
+
+@keyframes podium-rise {
+  from { height: 0; opacity: 0; }
+}
+
+.podium-rank {
+  color: #fff;
+  font-size: 2rem;
+  line-height: 1;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* Versión pequeña: dentro de la pantalla de inicio de los minijuegos */
+.game-podium {
+  width: 100%;
+  margin-top: 0.8rem;
+}
+
+.podium.is-compact {
+  gap: 0.35rem;
+  max-width: 320px;
+}
+
+.podium.is-compact .podium-spot.place-1 { --height: 52px; }
+.podium.is-compact .podium-spot.place-2 { --height: 38px; }
+.podium.is-compact .podium-spot.place-3 { --height: 28px; }
+
+.podium.is-compact .podium-avatar-img,
+.podium.is-compact .podium-empty-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  box-shadow: 0 0 0 2px var(--medal);
+}
+
+.podium.is-compact .place-1 .podium-avatar-img {
+  width: 42px;
+  height: 42px;
+}
+
+.podium.is-compact .podium-crown {
+  top: -16px;
+  font-size: 1rem;
+}
+
+.podium.is-compact .podium-player {
+  color: #fff;
+}
+
+.podium.is-compact .podium-name {
+  font-size: 0.75rem;
+}
+
+.podium.is-compact .podium-score {
+  color: #cfd6e2;
+  font-size: 0.7rem;
+}
+
+.podium.is-compact .podium-rank {
+  font-size: 1.1rem;
+}
+
+@media (max-width: 480px) {
+  .podium-avatar-img,
+  .podium-empty-avatar {
+    width: 48px;
+    height: 48px;
+  }
+
+  .place-1 .podium-avatar-img {
+    width: 58px;
+    height: 58px;
+  }
+
+  .podium-name {
+    font-size: 0.85rem;
+  }
+
+  .podium-score {
+    font-size: 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .podium-block,
+  .podium-crown {
+    animation: none;
+  }
+}
+
+/* ----- Galería de fans en su propia página (?vista=galeria) ----- */
+
+/* En la portada la galería no ocupa sitio: se abre en otra pestaña */
+#galeria {
+  display: none;
+}
+
+.main-nav .nav-back {
+  display: none;
+}
+
+html.view-gallery main > :not(#galeria) {
+  display: none !important;
+}
+
+html.view-gallery #galeria:not([hidden]) {
+  display: block;
+  min-height: 70vh;
+}
+
+html.view-gallery .main-nav > a:not(.nav-back) {
+  display: none;
+}
+
+html.view-gallery .main-nav .nav-back {
+  display: inline-flex;
+  font-weight: 800;
+}
+
+/* ----- Clasificación recogida ----- */
+
+.leaderboard-toggle {
+  margin-top: 0.9rem;
+}
+
+.leaderboard-toggle[aria-expanded="true"] {
+  border-style: solid;
+  border-color: var(--accent);
+}
+
+.leaderboard-body[hidden] {
+  display: none;
+}

@@ -47,12 +47,18 @@ function galleryUrl(path) {
    CARGAR
    ========================================================= */
 
+// La galería tiene su propia página: ?vista=galeria (js/view-early.js)
+const isGalleryView = document.documentElement.classList.contains("view-gallery");
+
 async function loadGallery() {
   const section = document.getElementById("galeria");
 
-  if (!section || !isSupabaseConfigured()) {
+  // En la portada no se carga nada: la galería se abre en su pestaña
+  if (!section || !isGalleryView || !isSupabaseConfigured()) {
     return;
   }
+
+  document.title = "Galería de fans | TronkStudios";
 
   const { data, error } = await supabaseClient
     .from("fan_art")
