@@ -25,9 +25,50 @@
   window.addEventListener("hashchange", toGallery);
 })();
 
-/* Los enlaces a la galería se abren en una PESTAÑA del navegador, también
-   con la web instalada como app: Chrome mete en la app los enlaces que se
-   pulsan, pero no las pestañas que abre la web con window.open. */
+/* Desde el navegador, los enlaces a la galería se abren en una PESTAÑA del
+   navegador (aunque la web esté instalada como app); desde la app, dentro
+   de la app. Chrome mete en la app los enlaces y las
+   ventanas nuevas que van a la web, así que primero se abre una pestaña
+   vacía y luego se lleva a la galería: como ya es una pestaña del
+   navegador, se queda en el navegador. */
+// ¿Estamos dentro de la app instalada (no en una pestaña del navegador)?
+function isInstalledApp() {
+  return (
+    ["standalone", "fullscreen", "minimal-ui", "window-controls-overlay"].some(
+      (mode) => window.matchMedia(`(display-mode: ${mode})`).matches
+    ) || navigator.standalone === true
+  );
+}
+
+function openGalleryTab(href) {
+  const url = new URL(href || "?vista=galeria", location.href).href;
+
+  // Desde la app: la galería se abre dentro de la propia app
+  if (isInstalledApp()) {
+    location.href = url;
+    return;
+  }
+
+  // Desde el navegador: siempre en una pestaña nueva del navegador
+  const tab = window.open("about:blank", "_blank");
+
+  if (!tab) {
+    // Ventanas emergentes bloqueadas: se abre aquí mismo
+    location.href = url;
+    return;
+  }
+
+  try {
+    tab.opener = null;
+  } catch {
+    // Nada
+  }
+
+  tab.location.replace(url);
+}
+
+window.openGalleryTab = openGalleryTab;
+
 document.addEventListener(
   "click",
   (event) => {
@@ -38,7 +79,7 @@ document.addEventListener(
     }
 
     event.preventDefault();
-    window.open(new URL(link.getAttribute("href"), location.href).href, "_blank", "noopener");
+    openGalleryTab(link.getAttribute("href"));
   },
   true
 );

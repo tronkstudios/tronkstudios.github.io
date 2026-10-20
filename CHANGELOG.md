@@ -13,7 +13,9 @@ pantalla. Estas son sus partes, de la más reciente a la primera.
 
 #### Corregido
 - Con la web instalada como app, los enlaces a la galería se abrían dentro
-  de la app. Ahora se abren en una pestaña nueva del navegador.
+  de la app. Ahora se abre primero una pestaña vacía del navegador y luego
+  se lleva a la galería, para que Chrome no la pase a la app. Desde la app
+  instalada, la galería se abre dentro de la propia app.
 
 ### 6.33 · Pie de página ordenado y acceso grande a la galería
 
