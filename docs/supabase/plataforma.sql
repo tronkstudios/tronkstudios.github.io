@@ -194,12 +194,13 @@ grant execute on function public.due_launch_notifications() to service_role;
    - antitronks, protect-mogos: puntos (se guarda el mejor)
    - stick-drill: segundos aguantados (se guarda el mejor)
    - tronk-fight: victorias contra el bot (se van sumando)
+   - miente: aciertos en una partida (se guarda el mejor)
    ========================================================= */
 
 create table if not exists public.game_scores (
   user_id uuid not null references public.profiles (id) on delete cascade,
   game text not null
-    check (game in ('antitronks', 'protect-mogos', 'stick-drill', 'tronk-fight')),
+    check (game in ('antitronks', 'protect-mogos', 'stick-drill', 'tronk-fight', 'miente')),
   score numeric not null default 0 check (score >= 0),
   updated_at timestamptz not null default now(),
   primary key (user_id, game)
@@ -237,6 +238,7 @@ begin
     when 'antitronks' then 1000000
     when 'protect-mogos' then 1000000
     when 'stick-drill' then 3600
+    when 'miente' then 100000
     else null
   end;
 

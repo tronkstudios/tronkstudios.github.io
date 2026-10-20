@@ -318,6 +318,7 @@ begin
     when 'antitronks' then 1000000
     when 'protect-mogos' then 1000000
     when 'stick-drill' then 3600
+    when 'miente' then 100000
     else null
   end;
 
@@ -356,6 +357,7 @@ begin
     v_title := case p_game
       when 'antitronks' then 'Antitronks'
       when 'protect-mogos' then 'Protect Mogos'
+      when 'miente' then 'El Juego Miente'
       else 'Stick Drill'
     end;
 

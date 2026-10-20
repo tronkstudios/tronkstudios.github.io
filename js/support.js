@@ -763,12 +763,13 @@ const SUPPORT_CONFIG = {
       ]
     },
     info_minijuegos: {
-      msg: "Hay cuatro minijuegos gratis que se juegan aquí mismo, en el navegador. ¿De cuál quieres saber los controles?",
+      msg: "Hay cinco minijuegos gratis que se juegan aquí mismo, en el navegador. ¿De cuál quieres saber los controles?",
       options: [
         ["Antitronks", "info_antitronks"],
         ["Protect Mogos", "info_mogos"],
         ["Stick Drill", "info_stickdrill"],
         ["Tronk Fight", "info_tronkfight"],
+        ["El Juego Miente", "info_miente"],
         ["Tengo un problema con uno", "juego"]
       ]
     },
@@ -790,6 +791,17 @@ const SUPPORT_CONFIG = {
       ],
       options: [
         ["Jugar ahora", "@jugar:antininja"],
+        ["Tengo un problema con este", "juego_tipo"],
+        ["Otro minijuego", "info_minijuegos"]
+      ]
+    },
+    info_miente: {
+      msg: [
+        "El Juego Miente: arriba sale una regla y en el centro una palabra de color escrita en otro color.",
+        "«Obedece a la palabra»: pulsa el color que dice. «Obedece al color»: pulsa el color en que está escrita. «Ni uno ni otro»: pulsa otro distinto. Si sale «¡No pulses nada!», espera. Teclas 1-4 o toca los botones. Tienes 3 vidas."
+      ],
+      options: [
+        ["Jugar ahora", "@jugar:miente"],
         ["Tengo un problema con este", "juego_tipo"],
         ["Otro minijuego", "info_minijuegos"]
       ]

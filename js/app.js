@@ -164,6 +164,8 @@ initializeAntininjaGame();
 
 initializeStickDrillGame();
 
+initializeMienteGame();
+
 console.log(
   "TronkStudios: inicialización completada."
 );

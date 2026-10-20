@@ -9,6 +9,23 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.28 · Quinto minijuego: El Juego Miente
+
+#### Añadido
+- **El Juego Miente**, un juego de reacción: sale una palabra de color escrita
+  en otro color y una regla («Obedece a la palabra», «Obedece al color»,
+  «Ni uno ni otro» o «¡No pulses nada!»). La regla cambia cada pocas rondas,
+  el tiempo se acorta y el juego miente cada vez más: los botones cambian de
+  sitio y sus nombres dejan de decir la verdad. Teclas 1-4 o tocar, 3 vidas.
+- Tiene su música (concurso con reloj), sus sonidos, rachas privadas,
+  récord en la cuenta, pestaña en la clasificación, retos de la comunidad
+  («aciertos»), «Retar a un amigo», ayuda en el chat de Tronker y su página
+  para Google en `/juegos/el-juego-miente/`.
+- Necesita `docs/supabase/el-juego-miente.sql`.
+
+#### Cambiado
+- La insignia «Todoterreno» pide récord en 4 minijuegos (de los 5).
+
 ### 6.27 · Tronker más natural
 
 #### Cambiado

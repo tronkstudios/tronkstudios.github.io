@@ -324,6 +324,26 @@ const TronkSound = (() => {
       tone({ freq: 1320, type: "sine", dur: 0.3, vol: 0.06, delay: 0.02 });
     },
 
+    // ---- El Juego Miente ----
+    rightAnswer() {
+      tone({ freq: 880, type: "triangle", dur: 0.09, vol: 0.17 });
+      tone({ freq: 1320, type: "sine", dur: 0.12, vol: 0.08, delay: 0.05 });
+    },
+
+    wrongAnswer() {
+      tone({ freq: 180, to: 110, type: "sawtooth", dur: 0.32, vol: 0.16, filter: 900 });
+      tone({ freq: 190, to: 115, type: "square", dur: 0.32, vol: 0.06, filter: 700 });
+    },
+
+    ruleChange() {
+      noise({ dur: 0.3, vol: 0.3, type: "bandpass", freq: 600, to: 3200, q: 1.5, attack: 0.04 });
+      [523, 659, 784].forEach((f, i) => tone({ freq: f, type: "square", dur: 0.09, vol: 0.1, filter: 2500, delay: 0.06 * i }));
+    },
+
+    clockTick() {
+      tone({ freq: 1600, to: 1200, type: "triangle", dur: 0.04, vol: 0.07 });
+    },
+
     // ---- Comunes ----
     start() {
       tone({ freq: 523, type: "triangle", dur: 0.12, vol: 0.12 });
@@ -361,6 +381,7 @@ const TronkSound = (() => {
      - action (Antitronks): acción nocturna, bajo de sintetizador y batería.
      - ninja (Protect Mogos): koto, taikos y flauta en escala japonesa.
      - chiptune (Stick Drill): 8 bits rápido, como una recreativa.
+     - quiz (El Juego Miente): concurso con prisa y un reloj de fondo.
      (Tronk Fight tiene su propia música de combate.) */
 
   const midi = (m) => 440 * Math.pow(2, (m - 69) / 12);
@@ -580,6 +601,39 @@ const TronkSound = (() => {
           this.flute.forEach(([note, at, len]) => {
             if (loop === at) flute(note + 12, t, s * len * 2, 0.06);
           });
+        }
+      }
+    },
+
+    /* El Juego Miente: concurso con prisa, reloj que hace tic-tac (Do menor) */
+    quiz: {
+      bpm: 124,
+      volume: 0.85,
+      step(i, t, s) {
+        const bar = Math.floor(i / 16) % 4;
+        const st = i % 16;
+        const roots = [36, 44, 41, 43];
+        const chords = [[60, 63, 67], [60, 63, 68], [60, 65, 68], [59, 62, 67]];
+
+        // Tic-tac de reloj en cada negra
+        if (st % 4 === 0) voice("triangle", st % 8 === 0 ? 1500 : 1150, t, 0.035, 0.05, { to: 900 });
+        if (st === 0 || st === 10) kick(t, 0.45);
+        if (st === 4 || st === 12) hiss(t, 0.08, 0.07, { freq: 3000 });
+
+        // Bajo pulsado en corcheas
+        if (st % 2 === 0) {
+          voice("sawtooth", midi(roots[bar] + (st % 4 === 2 ? 12 : 0)), t, s * 1.4, 0.1, { cutoff: 1100, cutoffTo: 300 });
+        }
+
+        // Pizzicato misterioso (pregunta) con las notas del acorde
+        if (st % 4 === 2 || st === 15) {
+          const chord = chords[bar];
+          koto(chord[(i >> 2) % 3] + 12, t, 0.07, 0.3);
+        }
+
+        // Cada dos vueltas, un acorde largo de fondo
+        if (st === 0 && Math.floor(i / 64) % 2 === 1) {
+          chords[bar].forEach((note) => voice("sine", midi(note), t, s * 15, 0.03, { attack: 0.3, wet: true }));
         }
       }
     },
