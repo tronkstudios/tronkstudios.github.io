@@ -360,7 +360,7 @@ const SUPPORT_CONFIG = {
       ]
     },
     escribir: {
-      msg: "¡Genial! Escríbeme abajo lo que quieras saber sobre la web, los juegos o tu cuenta.",
+      msg: "¡Genial! Escríbeme abajo lo que quieras: dudas de la web, de los juegos o de tu cuenta, o cualquier otra pregunta (deberes, curiosidades, ideas...).",
       options: []
     },
 
@@ -1148,7 +1148,7 @@ const SUPPORT_CONFIG = {
     chatBusy = false;
 
     addBubble(
-      "No estoy seguro de haberte entendido. Prueba a decirlo con otras palabras o mira los temas.",
+      "No estoy seguro de haberte entendido. Ahora mismo estoy en modo de respuestas rápidas y solo entiendo preguntas sobre TronkStudios. Prueba con otras palabras, mira los temas o vuelve en un rato para preguntarme lo que quieras.",
       "from-ai"
     );
     renderOptions("ai", []);
