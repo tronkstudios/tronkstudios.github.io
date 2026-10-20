@@ -552,3 +552,35 @@ document.querySelector(".brand-link")?.addEventListener("click", (event) => {
     });
   });
 })();
+
+/* =========================================================
+   ENLACE DIRECTO A UN MINIJUEGO (?jugar=antininja...)
+   Lo usan las páginas de /juegos/ con el botón «Jugar gratis ahora».
+   ========================================================= */
+
+window.addEventListener("load", () => {
+  let key = "";
+
+  try {
+    key = new URLSearchParams(location.search).get("jugar") || "";
+  } catch {
+    return;
+  }
+
+  const card = /^[a-z]+$/.test(key) && document.querySelector(`[data-minigame="${key}"]`);
+
+  if (!card) {
+    return;
+  }
+
+  try {
+    const clean = new URL(location.href);
+    clean.searchParams.delete("jugar");
+    history.replaceState(history.state, "", clean.pathname + clean.search + clean.hash);
+  } catch {
+    // Sin history: no pasa nada
+  }
+
+  card.scrollIntoView({ block: "center" });
+  setTimeout(() => card.click(), 150);
+});

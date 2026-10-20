@@ -6905,3 +6905,22 @@ body.modal-open .mascot:not(.in-game) {
     order: 4;
   }
 }
+
+/* Enlaces a las páginas de cada minijuego (para buscadores) */
+.footer-games {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.9rem;
+  font-size: 0.9rem;
+}
+
+.footer-games a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.footer-games a:hover,
+.footer-games a:focus-visible {
+  color: var(--accent);
+  text-decoration: underline;
+}
