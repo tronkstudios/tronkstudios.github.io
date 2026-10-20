@@ -18,6 +18,8 @@ pantalla. Estas son sus partes, de la más reciente a la primera.
   instalada, la galería se abre dentro de la propia app.
 - «← Volver a TronkStudios» en la galería cierra su pestaña y te deja en la
   web de la que venías (en la app, vuelve a la portada dentro de la app).
+  La pestaña de la galería mantiene la relación con la que la abrió, para
+  que el navegador deje cerrarla.
 
 ### 6.33 · Pie de página ordenado y acceso grande a la galería
 

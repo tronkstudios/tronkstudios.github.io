@@ -58,12 +58,8 @@ function openGalleryTab(href) {
     return;
   }
 
-  try {
-    tab.opener = null;
-  } catch {
-    // Nada
-  }
-
+  // Se mantiene la relación con esta pestaña (es nuestra propia web): así
+  // la galería puede cerrarse al pulsar «Volver» y devolverte aquí.
   tab.location.replace(url);
 }
 
@@ -98,12 +94,33 @@ document.addEventListener(
     }
 
     event.preventDefault();
+
+    // Se pone delante la pestaña de la que vienes y se cierra esta
+    let opener = null;
+
+    try {
+      opener = window.opener && !window.opener.closed && window.opener.location.origin === location.origin ? window.opener : null;
+    } catch {
+      opener = null;
+    }
+
+    if (opener) {
+      try {
+        opener.focus();
+      } catch {
+        // Nada
+      }
+    }
+
     window.close();
 
-    // Si sigue abierta (por ejemplo, se entró escribiendo la dirección)
+    // Si el navegador no deja cerrarla (se entró escribiendo la dirección,
+    // desde un aviso...), se va a la portada en esta misma pestaña
     setTimeout(() => {
-      location.href = back.href;
-    }, 300);
+      if (!window.closed) {
+        location.href = back.href;
+      }
+    }, 400);
   },
   true
 );
