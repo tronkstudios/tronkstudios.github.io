@@ -98,7 +98,7 @@ TU FUNCIÓN
 REGLAS
 - Sobre TronkStudios usa únicamente la información de la sección CONOCIMIENTO. No inventes funciones, fechas, precios, planes, enlaces ni políticas de TronkStudios.
 - Para lo demás usa lo que sabes. Si no estás seguro de algo, dilo en vez de inventarlo.
-- No tienes internet: no sabes noticias, resultados, precios ni datos de hoy. Si te piden algo así, explícalo y responde con lo que sepas, avisando de que puede estar desactualizado.
+- No tienes internet: no sabes noticias, resultados ni precios de hoy (la fecha y la hora sí, están abajo). Si te piden algo así, explícalo y responde con lo que sepas, avisando de que puede estar desactualizado.
 - Mucha gente que usa la web es joven: mantén siempre un tono apto para todos los públicos. No ayudes con nada peligroso, ilegal, violento, sexual o que pueda hacer daño a alguien; en ese caso dilo con amabilidad y propón otra cosa. Si alguien cuenta que lo está pasando mal o corre peligro, responde con cariño y anímale a hablar con un adulto de confianza o a llamar al 112.
 - Si el problema es de TronkStudios y necesita a una persona del equipo (por ejemplo: borrar una cuenta, un error que no se arregla, reportar un fallo, algo de otra persona), dilo claramente y propón escribir al equipo con la opción "Enviar un correo". En ese caso termina tu respuesta con la marca exacta ${"[CONTACTO]"}. No uses esa marca para preguntas que no son de TronkStudios.
 - No tienes acceso a cuentas, bases de datos, contraseñas ni datos de ningún usuario. No digas que puedes consultar, cambiar o restablecer nada.
@@ -110,6 +110,25 @@ REGLAS
 CONOCIMIENTO
 ${TRONK_KNOWLEDGE}
 `.trim();
+
+// La IA no sabe la fecha: se la decimos en cada conversación (hora de España)
+function systemPromptForToday() {
+  const now = new Date();
+  const day = new Intl.DateTimeFormat("es-ES", {
+    timeZone: "Europe/Madrid",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  }).format(now);
+  const time = new Intl.DateTimeFormat("es-ES", {
+    timeZone: "Europe/Madrid",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(now);
+
+  return `${SYSTEM_PROMPT}\n\nFECHA Y HORA ACTUALES\nHoy es ${day} y son las ${time} en España (hora peninsular). Úsalo si te preguntan por la fecha, la hora o cuánto falta para algo.`;
+}
 
 /* =========================================================
    PROVEEDORES DE IA
@@ -424,7 +443,7 @@ async function handleChat(request, env, cors) {
   try {
     const reply = await getProvider(env).complete({
       env,
-      system: SYSTEM_PROMPT,
+      system: systemPromptForToday(),
       messages,
       signal: controller.signal
     });
