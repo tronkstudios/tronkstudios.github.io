@@ -9,6 +9,15 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.23 · Tronker responde a cualquier pregunta
+
+#### Cambiado
+- **Tronker ya no se limita al soporte**: en el modo «escribiendo» responde a
+  cualquier pregunta (deberes, ciencia, idiomas, programación, ideas...) y
+  sigue siendo el soporte de TronkStudios. Mantiene un tono apto para todos
+  los públicos, avisa de que no tiene internet y nunca pide contraseñas.
+- Respuestas algo más largas cuando hace falta (explicaciones o código).
+
 ### 6.22 · Música propia para cada minijuego
 
 #### Cambiado
