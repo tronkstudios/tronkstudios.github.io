@@ -660,6 +660,11 @@ function renderProfile(content, data) {
 
   content.appendChild(badges);
 
+  // Logros secretos (js/secrets.js): solo en tu perfil, son de este navegador
+  if (isMine && window.TronkSecrets) {
+    content.appendChild(TronkSecrets.renderList());
+  }
+
   /* ---------- Lista de deseados ---------- */
   content.appendChild(makeElement("h3", "profile-section-title", "Lista de deseados"));
   const wishlist = makeElement("ul", "profile-wishlist");

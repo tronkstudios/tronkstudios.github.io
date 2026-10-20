@@ -7396,3 +7396,117 @@ body.boss-on #toast-box {
   margin-left: auto;
   color: #5f6368;
 }
+
+/* ----- Logros secretos (js/secrets.js) ----- */
+
+.secret-toast {
+  border-color: #f5b301;
+  max-width: min(420px, calc(100vw - 2rem));
+}
+
+.secret-toast .toast-icon {
+  color: #f5b301;
+}
+
+.secret-toast-text {
+  display: grid;
+  gap: 0.15rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.secret-toast-text span {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.secret-share {
+  flex: none;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 800;
+  font-size: 0.8rem;
+}
+
+.secret-share:hover,
+.secret-share:focus-visible {
+  border-color: #f5b301;
+}
+
+.secret-badge {
+  border-color: #f5b301;
+  background: rgba(245, 179, 1, 0.12);
+}
+
+.secret-badge.is-locked {
+  border-style: dashed;
+  border-color: var(--border);
+  background: transparent;
+  color: var(--muted);
+}
+
+.secret-note {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+/* ----- Historial de cambios (el «v6» del pie) ----- */
+
+.footer-version {
+  cursor: pointer;
+}
+
+.footer-version:hover,
+.footer-version:focus-visible {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.changelog-view {
+  line-height: 1.55;
+}
+
+.changelog-view h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.3rem;
+}
+
+.changelog-view h3 {
+  margin: 1.4rem 0 0.4rem;
+  font-size: 1.15rem;
+}
+
+.changelog-view h4 {
+  margin: 1.1rem 0 0.3rem;
+  font-size: 1rem;
+  color: var(--accent);
+}
+
+.changelog-view h5 {
+  margin: 0.8rem 0 0.2rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.changelog-view p,
+.changelog-view ul {
+  margin: 0 0 0.6rem;
+}
+
+.changelog-view ul {
+  padding-left: 1.2rem;
+}
+
+.changelog-view code {
+  padding: 0.05rem 0.3rem;
+  border-radius: 5px;
+  background: var(--surface-2);
+  font-size: 0.85em;
+}

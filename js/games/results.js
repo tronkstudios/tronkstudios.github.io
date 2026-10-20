@@ -68,6 +68,11 @@ const TronkResults = (() => {
       panel.appendChild(list);
     }
 
+    // Un 0 cuenta para el logro secreto «Cero patatero» (js/secrets.js)
+    if (duel && duel.score === 0) {
+      window.TronkSecrets?.zero(duel.game);
+    }
+
     const duelBox = duel ? renderDuel(duel) : null;
 
     if (duelBox) {
