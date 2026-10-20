@@ -156,6 +156,10 @@ loadSuggestions();
 
 loadGallery();
 
+loadCalendar();
+
+initializeCalendarSubscribe();
+
 updateAccountUI();
 
 handleAuthRedirect();

@@ -37,6 +37,10 @@ MAIL_FROM = "Soporte TronkStudios <onboarding@resend.dev>"
 # Supabase, para los avisos de lanzamiento por correo (dirección pública)
 SUPABASE_URL = "https://qjjnqhbtovjcbwgcwhgl.supabase.co"
 
+# Clave PÚBLICA de Supabase (la misma que lleva la web en js/core.js).
+# Sirve para el calendario /calendar.ics. NO es la clave secreta.
+SUPABASE_ANON_KEY = "sb_publishable_YPAglgrxaxvaqU8KSS-HkQ_scyeLigm"
+
 # Workers AI (IA gratis de Cloudflare para el chat de Tronker)
 [ai]
 binding = "AI"

@@ -382,6 +382,7 @@ const SHORTCUTS = [
   { key: "m", label: "Minijuegos", target: "#minijuegos" },
   { key: "s", label: "Sugerencias y comunidad", target: "#sugerencias" },
   { key: "g", label: "Galería de fans", target: "#galeria" },
+  { key: "k", label: "Calendario", target: "#calendario" },
   { key: "n", label: "Novedades", target: "#novedades" },
   { key: "a", label: "Sobre nosotros", target: "#sobre-nosotros" },
   { key: "i", label: "Volver al inicio", action: () => window.scrollTo({ top: 0, behavior: "smooth" }) },

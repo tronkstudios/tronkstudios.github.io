@@ -4,6 +4,7 @@
    Rutas:
      GET  /health   → dice qué partes están configuradas (sin datos sensibles)
      POST /chat     → envía la conversación al proveedor de IA
+     GET  /calendar.ics → calendario de eventos para suscribirse
      POST /contact  → envía el formulario al correo de soporte (Resend)
                      y una respuesta automática al visitante
 
@@ -676,6 +677,142 @@ async function sendAutoReply(env, fields) {
 }
 
 /* =========================================================
+   CALENDARIO PARA SUSCRIBIRSE (/calendar.ics)
+   Los eventos de docs/supabase/calendario.sql y las fechas de
+   lanzamiento de game_releases, en formato iCalendar, para Google
+   Calendar, el iPhone u Outlook. Solo lee datos públicos con la clave
+   pública de Supabase (SUPABASE_ANON_KEY en wrangler.toml).
+   ========================================================= */
+
+const ICS_PAD = (n) => String(n).padStart(2, "0");
+
+function icsUtc(date) {
+  return `${date.getUTCFullYear()}${ICS_PAD(date.getUTCMonth() + 1)}${ICS_PAD(date.getUTCDate())}T${ICS_PAD(date.getUTCHours())}${ICS_PAD(date.getUTCMinutes())}00Z`;
+}
+
+function icsText(text) {
+  return String(text || "").replace(/\\/g, "\\\\").replace(/\r?\n/g, "\\n").replace(/([,;])/g, "\\$1");
+}
+
+// Las líneas de más de 75 bytes se doblan (RFC 5545)
+function icsFold(line) {
+  const out = [];
+  let current = "";
+
+  for (const char of line) {
+    if (new TextEncoder().encode(current + char).length > 74) {
+      out.push(current);
+      current = ` ${char}`;
+    } else {
+      current += char;
+    }
+  }
+
+  out.push(current);
+  return out.join("\r\n");
+}
+
+async function publicSupabase(env, path) {
+  const response = await fetch(`${String(env.SUPABASE_URL).replace(/\/$/, "")}${path}`, {
+    headers: { apikey: String(env.SUPABASE_ANON_KEY) }
+  });
+
+  if (!response.ok) {
+    throw new Error(`supabase ${response.status}`);
+  }
+
+  return response.json();
+}
+
+async function handleCalendar(env) {
+  if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
+    return new Response("Calendario no configurado", { status: 503 });
+  }
+
+  const since = new Date(Date.now() - 60 * 86400000).toISOString();
+  const [events, releases] = await Promise.all([
+    publicSupabase(env, `/rest/v1/calendar_events?select=*&starts_at=gte.${encodeURIComponent(since)}&order=starts_at.asc&limit=300`).catch(() => []),
+    publicSupabase(env, "/rest/v1/game_releases?select=project_id,title,release_date&release_date=not.is.null").catch(() => [])
+  ]);
+
+  const stamp = icsUtc(new Date());
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//TronkStudios//Calendario//ES",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "X-WR-CALNAME:TronkStudios",
+    "X-WR-CALDESC:Lanzamientos\\, torneos\\, concursos y directos de TronkStudios",
+    "X-WR-TIMEZONE:Europe/Madrid",
+    "REFRESH-INTERVAL;VALUE=DURATION:PT6H",
+    "X-PUBLISHED-TTL:PT6H"
+  ];
+
+  const addEvent = ({ uid, title, start, end, allDay, description, url }) => {
+    lines.push(
+      "BEGIN:VEVENT",
+      `UID:${uid}@tronkstudios.github.io`,
+      `DTSTAMP:${stamp}`,
+      allDay ? `DTSTART;VALUE=DATE:${start}` : `DTSTART:${start}`,
+      allDay ? `DTEND;VALUE=DATE:${end}` : `DTEND:${end}`,
+      `SUMMARY:${icsText(title)}`,
+      `DESCRIPTION:${icsText(description)}`,
+      `URL:${url}`,
+      "END:VEVENT"
+    );
+  };
+
+  const day = (value) => String(value).slice(0, 10).replace(/-/g, "");
+  const nextDay = (value) => {
+    const date = new Date(`${String(value).slice(0, 10)}T00:00:00Z`);
+    date.setUTCDate(date.getUTCDate() + 1);
+    return date.toISOString().slice(0, 10).replace(/-/g, "");
+  };
+
+  (Array.isArray(events) ? events : []).forEach((event) => {
+    const start = new Date(event.starts_at);
+    const madridDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Madrid" }).format(start);
+    const endDate = event.ends_at ? new Date(event.ends_at) : new Date(start.getTime() + 3600000);
+
+    addEvent({
+      uid: `evento-${event.id}`,
+      title: event.title,
+      start: event.all_day ? day(madridDay) : icsUtc(start),
+      end: event.all_day
+        ? nextDay(event.ends_at ? new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Madrid" }).format(new Date(event.ends_at)) : madridDay)
+        : icsUtc(endDate),
+      allDay: event.all_day,
+      description: [event.description, event.link].filter(Boolean).join("\n"),
+      url: event.link || "https://tronkstudios.github.io/#calendario"
+    });
+  });
+
+  (Array.isArray(releases) ? releases : []).forEach((release) => {
+    addEvent({
+      uid: `lanzamiento-${release.project_id}`,
+      title: `Lanzamiento de ${release.title}`,
+      start: day(release.release_date),
+      end: nextDay(release.release_date),
+      allDay: true,
+      description: "Fecha prevista (puede cambiar).",
+      url: "https://tronkstudios.github.io/#desarrollo"
+    });
+  });
+
+  lines.push("END:VCALENDAR");
+
+  return new Response(lines.map(icsFold).join("\r\n") + "\r\n", {
+    headers: {
+      "content-type": "text/calendar; charset=utf-8",
+      "content-disposition": 'inline; filename="tronkstudios.ics"',
+      "cache-control": "public, max-age=900",
+      "access-control-allow-origin": "*"
+    }
+  });
+}
+
+/* =========================================================
    AVISOS DE LANZAMIENTO (una vez al día, ver [triggers] en wrangler.toml)
    Busca en Supabase a quien pidió «Avísame cuando salga» de un
    juego que ya ha salido (tabla game_releases), le envía un correo
@@ -1005,6 +1142,11 @@ export default {
 
       if (url.pathname === "/roblox" && request.method === "GET") {
         return await handleRoblox(url, cors);
+      }
+
+      // Calendario para suscribirse (Google Calendar, iPhone, Outlook...)
+      if (url.pathname === "/calendar.ics" && request.method === "GET") {
+        return await handleCalendar(env);
       }
 
       if (request.method === "POST") {

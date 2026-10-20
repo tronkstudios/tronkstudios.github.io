@@ -95,7 +95,8 @@ const TEAM_TABS = {
   notices: renderTeamNotices,
   projects: renderTeamProjects,
   challenges: renderTeamChallenges,
-  gallery: renderTeamGallery
+  gallery: renderTeamGallery,
+  calendar: renderTeamCalendar
 };
 
 function openTeamPanel() {
