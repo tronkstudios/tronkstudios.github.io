@@ -5,6 +5,7 @@
    tapa al instante con una hoja de cálculo de mentira, se para el
    sonido, los minijuegos se congelan y la pestaña cambia de título e
    icono. Con B o Escape se vuelve a la web tal cual estaba.
+   En el móvil no se activa: avisa de que solo funciona en PC.
    Se carga como script clásico (ver docs/adr/0002). */
 
 window.TronkBossActive = false;
@@ -183,8 +184,18 @@ const TronkBoss = (() => {
     link.href = href;
   }
 
+  // Móvil o tablet (pantalla táctil y sin ratón): el modo jefe no tiene sentido
+  function isMobile() {
+    return window.matchMedia("(pointer: coarse)").matches && !window.matchMedia("(any-pointer: fine)").matches;
+  }
+
   function on() {
     if (window.TronkBossActive) {
+      return;
+    }
+
+    if (isMobile()) {
+      window.showTronkToast?.("chart", "El modo jefe solo funciona en PC.");
       return;
     }
 

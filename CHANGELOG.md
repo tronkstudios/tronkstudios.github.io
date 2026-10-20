@@ -9,6 +9,16 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.31 · Barras de desplazamiento con el estilo de la web
+
+#### Cambiado
+- Las barras de desplazamiento de toda la web (página, ventanas, panel de
+  notificaciones, chat, listas) tienen los colores del tema claro u oscuro,
+  son redondeadas y se ponen azules al pasar el ratón. Dentro de ventanas y
+  paneles son más finas.
+- El **modo jefe** no se activa en el móvil ni en la tablet: avisa de que
+  solo funciona en PC.
+
 ### 6.30 · Juegos editables, calendario y notificaciones push
 
 #### Añadido
