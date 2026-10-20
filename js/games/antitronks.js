@@ -1645,7 +1645,8 @@ function initializeAntitronksGame() {
         { label: "Puntos", value: score, gold: newRecord && score > 0 },
         { label: "Récord", value: record },
         { label: newBestStreak ? "Mejor racha (¡nueva!)" : "Racha de la partida", value: bestStreakGame, gold: newBestStreak }
-      ]
+      ],
+      duel: { game: "antitronks", score }
     });
     TronkResults.showStreak(hud, 0);
 
@@ -1691,7 +1692,8 @@ function initializeAntitronksGame() {
       tiles: [
         record > 0 ? { label: "Tu récord", value: record } : null,
         TronkResults.bestStreak("antitronks") > 0 ? { label: "Mejor racha", value: TronkResults.bestStreak("antitronks") } : null
-      ]
+      ],
+      duel: { game: "antitronks" }
     });
     TronkResults.showStreak(hud, 0);
 

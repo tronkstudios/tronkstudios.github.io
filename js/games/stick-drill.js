@@ -388,7 +388,8 @@ function initializeStickDrillGame() {
 
   function renderIntroResults() {
     TronkResults.render(overlay?.querySelector(".antitronks-overlay-box"), {
-      tiles: [record > 0 ? { label: "Tu récord", value: fmt(record) } : null]
+      tiles: [record > 0 ? { label: "Tu récord", value: fmt(record) } : null],
+      duel: { game: "stick-drill" }
     });
   }
 
@@ -786,7 +787,8 @@ function initializeStickDrillGame() {
         { label: p1.label, value: fmt(t1) },
         { label: p2.label, value: fmt(t2) },
         { label: "Récord", value: fmt(record), gold: newRecord && best > 0 }
-      ]
+      ],
+      duel: { game: "stick-drill", score: best }
     });
 
     updateHud();

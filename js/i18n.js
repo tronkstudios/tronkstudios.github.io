@@ -261,6 +261,10 @@ const I18N_EN = {
   "Escribe tu opinión...": "Write your opinion...",
   "Tu comentario": "Your comment",
   "Comentar": "Comment",
+  "Retar a un amigo": "Challenge a friend",
+  "¡Enlace copiado! Pégalo a tu amigo": "Link copied! Paste it to your friend",
+  "Aceptar reto": "Accept challenge",
+  "Reto de un amigo": "Challenge from a friend",
   "Constante": "Consistent",
   "Entrar a la web 7 días seguidos": "Visit the website 7 days in a row",
   "Imparable": "Unstoppable",
@@ -1204,7 +1208,14 @@ const CHALLENGE_UNITS_EN = {
   "victoria": "win"
 };
 
+const DUEL_UNITS_EN = { puntos: "points", segundos: "seconds" };
+
 const I18N_PATTERNS = [
+  [/^Reto de (.+): supera ([\d.]+) (puntos|segundos)$/, (_, w, n, u) => `${w === "Tu amigo" ? "Your friend" : w}'s challenge: beat ${n} ${DUEL_UNITS_EN[u]}`],
+  [/^¡Reto superado! Has ganado a (.+)$/, (_, w) => `Challenge complete! You beat ${w === "Tu amigo" ? "your friend" : w}`],
+  [/^Te faltan ([\d.]+) (puntos|segundos) para superar a (.+)$/, (_, n, u, w) => `${n} ${DUEL_UNITS_EN[u]} to go to beat ${w === "Tu amigo" ? "your friend" : w}`],
+  [/^(.+) te reta en (.+)$/, (_, w, g) => `${w === "Un amigo" ? "A friend" : w} challenges you in ${g}`],
+  [/^Supera sus ([\d.]+) (puntos|segundos)$/, (_, n, u) => `Beat their ${n} ${DUEL_UNITS_EN[u]}`],
   [/^(\d+) días? seguidos$/, (_, n) => `${n}-day streak`],
   [/^¡Racha de (\d+) días seguidos!$/, (_, n) => `${n}-day streak!`],
   [/^Mejor racha: (\d+) días?$/, (_, n) => `Best streak: ${n} ${plural(n, "day", "days")}`],

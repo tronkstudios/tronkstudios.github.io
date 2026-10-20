@@ -1009,7 +1009,8 @@ function initializeAntininjaGame() {
         { label: "Puntos", value: score, gold: newRecord && score > 0 },
         { label: "Récord", value: record },
         { label: newBestStreak ? "Mejor racha (¡nueva!)" : "Racha de la partida", value: bestStreakGame, gold: newBestStreak }
-      ]
+      ],
+      duel: { game: "protect-mogos", score }
     });
     TronkResults.showStreak(hud, 0);
 
@@ -1060,7 +1061,8 @@ function initializeAntininjaGame() {
       tiles: [
         record > 0 ? { label: "Tu récord", value: record } : null,
         TronkResults.bestStreak("protect-mogos") > 0 ? { label: "Mejor racha", value: TronkResults.bestStreak("protect-mogos") } : null
-      ]
+      ],
+      duel: { game: "protect-mogos" }
     });
     TronkResults.showStreak(hud, 0);
 
