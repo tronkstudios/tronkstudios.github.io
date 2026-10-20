@@ -9,6 +9,14 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.27 · Tronker más natural
+
+#### Cambiado
+- «¿Qué pasa, Tronk?» se dice una sola vez, al abrir el chat: la IA ya no lo
+  repite en cada respuesta.
+- La IA ya no avisa de que no tiene internet en cada respuesta; solo lo
+  menciona si le piden noticias, resultados o precios de hoy.
+
 ### 6.26 · Tronker sabe la fecha
 
 #### Cambiado
