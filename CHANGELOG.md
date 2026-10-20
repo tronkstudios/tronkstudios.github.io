@@ -9,6 +9,12 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.24 · «¿Qué pasa, Tronk?»
+
+#### Cambiado
+- Tronker saluda en el chat con «¿Qué pasa, Tronk?» (también la IA cuando
+  la saludan).
+
 ### 6.23 · Tronker responde a cualquier pregunta
 
 #### Cambiado

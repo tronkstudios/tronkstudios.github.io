@@ -351,7 +351,7 @@ const SUPPORT_CONFIG = {
     /* ---------- LO PRIMERO: ¿ESCRIBIENDO O POR TEMAS? ---------- */
     modo: {
       msg: [
-        "¡Hola! Soy Tronker, el asistente de TronkStudios.",
+        "¿Qué pasa, Tronk? Soy Tronker, el asistente de TronkStudios.",
         "¿Cómo prefieres hablar conmigo?"
       ],
       options: [
@@ -901,7 +901,7 @@ const SUPPORT_CONFIG = {
 
     /* ---------- CHARLA (para el sistema de frases) ---------- */
     saludo: {
-      msg: "¡Hola! ¿En qué te puedo ayudar? Escríbeme tu duda.",
+      msg: "¿Qué pasa, Tronk? ¿En qué te puedo ayudar? Escríbeme tu duda.",
       options: [
         ["Ver los temas", "inicio"]
       ]
