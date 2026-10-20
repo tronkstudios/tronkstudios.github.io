@@ -17,7 +17,8 @@ pantalla. Estas son sus partes, de la más reciente a la primera.
   debajo y separados con una línea. El botón «Modo jefe» tiene el mismo
   estilo que los demás y no sale en el móvil.
 - **Acceso grande a la Galería de fans** al final de la sección Comunidad:
-  un cartel de colores con el botón «Abrir la galería» (en otra pestaña).
+  un cartel con los azules de TronkStudios y el botón «Abrir la galería»
+  (en otra pestaña).
 
 ### 6.32 · Podio de los 3 mejores
 
