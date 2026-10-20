@@ -1401,6 +1401,13 @@ function translateElementAttributes(element) {
     return;
   }
 
+  // Imágenes con versión en inglés (por ejemplo, la miniatura de un juego)
+  const englishSrc = element.getAttribute("data-src-en");
+
+  if (englishSrc && element.getAttribute("src") !== englishSrc) {
+    element.setAttribute("src", englishSrc);
+  }
+
   I18N_ATTRIBUTES.forEach((name) => {
     const value = element.getAttribute(name);
 

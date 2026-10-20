@@ -22,6 +22,8 @@ pantalla. Estas son sus partes, de la más reciente a la primera.
   («aciertos»), «Retar a un amigo», ayuda en el chat de Tronker y su página
   para Google en `/juegos/el-juego-miente/`.
 - Necesita `docs/supabase/el-juego-miente.sql`.
+- Miniatura en inglés («The Game Lies») cuando la web está en inglés. Las
+  imágenes pueden tener versión en inglés con `data-src-en`.
 
 #### Cambiado
 - La insignia «Todoterreno» pide récord en 4 minijuegos (de los 5).
