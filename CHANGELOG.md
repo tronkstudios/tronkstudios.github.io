@@ -9,6 +9,16 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.32 · Podio de los 3 mejores
+
+#### Añadido
+- **Podio en cada juego**: los 3 mejores jugadores en pedestales de oro,
+  plata y bronce (el 1.º en el centro, más alto y con corona), con su avatar,
+  nombre y récord. Sale en la **Clasificación** de cada minijuego (la lista
+  sigue debajo desde el 4.º) y, en pequeño, en la **pantalla de inicio** de
+  Antitronks, Protect Mogos, Stick Drill y El Juego Miente. Al pulsar un
+  jugador se abre su perfil.
+
 ### 6.31 · Barras de desplazamiento con el estilo de la web
 
 #### Cambiado

@@ -422,6 +422,8 @@ const I18N_EN = {
   "Historial de cambios": "Changelog",
   "Todo lo que ha cambiado en la web": "Everything that has changed on the website",
   "Modo jefe": "Boss mode",
+  "Podio": "Podium",
+  "¿Tú?": "You?",
   "El modo jefe solo funciona en PC.": "Boss mode only works on PC.",
   "Tapa la web con una hoja de cálculo. Vuelve con B o Esc.": "Covers the website with a spreadsheet. Go back with B or Esc.",
   "Modo jefe (B o Esc para volver)": "Boss mode (B or Esc to go back)",

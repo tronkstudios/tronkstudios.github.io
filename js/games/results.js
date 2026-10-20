@@ -79,6 +79,16 @@ const TronkResults = (() => {
       panel.appendChild(duelBox);
     }
 
+    // En la pantalla de inicio: podio con los 3 mejores (js/profiles.js)
+    if (duel && duel.score === undefined && window.TronkPodium) {
+      const podium = document.createElement("div");
+      podium.className = "game-podium";
+      panel.appendChild(podium);
+      window.TronkPodium.fill(podium, duel.game).then(() => {
+        panel.hidden = !panel.children.length;
+      });
+    }
+
     panel.hidden = !newRecord && !shown.length && !duelBox;
   }
 
