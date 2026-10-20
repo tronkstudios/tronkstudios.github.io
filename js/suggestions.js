@@ -173,7 +173,8 @@ async function loadSuggestions() {
 
     await Promise.all([
       loadMyVotes(),
-      loadSuggestionAuthors(data || [])
+      loadSuggestionAuthors(data || []),
+      loadCommentCounts()
     ]);
 
     renderSuggestions(
@@ -638,6 +639,16 @@ function createSuggestionCard(
   actions.appendChild(
     voteButton
   );
+
+  // Comentarios (js/comments.js)
+  const commentsButton =
+    createCommentsButton(suggestion);
+
+  if (commentsButton) {
+    actions.appendChild(
+      commentsButton
+    );
+  }
 
   if (
     currentUser &&

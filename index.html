@@ -122,10 +122,11 @@
   <script src="js/theme.js?v=20" defer></script>
   <script src="js/ui.js?v=23" defer></script>
   <script src="js/auth.js?v=21" defer></script>
-  <script src="js/suggestions.js?v=28" defer></script>
+  <script src="js/suggestions.js?v=29" defer></script>
+  <script src="js/comments.js?v=1" defer></script>
   <script src="js/projects.js?v=31" defer></script>
   <script src="js/profiles.js?v=10" defer></script>
-  <script src="js/community.js?v=4" defer></script>
+  <script src="js/community.js?v=5" defer></script>
   <script src="js/challenges.js?v=3" defer></script>
   <script src="js/team.js?v=7" defer></script>
   <script src="js/news.js?v=4" defer></script>
@@ -2167,6 +2168,34 @@
       ><svg class="icon close-icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
 
       <div id="challenge-content" class="challenge-modal-content"></div>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       COMENTARIOS DE UNA SUGERENCIA (js/comments.js)
+       ===================================================== -->
+
+  <div
+    id="comments-modal"
+    class="modal hidden"
+    aria-hidden="true"
+  >
+    <div class="modal-backdrop"></div>
+
+    <div
+      class="modal-box comments-modal-box"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="comments-modal-title"
+    >
+      <button
+        class="modal-close"
+        data-close-modal="comments-modal"
+        type="button"
+        aria-label="Cerrar"
+      ><svg class="icon close-icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
+
+      <div id="comments-content" class="comments-modal-content"></div>
     </div>
   </div>
 

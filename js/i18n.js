@@ -250,6 +250,20 @@ const I18N_EN = {
   "Ocultar diario": "Hide diary",
   "Mostrar diario": "Show diary",
   "Mostrar más": "Show more",
+  "Ver y escribir comentarios": "See and write comments",
+  "Cargando comentarios...": "Loading comments...",
+  "No se pudieron cargar los comentarios.": "Comments couldn't be loaded.",
+  "Todavía no hay comentarios. ¡Sé el primero en opinar!": "No comments yet. Be the first to share your opinion!",
+  "Borrar comentario": "Delete comment",
+  "¿Borrar este comentario?": "Delete this comment?",
+  "Inicia sesión para dejar tu opinión.": "Log in to share your opinion.",
+  "Inicia sesión para comentar las ideas de la comunidad.": "Log in to comment on the community's ideas.",
+  "Escribe tu opinión...": "Write your opinion...",
+  "Tu comentario": "Your comment",
+  "Comentar": "Comment",
+  "Espera unos segundos antes de volver a comentar.": "Wait a few seconds before commenting again.",
+  "No se pudo enviar. Inténtalo de nuevo.": "Couldn't send it. Try again.",
+
   "Todas las sugerencias": "All suggestions",
   "Filtrar novedades": "Filter news",
   "Desarrollo": "Development",
@@ -1187,6 +1201,8 @@ const CHALLENGE_UNITS_EN = {
 };
 
 const I18N_PATTERNS = [
+  [/^(\d+) comentarios?$/, (_, n) => `${n} ${plural(n, "comment", "comments")}`],
+  [/^(.+) ha comentado tu idea: «([\s\S]*)»$/, (_, who, text) => `${who} commented on your idea: “${text}”`],
   [/^Clasificación · (.+)$/, (_, g) => `Leaderboard · ${g}`],
   [/^(\d+) jugadores con récord$/, (_, n) => `${n} players with a record`],
   [/^1 jugador con récord$/, () => "1 player with a record"],
