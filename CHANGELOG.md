@@ -9,6 +9,33 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.25 · Comentarios, rachas, retos entre amigos y páginas de juego
+
+#### Añadido
+- **Comentarios en las sugerencias**: botón con el número de comentarios en
+  cada idea y una ficha para leerlos y opinar. Al autor de la idea le llega un
+  aviso. Cada uno borra los suyos y el equipo puede borrar cualquiera.
+  Necesita `docs/supabase/comentarios.sql`.
+- **Racha de días entrando a la web** con una llama en el perfil, aviso al
+  subir la racha e insignias nuevas: «Constante» (7 días) e «Imparable»
+  (30 días). Necesita `docs/supabase/rachas.sql`.
+- **Retar a un amigo** desde los resultados de Antitronks, Protect Mogos y
+  Stick Drill: crea un enlace «Supera mis 850 puntos en Protect Mogos». Quien
+  lo abre ve el reto, y al acabar sabe si lo ha superado o cuánto le falta.
+- **Páginas de cada minijuego para Google** (`/juegos/antitronks/`,
+  `/juegos/protect-mogos/`, `/juegos/stick-drill/`, `/juegos/tronk-fight/`)
+  con cómo se juega, controles, preguntas frecuentes y datos estructurados,
+  más `sitemap.xml` y `robots.txt`. El botón «Jugar gratis ahora» abre el
+  juego en la web.
+
+#### Cambiado
+- **Tronk Fight en el móvil**: botones más grandes con icono, el joystick
+  aparece donde pones el dedo, vibración al pulsar (Android) y el robot
+  Tronker ya no tapa los mandos.
+
+#### Corregido
+- La app sin conexión podía guardar cualquier página como si fuera la portada.
+
 ### 6.24 · «¿Qué pasa, Tronk?»
 
 #### Cambiado

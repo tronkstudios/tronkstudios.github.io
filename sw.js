@@ -14,7 +14,7 @@
    Si algún día algo se queda «pegado» en una versión vieja, sube el
    número de CACHE_VERSION. */
 
-const CACHE_VERSION = 3;
+const CACHE_VERSION = 4;
 const CACHE_NAME = `tronkstudios-v${CACHE_VERSION}`;
 
 const AVATARS = [
@@ -93,12 +93,16 @@ async function networkFirst(request) {
     const response = await fetch(request);
 
     if (response.ok) {
-      cache.put("index.html", response.clone());
+      // La portada se guarda como index.html; las páginas de /juegos/, con su dirección
+      const path = new URL(request.url).pathname;
+      const isHome = path === "/" || path.endsWith("/index.html") && !path.includes("/juegos/");
+      cache.put(isHome ? "index.html" : path, response.clone());
     }
 
     return response;
   } catch {
     return (
+      (await cache.match(new URL(request.url).pathname)) ||
       (await cache.match(request, { ignoreSearch: true })) ||
       (await cache.match("index.html"))
     );

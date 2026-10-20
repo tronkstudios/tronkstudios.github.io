@@ -2157,7 +2157,7 @@ function resize() {
     w = Math.min(box.width, (box.height - gh) * 16 / 9); h = w * 9 / 16;
     x = (box.width - w) / 2; y = Math.max(0, (box.height - gh - h) / 2);
   } else if (pads) {
-    const g = clamp(box.width * 0.16, 120, 240);
+    const g = clamp(box.width * 0.2, 150, 260);
     w = Math.min(box.width - 2 * g, box.height * 16 / 9); h = w * 9 / 16;
     x = (box.width - w) / 2; y = (box.height - h) / 2;
   } else {
@@ -2200,7 +2200,7 @@ function px(el, x, y, w, h) { Object.assign(el.style, { left: x + "px", top: y +
 function cluster(btns, cx, cy, a) {
   const b = a * 0.74, gap = a * 0.12, size = a + b + gap;
   px(btns, cx - size / 2, cy - size / 2, size, size);
-  const set = (k, x, y, d) => { const el = btns.querySelector(`[data-k="${k}"]`); px(el, x, y, d, d); el.style.fontSize = Math.max(9, d * 0.2) + "px"; };
+  const set = (k, x, y, d) => { const el = btns.querySelector(`[data-k="${k}"]`); px(el, x, y, d, d); el.style.fontSize = Math.max(8, d * 0.15) + "px"; };
   set("attack", size - a, size - a, a);
   set("block", 0, size - b, b);
   set("dodge", size - b - (a - b) / 2, 0, b);
@@ -2220,7 +2220,8 @@ function layoutTouch(box, st, portrait) {
       const L = zones[0], R = zones[1];
       const s = Math.min(L.w * 0.86, L.h * (portrait ? 0.8 : 0.5), 200);
       px(stick, L.x + (L.w - s) / 2, L.y + L.h * (portrait ? 0.5 : 0.6) - s / 2, s, s);
-      let a = Math.min(R.w * 0.5, R.h * (portrait ? 0.42 : 0.26), 120);
+      px(pad.querySelector("." + C("zone")), L.x, L.y, L.w, L.h);
+      let a = Math.min(R.w * 0.52, R.h * (portrait ? 0.42 : 0.3), 120);
       cluster(btns, R.x + R.w / 2, R.y + R.h * (portrait ? 0.5 : 0.6), a);
       return;
     }
@@ -2229,6 +2230,7 @@ function layoutTouch(box, st, portrait) {
       // cada jugador en su mitad de abajo: joystick a la izquierda y botones a la derecha
       const s = Math.min(Z.w * 0.42, Z.h * 0.75, 170);
       px(stick, Z.x + Z.w * 0.04, Z.y + (Z.h - s) / 2, s, s);
+      px(pad.querySelector("." + C("zone")), Z.x, Z.y, Z.w * 0.5, Z.h);
       const a = Math.min(Z.w * 0.24, Z.h * 0.4, 100);
       cluster(btns, Z.x + Z.w * 0.72, Z.y + Z.h / 2, a);
     } else {
@@ -2237,6 +2239,7 @@ function layoutTouch(box, st, portrait) {
       cluster(btns, Z.x + Z.w / 2, Z.y + Z.h * 0.3, a);
       const s = Math.min(Z.w * 0.84, Z.h * 0.38, 180);
       px(stick, Z.x + (Z.w - s) / 2, Z.y + Z.h * 0.72 - s / 2, s, s);
+      px(pad.querySelector("." + C("zone")), Z.x, Z.y + Z.h * 0.5, Z.w, Z.h * 0.5);
     }
   });
 }
@@ -2529,6 +2532,8 @@ const touch = {
 root.querySelectorAll("." + C("pad")).forEach(pad => {
   const T = touch.pads[+pad.dataset.p];
   const stick = pad.querySelector("." + C("stick")), knob = pad.querySelector("." + C("knob"));
+  const zone = pad.querySelector("." + C("zone"));
+  let home = null; // sitio normal del joystick (vuelve ahí al soltar)
   const move = e => {
     const r = stick.getBoundingClientRect();
     const cx = r.left + r.width / 2, cy = r.top + r.height / 2, rr = r.width / 2;
@@ -2538,13 +2543,30 @@ root.querySelectorAll("." + C("pad")).forEach(pad => {
     T.state.left = dx < -0.3; T.state.right = dx > 0.3;
     T.state.up = dy < -0.55; T.state.down = dy > 0.6;
   };
-  stick.addEventListener("pointerdown", e => { e.preventDefault(); Sound.init(); T.stickId = e.pointerId; stick.setPointerCapture(e.pointerId); move(e); });
-  stick.addEventListener("pointermove", e => { if (e.pointerId === T.stickId) move(e); });
-  const end = e => { if (e.pointerId !== T.stickId) return; T.stickId = null; knob.style.transform = ""; T.state.left = T.state.right = T.state.up = T.state.down = false; };
-  stick.addEventListener("pointerup", end); stick.addEventListener("pointercancel", end);
+  const begin = (e, el) => { e.preventDefault(); Sound.init(); T.stickId = e.pointerId; el.setPointerCapture(e.pointerId); move(e); };
+  stick.addEventListener("pointerdown", e => begin(e, stick));
+  // Joystick flotante: si tocas en tu lado fuera del círculo, el joystick aparece bajo el dedo
+  zone.addEventListener("pointerdown", e => {
+    if (T.stickId !== null) return;
+    const r = stick.getBoundingClientRect(), z = root.getBoundingClientRect(), zr = zone.getBoundingClientRect();
+    home = { left: stick.style.left, top: stick.style.top };
+    // Centrado bajo el dedo, pero sin salirse de su zona
+    stick.style.left = clamp(e.clientX - r.width / 2, zr.left, Math.max(zr.left, zr.right - r.width)) - z.left + "px";
+    stick.style.top = clamp(e.clientY - r.height / 2, zr.top, Math.max(zr.top, zr.bottom - r.height)) - z.top + "px";
+    stick.classList.add(C("floating"));
+    begin(e, zone);
+  });
+  const moveAny = e => { if (e.pointerId === T.stickId) move(e); };
+  stick.addEventListener("pointermove", moveAny); zone.addEventListener("pointermove", moveAny);
+  const end = e => {
+    if (e.pointerId !== T.stickId) return;
+    T.stickId = null; knob.style.transform = ""; T.state.left = T.state.right = T.state.up = T.state.down = false;
+    if (home) { stick.style.left = home.left; stick.style.top = home.top; home = null; stick.classList.remove(C("floating")); }
+  };
+  for (const el of [stick, zone]) { el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end); }
   pad.querySelectorAll("." + C("tb")).forEach(b => {
     const k = b.dataset.k;
-    b.addEventListener("pointerdown", e => { e.preventDefault(); Sound.init(); b.setPointerCapture(e.pointerId); T.state[k] = true; b.classList.add(C("on")); });
+    b.addEventListener("pointerdown", e => { e.preventDefault(); Sound.init(); b.setPointerCapture(e.pointerId); T.state[k] = true; b.classList.add(C("on")); if (navigator.vibrate) navigator.vibrate(8); });
     const up = () => { T.state[k] = false; b.classList.remove(C("on")); };
     b.addEventListener("pointerup", up); b.addEventListener("pointercancel", up);
     b.addEventListener("contextmenu", e => e.preventDefault());

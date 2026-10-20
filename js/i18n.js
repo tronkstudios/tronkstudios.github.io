@@ -250,6 +250,28 @@ const I18N_EN = {
   "Ocultar diario": "Hide diary",
   "Mostrar diario": "Show diary",
   "Mostrar más": "Show more",
+  "Ver y escribir comentarios": "See and write comments",
+  "Cargando comentarios...": "Loading comments...",
+  "No se pudieron cargar los comentarios.": "Comments couldn't be loaded.",
+  "Todavía no hay comentarios. ¡Sé el primero en opinar!": "No comments yet. Be the first to share your opinion!",
+  "Borrar comentario": "Delete comment",
+  "¿Borrar este comentario?": "Delete this comment?",
+  "Inicia sesión para dejar tu opinión.": "Log in to share your opinion.",
+  "Inicia sesión para comentar las ideas de la comunidad.": "Log in to comment on the community's ideas.",
+  "Escribe tu opinión...": "Write your opinion...",
+  "Tu comentario": "Your comment",
+  "Comentar": "Comment",
+  "Retar a un amigo": "Challenge a friend",
+  "¡Enlace copiado! Pégalo a tu amigo": "Link copied! Paste it to your friend",
+  "Aceptar reto": "Accept challenge",
+  "Reto de un amigo": "Challenge from a friend",
+  "Constante": "Consistent",
+  "Entrar a la web 7 días seguidos": "Visit the website 7 days in a row",
+  "Imparable": "Unstoppable",
+  "Entrar a la web 30 días seguidos": "Visit the website 30 days in a row",
+  "Espera unos segundos antes de volver a comentar.": "Wait a few seconds before commenting again.",
+  "No se pudo enviar. Inténtalo de nuevo.": "Couldn't send it. Try again.",
+
   "Todas las sugerencias": "All suggestions",
   "Filtrar novedades": "Filter news",
   "Desarrollo": "Development",
@@ -1186,7 +1208,19 @@ const CHALLENGE_UNITS_EN = {
   "victoria": "win"
 };
 
+const DUEL_UNITS_EN = { puntos: "points", segundos: "seconds" };
+
 const I18N_PATTERNS = [
+  [/^Reto de (.+): supera ([\d.]+) (puntos|segundos)$/, (_, w, n, u) => `${w === "Tu amigo" ? "Your friend" : w}'s challenge: beat ${n} ${DUEL_UNITS_EN[u]}`],
+  [/^¡Reto superado! Has ganado a (.+)$/, (_, w) => `Challenge complete! You beat ${w === "Tu amigo" ? "your friend" : w}`],
+  [/^Te faltan ([\d.]+) (puntos|segundos) para superar a (.+)$/, (_, n, u, w) => `${n} ${DUEL_UNITS_EN[u]} to go to beat ${w === "Tu amigo" ? "your friend" : w}`],
+  [/^(.+) te reta en (.+)$/, (_, w, g) => `${w === "Un amigo" ? "A friend" : w} challenges you in ${g}`],
+  [/^Supera sus ([\d.]+) (puntos|segundos)$/, (_, n, u) => `Beat their ${n} ${DUEL_UNITS_EN[u]}`],
+  [/^(\d+) días? seguidos$/, (_, n) => `${n}-day streak`],
+  [/^¡Racha de (\d+) días seguidos!$/, (_, n) => `${n}-day streak!`],
+  [/^Mejor racha: (\d+) días?$/, (_, n) => `Best streak: ${n} ${plural(n, "day", "days")}`],
+  [/^(\d+) comentarios?$/, (_, n) => `${n} ${plural(n, "comment", "comments")}`],
+  [/^(.+) ha comentado tu idea: «([\s\S]*)»$/, (_, who, text) => `${who} commented on your idea: “${text}”`],
   [/^Clasificación · (.+)$/, (_, g) => `Leaderboard · ${g}`],
   [/^(\d+) jugadores con récord$/, (_, n) => `${n} players with a record`],
   [/^1 jugador con récord$/, () => "1 player with a record"],
