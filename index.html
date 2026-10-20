@@ -103,7 +103,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="css/styles.css?v=65" />
+  <link rel="stylesheet" href="css/styles.css?v=66" />
   <!-- La mascota 3D (js/mascot.js) usa Three.js: se descarga a la vez que la página -->
   <link rel="modulepreload" href="js/vendor/three.module.min.js" />
   <link rel="stylesheet" href="css/tronk-fight.css?v=4" />
@@ -125,7 +125,7 @@
   <script src="js/suggestions.js?v=29" defer></script>
   <script src="js/comments.js?v=1" defer></script>
   <script src="js/projects.js?v=32" defer></script>
-  <script src="js/profiles.js?v=14" defer></script>
+  <script src="js/profiles.js?v=15" defer></script>
   <script src="js/community.js?v=6" defer></script>
   <script src="js/challenges.js?v=4" defer></script>
   <script src="js/gallery.js?v=1" defer></script>
@@ -143,6 +143,7 @@
   <script src="js/games/miente.js?v=2" defer></script>
   <script src="js/games/tronk-fight.js?v=10" defer></script>
   <script src="js/apis.js?v=3" defer></script>
+  <script src="js/push.js?v=1" defer></script>
   <script src="js/pwa.js?v=1" defer></script>
   <script src="js/extras.js?v=5" defer></script>
   <script src="js/secrets.js?v=1" defer></script>
@@ -270,6 +271,12 @@
         <div id="notifications-panel" class="notifications-panel" hidden>
           <p class="notifications-title">Notificaciones</p>
           <ul class="notifications-list"></ul>
+          <!-- Notificaciones push en este dispositivo (js/push.js) -->
+          <div id="push-setting" class="push-setting" hidden>
+            <svg class="icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+            <span id="push-setting-text"></span>
+            <button id="push-setting-button" class="push-setting-button" type="button">Activar</button>
+          </div>
         </div>
       </div>
 
@@ -3357,6 +3364,6 @@
 
   <!-- Versión en inglés. Va aquí, sin defer, para traducir antes de
        que se vea la página (ver js/i18n.js). -->
-  <script src="js/i18n.js?v=20"></script>
+  <script src="js/i18n.js?v=21"></script>
 </body>
 </html>
