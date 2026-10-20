@@ -152,6 +152,18 @@ const BADGES = [
     test: (d) => Object.keys(SCORE_GAMES).every((game) => d.scores[game] > 0)
   },
   {
+    icon: "flame",
+    name: "Constante",
+    how: "Entrar a la web 7 días seguidos",
+    test: (d) => (d.profile.best_visit_streak || 0) >= 7
+  },
+  {
+    icon: "bolt",
+    name: "Imparable",
+    how: "Entrar a la web 30 días seguidos",
+    test: (d) => (d.profile.best_visit_streak || 0) >= 30
+  },
+  {
     icon: "swords",
     name: "Luchador",
     how: "Ganar 10 combates de Tronk Fight al bot",
@@ -564,6 +576,19 @@ function renderProfile(content, data) {
     year: "numeric"
   });
   info.appendChild(makeElement("p", "profile-since", `Miembro desde ${since}`));
+
+  // Racha de días entrando a la web (docs/supabase/rachas.sql)
+  const streak = visibleVisitStreak(profile);
+
+  if (streak > 0) {
+    const pill = makeElement("p", "profile-streak");
+    pill.title = `Mejor racha: ${profile.best_visit_streak || streak} ${(profile.best_visit_streak || streak) === 1 ? "día" : "días"}`;
+    pill.append(
+      makeIcon("flame", "icon profile-streak-flame"),
+      makeElement("span", "", `${streak} ${streak === 1 ? "día" : "días"} seguidos`)
+    );
+    info.appendChild(pill);
+  }
 
   if (profile.bio) {
     info.appendChild(makeElement("p", "profile-bio", profile.bio));
@@ -1057,6 +1082,53 @@ function showLaunchNotices() {
 }
 
 /* =========================================================
+   RACHA DE DÍAS ENTRANDO A LA WEB (docs/supabase/rachas.sql)
+   ========================================================= */
+
+// Fecha de hoy en España, como «2026-10-20»
+function madridDay(offsetDays = 0) {
+  const date = new Date(Date.now() + offsetDays * 86400000);
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Madrid" }).format(date);
+}
+
+// Si no entró ni hoy ni ayer, la racha ya se ha roto (aunque no se haya guardado)
+function visibleVisitStreak(profile) {
+  if (!profile || !profile.last_visit_on || !profile.visit_streak) {
+    return 0;
+  }
+
+  return profile.last_visit_on >= madridDay(-1) ? profile.visit_streak : 0;
+}
+
+let visitStreakTouched = "";
+
+async function touchVisitStreak() {
+  // Una vez por usuario y día basta
+  const key = `${currentUser.id}:${madridDay()}`;
+
+  if (visitStreakTouched === key) {
+    return;
+  }
+
+  visitStreakTouched = key;
+
+  const { data, error } = await supabaseClient.rpc("touch_visit_streak");
+
+  // Sin rachas.sql ejecutado todavía: no pasa nada
+  if (error || !data) {
+    return;
+  }
+
+  if (data.increased && data.streak >= 2 && typeof showTronkToast === "function") {
+    showTronkToast("flame", `¡Racha de ${data.streak} días seguidos!`);
+  }
+
+  if (data.increased) {
+    window.dispatchEvent(new Event("tronk:activity"));
+  }
+}
+
+/* =========================================================
    ARRANQUE Y CAMBIOS DE SESIÓN
    ========================================================= */
 
@@ -1077,6 +1149,10 @@ function onPlatformAuthChange() {
 async function syncPlatformWithAccount() {
   if (!platformAvailable) {
     return;
+  }
+
+  if (currentUser) {
+    touchVisitStreak();
   }
 
   updateLeaderboardHint();

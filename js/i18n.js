@@ -261,6 +261,10 @@ const I18N_EN = {
   "Escribe tu opinión...": "Write your opinion...",
   "Tu comentario": "Your comment",
   "Comentar": "Comment",
+  "Constante": "Consistent",
+  "Entrar a la web 7 días seguidos": "Visit the website 7 days in a row",
+  "Imparable": "Unstoppable",
+  "Entrar a la web 30 días seguidos": "Visit the website 30 days in a row",
   "Espera unos segundos antes de volver a comentar.": "Wait a few seconds before commenting again.",
   "No se pudo enviar. Inténtalo de nuevo.": "Couldn't send it. Try again.",
 
@@ -1201,6 +1205,9 @@ const CHALLENGE_UNITS_EN = {
 };
 
 const I18N_PATTERNS = [
+  [/^(\d+) días? seguidos$/, (_, n) => `${n}-day streak`],
+  [/^¡Racha de (\d+) días seguidos!$/, (_, n) => `${n}-day streak!`],
+  [/^Mejor racha: (\d+) días?$/, (_, n) => `Best streak: ${n} ${plural(n, "day", "days")}`],
   [/^(\d+) comentarios?$/, (_, n) => `${n} ${plural(n, "comment", "comments")}`],
   [/^(.+) ha comentado tu idea: «([\s\S]*)»$/, (_, who, text) => `${who} commented on your idea: “${text}”`],
   [/^Clasificación · (.+)$/, (_, g) => `Leaderboard · ${g}`],

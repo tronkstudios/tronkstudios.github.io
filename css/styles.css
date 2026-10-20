@@ -6732,3 +6732,39 @@ body.modal-open .mascot:not(.in-game) {
   margin: 0;
   color: var(--muted);
 }
+
+/* ----- Racha de días en el perfil ----- */
+
+.profile-streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  width: fit-content;
+  margin: 0.4rem 0 0;
+  padding: 0.2rem 0.65rem 0.2rem 0.45rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, #ff7a1a 16%, var(--surface));
+  border: 1px solid color-mix(in srgb, #ff7a1a 45%, var(--border));
+  color: #ff8a2a;
+  font-size: 0.85rem;
+  font-weight: 900;
+}
+
+.profile-streak-flame {
+  color: #ff7a1a;
+  fill: #ffb020;
+  animation: streak-flicker 1.6s ease-in-out infinite;
+  transform-origin: 50% 90%;
+}
+
+@keyframes streak-flicker {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  30% { transform: scale(1.08, 1.12) rotate(-3deg); }
+  60% { transform: scale(0.96, 1.04) rotate(2deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-streak-flame {
+    animation: none;
+  }
+}
