@@ -29,6 +29,7 @@
  */
 const PROJECTS = {
   "z-tronks": {
+    section: "desarrollo",
     title: "Z Tronks",
     image: "img/juegos/z-tronks.png",
     category: "Roblox",
@@ -53,6 +54,7 @@ const PROJECTS = {
   },
 
   "the-sundered-sky": {
+    section: "desarrollo",
     title: "The Sundered Sky",
     image: "img/juegos/the-sundered-sky.png",
     category: "Juego",
@@ -414,29 +416,181 @@ function addCardMeta(card, project) {
   card.append(meta, more);
 }
 
+function bindProjectCard(card) {
+  const id = card.dataset.project;
+
+  // Con tráiler se muestra el vídeo; sin tráiler, el aviso.
+  if (PROJECTS[id]) {
+    addCardMeta(card, PROJECTS[id]);
+    addCardTrailer(card, PROJECTS[id]);
+  }
+
+  card.addEventListener("click", () => openProjectModal(id));
+
+  card.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openProjectModal(id);
+    }
+  });
+}
+
 function initializeProjects() {
   stopTrailerWhenModalCloses();
 
-  document
-    .querySelectorAll(".dev-card[data-project]")
-    .forEach((card) => {
-      const id = card.dataset.project;
+  document.querySelectorAll(".dev-card[data-project]").forEach(bindProjectCard);
 
-      // Con tráiler se muestra el vídeo; sin tráiler, el aviso.
-      if (PROJECTS[id]) {
-        addCardMeta(card, PROJECTS[id]);
-        addCardTrailer(card, PROJECTS[id]);
-      }
+  // Los juegos editados por el equipo (docs/supabase/proyectos.sql)
+  loadProjectsFromDb();
+}
 
-      card.addEventListener("click", () => openProjectModal(id));
+/* =========================================================
+   JUEGOS EDITABLES DESDE EL PANEL DEL EQUIPO
+   Si existe la tabla «projects» y tiene juegos, sustituyen a los
+   de arriba. Si no, la web sigue con los que vienen escritos aquí.
+   ========================================================= */
 
-      card.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          openProjectModal(id);
-        }
-      });
-    });
+const PROJECT_MEDIA_BUCKET = "project-media";
+
+// Las imágenes subidas desde el panel van a Storage; las de img/ se quedan
+function projectMediaUrl(path) {
+  if (!path || /^(https?:|data:|img\/)/.test(path)) {
+    return path || "";
+  }
+
+  return supabaseClient.storage.from(PROJECT_MEDIA_BUCKET).getPublicUrl(path).data.publicUrl;
+}
+
+function projectFromRow(row, previous) {
+  return {
+    title: row.title,
+    section: row.section || "desarrollo",
+    image: projectMediaUrl(row.image),
+    imageAlt: row.image_alt || row.title,
+    category: row.category || "Juego",
+    genre: row.genre || "",
+    platforms: Array.isArray(row.platforms) ? row.platforms : [],
+    roblox: { placeId: row.roblox_place_id || "" },
+    status: row.status || "development",
+    people: row.people || 1,
+    trailer: row.trailer || "",
+    // La fecha viene de «Lanzamientos» (game_releases)
+    release: previous ? previous.release : null,
+    stores: Array.isArray(row.stores) ? row.stores.filter((store) => store && store.label && /^https:\/\//.test(store.url || "")) : [],
+    gallery: Array.isArray(row.gallery)
+      ? row.gallery.filter((item) => item && item.src).map((item) => ({ src: projectMediaUrl(item.src), caption: item.caption || "" }))
+      : [],
+    description: String(row.description || "")
+      .split(/\n\s*\n/)
+      .map((paragraph) => paragraph.trim())
+      .filter(Boolean)
+  };
+}
+
+function projectCardElement(id, project) {
+  const card = document.createElement("article");
+  card.className = "card dev-card project-card";
+  card.dataset.project = id;
+  card.tabIndex = 0;
+  card.setAttribute("role", "button");
+  card.setAttribute("aria-label", `Ver detalles de ${project.title}`);
+
+  const media = document.createElement("div");
+  media.className = "dev-card-media";
+  const image = document.createElement("img");
+  image.src = project.image || "img/icons/icon-512.png";
+  image.alt = project.imageAlt || project.title;
+  image.loading = "lazy";
+  image.dataset.fallbackLabel = project.title;
+  media.appendChild(image);
+
+  const title = document.createElement("h3");
+  title.textContent = project.title;
+
+  const category = document.createElement("p");
+  category.className = "dev-card-category";
+  const label = document.createElement("span");
+  label.textContent = "Categoría:";
+  category.append(label, document.createTextNode(` ${project.category}`));
+
+  card.append(media, title, category);
+  bindProjectCard(card);
+  return card;
+}
+
+function renderProjectSections() {
+  const groups = { desarrollo: [], juegos: [] };
+
+  Object.entries(PROJECTS).forEach(([id, project]) => {
+    (groups[project.section] || groups.desarrollo).push([id, project]);
+  });
+
+  // En desarrollo
+  const devGrid = document.querySelector("#desarrollo .cards-grid");
+
+  if (devGrid) {
+    devGrid.replaceChildren(...groups.desarrollo.map(([id, project]) => projectCardElement(id, project)));
+  }
+
+  // Nuestros juegos: si hay alguno, se cambia el «No hay nada todavía»
+  const games = document.querySelector("#juegos .container");
+
+  if (games) {
+    let grid = games.querySelector(".cards-grid");
+
+    if (!grid) {
+      grid = document.createElement("div");
+      grid.className = "cards-grid";
+      games.querySelector(".empty-state")?.before(grid);
+    }
+
+    grid.replaceChildren(...groups.juegos.map(([id, project]) => projectCardElement(id, project)));
+    grid.hidden = !groups.juegos.length;
+
+    const empty = games.querySelector(".empty-state");
+
+    if (empty) {
+      empty.hidden = groups.juegos.length > 0;
+    }
+  }
+
+  initializeCardImageFallbacks();
+}
+
+async function loadProjectsFromDb() {
+  if (typeof isSupabaseConfigured !== "function" || !isSupabaseConfigured()) {
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from("projects")
+    .select("*")
+    .order("sort_order", { ascending: true })
+    .order("title", { ascending: true });
+
+  // Sin proyectos.sql (o vacía): se quedan los de este archivo
+  if (error || !data || !data.length) {
+    return;
+  }
+
+  const previous = { ...PROJECTS };
+  Object.keys(PROJECTS).forEach((id) => delete PROJECTS[id]);
+
+  data.forEach((row) => {
+    if (row.visible) {
+      PROJECTS[row.id] = projectFromRow(row, previous[row.id]);
+    }
+  });
+
+  if (typeof loadReleaseDates === "function") {
+    await loadReleaseDates();
+  }
+
+  renderProjectSections();
+
+  if (typeof loadRobloxStats === "function" && robloxProjects().length) {
+    loadRobloxStats();
+  }
 }
 
 function escapeHtml(
@@ -468,6 +622,13 @@ function initializeCardImageFallbacks() {
   document
     .querySelectorAll(".dev-card-media img")
     .forEach((img) => {
+      // Cada imagen se prepara una sola vez (las tarjetas pueden repintarse)
+      if (img.dataset.fallbackReady) {
+        return;
+      }
+
+      img.dataset.fallbackReady = "1";
+
       // Fondo desenfocado con la misma imagen, para que las portadas
       // cuadradas no queden en un marco vacío
       img.closest(".dev-card-media")?.style.setProperty(
