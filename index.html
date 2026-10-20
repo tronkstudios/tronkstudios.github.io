@@ -14,7 +14,7 @@
   -->
   <meta
     http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://i.ytimg.com https://*.rbxcdn.com; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://qjjnqhbtovjcbwgcwhgl.supabase.co wss://qjjnqhbtovjcbwgcwhgl.supabase.co https://tronkstudios-support.tronkstudios7.workers.dev; frame-src https://challenges.cloudflare.com https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests"
+    content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://i.ytimg.com https://*.rbxcdn.com https://qjjnqhbtovjcbwgcwhgl.supabase.co; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://qjjnqhbtovjcbwgcwhgl.supabase.co wss://qjjnqhbtovjcbwgcwhgl.supabase.co https://tronkstudios-support.tronkstudios7.workers.dev; frame-src https://challenges.cloudflare.com https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests"
   />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
 
@@ -125,10 +125,11 @@
   <script src="js/suggestions.js?v=29" defer></script>
   <script src="js/comments.js?v=1" defer></script>
   <script src="js/projects.js?v=31" defer></script>
-  <script src="js/profiles.js?v=13" defer></script>
-  <script src="js/community.js?v=5" defer></script>
+  <script src="js/profiles.js?v=14" defer></script>
+  <script src="js/community.js?v=6" defer></script>
   <script src="js/challenges.js?v=4" defer></script>
-  <script src="js/team.js?v=7" defer></script>
+  <script src="js/gallery.js?v=1" defer></script>
+  <script src="js/team.js?v=8" defer></script>
   <script src="js/news.js?v=4" defer></script>
   <script src="js/journey.js?v=1" defer></script>
   <script src="js/hero.js?v=5" defer></script>
@@ -141,11 +142,11 @@
   <script src="js/games/tronk-fight.js?v=10" defer></script>
   <script src="js/apis.js?v=3" defer></script>
   <script src="js/pwa.js?v=1" defer></script>
-  <script src="js/extras.js?v=3" defer></script>
+  <script src="js/extras.js?v=4" defer></script>
   <script src="js/secrets.js?v=1" defer></script>
   <script src="js/boss.js?v=1" defer></script>
-  <script src="js/app.js?v=32" defer></script>
-  <script src="js/mascot.js?v=12" type="module"></script>
+  <script src="js/app.js?v=33" defer></script>
+  <script src="js/mascot.js?v=13" type="module"></script>
 
   <!-- Sistema de soporte (chat con Tronker + formulario de correo) -->
   <script src="js/tronker.js?v=1" defer></script>
@@ -304,6 +305,7 @@
         <a href="#roblox">Roblox</a>
         <a href="#minijuegos">Minijuegos</a>
         <a href="#sugerencias">Comunidad</a>
+        <a href="#galeria">Galería</a>
         <a href="#novedades">Novedades</a>
         <a href="#sobre-nosotros">Sobre nosotros</a>
       </nav>
@@ -1009,6 +1011,47 @@
         </div>
 
         <button id="suggestions-more" class="show-more-button" type="button" hidden></button>
+
+      </div>
+
+    </section>
+
+
+    <!-- ===================================================
+         GALERÍA DE FANS (js/gallery.js · docs/supabase/galeria.sql)
+         =================================================== -->
+
+    <section
+      id="galeria"
+      class="section gallery-section"
+      aria-labelledby="galeria-title"
+      hidden
+    >
+
+      <div class="container">
+
+        <div class="section-head">
+          <div>
+            <h2 id="galeria-title">Galería de fans</h2>
+            <p>Dibujos y capturas de la comunidad. Vota tus favoritos: el más votado de la semana sale destacado.</p>
+          </div>
+
+          <div class="gallery-actions">
+            <select id="gallery-sort" class="suggestion-category" aria-label="Ordenar la galería">
+              <option value="votes">Más votados</option>
+              <option value="recent">Más recientes</option>
+            </select>
+            <button id="gallery-upload" class="primary-button" type="button">
+              <svg class="icon" aria-hidden="true"><use href="#i-brush"></use></svg> Subir mi dibujo
+            </button>
+          </div>
+        </div>
+
+        <div id="gallery-featured" class="gallery-featured" hidden></div>
+
+        <div id="gallery-grid" class="gallery-grid"></div>
+
+        <button id="gallery-more" class="show-more-button" type="button" hidden></button>
 
       </div>
 
@@ -2174,6 +2217,7 @@
         <button class="team-tab" type="button" data-tab="releases" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg> Lanzamientos</button>
         <button class="team-tab" type="button" data-tab="notices" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-megaphone"></use></svg> Avisos</button>
         <button class="team-tab" type="button" data-tab="challenges" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-target"></use></svg> Retos</button>
+        <button class="team-tab" type="button" data-tab="gallery" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-brush"></use></svg> Galería</button>
       </div>
 
       <p id="team-message" class="auth-message" aria-live="polite"></p>
@@ -2239,6 +2283,50 @@
       ><svg class="icon close-icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
 
       <div id="comments-content" class="comments-modal-content"></div>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       GALERÍA DE FANS: ver un dibujo y subir uno (js/gallery.js)
+       ===================================================== -->
+
+  <div id="art-modal" class="modal hidden" aria-hidden="true">
+    <div class="modal-backdrop"></div>
+    <div class="modal-box art-modal-box" role="dialog" aria-modal="true" aria-labelledby="art-modal-title">
+      <button class="modal-close" data-close-modal="art-modal" type="button" aria-label="Cerrar"><svg class="icon close-icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
+      <div id="art-content" class="art-content"></div>
+    </div>
+  </div>
+
+  <div id="art-upload-modal" class="modal hidden" aria-hidden="true">
+    <div class="modal-backdrop"></div>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="art-upload-title-h">
+      <button class="modal-close" data-close-modal="art-upload-modal" type="button" aria-label="Cerrar"><svg class="icon close-icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
+      <h2 id="art-upload-title-h">Subir a la galería</h2>
+      <p class="modal-description">Sube un dibujo o una captura de un juego de TronkStudios. El equipo lo revisa antes de publicarlo.</p>
+
+      <form id="art-upload-form" novalidate>
+        <label for="art-upload-file">Imagen (JPG, PNG o WebP)</label>
+        <input id="art-upload-file" type="file" accept="image/png, image/jpeg, image/webp" required />
+        <img id="art-upload-preview" class="art-upload-preview" alt="Vista previa" hidden />
+
+        <label for="art-upload-title">Título</label>
+        <input id="art-upload-title" type="text" maxlength="60" placeholder="Por ejemplo: Tronker en la playa" required />
+
+        <label for="art-upload-kind">Tipo</label>
+        <select id="art-upload-kind">
+          <option value="drawing">Dibujo</option>
+          <option value="screenshot">Captura de un juego</option>
+        </select>
+
+        <p class="art-upload-rules">Que sea tuyo, de TronkStudios y apto para todos. No subas fotos de personas ni datos personales (nombres reales, caras, direcciones).</p>
+
+        <div id="art-upload-message" class="auth-message" aria-live="polite"></div>
+
+        <button class="primary-button" type="submit">Enviar a revisión</button>
+      </form>
+
+      <div id="art-my-list" class="art-my-list"></div>
     </div>
   </div>
 

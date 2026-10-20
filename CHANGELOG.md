@@ -9,6 +9,27 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.29 · Galería de fans, logros secretos y modo jefe
+
+#### Añadido
+- **Galería de fans** (sección «Galería»): la comunidad sube dibujos y
+  capturas de los juegos de TronkStudios y los vota. El más votado de la
+  semana sale como **Dibujo de la semana**. Las imágenes se encogen en el
+  navegador antes de subirse (máx. 1600 px, WebP) y **nada se publica sin
+  que el equipo lo apruebe** desde su panel (pestaña «Galería»); al autor le
+  llega un aviso. Necesita `docs/supabase/galeria.sql`.
+- **Logros secretos absurdos** (12): no se dice cómo conseguirlos; al
+  desbloquear uno sale un aviso con botón de compartir y en tu perfil se ve
+  la lista con los que faltan como «???». Se guardan en el navegador.
+- **Modo jefe**: con la tecla **B** (o el botón del pie) la web se tapa con
+  una hoja de cálculo de mentira, se para el sonido, los minijuegos se
+  congelan y la pestaña cambia de título e icono. Con B o Esc se vuelve.
+- **Historial de cambios en la web**: el «v6» del pie abre este CHANGELOG.
+
+#### Corregido
+- La web no dejaba cargar imágenes guardadas en Supabase (política de
+  seguridad); ahora sí, para la galería.
+
 ### 6.28 · Quinto minijuego: El Juego Miente
 
 #### Añadido

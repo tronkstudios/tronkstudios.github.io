@@ -1186,6 +1186,11 @@ async function syncPlatformWithAccount() {
   // Tu aporte a los retos (js/challenges.js)
   loadChallenges();
 
+  // Galería de fans: tus votos (js/gallery.js)
+  if (typeof loadGallery === "function") {
+    loadGallery();
+  }
+
   // ¿Insignias nuevas? (js/extras.js)
   window.dispatchEvent(new Event("tronk:activity"));
 }

@@ -15,7 +15,7 @@ alter table public.notifications
 
 alter table public.notifications
   add constraint notifications_kind_check
-  check (kind in ('votes', 'status', 'reply', 'record', 'release', 'team', 'challenge', 'comment'));
+  check (kind in ('votes', 'status', 'reply', 'record', 'release', 'team', 'challenge', 'comment', 'fanart'));
 
 /* El equipo cambia la fecha (o la quita con p_date = null) */
 create or replace function public.set_release_date(

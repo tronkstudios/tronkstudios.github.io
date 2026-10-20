@@ -29,7 +29,8 @@ const NOTIFICATION_ICONS = {
   release: "calendar",
   team: "megaphone",
   challenge: "target",
-  comment: "message"
+  comment: "message",
+  fanart: "brush"
 };
 
 // Cada cuánto se miran las notificaciones nuevas (ms)
