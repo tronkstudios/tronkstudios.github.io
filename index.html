@@ -103,10 +103,10 @@
     }
   </script>
 
-  <link rel="stylesheet" href="css/styles.css?v=61" />
+  <link rel="stylesheet" href="css/styles.css?v=62" />
   <!-- La mascota 3D (js/mascot.js) usa Three.js: se descarga a la vez que la página -->
   <link rel="modulepreload" href="js/vendor/three.module.min.js" />
-  <link rel="stylesheet" href="css/tronk-fight.css?v=3" />
+  <link rel="stylesheet" href="css/tronk-fight.css?v=4" />
 
 
   <script
@@ -137,7 +137,7 @@
   <script src="js/games/antitronks.js?v=25" defer></script>
   <script src="js/games/protect-mogos.js?v=25" defer></script>
   <script src="js/games/stick-drill.js?v=26" defer></script>
-  <script src="js/games/tronk-fight.js?v=8" defer></script>
+  <script src="js/games/tronk-fight.js?v=9" defer></script>
   <script src="js/apis.js?v=3" defer></script>
   <script src="js/pwa.js?v=1" defer></script>
   <script src="js/extras.js?v=2" defer></script>
@@ -2730,21 +2730,23 @@
   <!-- los mandos táctiles van fuera de la pantalla del juego -->
   <div id="tf-touch" hidden>
     <div class="tf-pad" data-p="0">
+      <div class="tf-zone" aria-hidden="true"></div>
       <div class="tf-stick" aria-label="Joystick del jugador 1"><div class="tf-knob"></div></div>
       <div class="tf-btns">
-        <button class="tf-tb" data-k="special" aria-label="Ataque especial del jugador 1">Especial</button>
-        <button class="tf-tb" data-k="dodge" aria-label="Esquivar del jugador 1">Esquivar</button>
-        <button class="tf-tb" data-k="block" aria-label="Bloquear del jugador 1">Bloquear</button>
-        <button class="tf-tb" data-k="attack" aria-label="Atacar del jugador 1">Atacar</button>
+        <button class="tf-tb" data-k="special" aria-label="Ataque especial del jugador 1"><svg class="tf-ico" aria-hidden="true"><use href="#i-bolt"></use></svg><span>Especial</span></button>
+        <button class="tf-tb" data-k="dodge" aria-label="Esquivar del jugador 1"><svg class="tf-ico" aria-hidden="true"><use href="#i-refresh"></use></svg><span>Esquivar</span></button>
+        <button class="tf-tb" data-k="block" aria-label="Bloquear del jugador 1"><svg class="tf-ico" aria-hidden="true"><use href="#i-shield"></use></svg><span>Bloquear</span></button>
+        <button class="tf-tb" data-k="attack" aria-label="Atacar del jugador 1"><svg class="tf-ico" aria-hidden="true"><use href="#i-swords"></use></svg><span>Atacar</span></button>
       </div>
     </div>
     <div class="tf-pad" data-p="1">
+      <div class="tf-zone" aria-hidden="true"></div>
       <div class="tf-stick" aria-label="Joystick del jugador 2"><div class="tf-knob"></div></div>
       <div class="tf-btns">
-        <button class="tf-tb" data-k="special" aria-label="Ataque especial del jugador 2">Especial</button>
-        <button class="tf-tb" data-k="dodge" aria-label="Esquivar del jugador 2">Esquivar</button>
-        <button class="tf-tb" data-k="block" aria-label="Bloquear del jugador 2">Bloquear</button>
-        <button class="tf-tb" data-k="attack" aria-label="Atacar del jugador 2">Atacar</button>
+        <button class="tf-tb" data-k="special" aria-label="Ataque especial del jugador 2"><svg class="tf-ico" aria-hidden="true"><use href="#i-bolt"></use></svg><span>Especial</span></button>
+        <button class="tf-tb" data-k="dodge" aria-label="Esquivar del jugador 2"><svg class="tf-ico" aria-hidden="true"><use href="#i-refresh"></use></svg><span>Esquivar</span></button>
+        <button class="tf-tb" data-k="block" aria-label="Bloquear del jugador 2"><svg class="tf-ico" aria-hidden="true"><use href="#i-shield"></use></svg><span>Bloquear</span></button>
+        <button class="tf-tb" data-k="attack" aria-label="Atacar del jugador 2"><svg class="tf-ico" aria-hidden="true"><use href="#i-swords"></use></svg><span>Atacar</span></button>
       </div>
     </div>
   </div>

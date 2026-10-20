@@ -6121,6 +6121,23 @@ body.modal-open .mascot:not(.in-game) {
   }
 }
 
+/* Móvil en horizontal: el robot pequeño y abajo, y en Tronk Fight no sale
+   (los mandos ocupan los dos lados de la pantalla) */
+@media (pointer: coarse) and (max-height: 520px) {
+  .mascot.in-game {
+    top: auto;
+    bottom: calc(6px + env(safe-area-inset-bottom));
+    width: 66px;
+    height: 76px;
+  }
+}
+
+@media (pointer: coarse) {
+  .mascot.in-game[data-game="tronkfight"] {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mascot-still {
     animation: none;
