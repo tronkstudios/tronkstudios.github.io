@@ -8436,3 +8436,47 @@ button.podium-player:focus-visible .podium-name {
     animation: none;
   }
 }
+
+/* ----- Galería de fans en su propia página (?vista=galeria) ----- */
+
+/* En la portada la galería no ocupa sitio: se abre en otra pestaña */
+#galeria {
+  display: none;
+}
+
+.main-nav .nav-back {
+  display: none;
+}
+
+html.view-gallery main > :not(#galeria) {
+  display: none !important;
+}
+
+html.view-gallery #galeria:not([hidden]) {
+  display: block;
+  min-height: 70vh;
+}
+
+html.view-gallery .main-nav > a:not(.nav-back) {
+  display: none;
+}
+
+html.view-gallery .main-nav .nav-back {
+  display: inline-flex;
+  font-weight: 800;
+}
+
+/* ----- Clasificación recogida ----- */
+
+.leaderboard-toggle {
+  margin-top: 0.9rem;
+}
+
+.leaderboard-toggle[aria-expanded="true"] {
+  border-style: solid;
+  border-color: var(--accent);
+}
+
+.leaderboard-body[hidden] {
+  display: none;
+}

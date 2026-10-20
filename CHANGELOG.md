@@ -19,6 +19,13 @@ pantalla. Estas son sus partes, de la más reciente a la primera.
   Antitronks, Protect Mogos, Stick Drill y El Juego Miente. Al pulsar un
   jugador se abre su perfil.
 
+#### Cambiado
+- **Portada menos cargada**: la **Galería de fans** tiene su propia página
+  (`?vista=galeria`), que el menú abre en una pestaña nueva, con un enlace
+  para volver. Los avisos antiguos con `#galeria` llevan ahí.
+- La **Clasificación** va recogida tras el botón «Mostrar los mejores
+  jugadores» (y recuerda si la dejaste abierta).
+
 ### 6.31 · Barras de desplazamiento con el estilo de la web
 
 #### Cambiado

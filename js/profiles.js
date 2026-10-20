@@ -1312,6 +1312,41 @@ async function syncPlatformWithAccount() {
   window.dispatchEvent(new Event("tronk:activity"));
 }
 
+/* La clasificación va recogida: «Mostrar los mejores jugadores» */
+function initializeLeaderboardToggle() {
+  const toggle = document.getElementById("leaderboard-toggle");
+  const body = document.getElementById("leaderboard-body");
+
+  if (!toggle || !body) {
+    return;
+  }
+
+  const set = (open) => {
+    body.hidden = !open;
+    toggle.setAttribute("aria-expanded", String(open));
+    toggle.querySelector("span").textContent = open ? "Ocultar los mejores jugadores" : "Mostrar los mejores jugadores";
+
+    try {
+      localStorage.setItem("tronk-leaderboard-open", open ? "1" : "0");
+    } catch {
+      // Sin almacenamiento
+    }
+  };
+
+  let saved = false;
+
+  try {
+    saved = localStorage.getItem("tronk-leaderboard-open") === "1";
+  } catch {
+    saved = false;
+  }
+
+  set(saved);
+  toggle.addEventListener("click", () => set(body.hidden));
+}
+
+initializeLeaderboardToggle();
+
 async function initializePlatform() {
   setPlatformVisible(false);
 
