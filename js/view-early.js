@@ -83,3 +83,27 @@ document.addEventListener(
   },
   true
 );
+
+/* «← Volver a TronkStudios» en la página de la galería:
+   - en el navegador, cierra la pestaña de la galería (se vuelve a la web
+     que la abrió); si el navegador no deja cerrarla, va a la portada;
+   - en la app, vuelve a la portada dentro de la app. */
+document.addEventListener(
+  "click",
+  (event) => {
+    const back = event.target.closest?.(".nav-back");
+
+    if (!back || !document.documentElement.classList.contains("view-gallery") || isInstalledApp()) {
+      return;
+    }
+
+    event.preventDefault();
+    window.close();
+
+    // Si sigue abierta (por ejemplo, se entró escribiendo la dirección)
+    setTimeout(() => {
+      location.href = back.href;
+    }, 300);
+  },
+  true
+);

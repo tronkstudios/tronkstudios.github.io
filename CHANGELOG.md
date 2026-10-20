@@ -16,6 +16,8 @@ pantalla. Estas son sus partes, de la más reciente a la primera.
   de la app. Ahora se abre primero una pestaña vacía del navegador y luego
   se lleva a la galería, para que Chrome no la pase a la app. Desde la app
   instalada, la galería se abre dentro de la propia app.
+- «← Volver a TronkStudios» en la galería cierra su pestaña y te deja en la
+  web de la que venías (en la app, vuelve a la portada dentro de la app).
 
 ### 6.33 · Pie de página ordenado y acceso grande a la galería
 
