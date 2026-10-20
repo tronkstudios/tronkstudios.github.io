@@ -26,8 +26,31 @@
 })();
 
 /* Los enlaces a la galería se abren en una PESTAÑA del navegador, también
-   con la web instalada como app: Chrome mete en la app los enlaces que se
-   pulsan, pero no las pestañas que abre la web con window.open. */
+   con la web instalada como app. Chrome mete en la app los enlaces y las
+   ventanas nuevas que van a la web, así que primero se abre una pestaña
+   vacía y luego se lleva a la galería: como ya es una pestaña del
+   navegador, se queda en el navegador. */
+function openGalleryTab(href) {
+  const url = new URL(href || "?vista=galeria", location.href).href;
+  const tab = window.open("about:blank", "_blank");
+
+  if (!tab) {
+    // Ventanas emergentes bloqueadas: se abre aquí mismo
+    location.href = url;
+    return;
+  }
+
+  try {
+    tab.opener = null;
+  } catch {
+    // Nada
+  }
+
+  tab.location.replace(url);
+}
+
+window.openGalleryTab = openGalleryTab;
+
 document.addEventListener(
   "click",
   (event) => {
@@ -38,7 +61,7 @@ document.addEventListener(
     }
 
     event.preventDefault();
-    window.open(new URL(link.getAttribute("href"), location.href).href, "_blank", "noopener");
+    openGalleryTab(link.getAttribute("href"));
   },
   true
 );

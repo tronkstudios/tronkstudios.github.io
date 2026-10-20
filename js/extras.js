@@ -381,7 +381,7 @@ const SHORTCUTS = [
   { key: "r", label: "Roblox", target: "#roblox" },
   { key: "m", label: "Minijuegos", target: "#minijuegos" },
   { key: "s", label: "Sugerencias y comunidad", target: "#sugerencias" },
-  { key: "g", label: "Galería de fans (en una pestaña nueva)", action: () => window.open(new URL("?vista=galeria", location.href).href, "_blank", "noopener") },
+  { key: "g", label: "Galería de fans (en una pestaña nueva)", action: () => window.openGalleryTab?.() },
   { key: "k", label: "Calendario", target: "#calendario" },
   { key: "n", label: "Novedades", target: "#novedades" },
   { key: "a", label: "Sobre nosotros", target: "#sobre-nosotros" },
