@@ -103,7 +103,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="css/styles.css?v=64" />
+  <link rel="stylesheet" href="css/styles.css?v=66" />
   <!-- La mascota 3D (js/mascot.js) usa Three.js: se descarga a la vez que la página -->
   <link rel="modulepreload" href="js/vendor/three.module.min.js" />
   <link rel="stylesheet" href="css/tronk-fight.css?v=4" />
@@ -124,12 +124,14 @@
   <script src="js/auth.js?v=21" defer></script>
   <script src="js/suggestions.js?v=29" defer></script>
   <script src="js/comments.js?v=1" defer></script>
-  <script src="js/projects.js?v=31" defer></script>
-  <script src="js/profiles.js?v=14" defer></script>
+  <script src="js/projects.js?v=32" defer></script>
+  <script src="js/profiles.js?v=15" defer></script>
   <script src="js/community.js?v=6" defer></script>
   <script src="js/challenges.js?v=4" defer></script>
   <script src="js/gallery.js?v=1" defer></script>
-  <script src="js/team.js?v=8" defer></script>
+  <script src="js/calendar.js?v=1" defer></script>
+  <script src="js/team-projects.js?v=1" defer></script>
+  <script src="js/team.js?v=10" defer></script>
   <script src="js/news.js?v=4" defer></script>
   <script src="js/journey.js?v=1" defer></script>
   <script src="js/hero.js?v=5" defer></script>
@@ -141,11 +143,12 @@
   <script src="js/games/miente.js?v=2" defer></script>
   <script src="js/games/tronk-fight.js?v=10" defer></script>
   <script src="js/apis.js?v=3" defer></script>
+  <script src="js/push.js?v=1" defer></script>
   <script src="js/pwa.js?v=1" defer></script>
-  <script src="js/extras.js?v=4" defer></script>
+  <script src="js/extras.js?v=5" defer></script>
   <script src="js/secrets.js?v=1" defer></script>
   <script src="js/boss.js?v=1" defer></script>
-  <script src="js/app.js?v=33" defer></script>
+  <script src="js/app.js?v=34" defer></script>
   <script src="js/mascot.js?v=13" type="module"></script>
 
   <!-- Sistema de soporte (chat con Tronker + formulario de correo) -->
@@ -268,6 +271,12 @@
         <div id="notifications-panel" class="notifications-panel" hidden>
           <p class="notifications-title">Notificaciones</p>
           <ul class="notifications-list"></ul>
+          <!-- Notificaciones push en este dispositivo (js/push.js) -->
+          <div id="push-setting" class="push-setting" hidden>
+            <svg class="icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+            <span id="push-setting-text"></span>
+            <button id="push-setting-button" class="push-setting-button" type="button">Activar</button>
+          </div>
         </div>
       </div>
 
@@ -306,6 +315,7 @@
         <a href="#minijuegos">Minijuegos</a>
         <a href="#sugerencias">Comunidad</a>
         <a href="#galeria">Galería</a>
+        <a href="#calendario">Calendario</a>
         <a href="#novedades">Novedades</a>
         <a href="#sobre-nosotros">Sobre nosotros</a>
       </nav>
@@ -1052,6 +1062,39 @@
         <div id="gallery-grid" class="gallery-grid"></div>
 
         <button id="gallery-more" class="show-more-button" type="button" hidden></button>
+
+      </div>
+
+    </section>
+
+
+    <!-- ===================================================
+         CALENDARIO (js/calendar.js · docs/supabase/calendario.sql)
+         =================================================== -->
+
+    <section
+      id="calendario"
+      class="section alt calendar-section"
+      aria-labelledby="calendario-title"
+      hidden
+    >
+
+      <div class="container">
+
+        <div class="section-head">
+          <div>
+            <h2 id="calendario-title">Calendario</h2>
+            <p>Lanzamientos, torneos, concursos y directos de TronkStudios. Añádelos a tu calendario para no perderte nada.</p>
+          </div>
+
+          <button id="calendar-subscribe" class="primary-button" type="button">
+            <svg class="icon" aria-hidden="true"><use href="#i-bell"></use></svg> Suscribirse al calendario
+          </button>
+        </div>
+
+        <div id="calendar-list" class="calendar-list"></div>
+
+        <button id="calendar-more" class="show-more-button" type="button" hidden></button>
 
       </div>
 
@@ -2210,6 +2253,7 @@
       <h2 id="team-modal-title"><svg class="icon" aria-hidden="true"><use href="#i-shield"></use></svg> Panel del equipo</h2>
 
       <div class="team-tabs" role="group" aria-label="Secciones del panel">
+        <button class="team-tab" type="button" data-tab="projects" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-gamepad"></use></svg> Juegos</button>
         <button class="team-tab" type="button" data-tab="ideas" aria-pressed="true"><svg class="icon" aria-hidden="true"><use href="#i-bulb"></use></svg> Ideas</button>
         <button class="team-tab" type="button" data-tab="polls" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-chart"></use></svg> Encuestas</button>
         <button class="team-tab" type="button" data-tab="news" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-megaphone"></use></svg> Diario</button>
@@ -2217,6 +2261,7 @@
         <button class="team-tab" type="button" data-tab="releases" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg> Lanzamientos</button>
         <button class="team-tab" type="button" data-tab="notices" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-megaphone"></use></svg> Avisos</button>
         <button class="team-tab" type="button" data-tab="challenges" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-target"></use></svg> Retos</button>
+        <button class="team-tab" type="button" data-tab="calendar" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg> Calendario</button>
         <button class="team-tab" type="button" data-tab="gallery" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-brush"></use></svg> Galería</button>
       </div>
 
@@ -3319,6 +3364,6 @@
 
   <!-- Versión en inglés. Va aquí, sin defer, para traducir antes de
        que se vea la página (ver js/i18n.js). -->
-  <script src="js/i18n.js?v=19"></script>
+  <script src="js/i18n.js?v=21"></script>
 </body>
 </html>

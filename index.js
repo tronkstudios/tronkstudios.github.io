@@ -4,6 +4,8 @@
    Rutas:
      GET  /health   → dice qué partes están configuradas (sin datos sensibles)
      POST /chat     → envía la conversación al proveedor de IA
+     GET  /calendar.ics → calendario de eventos para suscribirse
+     GET  /push-key → clave pública para las notificaciones push
      POST /contact  → envía el formulario al correo de soporte (Resend)
                      y una respuesta automática al visitante
 
@@ -676,6 +678,348 @@ async function sendAutoReply(env, fields) {
 }
 
 /* =========================================================
+   NOTIFICACIONES PUSH (docs/supabase/push.sql)
+   Cada minuto (cron «* * * * *») se buscan los avisos nuevos de la
+   campanita y se envían como notificación push a los dispositivos que
+   la tienen activada. Estándar Web Push: firma VAPID (RFC 8292) y
+   contenido cifrado con aes128gcm (RFC 8291), sin librerías.
+
+   Necesita:
+   - VAPID_PUBLIC_KEY (variable en wrangler.toml, es pública)
+   - VAPID_PRIVATE_KEY (secreto: npx wrangler secret put VAPID_PRIVATE_KEY)
+   - SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY (como los avisos por correo)
+   Las claves VAPID se crean UNA vez con: npx web-push generate-vapid-keys
+   ========================================================= */
+
+const PUSH_BATCH = 100;
+const PUSH_SITE = "https://tronkstudios.github.io/";
+
+function isPushConfigured(env) {
+  return Boolean(env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY && env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY);
+}
+
+function base64UrlToBytes(text) {
+  const base64 = String(text).replace(/-/g, "+").replace(/_/g, "/");
+  const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+  return Uint8Array.from(atob(padded), (char) => char.charCodeAt(0));
+}
+
+function bytesToBase64Url(bytes) {
+  let binary = "";
+  new Uint8Array(bytes).forEach((byte) => (binary += String.fromCharCode(byte)));
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function concatBytes(...parts) {
+  const total = parts.reduce((sum, part) => sum + part.length, 0);
+  const out = new Uint8Array(total);
+  let offset = 0;
+
+  parts.forEach((part) => {
+    out.set(part, offset);
+    offset += part.length;
+  });
+
+  return out;
+}
+
+const textBytes = (text) => new TextEncoder().encode(text);
+
+async function hkdf(salt, ikm, info, length) {
+  const key = await crypto.subtle.importKey("raw", ikm, "HKDF", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "HKDF", hash: "SHA-256", salt, info }, key, length * 8);
+  return new Uint8Array(bits);
+}
+
+/* Firma VAPID: un JWT ES256 para el servicio de push del navegador */
+async function vapidAuthorization(env, endpoint) {
+  const publicKey = base64UrlToBytes(env.VAPID_PUBLIC_KEY);
+  const jwk = {
+    kty: "EC",
+    crv: "P-256",
+    x: bytesToBase64Url(publicKey.slice(1, 33)),
+    y: bytesToBase64Url(publicKey.slice(33, 65)),
+    d: String(env.VAPID_PRIVATE_KEY).trim(),
+    ext: true
+  };
+  const key = await crypto.subtle.importKey("jwk", jwk, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
+
+  const header = bytesToBase64Url(textBytes(JSON.stringify({ typ: "JWT", alg: "ES256" })));
+  const claims = bytesToBase64Url(
+    textBytes(
+      JSON.stringify({
+        aud: new URL(endpoint).origin,
+        exp: Math.floor(Date.now() / 1000) + 12 * 3600,
+        sub: env.VAPID_SUBJECT || PUSH_SITE.replace(/\/$/, "")
+      })
+    )
+  );
+  const signature = await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, key, textBytes(`${header}.${claims}`));
+
+  return `vapid t=${header}.${claims}.${bytesToBase64Url(signature)}, k=${env.VAPID_PUBLIC_KEY}`;
+}
+
+/* Cifrado del contenido (aes128gcm, RFC 8291) */
+async function encryptPushPayload(subscription, payload) {
+  const userPublic = base64UrlToBytes(subscription.p256dh);
+  const authSecret = base64UrlToBytes(subscription.auth);
+
+  const local = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
+  const localPublic = new Uint8Array(await crypto.subtle.exportKey("raw", local.publicKey));
+  const userKey = await crypto.subtle.importKey("raw", userPublic, { name: "ECDH", namedCurve: "P-256" }, false, []);
+  const shared = new Uint8Array(await crypto.subtle.deriveBits({ name: "ECDH", public: userKey }, local.privateKey, 256));
+
+  const ikm = await hkdf(authSecret, shared, concatBytes(textBytes("WebPush: info\0"), userPublic, localPublic), 32);
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const contentKey = await hkdf(salt, ikm, textBytes("Content-Encoding: aes128gcm\0"), 16);
+  const nonce = await hkdf(salt, ikm, textBytes("Content-Encoding: nonce\0"), 12);
+
+  const aesKey = await crypto.subtle.importKey("raw", contentKey, "AES-GCM", false, ["encrypt"]);
+  // Un solo bloque: el contenido + el delimitador 0x02 de «último bloque»
+  const plain = concatBytes(textBytes(payload), new Uint8Array([2]));
+  const cipher = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce }, aesKey, plain));
+
+  const recordSize = new Uint8Array([0, 0, 16, 0]); // 4096
+  return concatBytes(salt, recordSize, new Uint8Array([localPublic.length]), localPublic, cipher);
+}
+
+async function sendPush(env, subscription, message) {
+  const body = await encryptPushPayload(subscription, JSON.stringify(message));
+
+  const response = await fetch(subscription.endpoint, {
+    method: "POST",
+    headers: {
+      TTL: "86400",
+      Urgency: "normal",
+      "Content-Encoding": "aes128gcm",
+      "Content-Type": "application/octet-stream",
+      Authorization: await vapidAuthorization(env, subscription.endpoint)
+    },
+    body
+  });
+
+  return response.status;
+}
+
+async function sendPushNotifications(env) {
+  if (!isPushConfigured(env)) {
+    return;
+  }
+
+  const since = new Date(Date.now() - 3600000).toISOString();
+  const pending = await supabaseRequest(
+    env,
+    `/rest/v1/notifications?select=id,user_id,kind,message,link&pushed_at=is.null&created_at=gt.${encodeURIComponent(since)}&order=created_at.asc&limit=${PUSH_BATCH}`
+  );
+
+  if (!pending.ok) {
+    console.error("push: no se pudieron leer los avisos", pending.status);
+    return;
+  }
+
+  const notifications = await pending.json();
+
+  if (!notifications.length) {
+    return;
+  }
+
+  // Se marcan antes de enviar: mejor perder un push que mandarlo dos veces
+  await supabaseRequest(env, `/rest/v1/notifications?id=in.(${notifications.map((n) => n.id).join(",")})`, {
+    method: "PATCH",
+    headers: { prefer: "return=minimal" },
+    body: JSON.stringify({ pushed_at: new Date().toISOString() })
+  });
+
+  const users = [...new Set(notifications.map((n) => n.user_id))];
+  const subsResponse = await supabaseRequest(
+    env,
+    `/rest/v1/push_subscriptions?select=endpoint,user_id,p256dh,auth&user_id=in.(${users.join(",")})`
+  );
+
+  if (!subsResponse.ok) {
+    return;
+  }
+
+  const subscriptions = await subsResponse.json();
+  const dead = new Set();
+  let sent = 0;
+
+  for (const notification of notifications) {
+    const link = /^#[a-z0-9-]{1,40}$/.test(notification.link || "") ? notification.link : "";
+    const message = {
+      title: "TronkStudios",
+      body: String(notification.message || "").slice(0, 200),
+      url: `${PUSH_SITE}${link}`,
+      tag: `${notification.kind}-${notification.id}`
+    };
+
+    for (const subscription of subscriptions.filter((sub) => sub.user_id === notification.user_id)) {
+      if (dead.has(subscription.endpoint)) {
+        continue;
+      }
+
+      try {
+        const status = await sendPush(env, subscription, message);
+
+        // 404 / 410: el dispositivo ya no existe (se desinstaló o se quitó el permiso)
+        if (status === 404 || status === 410) {
+          dead.add(subscription.endpoint);
+        } else if (status < 300) {
+          sent++;
+        } else {
+          console.warn("push: respuesta", status);
+        }
+      } catch (error) {
+        console.warn("push: error al enviar", error && error.name);
+      }
+    }
+  }
+
+  if (dead.size) {
+    const list = [...dead].map((endpoint) => `"${endpoint.replace(/"/g, "")}"`).join(",");
+    await supabaseRequest(env, `/rest/v1/push_subscriptions?endpoint=in.(${encodeURIComponent(list)})`, { method: "DELETE" });
+  }
+
+  console.log(`push: ${sent} enviadas, ${dead.size} dispositivos borrados`);
+}
+
+/* =========================================================
+   CALENDARIO PARA SUSCRIBIRSE (/calendar.ics)
+   Los eventos de docs/supabase/calendario.sql y las fechas de
+   lanzamiento de game_releases, en formato iCalendar, para Google
+   Calendar, el iPhone u Outlook. Solo lee datos públicos con la clave
+   pública de Supabase (SUPABASE_ANON_KEY en wrangler.toml).
+   ========================================================= */
+
+const ICS_PAD = (n) => String(n).padStart(2, "0");
+
+function icsUtc(date) {
+  return `${date.getUTCFullYear()}${ICS_PAD(date.getUTCMonth() + 1)}${ICS_PAD(date.getUTCDate())}T${ICS_PAD(date.getUTCHours())}${ICS_PAD(date.getUTCMinutes())}00Z`;
+}
+
+function icsText(text) {
+  return String(text || "").replace(/\\/g, "\\\\").replace(/\r?\n/g, "\\n").replace(/([,;])/g, "\\$1");
+}
+
+// Las líneas de más de 75 bytes se doblan (RFC 5545)
+function icsFold(line) {
+  const out = [];
+  let current = "";
+
+  for (const char of line) {
+    if (new TextEncoder().encode(current + char).length > 74) {
+      out.push(current);
+      current = ` ${char}`;
+    } else {
+      current += char;
+    }
+  }
+
+  out.push(current);
+  return out.join("\r\n");
+}
+
+async function publicSupabase(env, path) {
+  const response = await fetch(`${String(env.SUPABASE_URL).replace(/\/$/, "")}${path}`, {
+    headers: { apikey: String(env.SUPABASE_ANON_KEY) }
+  });
+
+  if (!response.ok) {
+    throw new Error(`supabase ${response.status}`);
+  }
+
+  return response.json();
+}
+
+async function handleCalendar(env) {
+  if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
+    return new Response("Calendario no configurado", { status: 503 });
+  }
+
+  const since = new Date(Date.now() - 60 * 86400000).toISOString();
+  const [events, releases] = await Promise.all([
+    publicSupabase(env, `/rest/v1/calendar_events?select=*&starts_at=gte.${encodeURIComponent(since)}&order=starts_at.asc&limit=300`).catch(() => []),
+    publicSupabase(env, "/rest/v1/game_releases?select=project_id,title,release_date&release_date=not.is.null").catch(() => [])
+  ]);
+
+  const stamp = icsUtc(new Date());
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//TronkStudios//Calendario//ES",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "X-WR-CALNAME:TronkStudios",
+    "X-WR-CALDESC:Lanzamientos\\, torneos\\, concursos y directos de TronkStudios",
+    "X-WR-TIMEZONE:Europe/Madrid",
+    "REFRESH-INTERVAL;VALUE=DURATION:PT6H",
+    "X-PUBLISHED-TTL:PT6H"
+  ];
+
+  const addEvent = ({ uid, title, start, end, allDay, description, url }) => {
+    lines.push(
+      "BEGIN:VEVENT",
+      `UID:${uid}@tronkstudios.github.io`,
+      `DTSTAMP:${stamp}`,
+      allDay ? `DTSTART;VALUE=DATE:${start}` : `DTSTART:${start}`,
+      allDay ? `DTEND;VALUE=DATE:${end}` : `DTEND:${end}`,
+      `SUMMARY:${icsText(title)}`,
+      `DESCRIPTION:${icsText(description)}`,
+      `URL:${url}`,
+      "END:VEVENT"
+    );
+  };
+
+  const day = (value) => String(value).slice(0, 10).replace(/-/g, "");
+  const nextDay = (value) => {
+    const date = new Date(`${String(value).slice(0, 10)}T00:00:00Z`);
+    date.setUTCDate(date.getUTCDate() + 1);
+    return date.toISOString().slice(0, 10).replace(/-/g, "");
+  };
+
+  (Array.isArray(events) ? events : []).forEach((event) => {
+    const start = new Date(event.starts_at);
+    const madridDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Madrid" }).format(start);
+    const endDate = event.ends_at ? new Date(event.ends_at) : new Date(start.getTime() + 3600000);
+
+    addEvent({
+      uid: `evento-${event.id}`,
+      title: event.title,
+      start: event.all_day ? day(madridDay) : icsUtc(start),
+      end: event.all_day
+        ? nextDay(event.ends_at ? new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Madrid" }).format(new Date(event.ends_at)) : madridDay)
+        : icsUtc(endDate),
+      allDay: event.all_day,
+      description: [event.description, event.link].filter(Boolean).join("\n"),
+      url: event.link || "https://tronkstudios.github.io/#calendario"
+    });
+  });
+
+  (Array.isArray(releases) ? releases : []).forEach((release) => {
+    addEvent({
+      uid: `lanzamiento-${release.project_id}`,
+      title: `Lanzamiento de ${release.title}`,
+      start: day(release.release_date),
+      end: nextDay(release.release_date),
+      allDay: true,
+      description: "Fecha prevista (puede cambiar).",
+      url: "https://tronkstudios.github.io/#desarrollo"
+    });
+  });
+
+  lines.push("END:VCALENDAR");
+
+  return new Response(lines.map(icsFold).join("\r\n") + "\r\n", {
+    headers: {
+      "content-type": "text/calendar; charset=utf-8",
+      "content-disposition": 'inline; filename="tronkstudios.ics"',
+      "cache-control": "public, max-age=900",
+      "access-control-allow-origin": "*"
+    }
+  });
+}
+
+/* =========================================================
    AVISOS DE LANZAMIENTO (una vez al día, ver [triggers] en wrangler.toml)
    Busca en Supabase a quien pidió «Avísame cuando salga» de un
    juego que ya ha salido (tabla game_releases), le envía un correo
@@ -969,7 +1313,12 @@ async function handleRoblox(url, cors) {
 
 export default {
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(sendLaunchNotifications(env));
+    // Cada minuto: notificaciones push. Una vez al día: correos de lanzamiento.
+    if (event.cron === "* * * * *") {
+      ctx.waitUntil(sendPushNotifications(env));
+    } else {
+      ctx.waitUntil(sendLaunchNotifications(env));
+    }
   },
 
 
@@ -992,6 +1341,7 @@ export default {
             chat: isChatConfigured(env),
             contact: isContactConfigured(env),
             launchMail: isLaunchMailConfigured(env),
+            push: isPushConfigured(env),
             turnstile: Boolean(env.TURNSTILE_SECRET)
           },
           200,
@@ -1005,6 +1355,16 @@ export default {
 
       if (url.pathname === "/roblox" && request.method === "GET") {
         return await handleRoblox(url, cors);
+      }
+
+      // Clave pública para activar las notificaciones push en la web
+      if (url.pathname === "/push-key" && request.method === "GET") {
+        return json({ key: env.VAPID_PUBLIC_KEY || "" }, 200, cors);
+      }
+
+      // Calendario para suscribirse (Google Calendar, iPhone, Outlook...)
+      if (url.pathname === "/calendar.ics" && request.method === "GET") {
+        return await handleCalendar(env);
       }
 
       if (request.method === "POST") {

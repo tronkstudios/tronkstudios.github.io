@@ -14,7 +14,7 @@
    Si algún día algo se queda «pegado» en una versión vieja, sube el
    número de CACHE_VERSION. */
 
-const CACHE_VERSION = 4;
+const CACHE_VERSION = 5;
 const CACHE_NAME = `tronkstudios-v${CACHE_VERSION}`;
 
 const AVATARS = [
@@ -148,4 +148,49 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Todo lo demás (Supabase, YouTube, Cloudflare...) va directo a internet
+});
+
+/* =========================================================
+   NOTIFICACIONES PUSH (las envía el Worker; ver js/push.js)
+   ========================================================= */
+
+self.addEventListener("push", (event) => {
+  let data = {};
+
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { body: event.data ? event.data.text() : "" };
+  }
+
+  const url = typeof data.url === "string" && data.url.startsWith(self.location.origin) ? data.url : self.location.origin + "/";
+
+  event.waitUntil(
+    self.registration.showNotification(data.title || "TronkStudios", {
+      body: data.body || "Tienes un aviso nuevo.",
+      icon: "img/icons/icon-192.png",
+      badge: "img/icons/icon-192.png",
+      tag: data.tag || undefined,
+      data: { url }
+    })
+  );
+});
+
+// Al tocar la notificación se abre (o se enfoca) la web en esa sección
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || self.location.origin + "/";
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
+      const open = windows.find((client) => client.url.startsWith(self.location.origin));
+
+      if (open) {
+        open.navigate(url).catch(() => {});
+        return open.focus();
+      }
+
+      return self.clients.openWindow(url);
+    })
+  );
 });

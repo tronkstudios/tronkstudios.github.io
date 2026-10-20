@@ -7,7 +7,8 @@
 #   npx wrangler secret put RESEND_API_KEY
 #   npx wrangler secret put SUPPORT_EMAIL_TO
 #   npx wrangler secret put TURNSTILE_SECRET   (opcional)
-#   npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY   (avisos de lanzamiento)
+#   npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY   (avisos de lanzamiento y push)
+#   npx wrangler secret put VAPID_PRIVATE_KEY   (notificaciones push)
 # =========================================================
 
 name = "tronkstudios-support"
@@ -37,6 +38,15 @@ MAIL_FROM = "Soporte TronkStudios <onboarding@resend.dev>"
 # Supabase, para los avisos de lanzamiento por correo (dirección pública)
 SUPABASE_URL = "https://qjjnqhbtovjcbwgcwhgl.supabase.co"
 
+# Clave PÚBLICA de Supabase (la misma que lleva la web en js/core.js).
+# Sirve para el calendario /calendar.ics. NO es la clave secreta.
+SUPABASE_ANON_KEY = "sb_publishable_YPAglgrxaxvaqU8KSS-HkQ_scyeLigm"
+
+# Notificaciones push: la clave PÚBLICA VAPID (la privada va como secreto).
+# Se crean una vez con: npx web-push generate-vapid-keys
+# Vacía = las notificaciones push están desactivadas.
+VAPID_PUBLIC_KEY = ""
+
 # Workers AI (IA gratis de Cloudflare para el chat de Tronker)
 [ai]
 binding = "AI"
@@ -53,6 +63,7 @@ name = "CONTACT_LIMITER"
 namespace_id = "1002"
 simple = { limit = 2, period = 60 }
 
-# Avisos de lanzamiento: se revisan una vez al día (9:00 UTC)
+# Avisos de lanzamiento: una vez al día (9:00 UTC).
+# Notificaciones push: cada minuto.
 [triggers]
-crons = ["0 9 * * *"]
+crons = ["0 9 * * *", "* * * * *"]

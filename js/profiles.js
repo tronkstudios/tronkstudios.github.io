@@ -1186,6 +1186,9 @@ async function syncPlatformWithAccount() {
   // Tu aporte a los retos (js/challenges.js)
   loadChallenges();
 
+  // Notificaciones push en este dispositivo (js/push.js)
+  window.TronkPush?.refresh();
+
   // Galería de fans: tus votos (js/gallery.js)
   if (typeof loadGallery === "function") {
     loadGallery();

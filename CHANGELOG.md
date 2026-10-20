@@ -9,6 +9,30 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.30 · Juegos editables, calendario y notificaciones push
+
+#### Añadido
+- **Juegos editables desde el panel del equipo** (pestaña «Juegos»): crear,
+  editar, ocultar y borrar los juegos de «En desarrollo» y «Nuestros juegos»
+  (título, descripción, fase, plataformas, géneros, imagen principal,
+  capturas, tráiler, tiendas y Roblox). Las imágenes se suben a Storage.
+  Si no hay datos en Supabase, la web sigue con los de `js/projects.js`.
+  Necesita `docs/supabase/proyectos.sql`.
+- **Calendario** (sección «Calendario»): lanzamientos, torneos, concursos y
+  directos. Cada evento se añade a Google Calendar o se descarga (.ics), y el
+  calendario entero se puede suscribir (Google, iPhone, Outlook) desde el
+  Worker (`/calendar.ics`). Las fechas de «Lanzamientos» salen solas. El
+  equipo añade eventos en la pestaña «Calendario».
+  Necesita `docs/supabase/calendario.sql`.
+- **Notificaciones push**: en el panel de la campanita, «Activar» recibe los
+  avisos en ese dispositivo aunque la web esté cerrada (en el iPhone, con la
+  app instalada). El Worker los envía cada minuto con Web Push (VAPID y
+  aes128gcm, sin librerías). Necesita `docs/supabase/push.sql` y las claves
+  VAPID en el Worker.
+
+#### Corregido
+- Al repintar las tarjetas no se duplican los avisos de imagen rota.
+
 ### 6.29 · Galería de fans, logros secretos y modo jefe
 
 #### Añadido
