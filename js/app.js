@@ -110,7 +110,7 @@ document.addEventListener(
       closeModal(projectModal);
     }
 
-    ["profile-modal", "team-modal", "list-modal"].forEach((id) => {
+    ["profile-modal", "team-modal", "list-modal", "art-modal", "art-upload-modal"].forEach((id) => {
       const modal = document.getElementById(id);
 
       if (modal && !modal.classList.contains("hidden")) {
@@ -153,6 +153,8 @@ initializeExtras();
 initializeCardImageFallbacks();
 
 loadSuggestions();
+
+loadGallery();
 
 updateAccountUI();
 

@@ -1154,6 +1154,13 @@ function initializeStickDrillGame() {
   }
 
   function loop(now) {
+    // Modo jefe (js/boss.js): el juego se queda congelado
+    if (window.TronkBossActive) {
+      lastTime = now;
+      animationFrame = requestAnimationFrame(loop);
+      return;
+    }
+
     const ms = Math.min(40, now - lastTime || 16);
     lastTime = now;
 

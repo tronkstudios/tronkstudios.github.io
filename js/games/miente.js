@@ -86,6 +86,8 @@ function initializeMienteGame() {
   let frame = 0;
   let pausedAt = 0;
   let lastTick = 0;
+  let presses = 0; // para los logros secretos
+  let startedAt = 0;
   let order = [...IDS];
 
   const buttons = IDS.map((id, index) => {
@@ -304,6 +306,8 @@ function initializeMienteGame() {
       return;
     }
 
+    presses++;
+
     if (round.answers.includes(color)) {
       correct(color);
     } else {
@@ -393,6 +397,8 @@ function initializeMienteGame() {
     round = null;
     running = true;
     paused = false;
+    presses = 0;
+    startedAt = performance.now();
 
     updateHud();
     resetBoard();
@@ -411,6 +417,15 @@ function initializeMienteGame() {
     if (newRecord) {
       record = score;
       saveRecord(record);
+    }
+
+    // Logros secretos (js/secrets.js)
+    if (presses === 0) {
+      window.TronkSecrets?.unlock("pacifista");
+    }
+
+    if (performance.now() - startedAt < 6000) {
+      window.TronkSecrets?.unlock("speedrun");
     }
 
     // Cuenta, retos y mascota (js/profiles.js, js/challenges.js, js/mascot.js)
@@ -509,17 +524,17 @@ function initializeMienteGame() {
     document.body.classList.remove("antitronks-open");
   }
 
-  /* Si cambias de pestaña, el tiempo se para */
-  document.addEventListener("visibilitychange", () => {
-    if (!running) {
+  /* Si cambias de pestaña (o se activa el modo jefe), el tiempo se para */
+  function setPaused(value) {
+    if (!running || value === paused) {
       return;
     }
 
-    if (document.hidden) {
+    if (value) {
       paused = true;
       pausedAt = performance.now();
       cancelAnimationFrame(frame);
-    } else if (paused) {
+    } else {
       paused = false;
 
       if (round && round.start) {
@@ -530,7 +545,10 @@ function initializeMienteGame() {
         frame = requestAnimationFrame(tick);
       }
     }
-  });
+  }
+
+  document.addEventListener("visibilitychange", () => setPaused(document.hidden || window.TronkBossActive));
+  window.addEventListener("tronk:boss", () => setPaused(document.hidden || window.TronkBossActive));
 
   /* =======================================================
      EVENTOS

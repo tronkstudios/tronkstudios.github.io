@@ -54,6 +54,7 @@ const AREA_LINES = {
   leaderboard: ["A ver quién va primero.", "Solo cuentan las partidas con la sesión iniciada."],
   sugerencias: ["Aquí la comunidad propone ideas.", "Puedes votar las ideas que más te gusten."],
   suggestion: ["Si te gusta esta idea, vótala.", "El equipo responde a las ideas por aquí."],
+  galeria: ["Aquí salen los dibujos de la comunidad.", "¿Dibujas? Sube el tuyo, que el equipo lo revisa."],
   polls: ["Vota en la encuesta, que el equipo la mira."],
   novedades: ["Aquí el equipo cuenta en qué está trabajando."],
   videos: ["Estos son los últimos vídeos del canal.", "Los Shorts nuevos salen aquí solos."],

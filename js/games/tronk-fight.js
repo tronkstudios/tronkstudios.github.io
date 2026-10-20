@@ -2404,6 +2404,8 @@ function pause() {
 }
 function resume() { app.paused = false; Sound.music.pause(false); show("fight"); }
 $("#tf-btn-pause").addEventListener("click", pause);
+// Modo jefe (js/boss.js): el combate se pausa solo
+window.addEventListener("tronk:boss", e => { if (e.detail && e.detail.on && !app.paused) pause(); });
 $("#tf-btn-resume").addEventListener("click", resume);
 $("#tf-btn-restart").addEventListener("click", startFight);
 $("#tf-btn-p-select").addEventListener("click", () => { Sound.music.stop(); openSelect("p1"); });

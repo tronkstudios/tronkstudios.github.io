@@ -78,7 +78,7 @@ alter table public.notifications
 
 alter table public.notifications
   add constraint notifications_kind_check
-  check (kind in ('votes', 'status', 'reply', 'record', 'release', 'team', 'challenge', 'comment'));
+  check (kind in ('votes', 'status', 'reply', 'record', 'release', 'team', 'challenge', 'comment', 'fanart'));
 
 /* =========================================================
    SUMAR UNA PARTIDA

@@ -381,11 +381,13 @@ const SHORTCUTS = [
   { key: "r", label: "Roblox", target: "#roblox" },
   { key: "m", label: "Minijuegos", target: "#minijuegos" },
   { key: "s", label: "Sugerencias y comunidad", target: "#sugerencias" },
+  { key: "g", label: "Galería de fans", target: "#galeria" },
   { key: "n", label: "Novedades", target: "#novedades" },
   { key: "a", label: "Sobre nosotros", target: "#sobre-nosotros" },
   { key: "i", label: "Volver al inicio", action: () => window.scrollTo({ top: 0, behavior: "smooth" }) },
   { key: "c", label: "Cuenta", action: () => document.getElementById("account-button")?.click() },
   { key: "t", label: "Cambiar tema claro / oscuro", action: () => document.getElementById("theme-toggle")?.click() },
+  { key: "b", label: "Modo jefe (B o Esc para volver)", action: () => window.TronkBoss?.on() },
   { key: "?", label: "Ver estos atajos", action: () => openShortcuts() }
 ];
 

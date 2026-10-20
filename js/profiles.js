@@ -660,6 +660,11 @@ function renderProfile(content, data) {
 
   content.appendChild(badges);
 
+  // Logros secretos (js/secrets.js): solo en tu perfil, son de este navegador
+  if (isMine && window.TronkSecrets) {
+    content.appendChild(TronkSecrets.renderList());
+  }
+
   /* ---------- Lista de deseados ---------- */
   content.appendChild(makeElement("h3", "profile-section-title", "Lista de deseados"));
   const wishlist = makeElement("ul", "profile-wishlist");
@@ -1180,6 +1185,11 @@ async function syncPlatformWithAccount() {
 
   // Tu aporte a los retos (js/challenges.js)
   loadChallenges();
+
+  // Galería de fans: tus votos (js/gallery.js)
+  if (typeof loadGallery === "function") {
+    loadGallery();
+  }
 
   // ¿Insignias nuevas? (js/extras.js)
   window.dispatchEvent(new Event("tronk:activity"));

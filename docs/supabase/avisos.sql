@@ -12,7 +12,7 @@ alter table public.notifications
 
 alter table public.notifications
   add constraint notifications_kind_check
-  check (kind in ('votes', 'status', 'reply', 'record', 'release', 'team', 'challenge', 'comment'));
+  check (kind in ('votes', 'status', 'reply', 'record', 'release', 'team', 'challenge', 'comment', 'fanart'));
 
 /*
  * Envía un aviso. p_project = null → a todos los usuarios;
