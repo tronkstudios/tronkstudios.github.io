@@ -1452,6 +1452,236 @@ body.antitronks-open {
 }
 
 /* =========================================
+   EL JUEGO MIENTE (js/games/miente.js)
+   ========================================= */
+
+.antitronks-window.miente-window {
+  width: min(560px, 100%);
+}
+
+.miente-game {
+  background:
+    radial-gradient(circle at 50% 30%, rgba(124, 58, 237, .28), transparent 60%),
+    linear-gradient(#0d0b1d, #06050f);
+  touch-action: manipulation;
+}
+
+.miente-board {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto auto auto 1fr;
+  align-content: start;
+  gap: clamp(.6rem, 2.2vh, 1.2rem);
+  padding: 64px clamp(.9rem, 4vw, 1.6rem) clamp(.9rem, 4vw, 1.6rem);
+}
+
+.miente-rule {
+  justify-self: center;
+  margin: 0;
+  padding: .45rem 1rem;
+  border-radius: 999px;
+  background: #fff;
+  color: #0d0b1d;
+  font-weight: 950;
+  font-size: clamp(.85rem, 3.4vw, 1.05rem);
+  letter-spacing: .06em;
+  text-align: center;
+}
+
+.miente-rule[data-rule="color"] {
+  background: linear-gradient(90deg, #ef4444, #facc15, #22c55e, #3b82f6);
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .6);
+}
+
+.miente-rule[data-rule="ninguno"] {
+  background: #a855f7;
+  color: #fff;
+}
+
+.miente-rule[data-rule="nada"] {
+  background: #111;
+  color: #fff;
+  box-shadow: inset 0 0 0 2px #ef4444;
+  animation: miente-blink .5s steps(2) infinite;
+}
+
+.miente-rule.is-changing {
+  animation: miente-change .9s ease-out;
+}
+
+@keyframes miente-change {
+  0% { transform: scale(1); }
+  20% { transform: scale(1.18) rotate(-2deg); }
+  40% { transform: scale(.96) rotate(2deg); }
+  100% { transform: scale(1); }
+}
+
+@keyframes miente-blink {
+  50% { box-shadow: inset 0 0 0 2px transparent; }
+}
+
+.miente-word {
+  margin: 0;
+  text-align: center;
+  font-weight: 950;
+  font-size: clamp(2.6rem, 13vw, 4.6rem);
+  line-height: 1;
+  letter-spacing: .03em;
+  -webkit-text-stroke: 2px rgba(0, 0, 0, .35);
+  paint-order: stroke fill;
+}
+
+.miente-word.is-pop {
+  animation: miente-pop .22s ease-out;
+}
+
+@keyframes miente-pop {
+  from { transform: scale(.7); opacity: .2; }
+}
+
+.miente-timer {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .12);
+  overflow: hidden;
+}
+
+.miente-timer span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #fff;
+  transform-origin: left center;
+}
+
+.miente-timer span.is-low {
+  background: #ef4444;
+}
+
+.miente-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: clamp(.55rem, 2.4vw, .9rem);
+  min-height: 0;
+}
+
+.miente-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 72px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--miente-color, #444);
+  color: #fff;
+  font-weight: 950;
+  font-size: clamp(1rem, 4.6vw, 1.4rem);
+  letter-spacing: .05em;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, .45);
+  box-shadow: inset 0 -6px 0 rgba(0, 0, 0, .25), 0 8px 20px rgba(0, 0, 0, .35);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .06s ease, filter .12s ease;
+}
+
+.miente-button:active {
+  transform: translateY(3px) scale(.98);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .25), 0 4px 10px rgba(0, 0, 0, .35);
+}
+
+.miente-key {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, .28);
+  font-size: .75rem;
+  text-shadow: none;
+}
+
+.miente-button.is-right {
+  outline: 4px solid #fff;
+  outline-offset: 3px;
+}
+
+.miente-button.is-wrong {
+  filter: grayscale(.8) brightness(.6);
+  animation: miente-shake .3s ease;
+}
+
+@keyframes miente-shake {
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+
+.miente-hud .antitronks-score,
+.miente-hud .antitronks-lives,
+.miente-hud .antitronks-record {
+  top: 10px;
+  padding: .35rem .55rem;
+  font-size: .78rem;
+}
+
+.miente-hud .antitronks-score { left: 10px; }
+.miente-hud .antitronks-lives { right: 10px; }
+
+.miente-hud .antitronks-message {
+  top: 46%;
+  bottom: auto;
+  width: 90%;
+  padding: .5rem .9rem;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, .7);
+  text-align: center;
+  font-size: clamp(1rem, 4.4vw, 1.35rem);
+}
+
+/* En pantallas pequeñas no se ven las teclas */
+@media (pointer: coarse) {
+  .miente-key {
+    display: none;
+  }
+}
+
+/* La racha va en la fila de arriba, junto a los aciertos */
+.miente-hud .game-streak {
+  top: 46px;
+  left: 10px;
+  font-size: .75rem;
+}
+
+/* Móvil: la regla baja un poco para no chocar con la racha */
+@media (max-width: 600px) {
+  .miente-board {
+    padding-top: 84px;
+  }
+}
+
+/* Móvil: el robot no sale aquí, porque taparía la palabra */
+@media (pointer: coarse), (max-width: 600px) {
+  .mascot.in-game[data-game="miente"] {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .miente-rule.is-changing,
+  .miente-rule[data-rule="nada"],
+  .miente-word.is-pop,
+  .miente-button.is-wrong {
+    animation: none;
+  }
+}
+
+/* =========================================
    BOTÓN DE SONIDO DE LOS MINIJUEGOS
    ========================================= */
 

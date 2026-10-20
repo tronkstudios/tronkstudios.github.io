@@ -49,6 +49,7 @@ const AREA_LINES = {
   "game:antininja": ["Protect Mogos: que no lleguen al castillo.", "Cuanto más aguantas, más rápidos van."],
   "game:stickdrill": ["Stick Drill: esquiva el taladro.", "Se puede jugar contra un amigo en el mismo teclado."],
   "game:tronkfight": ["Tronk Fight: siete luchadores para elegir.", "Llena la barra y usa el ataque especial."],
+  "game:miente": ["El Juego Miente: no te fíes de nada.", "Lee bien la regla antes de pulsar."],
   challenges: ["Cada partida tuya suma a la barra del reto.", "Si se supera el reto, os llega un aviso a todos."],
   leaderboard: ["A ver quién va primero.", "Solo cuentan las partidas con la sesión iniciada."],
   sugerencias: ["Aquí la comunidad propone ideas.", "Puedes votar las ideas que más te gusten."],

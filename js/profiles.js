@@ -84,6 +84,11 @@ const SCORE_GAMES = {
   "tronk-fight": {
     title: "Tronk Fight",
     unit: "victorias"
+  },
+  miente: {
+    title: "El Juego Miente",
+    unit: "aciertos",
+    localKey: "miente-record"
   }
 };
 
@@ -148,8 +153,8 @@ const BADGES = [
   {
     icon: "trophy",
     name: "Todoterreno",
-    how: "Tener récord en los 4 minijuegos",
-    test: (d) => Object.keys(SCORE_GAMES).every((game) => d.scores[game] > 0)
+    how: "Tener récord en 4 minijuegos",
+    test: (d) => Object.keys(SCORE_GAMES).filter((game) => d.scores[game] > 0).length >= 4
   },
   {
     icon: "flame",

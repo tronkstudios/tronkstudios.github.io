@@ -56,6 +56,8 @@ MINIJUEGOS (gratis, en el navegador; se abren pulsando su tarjeta)
 - Protect Mogos: hacer clic o tocar los ninjas antes de que lleguen al castillo. 3 vidas.
 - Stick Drill: esquivar un taladro que rebota; pierde el que caiga primero. Contra el bot o 2 jugadores (W A S D y flechas; en móvil, joysticks).
 - Tronk Fight: duelo de stickmans con 7 luchadores, contra el bot (3 dificultades) o 2 jugadores. J1: W A S D + J K L I. J2: flechas + , . - y Mayús derecha.
+- El Juego Miente: juego de reacción. Sale una regla y una palabra de color escrita en otro color. "Obedece a la palabra": pulsar el color que dice; "Obedece al color": el color en que está escrita; "Ni uno ni otro": otro distinto; "¡No pulses nada!": esperar. La regla cambia cada pocas rondas y el juego engaña cada vez más (botones que cambian de sitio y nombres falsos). Teclas 1-4 o tocar. 3 vidas.
+- Desde los resultados se puede "Retar a un amigo" con un enlace (Antitronks, Protect Mogos, Stick Drill y El Juego Miente).
 - Cada minijuego tiene botón de sonido, botón de pantalla completa y una × para cerrar. En el móvil se ponen a pantalla completa solos.
 - Con la sesión iniciada, los récords se guardan en la cuenta y salen en la Clasificación. Sin sesión, solo en ese navegador.
 - Retos de la comunidad: el equipo crea retos (por ejemplo "entre todos, derrotad 10.000 ninjas esta semana"). Cada partida con la sesión iniciada suma a la barra. Al superarlo llega un aviso.

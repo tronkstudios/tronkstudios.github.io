@@ -261,6 +261,31 @@ const I18N_EN = {
   "Escribe tu opinión...": "Write your opinion...",
   "Tu comentario": "Your comment",
   "Comentar": "Comment",
+  "El Juego Miente": "The Game Lies",
+  "EL JUEGO MIENTE": "THE GAME LIES",
+  "Abrir El Juego Miente": "Open The Game Lies",
+  "Cerrar El Juego Miente": "Close The Game Lies",
+  "El Juego Miente - minijuego de reacción con colores": "The Game Lies - colour reaction minigame",
+  "OBEDECE A LA PALABRA": "OBEY THE WORD",
+  "OBEDECE AL COLOR": "OBEY THE COLOUR",
+  "NI UNO NI OTRO": "NEITHER ONE",
+  "¡NO PULSES NADA!": "DON'T PRESS ANYTHING!",
+  "ROJO": "RED",
+  "AZUL": "BLUE",
+  "VERDE": "GREEN",
+  "AMARILLO": "YELLOW",
+  "¡CAMBIO DE REGLA!": "RULE CHANGE!",
+  "¡SE ACABÓ EL TIEMPO!": "TIME'S UP!",
+  "¡TE HE DICHO QUE NO!": "I SAID DON'T!",
+  "¡TE HA ENGAÑADO!": "IT FOOLED YOU!",
+  "¡BIEN AGUANTADO!": "WELL RESISTED!",
+  "Aciertos": "Correct",
+  "Obedece a la regla… aunque el juego intente engañarte.": "Obey the rule… even if the game tries to fool you.",
+  "Arriba sale la regla y en el centro una palabra de color. «Obedece a la palabra»: pulsa el color que dice. «Obedece al color»: pulsa el color en que está escrita. La regla cambia… y el juego miente cada vez más. Teclas 1-4 o toca los botones.": "The rule is at the top and a colour word in the middle. “Obey the word”: press the colour it says. “Obey the colour”: press the colour it's written in. The rule changes… and the game lies more and more. Keys 1-4 or tap the buttons.",
+  "El Juego Miente: no te fíes de nada.": "The Game Lies: don't trust anything.",
+  "Lee bien la regla antes de pulsar.": "Read the rule carefully before pressing.",
+  "El Juego Miente: arriba sale una regla y en el centro una palabra de color escrita en otro color.": "The Game Lies: a rule appears at the top and a colour word in the middle, written in a different colour.",
+  "«Obedece a la palabra»: pulsa el color que dice. «Obedece al color»: pulsa el color en que está escrita. «Ni uno ni otro»: pulsa otro distinto. Si sale «¡No pulses nada!», espera. Teclas 1-4 o toca los botones. Tienes 3 vidas.": "“Obey the word”: press the colour it says. “Obey the colour”: press the colour it's written in. “Neither one”: press a different one. If “Don't press anything!” appears, wait. Keys 1-4 or tap the buttons. You have 3 lives.",
   "Retar a un amigo": "Challenge a friend",
   "¡Enlace copiado! Pégalo a tu amigo": "Link copied! Paste it to your friend",
   "Aceptar reto": "Accept challenge",
@@ -519,7 +544,7 @@ const I18N_EN = {
   "Jugador": "Player",
   "Guardar un récord en un minijuego": "Save a record in a minigame",
   "Todoterreno": "All-rounder",
-  "Tener récord en los 4 minijuegos": "Have a record in all 4 minigames",
+  "Tener récord en 4 minijuegos": "Have a record in 4 minigames",
   "Luchador": "Fighter",
   "Ganar 10 combates de Tronk Fight al bot": "Win 10 Tronk Fight matches against the bot",
 
@@ -1074,7 +1099,7 @@ const I18N_EN = {
   "The Sundered Sky es un RPG de fantasía y aventuras para PC en un mundo de islas flotantes hechas de cubos, que se recorre en barco volador con amigos.": "The Sundered Sky is a fantasy adventure RPG for PC set in a world of floating islands made of cubes, explored by flying ship with friends.",
   "Todavía no tiene fecha de lanzamiento. Puedes añadirlo a tu lista de deseados para que te avisemos.": "It doesn't have a release date yet. You can add it to your wishlist so we can let you know.",
   "Ver su ficha": "See its page",
-  "Hay cuatro minijuegos gratis que se juegan aquí mismo, en el navegador. ¿De cuál quieres saber los controles?": "There are four free minigames you can play right here in the browser. Which one do you want the controls for?",
+  "Hay cinco minijuegos gratis que se juegan aquí mismo, en el navegador. ¿De cuál quieres saber los controles?": "There are five free minigames you can play right here in the browser. Which one do you want the controls for?",
   "Tengo un problema con uno": "I have a problem with one",
   "Antitronks: dispara a los Antitronks sin dar a los civiles.": "Antitronks: shoot the Antitronks without hitting the civilians.",
   "Apunta con el ratón y haz clic para disparar. Gira la cámara con A y D. Tienes 3 vidas, y los disparos a la cabeza dan el doble de puntos.": "Aim with the mouse and click to shoot the Antitronks. Turn the camera with A and D. You have 3 lives, and headshots give double points.",
@@ -1205,17 +1230,21 @@ const CHALLENGE_UNITS_EN = {
   "segundos aguantados": "seconds survived",
   "segundo aguantado": "second survived",
   "victorias": "wins",
-  "victoria": "win"
+  "victoria": "win",
+  "aciertos": "correct answers",
+  "acierto": "correct answer"
 };
 
-const DUEL_UNITS_EN = { puntos: "points", segundos: "seconds" };
+const DUEL_UNITS_EN = { puntos: "points", segundos: "seconds", aciertos: "correct answers" };
 
 const I18N_PATTERNS = [
-  [/^Reto de (.+): supera ([\d.]+) (puntos|segundos)$/, (_, w, n, u) => `${w === "Tu amigo" ? "Your friend" : w}'s challenge: beat ${n} ${DUEL_UNITS_EN[u]}`],
+  [/^ACIERTOS: (\d+)$/, (_, n) => `CORRECT: ${n}`],
+  [/^Botón (\d)$/, (_, n) => `Button ${n}`],
+  [/^Reto de (.+): supera ([\d.]+) (puntos|segundos|aciertos)$/, (_, w, n, u) => `${w === "Tu amigo" ? "Your friend" : w}'s challenge: beat ${n} ${DUEL_UNITS_EN[u]}`],
   [/^¡Reto superado! Has ganado a (.+)$/, (_, w) => `Challenge complete! You beat ${w === "Tu amigo" ? "your friend" : w}`],
-  [/^Te faltan ([\d.]+) (puntos|segundos) para superar a (.+)$/, (_, n, u, w) => `${n} ${DUEL_UNITS_EN[u]} to go to beat ${w === "Tu amigo" ? "your friend" : w}`],
+  [/^Te faltan ([\d.]+) (puntos|segundos|aciertos) para superar a (.+)$/, (_, n, u, w) => `${n} ${DUEL_UNITS_EN[u]} to go to beat ${w === "Tu amigo" ? "your friend" : w}`],
   [/^(.+) te reta en (.+)$/, (_, w, g) => `${w === "Un amigo" ? "A friend" : w} challenges you in ${g}`],
-  [/^Supera sus ([\d.]+) (puntos|segundos)$/, (_, n, u) => `Beat their ${n} ${DUEL_UNITS_EN[u]}`],
+  [/^Supera sus ([\d.]+) (puntos|segundos|aciertos)$/, (_, n, u) => `Beat their ${n} ${DUEL_UNITS_EN[u]}`],
   [/^(\d+) días? seguidos$/, (_, n) => `${n}-day streak`],
   [/^¡Racha de (\d+) días seguidos!$/, (_, n) => `${n}-day streak!`],
   [/^Mejor racha: (\d+) días?$/, (_, n) => `Best streak: ${n} ${plural(n, "day", "days")}`],
@@ -1236,7 +1265,7 @@ const I18N_PATTERNS = [
     (_, d) => `It comes out on ${t(d)} (planned date, it may change). If you add it to your wishlist and press “Notify me”, we'll let you know when it's out.`],
   [/^Quedan (\d+) días$/, (_, n) => `${n} days left`],
   [/^Quedan (\d+) horas?$/, (_, n) => `${n} ${plural(n, "hour", "hours")} left`],
-  [/^(Antitronks derribados|Antitronk derribado|ninjas derrotados|ninja derrotado|segundos aguantados|segundo aguantado|victorias|victoria) · (\d+)%$/,
+  [/^(Antitronks derribados|Antitronk derribado|ninjas derrotados|ninja derrotado|segundos aguantados|segundo aguantado|victorias|victoria|aciertos|acierto) · (\d+)%$/,
     (_, u, n) => `${CHALLENGE_UNITS_EN[u]} · ${n}%`],
   [/^Tu aporte: ([\d.,]+) (.+)$/, (_, n, u) => `Your contribution: ${n} ${CHALLENGE_UNITS_EN[u] || u}`],
   [/^Ayudaste con ([\d.,]+) (.+)\. ¡Gracias!$/, (_, n, u) => `You helped with ${n} ${CHALLENGE_UNITS_EN[u] || u}. Thanks!`],
@@ -1370,6 +1399,13 @@ const I18N_SKIP = "script, style, textarea, [data-no-translate]";
 function translateElementAttributes(element) {
   if (element.closest("[data-no-translate]")) {
     return;
+  }
+
+  // Imágenes con versión en inglés (por ejemplo, la miniatura de un juego)
+  const englishSrc = element.getAttribute("data-src-en");
+
+  if (englishSrc && element.getAttribute("src") !== englishSrc) {
+    element.setAttribute("src", englishSrc);
   }
 
   I18N_ATTRIBUTES.forEach((name) => {

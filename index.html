@@ -103,7 +103,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="css/styles.css?v=62" />
+  <link rel="stylesheet" href="css/styles.css?v=63" />
   <!-- La mascota 3D (js/mascot.js) usa Three.js: se descarga a la vez que la página -->
   <link rel="modulepreload" href="js/vendor/three.module.min.js" />
   <link rel="stylesheet" href="css/tronk-fight.css?v=4" />
@@ -125,28 +125,29 @@
   <script src="js/suggestions.js?v=29" defer></script>
   <script src="js/comments.js?v=1" defer></script>
   <script src="js/projects.js?v=31" defer></script>
-  <script src="js/profiles.js?v=11" defer></script>
+  <script src="js/profiles.js?v=12" defer></script>
   <script src="js/community.js?v=5" defer></script>
-  <script src="js/challenges.js?v=3" defer></script>
+  <script src="js/challenges.js?v=4" defer></script>
   <script src="js/team.js?v=7" defer></script>
   <script src="js/news.js?v=4" defer></script>
   <script src="js/journey.js?v=1" defer></script>
   <script src="js/hero.js?v=5" defer></script>
-  <script src="js/games/audio.js?v=21" defer></script>
-  <script src="js/games/results.js?v=2" defer></script>
+  <script src="js/games/audio.js?v=22" defer></script>
+  <script src="js/games/results.js?v=3" defer></script>
   <script src="js/games/antitronks.js?v=25" defer></script>
   <script src="js/games/protect-mogos.js?v=25" defer></script>
   <script src="js/games/stick-drill.js?v=26" defer></script>
+  <script src="js/games/miente.js?v=1" defer></script>
   <script src="js/games/tronk-fight.js?v=9" defer></script>
   <script src="js/apis.js?v=3" defer></script>
   <script src="js/pwa.js?v=1" defer></script>
   <script src="js/extras.js?v=2" defer></script>
-  <script src="js/app.js?v=31" defer></script>
-  <script src="js/mascot.js?v=11" type="module"></script>
+  <script src="js/app.js?v=32" defer></script>
+  <script src="js/mascot.js?v=12" type="module"></script>
 
   <!-- Sistema de soporte (chat con Tronker + formulario de correo) -->
   <script src="js/tronker.js?v=1" defer></script>
-  <script src="js/support.js?v=17" defer></script>
+  <script src="js/support.js?v=18" defer></script>
 </head>
 
 <body>
@@ -804,6 +805,28 @@
 
           </article>
 
+          <article
+            class="card dev-card minigame-card"
+            data-minigame="miente"
+            tabindex="0"
+            role="button"
+            aria-label="Abrir El Juego Miente"
+          >
+
+            <div class="dev-card-media">
+              <img
+                src="img/juegos/el-juego-miente.png"
+                data-src-en="img/juegos/the-game-lies.png"
+                alt="El Juego Miente - minijuego de reacción con colores"
+                loading="lazy"
+                data-fallback-label="El Juego Miente"
+              />
+            </div>
+
+            <h3>El Juego Miente</h3>
+
+          </article>
+
         </div>
 
         <!-- Clasificación (js/profiles.js) -->
@@ -818,6 +841,7 @@
             <button class="leaderboard-tab" type="button" data-game="protect-mogos" aria-pressed="false">Protect Mogos</button>
             <button class="leaderboard-tab" type="button" data-game="stick-drill" aria-pressed="false">Stick Drill</button>
             <button class="leaderboard-tab" type="button" data-game="tronk-fight" aria-pressed="false">Tronk Fight</button>
+            <button class="leaderboard-tab" type="button" data-game="miente" aria-pressed="false">El Juego Miente</button>
           </div>
 
           <ol id="leaderboard-list" class="leaderboard-list" aria-live="polite"></ol>
@@ -1472,6 +1496,7 @@
       <a href="juegos/protect-mogos/">Protect Mogos</a>
       <a href="juegos/stick-drill/">Stick Drill</a>
       <a href="juegos/tronk-fight/">Tronk Fight</a>
+      <a href="juegos/el-juego-miente/">El Juego Miente</a>
     </nav>
 
     <div class="footer-actions">
@@ -2436,6 +2461,83 @@
   </div>
 
   <!-- =====================================================
+       MINIJUEGO EL JUEGO MIENTE (js/games/miente.js)
+       ===================================================== -->
+
+  <div
+    id="miente-modal"
+    class="antitronks-modal hidden"
+    aria-hidden="true"
+  >
+
+    <div class="antitronks-backdrop"></div>
+
+    <div
+      class="antitronks-window miente-window"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="miente-title"
+    >
+
+      <header class="antitronks-header">
+        <h2 id="miente-title">EL JUEGO MIENTE</h2>
+
+        <button
+          class="antitronks-sound game-sound-toggle"
+          type="button"
+          aria-label="Silenciar"
+          aria-pressed="false"
+        ><svg class="icon" aria-hidden="true"><use href="#i-volume"></use></svg></button>
+
+        <button
+          id="miente-close"
+          class="antitronks-close"
+          type="button"
+          aria-label="Cerrar El Juego Miente"
+        ><svg class="icon close-icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
+      </header>
+
+      <div class="antitronks-game miente-game" id="miente-game">
+        <div class="miente-board">
+          <p class="miente-rule" id="miente-rule" aria-live="polite">OBEDECE A LA PALABRA</p>
+          <p class="miente-word" id="miente-word" aria-live="polite">ROJO</p>
+          <div class="miente-timer" aria-hidden="true"><span id="miente-timer-bar"></span></div>
+          <div class="miente-buttons" id="miente-buttons"></div>
+        </div>
+
+        <div class="antitronks-hud miente-hud" aria-hidden="true">
+          <div class="antitronks-score" id="miente-score">ACIERTOS: 0</div>
+          <div class="antitronks-record" id="miente-record">RÉCORD: 0</div>
+          <div class="antitronks-lives" id="miente-lives">VIDAS: 3</div>
+
+          <div class="antitronks-hit-flash" id="miente-hit-flash"></div>
+
+          <div class="antitronks-message" id="miente-message">
+            <span id="miente-message-text"></span>
+          </div>
+        </div>
+
+        <div class="antitronks-overlay" id="miente-overlay">
+          <div class="antitronks-overlay-box">
+            <h3 id="miente-overlay-title">EL JUEGO MIENTE</h3>
+            <p id="miente-overlay-text">
+              Obedece a la regla… aunque el juego intente engañarte.
+            </p>
+            <button
+              id="miente-start"
+              class="antitronks-start-button"
+              type="button"
+            >
+              JUGAR
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- =====================================================
        MINIJUEGO STICK DRILL
        ===================================================== -->
 
@@ -3118,6 +3220,6 @@
 
   <!-- Versión en inglés. Va aquí, sin defer, para traducir antes de
        que se vea la página (ver js/i18n.js). -->
-  <script src="js/i18n.js?v=16"></script>
+  <script src="js/i18n.js?v=18"></script>
 </body>
 </html>

@@ -82,7 +82,8 @@ const TronkResults = (() => {
   const DUEL_GAMES = {
     antitronks: { title: "Antitronks", card: "antitronks", unit: "puntos", emoji: "🎯" },
     "protect-mogos": { title: "Protect Mogos", card: "antininja", unit: "puntos", emoji: "🥷" },
-    "stick-drill": { title: "Stick Drill", card: "stickdrill", unit: "segundos", emoji: "🌀" }
+    "stick-drill": { title: "Stick Drill", card: "stickdrill", unit: "segundos", emoji: "🌀" },
+    miente: { title: "El Juego Miente", card: "miente", unit: "aciertos", emoji: "🤥" }
   };
 
   // Reto recibido por enlace (?reta=juego&p=puntos&de=nombre)
