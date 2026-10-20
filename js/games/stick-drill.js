@@ -1173,7 +1173,7 @@ function initializeStickDrillGame() {
     modal.setAttribute("aria-hidden", "false");
     document.body.classList.add("antitronks-open");
 
-    TronkSound.startMusic("tense");
+    TronkSound.startMusic("chiptune");
 
     showMenu();
   }

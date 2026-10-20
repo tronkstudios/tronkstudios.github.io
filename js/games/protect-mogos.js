@@ -923,7 +923,7 @@ function initializeAntininjaGame() {
     n.flipFrom = n.y;
     n.flipTo = n.y + FLIP_PUSH;
     setState(n, "flipping");
-    TronkSound.play("flip");
+    TronkSound.play("dodge");
     spawnParticles(p.x, p.y + ninjaRadius(n), "#8fcf6a", 6, 0.7, 4);
     addFloater(p.x, p.y - 22, "¡VOLTERETA!", "#d9a6ff");
   }
@@ -1101,7 +1101,7 @@ function initializeAntininjaGame() {
     modal.setAttribute("aria-hidden", "false");
     document.body.classList.add("antitronks-open");
 
-    TronkSound.startMusic("calm");
+    TronkSound.startMusic("ninja");
 
     resetGame();
   }

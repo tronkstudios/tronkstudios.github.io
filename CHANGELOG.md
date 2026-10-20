@@ -9,6 +9,18 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.22 · Música propia para cada minijuego
+
+#### Cambiado
+- **Cada minijuego tiene su música**, según el tipo de juego (todo generado
+  con Web Audio, sin archivos):
+  - **Antitronks:** acción nocturna con bajo de sintetizador y batería.
+  - **Protect Mogos:** estilo japonés con koto, taikos y flauta.
+  - **Stick Drill:** 8 bits rápido, como una recreativa.
+  - **Tronk Fight** mantiene su música de combate.
+- **El ninja morado de Protect Mogos** hace un sonido de esquive al dar la
+  voltereta.
+
 ### 6.21 · Listas más cortas con «Mostrar más»
 
 #### Cambiado
