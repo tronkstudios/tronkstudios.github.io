@@ -509,17 +509,17 @@ function initializeMienteGame() {
     document.body.classList.remove("antitronks-open");
   }
 
-  /* Si cambias de pestaña, el tiempo se para */
-  document.addEventListener("visibilitychange", () => {
-    if (!running) {
+  /* Si cambias de pestaña (o se activa el modo jefe), el tiempo se para */
+  function setPaused(value) {
+    if (!running || value === paused) {
       return;
     }
 
-    if (document.hidden) {
+    if (value) {
       paused = true;
       pausedAt = performance.now();
       cancelAnimationFrame(frame);
-    } else if (paused) {
+    } else {
       paused = false;
 
       if (round && round.start) {
@@ -530,7 +530,10 @@ function initializeMienteGame() {
         frame = requestAnimationFrame(tick);
       }
     }
-  });
+  }
+
+  document.addEventListener("visibilitychange", () => setPaused(document.hidden || window.TronkBossActive));
+  window.addEventListener("tronk:boss", () => setPaused(document.hidden || window.TronkBossActive));
 
   /* =======================================================
      EVENTOS

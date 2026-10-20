@@ -1884,6 +1884,13 @@ function initializeAntitronksGame() {
       return;
     }
 
+    // Modo jefe (js/boss.js): el juego se queda congelado
+    if (window.TronkBossActive) {
+      lastTime = now;
+      animationFrame = requestAnimationFrame(loop);
+      return;
+    }
+
     const delta = Math.min(40, now - lastTime || 16);
     lastTime = now;
 

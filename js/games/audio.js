@@ -21,6 +21,8 @@ const TronkSound = (() => {
   let noiseBuffer = null;
 
   let muted = false;
+  // Modo jefe (js/boss.js): todo el sonido en pausa
+  let held = false;
 
   try {
     muted = localStorage.getItem(MUTE_KEY) === "1";
@@ -69,7 +71,7 @@ const TronkSound = (() => {
       }
     }
 
-    if (ctx.state === "suspended") {
+    if (ctx.state === "suspended" && !held) {
       ctx.resume().catch(() => {});
     }
 
@@ -364,8 +366,22 @@ const TronkSound = (() => {
     }
   };
 
+  function hold(value) {
+    held = value;
+
+    if (!ctx) {
+      return;
+    }
+
+    if (held) {
+      ctx.suspend().catch(() => {});
+    } else {
+      ctx.resume().catch(() => {});
+    }
+  }
+
   function play(name) {
-    if (muted || !SFX[name]) {
+    if (muted || held || !SFX[name]) {
       return;
     }
 
@@ -746,5 +762,5 @@ const TronkSound = (() => {
 
   setMuted(muted);
 
-  return { ensure, play, startMusic, stopMusic, setMuted, isMuted };
+  return { ensure, play, startMusic, stopMusic, setMuted, isMuted, hold };
 })();

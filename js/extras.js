@@ -386,6 +386,7 @@ const SHORTCUTS = [
   { key: "i", label: "Volver al inicio", action: () => window.scrollTo({ top: 0, behavior: "smooth" }) },
   { key: "c", label: "Cuenta", action: () => document.getElementById("account-button")?.click() },
   { key: "t", label: "Cambiar tema claro / oscuro", action: () => document.getElementById("theme-toggle")?.click() },
+  { key: "b", label: "Modo jefe (B o Esc para volver)", action: () => window.TronkBoss?.on() },
   { key: "?", label: "Ver estos atajos", action: () => openShortcuts() }
 ];
 
