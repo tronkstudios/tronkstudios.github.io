@@ -16,6 +16,8 @@ pantalla. Estas son sus partes, de la más reciente a la primera.
   notificaciones, chat, listas) tienen los colores del tema claro u oscuro,
   son redondeadas y se ponen azules al pasar el ratón. Dentro de ventanas y
   paneles son más finas.
+- El **modo jefe** no se activa en el móvil ni en la tablet: avisa de que
+  solo funciona en PC.
 
 ### 6.30 · Juegos editables, calendario y notificaciones push
 
