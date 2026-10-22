@@ -1026,7 +1026,9 @@ const People = (() => {
     esqueleto: { id: "skeleton", enemy: true, skinR: SKINS.bone, face: "skull", hair: null, hairColor: "#ece4cf", shirt: "#ece4cf", pants: "#ece4cf", shoes: "#d9d2bd", skeleton: true, weapon: "tajo" },
     brujo: { id: "brujo", enemy: true, skinR: SKINS.mask, face: "shadow", noFace: true, hair: "hood", hairColor: "#4a148c", acc: "#2a0a5a", shirt: "#4a148c", pants: "#2a0a5a", shoes: "#1a1a22", robe: true, weapon: "baston" },
     gordo: { id: "zombie", enemy: true, fat: true, muscular: true, skinR: SKINS.zombie, hair: "zombie", hairColor: "#2a2a22", shirt: "#8a6f5a", pants: "#3d3b4f", shoes: "#2a2630", eye: "#7a1010", iris: "#ff3b3b", armsForward: true, sleeveless: true },
-    rey: { id: "zombie", enemy: true, skinR: SKINS.zombie, hair: "zombie", hairColor: "#2a2a22", crown: true, cape: "#a61b1b", shirt: "#5a1a2a", pants: "#2a1f3a", shoes: "#2a2630", eye: "#a07a00", iris: "#ffd23f", armsForward: true }
+    rey: { id: "zombie", enemy: true, skinR: SKINS.zombie, hair: "zombie", hairColor: "#2a2a22", crown: true, cape: "#a61b1b", shirt: "#5a1a2a", pants: "#2a1f3a", shoes: "#2a2630", eye: "#a07a00", iris: "#ffd23f", armsForward: true },
+    reyEsqueleto: { id: "skeleton", enemy: true, skinR: SKINS.bone, face: "skull", hair: null, hairColor: "#ece4cf", crown: true, cape: "#4a148c", shirt: "#ece4cf", pants: "#ece4cf", shoes: "#d9d2bd", skeleton: true, weapon: "tajo" },
+    general: { id: "antitronk", enemy: true, skinR: SKINS.light, face: "mask", hair: "balaclava", hairColor: "#1a1a1f", acc: "#ffd23f", beret: "#1a1a1f", medals: true, cape: "#1a1a1f", shirt: "#3a4232", pants: "#1f2228", shoes: "#141414", weapon: "rifle" }
   };
 
   /* ---------- criaturas (moco, fantasma, murciélago) ---------- */

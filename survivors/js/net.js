@@ -11,6 +11,21 @@
 
 const TronkNet = (() => {
   const ICE = [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }];
+  const WORKER_URL = "https://tronkstudios-support.tronkstudios7.workers.dev";
+  let iceServers = null; // STUN + los de reenvío (TURN) que da el servidor
+
+  // Servidores de reenvío para redes que no dejan conectar directamente.
+  // Si no llegan a tiempo, se juega igual con STUN.
+  function loadIce() {
+    if (iceServers) return Promise.resolve(iceServers);
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 4000);
+    return fetch(`${WORKER_URL}/turn`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}", signal: ctrl.signal })
+      .then((r) => r.json())
+      .then((d) => { iceServers = [...ICE, ...(Array.isArray(d.iceServers) ? d.iceServers : [])]; return iceServers; })
+      .catch(() => ICE)
+      .finally(() => clearTimeout(timer));
+  }
   const MAX = 4;
   const myId = Math.random().toString(36).slice(2, 10);
   let channel = null;
@@ -50,6 +65,7 @@ const TronkNet = (() => {
   }
 
   async function openChannel(code) {
+    await loadIce();
     const client = Account.client;
     if (!client) throw new Error("sin conexión");
     channel = client.channel(`survivors-${code}`, { config: { broadcast: { self: false } } });
@@ -103,7 +119,7 @@ const TronkNet = (() => {
   /* ---------- WebRTC ---------- */
 
   function newPeer(id) {
-    const pc = new RTCPeerConnection({ iceServers: ICE });
+    const pc = new RTCPeerConnection({ iceServers: iceServers || ICE });
     const peer = { id, pc, game: null, ctrl: null, setup: null };
     pc.onicecandidate = (e) => { if (e.candidate) send({ type: "ice", to: id, cand: e.candidate }); };
     pc.onconnectionstatechange = () => {
@@ -195,7 +211,7 @@ const TronkNet = (() => {
     try { m = JSON.parse(raw); } catch { return; }
     if (!room) return; // llega algo después de salir de la sala
     if (room.host) {
-      if (m.type === "in" && peer.index !== undefined) Game.setInput(peer.index, { x: Math.max(-1, Math.min(1, +m.x || 0)), y: Math.max(-1, Math.min(1, +m.y || 0)) });
+      if (m.type === "in" && peer.index !== undefined) Game.setInput(peer.index, { x: Math.max(-1, Math.min(1, +m.x || 0)), y: Math.max(-1, Math.min(1, +m.y || 0)), ab: m.ab | 0 });
       else if (m.type === "choose" && peer.index !== undefined) Game.choose(peer.index, Math.max(0, Math.min(3, m.i | 0)));
     } else {
       if (m.type === "snap") Game.applySnapshot(m.d);
@@ -248,6 +264,8 @@ const TronkNet = (() => {
   Game.on("resume", () => { if (room && room.host) for (const peer of peers.values()) sendCtrl(peer, { type: "resume" }); });
   Game.on("toast", (d) => { if (room && room.host && playing) for (const peer of peers.values()) sendCtrl(peer, { type: "toast", text: d.text }); });
   Game.on("boss", (d) => { if (room && room.host && playing) for (const peer of peers.values()) sendCtrl(peer, { type: "banner", text: L("¡JEFE!"), small: d.name }); });
+  Game.on("victory", () => { if (room && room.host && playing) for (const peer of peers.values()) sendCtrl(peer, { type: "banner", text: L("¡VICTORIA!"), small: L("El anfitrión decide si seguir en modo infinito") }); });
+  Game.on("endless", () => { if (room && room.host && playing) for (const peer of peers.values()) sendCtrl(peer, { type: "banner", text: L("¡MODO INFINITO!"), small: L("Aguanta todo lo que puedas") }); });
   Game.on("end", (r) => {
     if (!room || !room.host || !playing) return;
     playing = false;
@@ -259,7 +277,7 @@ const TronkNet = (() => {
     if (now - lastInput < 40) return;
     lastInput = now;
     const host = peers.get(hostId);
-    if (host && host.game && host.game.readyState === "open") host.game.send(JSON.stringify({ type: "in", x: +inp.x.toFixed(2), y: +inp.y.toFixed(2) }));
+    if (host && host.game && host.game.readyState === "open") host.game.send(JSON.stringify({ type: "in", x: +inp.x.toFixed(2), y: +inp.y.toFixed(2), ab: inp.ab | 0 }));
   });
 
   function sendChoice(i) {

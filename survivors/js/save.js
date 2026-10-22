@@ -27,6 +27,8 @@ const Save = (() => {
       achievements: {},
       maps: { bosque: true },
       stats: { kills: 0, bosses: 0, wins: 0, props: 0, coinsEarned: 0, evolutions: 0, dailies: 0, coop: 0 },
+      weekly: null, // misiones de la semana: { week, prog, claimed }
+      tutorial: false, // ya ha visto los consejos de la primera partida
       savedAt: 0
     };
   }
@@ -95,9 +97,21 @@ const Save = (() => {
       stats: maxObj(d.stats, remote.stats),
       achievements: maxObj(d.achievements, remote.achievements),
       maps: maxObj(d.maps, remote.maps),
-      selected: owned[newer.selected] ? newer.selected : d.selected
+      selected: owned[newer.selected] ? newer.selected : d.selected,
+      tutorial: !!(d.tutorial || remote.tutorial),
+      weekly: mergeWeekly(d.weekly, remote.weekly)
     };
     persist();
+  }
+
+  // Misiones de la semana: si las dos son de la misma semana, lo mejor de cada una
+  function mergeWeekly(a, b) {
+    if (!b || typeof b !== "object" || !b.week) return a || null;
+    if (!a || !a.week || b.week > a.week) return { week: b.week, prog: { ...(b.prog || {}) }, claimed: { ...(b.claimed || {}) } };
+    if (b.week < a.week) return a;
+    const prog = { ...(a.prog || {}) };
+    for (const [k, v] of Object.entries(b.prog || {})) if (typeof v === "number") prog[k] = Math.max(prog[k] || 0, v);
+    return { week: a.week, prog, claimed: { ...(a.claimed || {}), ...(b.claimed || {}) } };
   }
 
   const get = () => data || load();

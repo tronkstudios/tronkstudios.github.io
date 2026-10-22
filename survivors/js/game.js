@@ -39,7 +39,7 @@ const Game = (() => {
   let view = { w: 640, h: 360, k: 2, dpr: 1 };
   let cam = { x: 0, y: 0, shake: 0 };
   const listeners = {};
-  const input = { keys: new Set(), joy: null, x: 0, y: 0 };
+  const input = { keys: new Set(), joy: null, x: 0, y: 0, ab: 0 };
   let paused = false;
   let rafId = 0;
   let lastTime = 0;
@@ -77,7 +77,7 @@ const Game = (() => {
       might: 1 + s.might,
       area: (1 + s.area) * U,
       cdMul: Math.max(0.45, 1 - s.cooldown),
-      magnet: 50 * U * (1 + s.magnet),
+      magnet: 62 * U * (1 + s.magnet),
       armor: s.armor,
       regen: s.regen,
       growth: 1 + s.growth,
@@ -116,7 +116,9 @@ const Game = (() => {
       down: false,
       reviveT: 0,
       usedRevive: false,
-      input: { x: 0, y: 0 },
+      input: { x: 0, y: 0, ab: 0 },
+      abCd: 300, // la habilidad está lista a los 5 segundos de empezar
+      abSeen: 0,
       flash: 0
     };
     computeStats(pl);
@@ -160,6 +162,7 @@ const Game = (() => {
       t: 0,
       players: setups.map((s, i) => newPlayer(i, s)),
       enemies: [],
+      strikes: [],
       shots: [],
       eshots: [],
       zones: [],
@@ -192,7 +195,9 @@ const Game = (() => {
       xp: (mods.includes("gigantes") ? 1.7 : 1) * (mods.includes("horda") ? 1.25 : 1),
       spawn: mods.includes("horda") ? 1.6 : 1,
       coins: mods.includes("oro") ? 3 : 1,
-      bossTime: mods.includes("jefes") ? 0.55 : 1
+      bossTime: mods.includes("jefes") ? 0.55 : 1,
+      // ayuda en las primeras partidas: los enemigos pegan menos
+      enemyDmg: opts.easy ? 0.75 : 1
     };
     for (const p of st.players) {
       if (mods.includes("cristal")) { p.meta = { ...p.meta, maxHp: (p.meta.maxHp || 0) - 0.5, might: (p.meta.might || 0) + 0.6 }; }
@@ -211,7 +216,7 @@ const Game = (() => {
   }
 
   function xpFor(level) {
-    const base = level < 20 ? 6 + level * 9 : level < 40 ? 12 * level : 15 * level;
+    const base = level < 20 ? 5 + level * 5 : level < 40 ? 10 * level - 45 : 14 * level - 200;
     return Math.round(base * (1 + 0.45 * (st.players.length - 1)));
   }
 
@@ -460,6 +465,7 @@ const Game = (() => {
      ======================================================= */
 
   function fx(f) {
+    if (lowFx && (COSMETIC.has(f.k) ? st.fx.length > 30 : f.k === "num" && !f.big && !f.hurt)) return;
     f.t = 0;
     st.fx.push(f);
     if (st.fx.length > 260) st.fx.splice(0, st.fx.length - 260);
@@ -471,7 +477,23 @@ const Game = (() => {
     if (mode === "host") st.events.push({ k: "snd", n: name });
   }
 
-  const options = { numbers: true, shake: true };
+  const options = { numbers: true, shake: true, fx: "auto" };
+  // Efectos reducidos: menos partículas y menos resolución (móviles lentos)
+  let lowFx = false;
+  let autoLow = false;
+  const perf = { sum: 0, n: 0 };
+  const COSMETIC = new Set(["puff", "shards", "dust", "crack"]);
+
+  function wantLow() {
+    return options.fx === "low" || (options.fx === "auto" && autoLow);
+  }
+
+  function checkLowFx() {
+    if (wantLow() !== lowFx) {
+      lowFx = wantLow();
+      resize();
+    }
+  }
 
   function shake(n) {
     if (options.shake) cam.shake = Math.max(cam.shake, n);
@@ -486,7 +508,7 @@ const Game = (() => {
     const minutes = st.t / 3600;
     const n = st.players.length;
     const hpMul = (d.prop ? 1 : st.mod ? st.mod.enemyHp : 1) * (d.prop ? 1 : 1) * 1;
-    const hpBase = d.prop ? 1 : d.boss ? 1 + 0.6 * (n - 1) : (1 + minutes * 0.22) * (1 + 0.3 * (n - 1));
+    const hpBase = d.prop ? 1 : d.boss ? (1 + 0.6 * (n - 1)) * (st.endless ? 1 + 0.5 * st.endlessLoops : 1) : (1 + minutes * 0.22) * (1 + 0.3 * (n - 1));
     const e = {
       id: st.nextId++,
       type,
@@ -495,7 +517,8 @@ const Game = (() => {
       hp: d.hp * hpMul * hpBase,
       maxHp: d.hp * hpMul * hpBase,
       speed: d.speed * U * rand(0.92, 1.08) * (d.prop ? 1 : st.mod ? st.mod.enemySpeed : 1),
-      dmg: d.dmg * (1 + minutes * 0.07),
+      // los primeros minutos pegan menos, para aprender a moverse
+      dmg: d.dmg * (1 + minutes * 0.07) * (d.boss ? 1 : 0.65 + 0.35 * Math.min(1, minutes / 5)) * (st.mod ? st.mod.enemyDmg : 1),
       r: d.r * U,
       ai: d.ai,
       boss: !!d.boss,
@@ -524,6 +547,10 @@ const Game = (() => {
       Sfx.startMusic("boss");
     }
     return e;
+  }
+
+  function finalBossId() {
+    return map.finalBoss || "rey";
   }
 
   function spawnRadius() {
@@ -575,7 +602,28 @@ const Game = (() => {
     const nextBoss = TS.BOSSES[st.bossIdx];
     if (nextBoss && sec >= nextBoss.at * st.mod.bossTime) {
       st.bossIdx++;
-      spawnAround(nextBoss.id, pick(alive), spawnRadius() * 0.8);
+      spawnAround(nextBoss.id === "rey" ? finalBossId() : nextBoss.id, pick(alive), spawnRadius() * 0.8);
+    }
+    // modo infinito: un jefe cada minuto y medio y una horda cada minuto
+    if (st.endless) {
+      if (st.t >= st.endlessBossT) {
+        st.endlessBossT = st.t + 90 * 60;
+        st.endlessLoops++;
+        const ids = ["gigante", "supremo", "maestro", "rey", "reyEsqueleto", "mocoRey", "general"];
+        spawnAround(ids[Math.floor(R() * ids.length)], pick(alive), spawnRadius() * 0.8);
+      }
+      if (st.t >= st.endlessHordeT) {
+        st.endlessHordeT = st.t + 60 * 60;
+        const h = TS.HORDES[Math.floor(R() * TS.HORDES.length)];
+        const target = pick(alive);
+        const r = spawnRadius() * 0.85;
+        const count = Math.round(h.count * 1.4);
+        for (let i = 0; i < count; i++) {
+          const a = (i / count) * TAU;
+          spawnEnemy(h.id, target.x + Math.cos(a) * r, target.y + Math.sin(a) * r);
+        }
+        emit("toast", { text: L("¡Que vienen!"), kind: "horde" });
+      }
     }
     // hordas en círculo
     const horde = TS.HORDES[st.hordeIdx];
@@ -608,7 +656,8 @@ const Game = (() => {
     const wave = currentWave();
     st.spawnT -= (1 + 0.4 * (st.players.length - 1)) * st.mod.spawn;
     if (st.spawnT <= 0) {
-      st.spawnT = wave.every;
+      // en el modo infinito salen cada vez más deprisa
+      st.spawnT = st.endless ? Math.max(6, wave.every - (st.t - st.endlessStart) / 3600) : wave.every;
       const cap = wave.alive * (1 + 0.35 * (st.players.length - 1)) * Math.sqrt(st.mod.spawn);
       const batch = 1 + Math.floor(sec / 100);
       const fighters = st.enemies.reduce((n, e) => n + (e.prop ? 0 : 1), 0);
@@ -658,7 +707,7 @@ const Game = (() => {
           if (e.timer <= 0 && dist < range * U * 1.6) {
             e.timer = d.shot.cd * rand(0.8, 1.2);
             e.atk = 18;
-            enemyShot(e, Math.atan2(dy, dx), d.shot.speed, d.shot.dmg * (1 + st.t / 3600 * 0.07), { kind: "bullet" });
+            enemyShot(e, Math.atan2(dy, dx), d.shot.speed, d.shot.dmg * (e.dmg / d.dmg), { kind: "bullet" });
             sound("eshot", 0.08);
           }
           break;
@@ -767,12 +816,12 @@ const Game = (() => {
           e.atk = 24;
           const n = hpPct < 0.5 ? 20 : 14;
           const off = rand(0, TAU);
-          for (let i = 0; i < n; i++) enemyShot(e, off + (i / n) * TAU, 1.7, 10, { kind: "bullet" });
+          for (let i = 0; i < n; i++) enemyShot(e, off + (i / n) * TAU, 1.7, 7, { kind: "bullet" });
           sound("eshot");
         }
-        if (e.t % 40 === 0) {
+        if (e.t % (hpPct < 0.5 ? 55 : 75) === 0 && e.t > 120) {
           const a = Math.atan2(uy, ux);
-          for (const s of [-0.2, 0, 0.2]) enemyShot(e, a + s, 2.6, 9, { kind: "bullet" });
+          for (const s of [-0.22, 0, 0.22]) enemyShot(e, a + s, 2.1, 7, { kind: "bullet" });
         }
         break;
       case "boss_ninja":
@@ -788,7 +837,7 @@ const Game = (() => {
             e.timer = hpPct < 0.5 ? 70 : 110;
             // abanico de shurikens
             const a = Math.atan2(uy, ux);
-            for (let i = -3; i <= 3; i++) enemyShot(e, a + i * 0.22, 2.4, 9, { kind: "star" });
+            for (let i = -3; i <= 3; i++) enemyShot(e, a + i * 0.22, 2.4, 7, { kind: "star" });
             if (R() < 0.35 && target) {
               // se teletransporta detrás del jugador
               fx({ k: "puff", x: e.x, y: e.y - 10, color: "#3b1f5c", life: 20 });
@@ -818,11 +867,101 @@ const Game = (() => {
         }
         if (e.t % 150 === 0) {
           const off = rand(0, TAU);
-          for (let i = 0; i < 16; i++) enemyShot(e, off + (i / 16) * TAU, 1.6, 12, { kind: "goo" });
+          for (let i = 0; i < 16; i++) enemyShot(e, off + (i / 16) * TAU, 1.6, 9, { kind: "goo" });
         }
         if (hpPct < 0.3) e.sp = e.speed * 1.6;
         break;
+      case "boss_bones":
+        // anillos de huesos, se teletransporta y levanta esqueletos
+        if (e.t % 170 === 0) {
+          const off = rand(0, TAU);
+          const n = hpPct < 0.5 ? 18 : 12;
+          for (let i = 0; i < n; i++) enemyShot(e, off + (i / n) * TAU, 1.8, 8, { kind: "star" });
+          e.atk = 24;
+          sound("eshot");
+        }
+        if (e.timer <= 0) {
+          e.timer = hpPct < 0.5 ? 300 : 420;
+          if (target) {
+            fx({ k: "puff", x: e.x, y: e.y - 20, color: "#4a148c", life: 24, big: true });
+            const a = rand(0, TAU);
+            e.x = target.x + Math.cos(a) * 110 * U;
+            e.y = target.y + Math.sin(a) * 110 * U;
+            fx({ k: "puff", x: e.x, y: e.y - 20, color: "#4a148c", life: 24, big: true });
+          }
+          for (let i = 0; i < 6; i++) spawnAround("esqueleto", e, 40);
+          sound("boss", 1);
+        }
+        break;
+      case "boss_slime":
+        // saltos enormes: al caer hace temblar el suelo
+        if (e.state === 0) {
+          e.mx = 0; e.my = 0;
+          if (e.timer <= 0) { e.state = 1; e.timer = 34; e.dx = ux; e.dy = uy; e.atk = 34; }
+        } else {
+          e.mx = e.dx; e.my = e.dy; e.sp = e.speed * 5;
+          if (e.timer <= 0) {
+            e.state = 0;
+            e.timer = hpPct < 0.5 ? 60 : 90;
+            e.hops = (e.hops || 0) + 1;
+            fx({ k: "ring", x: e.x, y: e.y, r: 70 * U, color: "#7cff6b", life: 26 });
+            shake(7);
+            sound("wave");
+            for (const p of alivePlayers()) if (Math.hypot(p.x - e.x, p.y - e.y) < 70 * U) hurtPlayer(p, e.dmg);
+            if (e.hops % 3 === 0) {
+              const off = rand(0, TAU);
+              for (let i = 0; i < 12; i++) enemyShot(e, off + (i / 12) * TAU, 1.5, 8, { kind: "goo" });
+            }
+          }
+        }
+        for (const cut of [0.66, 0.33]) {
+          if (hpPct < cut && !(e.splits || []).includes(cut)) {
+            e.splits = [...(e.splits || []), cut];
+            for (let i = 0; i < 8; i++) spawnAround("slime", e, 50);
+            emit("toast", { text: L("¡El Moco Rey se divide!"), kind: "boss" });
+          }
+        }
+        break;
+      case "boss_general":
+        // guarda la distancia, dispara en espiral y pide bombardeos
+        if (dist < 160 * U) { e.mx = -ux * 0.7; e.my = -uy * 0.7; } else if (dist < 220 * U) { e.mx = -uy * 0.5; e.my = ux * 0.5; }
+        if (e.t % (hpPct < 0.5 ? 8 : 12) === 0) {
+          const a = e.t * 0.09;
+          for (const k of [0, Math.PI]) enemyShot(e, a + k, 1.6, 7, { kind: "bullet" });
+        }
+        if (e.timer <= 0) {
+          e.timer = hpPct < 0.5 ? 220 : 320;
+          e.atk = 30;
+          for (const p of alivePlayers()) {
+            for (let i = 0; i < 4; i++) {
+              const x = p.x + rand(-60, 60) * U;
+              const y = p.y + rand(-60, 60) * U;
+              st.strikes.push({ x, y, t: 70, dmg: e.dmg });
+              fx({ k: "warn", x, y, r: 26 * U, life: 70 });
+            }
+          }
+          sound("boss", 1);
+        }
+        if (!e.called && hpPct < 0.5) {
+          e.called = true;
+          for (let i = 0; i < 8; i++) spawnAround("antitronk", e, 60);
+          emit("toast", { text: L("¡El General pide refuerzos!"), kind: "boss" });
+        }
+        break;
     }
+  }
+
+  // Bombardeos del General: avisan con un círculo rojo y luego explotan
+  function updateStrikes() {
+    for (const k of st.strikes) {
+      k.t--;
+      if (k.t === 0) {
+        fx({ k: "boom", x: k.x, y: k.y - 4, r: 26 * U, life: 18 });
+        sound("boom", 0.08);
+        for (const p of alivePlayers()) if (Math.hypot(p.x - k.x, p.y - k.y) < 26 * U) hurtPlayer(p, k.dmg);
+      }
+    }
+    st.strikes = st.strikes.filter((k) => k.t > 0);
   }
 
   function explodeKamikaze(e) {
@@ -915,8 +1054,8 @@ const Game = (() => {
     // otros premios
     const r = R();
     if (r < 0.025) st.pickups.push({ x: e.x + 4, y: e.y, kind: "moneda", t: 0 });
-    else if (r < 0.031) st.pickups.push({ x: e.x, y: e.y, kind: "bocadillo", t: 0 });
-    else if (r < 0.0325) st.pickups.push({ x: e.x, y: e.y, kind: "iman", t: 0 });
+    else if (r < 0.035) st.pickups.push({ x: e.x, y: e.y, kind: "bocadillo", t: 0 });
+    else if (r < 0.0365) st.pickups.push({ x: e.x, y: e.y, kind: "iman", t: 0 });
     if (d.split) for (let i = 0; i < 2; i++) spawnEnemy(d.split, e.x + rand(-8, 8), e.y + rand(-8, 8));
     if (e.ai === "kamikaze" && !silent) explodeKamikaze({ ...e, dead: false, x: e.x, y: e.y, dmg: e.dmg * 0.6 });
     if (e.boss) {
@@ -928,8 +1067,9 @@ const Game = (() => {
       sound("chest");
       Sfx.startMusic("run");
       emit("bossDown", { name: L(d.name) });
-      if (e.type === "rey") {
+      if (e.type === finalBossId() && !st.endless) {
         st.victory = true;
+        st.won = true;
         st.endT = 150;
       }
     }
@@ -952,7 +1092,7 @@ const Game = (() => {
     if (p.down || p.iframes > 0) return;
     const amount = Math.max(1, Math.round(dmg - p.stats.armor));
     p.hp -= amount;
-    p.iframes = 30;
+    p.iframes = 36;
     p.flash = 10;
     if (p.id === localId) { shake(3); emit("hurt", {}); }
     sound("hurt", 0.1);
@@ -1019,7 +1159,134 @@ const Game = (() => {
 
     if (p.stats.regen && st.t % 60 === 0) p.hp = Math.min(p.stats.maxHp, p.hp + p.stats.regen);
 
+    if (p.abCd > 0) p.abCd--;
+    if ((p.input.ab || 0) !== p.abSeen) {
+      p.abSeen = p.input.ab || 0;
+      if (p.abCd <= 0) useAbility(p);
+    }
+
     for (const w of p.weapons) updateWeapon(p, w);
+  }
+
+  /* ---------- habilidades especiales ---------- */
+  function abilityMax(p) {
+    const a = TS.ABILITIES[p.charId];
+    return Math.round((a ? a.cd : 20) * 60 * p.stats.cdMul);
+  }
+
+  function useAbility(p) {
+    const ab = TS.ABILITIES[p.charId];
+    if (!ab) return;
+    p.abCd = abilityMax(p);
+    if (p.id === localId) st.abilitiesUsed = (st.abilitiesUsed || 0) + 1;
+    const area = p.stats.area;
+    const lvl = 1 + st.level * 0.06; // crece con el nivel de la partida
+    const cx = p.x;
+    const cy = p.y - 16;
+    const [ax, ay] = p.moving ? [p.moveX, p.moveY] : [p.aimX || p.face, p.aimY || 0];
+    attackAnim(p, p.weapons[0] ? p.weapons[0].id : "tajo", ax, ay, 24);
+    fx({ k: "text", x: p.x, y: p.y - 46, text: L(ab.name), color: "#ffd23f", life: 60 });
+    emit("ability", { id: p.id, name: L(ab.name) });
+    const ring = (n, make) => { const off = rand(0, TAU); for (let i = 0; i < n; i++) make(off + (i / n) * TAU); };
+    const near = (n, r) => st.enemies.filter((e) => !e.prop && !e.dead && Math.hypot(e.x - p.x, e.y - p.y) < r).sort((a, b) => dist2(a, p) - dist2(b, p)).slice(0, n);
+    switch (p.charId) {
+      case "ranjay":
+        for (let i = 0; i < 4; i++) st.zones.push({ type: "slash", x: cx, y: cy, ang: (i / 4) * TAU, R: 80 * area, life: 16, t: 0, dirSign: 1, owner: p.id, gold: true });
+        for (const e of enemiesInRadius(cx, cy, 80 * area)) hitEnemy(e, 60 * lvl, p, { kx: e.x - cx, ky: e.y - cy, kb: 6, crit: true });
+        sound("slash"); shake(5);
+        break;
+      case "bruno":
+        fx({ k: "boom", x: p.x, y: p.y - 6, r: 90 * area, life: 26, fire: true });
+        for (const e of enemiesInRadius(p.x, p.y, 90 * area)) hitEnemy(e, 70 * lvl, p, { kx: e.x - p.x, ky: e.y - p.y, kb: 8, crit: true });
+        sound("boom"); shake(9);
+        break;
+      case "lia":
+        p.hp = Math.min(p.stats.maxHp, p.hp + p.stats.maxHp * 0.4);
+        p.iframes = 180;
+        fx({ k: "ring", x: p.x, y: p.y, r: 70, color: "#ff9fd0", life: 34 });
+        for (const o of st.players) if (o !== p && !o.down && Math.hypot(o.x - p.x, o.y - p.y) < 120) o.hp = Math.min(o.stats.maxHp, o.hp + o.stats.maxHp * 0.25);
+        sound("levelUp");
+        break;
+      case "toto":
+        ring(12, (a) => st.shots.push({ type: "ball", x: cx, y: cy, vx: Math.cos(a) * 3.4 * U, vy: Math.sin(a) * 3.4 * U, ang: 0, dmg: 26 * lvl, pierce: 6, life: 200, r: 6, hit: new Set(), owner: p.id, target: 0 }));
+        sound("punch");
+        break;
+      case "omogos":
+        ring(24, (a) => st.shots.push({ type: "bolt", x: cx, y: cy, vx: Math.cos(a) * 6 * U, vy: Math.sin(a) * 6 * U, ang: a, dmg: 30 * lvl, pierce: 4, life: 70, r: 4, hit: new Set(), owner: p.id }));
+        sound("shoot");
+        break;
+      case "finillos":
+        st.zones.push({ type: "wave", x: p.x, y: p.y, r: 0, maxR: 160 * area, life: 30, t: 0, hit: new Set(), dmg: 55 * lvl, owner: p.id });
+        shake(10);
+        break;
+      case "chambas":
+        ring(8, (a) => st.shots.push({ type: "axe", x: cx, y: cy, vx: Math.cos(a) * 4 * U, vy: Math.sin(a) * 4 * U, ang: 0, dmg: 34 * lvl, pierce: 999, life: 200, r: 9 * area, hit: new Set(), hitT: {}, owner: p.id, out: 130 * area, travelled: 0, back: false }));
+        sound("slash");
+        break;
+      case "frosti":
+        for (const e of st.enemies) {
+          if (e.prop || Math.hypot(e.x - p.x, e.y - p.y) > 420) continue;
+          e.slow = Math.max(e.slow, e.boss ? 120 : 240);
+          e.slowAmt = e.boss ? 0.6 : 0.97;
+          hitEnemy(e, 15 * lvl, p, {});
+        }
+        fx({ k: "ring", x: p.x, y: p.y, r: 200, color: "#bfe9ff", life: 34 });
+        sound("ice");
+        break;
+      case "yant":
+      case "kaito": {
+        const len = (p.charId === "kaito" ? 150 : 120) * U;
+        const ang = Math.atan2(ay, ax);
+        for (const e of enemiesOnLine(cx, cy, ang, len, 16 * area)) hitEnemy(e, (p.charId === "kaito" ? 55 : 65) * lvl, p, { kx: ax, ky: ay, kb: 5, crit: true });
+        st.zones.push({ type: "thrust", x: cx, y: cy, ang, len, life: 14, t: 0 });
+        fx({ k: "puff", x: p.x, y: p.y - 10, color: p.charId === "kaito" ? "#3b1f5c" : "#ffe9a8", life: 18 });
+        const ox = p.x;
+        const oy = p.y;
+        p.x += ax * len * 0.9;
+        p.y += ay * len * 0.9;
+        collide(p, 7 * U);
+        if (terrain(p.x, p.y) === 2) { p.x = ox; p.y = oy; }
+        p.iframes = Math.max(p.iframes, 40);
+        sound("dodge");
+        break;
+      }
+      case "eledemak":
+        for (let i = 0; i < 10; i++) {
+          const a = (i / 10) * TAU;
+          st.zones.push({ type: "punch", x: cx + Math.cos(a) * 34, y: cy + Math.sin(a) * 24, r: 14 * area, life: 9 + i, t: -i * 2, big: true, glove: true });
+        }
+        for (const e of enemiesInRadius(cx, cy, 60 * area)) hitEnemy(e, 50 * lvl, p, { kx: e.x - cx, ky: e.y - cy, kb: 12 });
+        sound("punch"); shake(5);
+        break;
+      case "nova":
+        near(10, 380).forEach((e, i) => st.zones.push({ type: "meteor", x: e.x, y: e.y, t: -i * 6, warn: 30, life: 46, r: 34 * area, dmg: 60 * lvl, owner: p.id }));
+        break;
+      case "sunk":
+        st.zones.push({ type: "wave", x: p.x, y: p.y, r: 0, maxR: 120 * area, life: 22, t: 0, hit: new Set(), dmg: 80 * lvl, owner: p.id });
+        st.zones.push({ type: "punch", x: cx + ax * 14, y: cy + ay * 10, r: 22, life: 12, t: 0, big: true });
+        shake(8);
+        break;
+      case "quizo":
+        for (const e of near(14, 400)) {
+          st.zones.push({ type: "bolt", pts: [[e.x + rand(-20, 20), e.y - 220], [e.x + rand(-8, 8), e.y - 110], [e.x, e.y - 14]], life: 14, t: 0 });
+          hitEnemy(e, 55 * lvl, p, { kb: 2, kx: e.x - p.x, ky: e.y - p.y, crit: true });
+        }
+        sound("zap"); shake(4);
+        break;
+      case "zeta": {
+        const ang = Math.atan2(ay, ax);
+        for (const s of [-0.5, 0, 0.5]) {
+          st.zones.push({ type: "laser", x: cx, y: cy, ang: ang + s, len: 260, life: 18, t: 0 });
+          for (const e of enemiesOnLine(cx, cy, ang + s, 260, 12)) hitEnemy(e, 50 * lvl, p, { kx: Math.cos(ang), ky: Math.sin(ang), kb: 2 });
+        }
+        sound("laser");
+        break;
+      }
+      case "duna":
+        ring(4, (a) => st.zones.push({ type: "tornado", x: cx, y: cy + 8, vx: Math.cos(a) * 1.6 * U, vy: Math.sin(a) * 1.6 * U, t: 0, life: 300, r: 28 * area, dmg: 18 * lvl, owner: p.id }));
+        sound("dodge");
+        break;
+    }
   }
 
   // 8 direcciones: 5 dibujos y las de la izquierda son el espejo
@@ -1652,7 +1919,7 @@ const Game = (() => {
 
   function step() {
     if (!st || st.over) return;
-    if (st.choosing || paused) return;
+    if (st.choosing || paused || st.victoryWait) return;
     st.t++;
     buildGrid();
     for (const p of st.players) updatePlayer(p);
@@ -1679,11 +1946,13 @@ const Game = (() => {
     updateShots();
     updateZones();
     contact();
+    updateStrikes();
     updatePickups();
 
     if (st.victory) {
       st.endT--;
-      if (st.endT <= 0) finish(true);
+      // se pregunta si seguir en modo infinito (con amigos decide el anfitrión)
+      if (st.endT <= 0) { st.victory = false; st.victoryWait = true; emit("victory", {}); }
     } else if (!alivePlayers().length) {
       finish(false);
     }
@@ -1696,8 +1965,8 @@ const Game = (() => {
     Sfx.play(victory ? "win" : "die");
     const seconds = Math.floor(st.t / 60);
     const greed = st.players[localId].stats.greed;
-    const coins = Math.round((st.coins + st.kills / 8 + seconds / 6 + st.bossesKilled * 60 + (victory ? 300 : 0)) * greed);
-    emit("end", { victory, seconds, kills: st.kills, level: st.level, coins, bosses: st.bossesKilled, evolutions: st.evolutions, props: st.propsBroken, charId: st.players[localId].charId, map: st.mapId, daily: st.daily, coop: st.players.length > 1 });
+    const coins = Math.round((st.coins + st.kills / 8 + seconds / 6 + st.bossesKilled * 60 + (victory || st.won ? 300 : 0)) * greed);
+    emit("end", { victory: victory || !!st.won, endless: !!st.endless, endlessSeconds: st.endless ? Math.floor((st.t - st.endlessStart) / 60) : 0, seconds, kills: st.kills, level: st.level, coins, bosses: st.bossesKilled, evolutions: st.evolutions, abilities: st.abilitiesUsed || 0, props: st.propsBroken, charId: st.players[localId].charId, map: st.mapId, daily: st.daily, coop: st.players.length > 1 });
   }
 
   function readInput() {
@@ -1714,7 +1983,7 @@ const Game = (() => {
     }
     input.x = x;
     input.y = y;
-    return { x, y };
+    return { x, y, ab: input.ab };
   }
 
   function loop() {
@@ -1726,6 +1995,18 @@ const Game = (() => {
       const dt = Math.min(100, now - lastTime);
       lastTime = now;
       if (!st) return;
+      // si va a menos de unos 40 fotogramas por segundo, se reducen los efectos
+      perf.sum += dt;
+      perf.n++;
+      if (perf.n >= 150) {
+        if (options.fx === "auto" && !autoLow && perf.sum / perf.n > 25 && !paused && !st.choosing) {
+          autoLow = true;
+          emit("lowFx", {}); // solo en esta pantalla (no se manda a los amigos)
+        }
+        perf.sum = 0;
+        perf.n = 0;
+      }
+      checkLowFx();
       const local = readInput();
       if (mode !== "guest") {
         if (st.players[localId]) st.players[localId].input = local;
@@ -1758,6 +2039,7 @@ const Game = (() => {
 
   function hudData() {
     const p = st.players[localId];
+    const abDef = TS.ABILITIES[p.charId];
     return {
       hp: p.hp,
       maxHp: p.stats.maxHp,
@@ -1773,6 +2055,7 @@ const Game = (() => {
       boss: st.boss && TS.ENEMIES[st.boss.type] ? { name: L(TS.ENEMIES[st.boss.type].name), pct: st.boss.hp / st.boss.maxHp } : null,
       down: p.down,
       name: p.name,
+      ability: abDef ? { name: L(abDef.name), pct: st.guest ? p.abPct ?? 1 : 1 - p.abCd / abilityMax(p) } : null,
       players: st.players.map((o) => ({ name: o.name, hp: o.hp, maxHp: o.stats.maxHp, down: o.down, charId: o.charId }))
     };
   }
@@ -1783,7 +2066,7 @@ const Game = (() => {
 
   function resize() {
     if (!canvas) return;
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const dpr = lowFx ? 1 : Math.min(2, window.devicePixelRatio || 1);
     const w = window.innerWidth;
     const h = window.innerHeight;
     canvas.width = Math.round(w * dpr);
@@ -1821,6 +2104,7 @@ const Game = (() => {
 
   function shadow(x, y, w) {
     ctx.fillStyle = "rgba(10,20,10,.32)";
+    if (lowFx) { ctx.fillRect(Math.round(x - w), Math.round(y - w * 0.3), Math.round(w * 2), Math.max(2, Math.round(w * 0.6))); return; }
     ctx.beginPath();
     ctx.ellipse(Math.round(x), Math.round(y), w, w * 0.4, 0, 0, TAU);
     ctx.fill();
@@ -1845,7 +2129,7 @@ const Game = (() => {
     const s = set[flash ? `${dir}Flash` : dir];
     if (atk && atk.t > 0) {
       const k = 1 - atk.t / atk.total;
-      return s.attack[Math.min(2, Math.floor(k * 3))];
+      return s.attack[Math.max(0, Math.min(2, Math.floor(k * 3)))];
     }
     if (moving) return s.walk[Math.floor(walkT / 7) % 4];
     return s.idle;
@@ -2152,6 +2436,14 @@ const Game = (() => {
   function drawFx(f) {
     const k = f.t / f.life;
     switch (f.k) {
+      case "warn": {
+        ctx.strokeStyle = "rgba(255,60,60,.9)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.ellipse(f.x, f.y, f.r, f.r * 0.6, 0, 0, TAU); ctx.stroke();
+        ctx.fillStyle = `rgba(255,60,60,${0.12 + k * 0.3})`;
+        ctx.beginPath(); ctx.ellipse(f.x, f.y, f.r * k, f.r * 0.6 * k, 0, 0, TAU); ctx.fill();
+        break;
+      }
       case "num": {
         if (!options.numbers) break;
         const y = f.y - k * 14;
@@ -2431,6 +2723,7 @@ const Game = (() => {
   function bindInput() {
     window.addEventListener("keydown", (e) => {
       if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(e.code)) e.preventDefault();
+      if ((e.code === "Space" || e.code === "KeyE") && !e.repeat) input.ab++;
       input.keys.add(e.code);
     });
     window.addEventListener("keyup", (e) => input.keys.delete(e.code));
@@ -2511,7 +2804,7 @@ const Game = (() => {
       r1(p.x), r1(p.y), DIRS.indexOf(p.dir), p.face, p.moving ? 1 : 0, p.walkT, p.atk ? p.atk.t : 0, p.atk ? p.atk.total : 0,
       Math.round(p.hp), p.stats.maxHp, p.down ? 1 : 0, p.reviveT, p.iframes, p.flash,
       p.weapons.map((w) => [w.id, w.lvl, w.evo ? 1 : 0, (w.drones || []).map((d) => [r1(d.x || 0), r1(d.y || 0)])]),
-      Object.entries(p.passives), r1(p.stats.area)
+      Object.entries(p.passives), r1(p.stats.area), Math.round((1 - p.abCd / abilityMax(p)) * 100) / 100
     ]);
     const enemies = [];
     for (const e of st.enemies) {
@@ -2568,6 +2861,7 @@ const Game = (() => {
       p.weapons = a[14].map(([id, lvl, evo, drones]) => ({ id, lvl, evo: !!evo, drones: drones.map(([x, y]) => ({ x, y })) }));
       p.passives = Object.fromEntries(a[15]);
       p.stats.area = a[16];
+      p.abPct = a[17];
     });
     const seen = new Set();
     const list = [];
@@ -2742,6 +3036,7 @@ const Game = (() => {
     startGuest,
     applySnapshot,
     setInput(id, inp) { if (st && st.players[id]) st.players[id].input = inp; },
+    pressAbility() { input.ab++; },
     dropPlayer(id) { if (st && st.players[id] && !st.players[id].down) { st.players[id].hp = 0; st.players[id].down = true; } },
     get mapId() { return mapId; },
     mapPreview,
@@ -2749,6 +3044,23 @@ const Game = (() => {
     stop,
     choose,
     setPaused,
+    // tras ganar: seguir en modo infinito o terminar
+    continueEndless() {
+      if (!st || !st.victoryWait) return;
+      st.victoryWait = false;
+      st.endless = true;
+      st.endlessStart = st.t;
+      st.endlessLoops = 0;
+      st.endlessBossT = st.t + 90 * 60;
+      st.endlessHordeT = st.t + 30 * 60;
+      Sfx.startMusic("boss");
+      emit("endless", {});
+    },
+    endWin() {
+      if (!st || !st.victoryWait) return;
+      st.victoryWait = false;
+      finish(true);
+    },
     get state() { return st; },
     set state(v) { st = v; },
     get mode() { return mode; },

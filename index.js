@@ -441,6 +441,53 @@ function isContactConfigured(env) {
 }
 
 /* =========================================================
+   TURN (online de Tronk Survivors)
+   Cloudflare Realtime TURN: con TURN_KEY_ID y TURN_KEY_API_TOKEN
+   se piden credenciales que caducan a las 3 horas. Sin configurar,
+   se devuelve una lista vacía y el juego usa solo STUN.
+   ========================================================= */
+
+function isTurnConfigured(env) {
+  return Boolean(env.TURN_KEY_ID && env.TURN_KEY_API_TOKEN);
+}
+
+async function handleTurn(request, env, cors) {
+  if (!isTurnConfigured(env)) return json({ iceServers: [] }, 200, cors);
+
+  const allowed = await allowRequest(env.TURN_LIMITER, `turn:${clientIp(request)}`, 10);
+  if (!allowed) return json({ error: "rate_limited", iceServers: [] }, 429, cors);
+
+  try {
+    const response = await fetch(
+      `https://rtc.live.cloudflare.com/v1/turn/keys/${encodeURIComponent(env.TURN_KEY_ID)}/credentials/generate-ice-servers`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${env.TURN_KEY_API_TOKEN}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ ttl: 10800 })
+      }
+    );
+    if (!response.ok) {
+      console.error("turn: Cloudflare respondió", response.status);
+      return json({ iceServers: [] }, 200, cors);
+    }
+    const data = await response.json();
+    // Según la versión de la API llega una lista o un solo servidor
+    const list = Array.isArray(data.iceServers) ? data.iceServers : data.iceServers ? [data.iceServers] : [];
+    const iceServers = list
+      .filter((server) => server && server.urls)
+      .map((server) => ({
+        urls: server.urls,
+        ...(server.username ? { username: String(server.username) } : {}),
+        ...(server.credential ? { credential: String(server.credential) } : {})
+      }));
+    return json({ iceServers }, 200, cors);
+  } catch (error) {
+    console.error("turn: error", error && error.name);
+    return json({ iceServers: [] }, 200, cors);
+  }
+}
+
+/* =========================================================
    UTILIDADES
    ========================================================= */
 
@@ -1544,7 +1591,8 @@ export default {
             contact: isContactConfigured(env),
             launchMail: isLaunchMailConfigured(env),
             push: isPushConfigured(env),
-            turnstile: Boolean(env.TURNSTILE_SECRET)
+            turnstile: Boolean(env.TURNSTILE_SECRET),
+            turn: isTurnConfigured(env)
           },
           200,
           cors
@@ -1583,6 +1631,12 @@ export default {
 
         if (url.pathname === "/contact") {
           return await handleContact(request, env, cors);
+        }
+
+        // Tronk Survivors: servidores de reenvío para jugar online en
+        // redes que no dejan conectar directamente (datos móviles, institutos…)
+        if (url.pathname === "/turn") {
+          return await handleTurn(request, env, cors);
         }
       }
 

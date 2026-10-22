@@ -560,3 +560,32 @@ img[data-icon], .pix { image-rendering: pixelated; }
   .stage-name { font-size: 20px; }
   .stage-floor { width: 140px; }
 }
+
+/* ---------- habilidad especial ---------- */
+.hud-ab { position: absolute; right: 14px; bottom: 14px; pointer-events: auto; width: 96px; height: 96px; border-radius: 50%; border: 0; padding: 8px; overflow: hidden; display: grid; place-content: center; gap: 2px; text-align: center; color: #fff; font: inherit; background: rgba(18, 12, 36, 0.8); box-shadow: 0 0 0 3px var(--line), 0 6px 18px rgba(0, 0, 0, 0.4); cursor: pointer; touch-action: none; }
+.hud-ab b, .hud-ab small { position: relative; z-index: 1; text-shadow: 0 1px 0 #000; }
+.hud-ab b { font-size: 11px; line-height: 1.1; }
+.hud-ab small { font-size: 10px; color: var(--muted); }
+.hud-ab-fill { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: linear-gradient(#ffd23f, #ff8a1f); opacity: 0.5; }
+.hud-ab.is-ready { box-shadow: 0 0 0 3px var(--gold), 0 0 22px rgba(255, 210, 63, 0.6); animation: ab-ready 1s ease-in-out infinite; }
+.hud-ab.is-ready .hud-ab-fill { opacity: 0.75; }
+.hud-ab.is-ready small { color: #fff; }
+@keyframes ab-ready { 50% { transform: scale(1.06); } }
+@media (max-width: 760px), (max-height: 500px) {
+  .hud-ab { width: 84px; height: 84px; right: 18px; bottom: 18px; }
+}
+
+/* ---------- misiones de la semana ---------- */
+.missions { display: grid; gap: 8px; margin-bottom: 6px; }
+.mission { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: center; background: var(--panel-2); border-radius: 10px; padding: 10px 12px; }
+.mission b { font-size: 14px; }
+.mission .bar { grid-column: 1 / -1; height: 8px; border-radius: 4px; background: #0d0920; overflow: hidden; }
+.mission .bar i { display: block; height: 100%; background: linear-gradient(90deg, #3cc24f, #ffd23f); }
+.mission small { color: var(--muted); font-size: 12px; }
+.mission.claimed { opacity: 0.55; }
+.daily-title small { font-weight: 400; color: var(--muted); font-size: 12px; margin-left: 6px; }
+
+/* ---------- consejos de la primera partida ---------- */
+.hud-tip { position: absolute; left: 50%; top: 92px; transform: translateX(-50%); max-width: min(520px, 92vw); padding: 10px 16px; border-radius: 12px; background: rgba(18, 12, 36, 0.88); box-shadow: 0 0 0 2px var(--gold); color: #fff; font-size: 14px; text-align: center; animation: tip-in 0.3s ease-out; }
+@keyframes tip-in { from { opacity: 0; transform: translate(-50%, -8px); } }
+@media (max-height: 500px) and (orientation: landscape) { .hud-tip { top: 64px; font-size: 12px; } }

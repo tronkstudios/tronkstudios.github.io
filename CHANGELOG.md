@@ -9,6 +9,33 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.38 · Tronk Survivors: habilidades, modo infinito y misiones
+
+#### Añadido
+- Habilidad especial para cada uno de los 16 personajes (Espacio o el botón
+  redondo en el móvil), con su tiempo de recarga.
+- Cada mapa tiene su propio jefe final: el Rey Esqueleto en el cementerio, el
+  Moco Rey en la playa (se divide en mocos) y el General Antitronk en la
+  ciudad (pide bombardeos y refuerzos).
+- Modo infinito: al ganar se puede seguir jugando, con un jefe cada minuto y
+  medio, y tiene su propia clasificación.
+- Misiones de la semana: 3 nuevas cada lunes, iguales para todos, con monedas.
+- Consejos en la primera partida y ajuste de calidad de los efectos (se
+  reduce solo si el juego va lento en el móvil).
+- Página del juego para buscadores en `/juegos/tronk-survivors/`.
+- Servidor de reenvío (TURN) para jugar online en redes que no dejan
+  conectar directamente, a través del backend.
+
+#### Cambiado
+- Las primeras partidas son más fáciles: se sube de nivel antes, los
+  Antitronks y los jefes disparan menos fuerte y en las 3 primeras partidas
+  los enemigos pegan menos.
+- Los récords de Tronk Survivors se comprueban en el servidor: cada partida
+  pide un ticket al empezar y el servidor calcula los puntos al final.
+
+#### Arreglado
+- Un fallo al dibujar a algunos jefes mientras preparaban un ataque largo.
+
 ### 6.37 · Tronk Survivors: online, mapas y reto diario
 
 #### Añadido

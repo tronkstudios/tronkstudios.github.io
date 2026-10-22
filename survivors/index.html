@@ -19,9 +19,9 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta
     http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://qjjnqhbtovjcbwgcwhgl.supabase.co wss://qjjnqhbtovjcbwgcwhgl.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'"
+    content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://qjjnqhbtovjcbwgcwhgl.supabase.co wss://qjjnqhbtovjcbwgcwhgl.supabase.co https://tronkstudios-support.tronkstudios7.workers.dev; object-src 'none'; base-uri 'self'; form-action 'self'"
   />
-  <link rel="stylesheet" href="survivors.css?v=2" />
+  <link rel="stylesheet" href="survivors.css?v=3" />
 </head>
 <body>
   <canvas id="game" aria-label="Tronk Survivors"></canvas>
@@ -39,7 +39,7 @@
     <div class="menu-layout">
       <div class="menu-box">
         <h1 class="logo">TRONK<br /><span>SURVIVORS</span></h1>
-        <div class="menu-chips"><span>16 personajes</span><span>15 armas</span><span>4 jefes</span><span>Online</span></div>
+        <div class="menu-chips"><span>16 personajes</span><span>16 armas</span><span>7 jefes</span><span>Online</span></div>
         <div class="menu-buttons">
           <button class="btn btn-big" data-go="maps"><img data-icon="tajo" alt="" /> Jugar</button>
           <button class="btn btn-daily" data-go="daily"><img data-icon="reloj" alt="" /> Reto diario <span id="menu-daily" class="badge" hidden>¡Nuevo!</span></button>
@@ -48,7 +48,7 @@
           <button class="btn btn-gold" data-go="gacha"><img data-icon="cofre" alt="" /> Cofre Tronk <span id="menu-free" class="badge" hidden>¡Gratis!</span></button>
           <div class="menu-row">
             <button class="btn" data-go="shop"><img data-icon="musculo" alt="" /> Mejoras</button>
-            <button class="btn" data-go="achievements"><img data-icon="trebol" alt="" /> Logros <span id="menu-ach" class="mini-count"></span></button>
+            <button class="btn" data-go="achievements"><img data-icon="trebol" alt="" /> Misiones <span id="menu-ach" class="badge" hidden>!</span></button>
           </div>
         </div>
         <p class="menu-account" id="menu-account"></p>
@@ -142,6 +142,9 @@
         <h2>Elige el mapa</h2>
       </header>
       <div class="maps-grid" id="maps-grid"></div>
+      <h3 class="daily-title">Modo infinito: los que más aguantan</h3>
+      <p class="online-note">Al ganar una partida puedes seguir jugando sin final.</p>
+      <ol class="daily-top" id="endless-top"></ol>
     </div>
   </section>
 
@@ -166,9 +169,12 @@
     <div class="panel">
       <header class="panel-head">
         <button class="btn btn-small" data-go="menu">← Volver</button>
-        <h2>Logros</h2>
+        <h2>Misiones y logros</h2>
         <span class="panel-count" id="ach-count"></span>
       </header>
+      <h3 class="daily-title">Misiones de la semana <small id="week-left"></small></h3>
+      <div class="missions" id="missions"></div>
+      <h3 class="daily-title">Logros</h3>
       <div class="ach-list" id="ach-list"></div>
     </div>
   </section>
@@ -190,6 +196,14 @@
       </label>
       <label class="setting"><span>Números de daño</span><input type="checkbox" id="opt-numbers" /></label>
       <label class="setting"><span>Temblor de pantalla</span><input type="checkbox" id="opt-shake" /></label>
+      <label class="setting"><span>Calidad de los efectos</span>
+        <select id="opt-fx">
+          <option value="auto">Automática</option>
+          <option value="high">Alta</option>
+          <option value="low">Baja (para móviles lentos)</option>
+        </select>
+      </label>
+      <label class="setting"><span>Consejos de la primera partida</span><input type="checkbox" id="opt-tips" /></label>
     </div>
   </section>
 
@@ -218,12 +232,18 @@
     </div>
     <button class="btn btn-small hud-pause" id="hud-pause" type="button" aria-label="Pausa">II</button>
     <div class="hud-team" id="hud-team"></div>
+    <div class="hud-tip" id="hud-tip" hidden></div>
     <div class="hud-boss" id="hud-boss" hidden><b id="hud-boss-name"></b><span><i id="hud-boss-bar"></i></span></div>
     <div class="hud-bottom">
       <span class="hud-evo" id="hud-evo" hidden>¡Evolución disponible! Coge un cofre</span>
       <div class="hud-slots" id="hud-slots"></div>
-      <p class="hud-hint">WASD o flechas para moverte · los ataques son automáticos · Esc pausa</p>
+      <p class="hud-hint">WASD o flechas para moverte · los ataques son automáticos · Espacio: habilidad · Esc pausa</p>
     </div>
+    <button class="hud-ab" id="hud-ab" type="button">
+      <i class="hud-ab-fill" id="hud-ab-fill"></i>
+      <b id="hud-ab-name">Habilidad</b>
+      <small id="hud-ab-state">Espacio</small>
+    </button>
   </div>
 
   <div id="banner" class="banner" hidden></div>
@@ -239,7 +259,7 @@
   <!-- Subida de nivel -->
   <div id="levelup" class="modal" hidden>
     <div class="modal-box">
-      <h2>¡Nivel <span id="levelup-level">2</span>!</h2>
+      <h2 id="levelup-title">¡Nivel 2!</h2>
       <p class="modal-sub">Elige una mejora</p>
       <div class="levelup-cards" id="levelup-cards"></div>
       <p class="modal-wait" id="levelup-wait" hidden>Esperando a los demás…</p>
@@ -270,16 +290,27 @@
     </div>
   </div>
 
-  <script src="js/data.js?v=2" defer></script>
-  <script src="js/sprites.js?v=2" defer></script>
-  <script src="js/people.js?v=2" defer></script>
-  <script src="js/audio.js?v=2" defer></script>
+  <div id="victory" class="modal" hidden>
+    <div class="modal-box">
+      <h2>¡VICTORIA!</h2>
+      <p>Has derrotado al jefe final. ¿Sigues en modo infinito? Los enemigos no paran, cada minuto y medio sale un jefe más fuerte y tu tiempo cuenta para su propia clasificación.</p>
+      <div class="modal-buttons">
+        <button class="btn btn-big" id="victory-endless">Seguir jugando</button>
+        <button class="btn" id="victory-end">Terminar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/data.js?v=3" defer></script>
+  <script src="js/sprites.js?v=3" defer></script>
+  <script src="js/people.js?v=3" defer></script>
+  <script src="js/audio.js?v=3" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-  <script src="js/lang.js?v=1" defer></script>
-  <script src="js/save.js?v=2" defer></script>
-  <script src="js/account.js?v=1" defer></script>
-  <script src="js/game.js?v=2" defer></script>
-  <script src="js/net.js?v=1" defer></script>
-  <script src="js/ui.js?v=2" defer></script>
+  <script src="js/lang.js?v=3" defer></script>
+  <script src="js/save.js?v=3" defer></script>
+  <script src="js/account.js?v=3" defer></script>
+  <script src="js/game.js?v=3" defer></script>
+  <script src="js/net.js?v=3" defer></script>
+  <script src="js/ui.js?v=3" defer></script>
 </body>
 </html>

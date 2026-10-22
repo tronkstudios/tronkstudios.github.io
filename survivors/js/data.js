@@ -141,7 +141,7 @@ TS.WEAPONS = {
   virote: {
     name: "Ballesta", desc: "Dispara virotes al enemigo más cercano.",
     levels: [
-      { dmg: 10, cd: 54, count: 1, pierce: 1, speed: 5 },
+      { dmg: 11, cd: 44, count: 1, pierce: 1, speed: 5 },
       { dmg: 12, cd: 52, count: 2, pierce: 1, speed: 5 },
       { dmg: 14, cd: 50, count: 2, pierce: 2, speed: 5.5 },
       { dmg: 16, cd: 46, count: 3, pierce: 2, speed: 5.5 },
@@ -343,7 +343,7 @@ TS.ENEMIES = {
   murcielago: { name: "Murciélago", hp: 5, speed: 1.25, dmg: 4, xp: 1, r: 5, ai: "erratic", flying: true },
   gordo: { name: "Zombi gordo", hp: 70, speed: 0.38, dmg: 12, xp: 5, r: 10, ai: "chase", heavy: true },
   casco: { name: "Zombi con casco", hp: 34, speed: 0.6, dmg: 8, xp: 3, r: 6, ai: "chase", armor: 3 },
-  antitronk: { name: "Antitronk", hp: 18, speed: 0.7, dmg: 6, xp: 3, r: 6, ai: "ranged", range: 120, shot: { cd: 150, speed: 2.1, dmg: 8 } },
+  antitronk: { name: "Antitronk", hp: 16, speed: 0.7, dmg: 6, xp: 3, r: 6, ai: "ranged", range: 95, shot: { cd: 200, speed: 1.9, dmg: 5 } },
   slime: { name: "Moco", hp: 22, speed: 0.6, dmg: 6, xp: 2, r: 7, ai: "hop", split: "slimito" },
   slimito: { name: "Moquito", hp: 7, speed: 0.85, dmg: 4, xp: 1, r: 4, ai: "hop" },
   ninja: { name: "Ninja", hp: 22, speed: 0.8, dmg: 8, xp: 3, r: 6, ai: "dash", dodge: 0.2 },
@@ -357,36 +357,40 @@ TS.ENEMIES = {
   jarron: { name: "Jarrón", hp: 1, speed: 0, dmg: 0, xp: 0, r: 6, ai: "prop", prop: true },
   brasero: { name: "Brasero", hp: 1, speed: 0, dmg: 0, xp: 0, r: 6, ai: "prop", prop: true },
   // Jefes
-  gigante: { name: "Zombi Gigante", hp: 1400, speed: 0.5, dmg: 18, xp: 60, r: 20, ai: "boss_stomp", boss: true, scale: 2, sprite: "gordo" },
+  gigante: { name: "Zombi Gigante", hp: 1000, speed: 0.45, dmg: 14, xp: 60, r: 20, ai: "boss_stomp", boss: true, scale: 2, sprite: "gordo" },
   supremo: { name: "Antitronk Supremo", hp: 2600, speed: 0.6, dmg: 16, xp: 90, r: 16, ai: "boss_bullets", boss: true, scale: 2, sprite: "supremo" },
   maestro: { name: "Maestro Ninja", hp: 4200, speed: 0.9, dmg: 20, xp: 120, r: 15, ai: "boss_ninja", boss: true, scale: 2, sprite: "maestro" },
-  rey: { name: "El Rey Zombi", hp: 9000, speed: 0.55, dmg: 26, xp: 200, r: 22, ai: "boss_king", boss: true, scale: 3, sprite: "rey" }
+  rey: { name: "El Rey Zombi", hp: 9000, speed: 0.55, dmg: 26, xp: 200, r: 22, ai: "boss_king", boss: true, scale: 3, sprite: "rey" },
+  // Jefes finales de cada mapa (salen a los 10 minutos en lugar del Rey Zombi)
+  reyEsqueleto: { name: "El Rey Esqueleto", hp: 9500, speed: 0.6, dmg: 24, xp: 200, r: 20, ai: "boss_bones", boss: true, scale: 3, sprite: "reyEsqueleto" },
+  mocoRey: { name: "El Moco Rey", hp: 8500, speed: 0.55, dmg: 26, xp: 200, r: 26, ai: "boss_slime", boss: true, scale: 4, sprite: "slime" },
+  general: { name: "El General Antitronk", hp: 9000, speed: 0.6, dmg: 22, xp: 200, r: 18, ai: "boss_general", boss: true, scale: 3, sprite: "general" }
 };
 
 /* ---------- OLEADAS ----------
    Según el segundo de la partida: qué enemigos salen (con su peso),
    cada cuántos fotogramas y cuántos a la vez como mucho. */
-TS.RUN_SECONDS = 600; // a los 10 minutos sale el Rey Zombi
+TS.RUN_SECONDS = 600; // a los 10 minutos sale el jefe final del mapa
 TS.WAVES = [
-  { from: 0, every: 46, alive: 45, mix: { zombi: 10, murcielago: 2 } },
-  { from: 45, every: 34, alive: 80, mix: { zombi: 7, corredor: 3, murcielago: 3 } },
-  { from: 90, every: 28, alive: 110, mix: { zombi: 6, corredor: 3, murcielago: 2, antitronk: 2, slime: 2 } },
-  { from: 150, every: 24, alive: 140, mix: { zombi: 4, corredor: 3, gordo: 1, antitronk: 3, slime: 2, casco: 2 } },
-  { from: 240, every: 22, alive: 170, mix: { corredor: 4, gordo: 2, antitronk: 3, ninja: 2, casco: 2, bomba: 1, murcielago: 2 } },
-  { from: 300, every: 20, alive: 200, mix: { corredor: 3, gordo: 2, antitronk: 3, ninja: 3, esqueleto: 3, bomba: 2, fantasma: 1 } },
-  { from: 390, every: 18, alive: 230, mix: { esqueleto: 4, ninja: 3, gordo: 2, antitronk: 3, fantasma: 2, bomba: 2, brujo: 1, slime: 2 } },
-  { from: 480, every: 16, alive: 260, mix: { esqueleto: 4, ninja: 4, casco: 3, gordo: 3, antitronk: 3, fantasma: 3, bomba: 2, brujo: 2 } },
+  { from: 0, every: 52, alive: 32, mix: { zombi: 10, murcielago: 2 } },
+  { from: 50, every: 36, alive: 70, mix: { zombi: 7, corredor: 3, murcielago: 3 } },
+  { from: 90, every: 28, alive: 100, mix: { zombi: 6, corredor: 3, murcielago: 2, antitronk: 1, slime: 2 } },
+  { from: 160, every: 25, alive: 125, mix: { zombi: 4, corredor: 3, gordo: 1, antitronk: 2, slime: 2, casco: 2 } },
+  { from: 240, every: 22, alive: 170, mix: { corredor: 4, gordo: 2, antitronk: 2, ninja: 2, casco: 2, bomba: 1, murcielago: 2 } },
+  { from: 300, every: 20, alive: 200, mix: { corredor: 3, gordo: 2, antitronk: 2, ninja: 3, esqueleto: 3, bomba: 2, fantasma: 1 } },
+  { from: 390, every: 18, alive: 230, mix: { esqueleto: 4, ninja: 3, gordo: 2, antitronk: 2, fantasma: 2, bomba: 2, brujo: 1, slime: 2 } },
+  { from: 480, every: 16, alive: 260, mix: { esqueleto: 4, ninja: 4, casco: 3, gordo: 3, antitronk: 2, fantasma: 3, bomba: 2, brujo: 2 } },
   { from: 560, every: 14, alive: 290, mix: { esqueleto: 4, ninja: 4, casco: 3, gordo: 3, antitronk: 4, fantasma: 3, bomba: 3, brujo: 2, corredor: 3 } }
 ];
 TS.BOSSES = [
-  { at: 150, id: "gigante" },
+  { at: 180, id: "gigante" },
   { at: 300, id: "supremo" },
   { at: 450, id: "maestro" },
   { at: 600, id: "rey" }
 ];
 // Hordas: un círculo de enemigos alrededor del jugador
 TS.HORDES = [
-  { at: 70, id: "murcielago", count: 26 },
+  { at: 105, id: "murcielago", count: 18 },
   { at: 200, id: "zombi", count: 34 },
   { at: 270, id: "murcielago", count: 40 },
   { at: 360, id: "esqueleto", count: 30 },
@@ -433,28 +437,28 @@ TS.MAPS = {
     ground: { grass: ["#4a8a3a", "#43803a", "#52933f", "#3e7a35", "#4d8e3c"], grassEdge: "#3a6e30", dirt: ["#8a6a42", "#7d5f3a", "#94744a", "#6f5432", "#856540"], dirtEdge: "#6a5232", water: ["#3b7ac8", "#3672bd", "#4282d0"], shore: ["#c9b07a", "#bba26e"], foam: "#8fc6f0", wave: "#7ab4ec", flowers: ["#ffffff", "#ff9fd0", "#ffe066"] },
     dirt: 0.67, water: 0.73,
     obstacles: { arbol: 5, pino: 3, roca: 3, rocaGrande: 1, tronco: 1.4, arbusto: 2, hierba: 5 },
-    mix: {}, unlock: null
+    mix: {}, unlock: null, finalBoss: "rey"
   },
   cementerio: {
     name: "Cementerio Maldito", desc: "Niebla, tumbas, esqueletos y fantasmas.",
     ground: { grass: ["#3b5a3e", "#365438", "#41613f", "#324e35", "#3d5c3c"], grassEdge: "#2a4230", dirt: ["#5e5650", "#544c47", "#665e57", "#4a4340", "#5a524c"], dirtEdge: "#403a36", water: ["#3a5a4a", "#355445", "#40624f"], shore: ["#4a4a3a", "#424234"], foam: "#5a7a62", wave: "#4f6f58", flowers: ["#b8a8ff", "#8a7aaa", "#e8e0ff"] },
     dirt: 0.58, water: 0.8, dark: 0.35,
     obstacles: { tumba: 5, cruz: 3, arbolMuerto: 3, roca: 2, hierba: 3 },
-    mix: { esqueleto: 3, fantasma: 2.5, brujo: 1.5, murcielago: 1.5 }, unlock: { best: "time", value: 300, text: "Aguanta 5 minutos en cualquier mapa" }
+    mix: { esqueleto: 3, fantasma: 2.5, brujo: 1.5, murcielago: 1.5 }, finalBoss: "reyEsqueleto", unlock: { best: "time", value: 300, text: "Aguanta 5 minutos en cualquier mapa" }
   },
   playa: {
     name: "Playa Tronk", desc: "Arena, mar y mocos al sol.",
     ground: { grass: ["#e3cc8c", "#dcc382", "#e8d398", "#d6bd7c", "#e0c888"], grassEdge: "#c9b070", dirt: ["#c9ad74", "#bfa36a", "#d1b57c", "#b49860", "#c4a870"], dirtEdge: "#a88e58", water: ["#2f8ad0", "#2a80c4", "#3896dc"], shore: ["#f2e4b4", "#ece0ac"], foam: "#e8f8ff", wave: "#6ab8ec", flowers: ["#ffffff", "#ff9fd0", "#ff8a3b"] },
     dirt: 0.62, water: 0.62,
     obstacles: { palmera: 5, roca: 3, rocaGrande: 1.5, sombrilla: 1.5, hierba: 1 },
-    mix: { slime: 3, corredor: 2, murcielago: 0.5 }, unlock: { best: "bosses", value: 2, text: "Derrota a 2 jefes en total" }
+    mix: { slime: 3, corredor: 2, murcielago: 0.5 }, finalBoss: "mocoRey", unlock: { best: "bosses", value: 2, text: "Derrota a 2 jefes en total" }
   },
   ciudad: {
     name: "Ciudad de Noche", desc: "Calles, farolas y Antitronks por todas partes.",
     ground: { grass: ["#4a4e58", "#454953", "#50545e", "#41454f", "#4c505a"], grassEdge: "#383c46", dirt: ["#5a5f6a", "#555a65", "#60656f", "#4e535e", "#585d68"], dirtEdge: "#3e434e", water: ["#2a3a5a", "#263552", "#304062"], shore: ["#8a8a92", "#80808a"], foam: "#4a5a7a", wave: "#3a4a6a", flowers: ["#ffe066", "#9aa3b0", "#ffffff"] },
     dirt: 0.55, water: 0.85, dark: 0.45, roads: true,
     obstacles: { farola: 3, contenedor: 2, coche: 2, banco: 2, arbusto: 1 },
-    mix: { antitronk: 3, ninja: 2.5, supremo: 0, brujo: 1 }, unlock: { best: "wins", value: 1, text: "Derrota al Rey Zombi una vez" }
+    mix: { antitronk: 3, ninja: 2.5, supremo: 0, brujo: 1 }, finalBoss: "general", unlock: { best: "wins", value: 1, text: "Gana una partida en cualquier mapa" }
   }
 };
 
@@ -478,11 +482,11 @@ TS.ACHIEVEMENTS = [
   { id: "mil", name: "Imparable", desc: "Derrota a 1.000 enemigos en una partida", reward: 200, test: (r) => r.kills >= 1000 },
   { id: "cinco", name: "Superviviente", desc: "Aguanta 5 minutos", reward: 100, test: (r) => r.seconds >= 300 },
   { id: "jefe", name: "Cazajefes", desc: "Derrota a un jefe", reward: 100, test: (r) => r.bosses >= 1 },
-  { id: "victoria", name: "Rey de reyes", desc: "Derrota al Rey Zombi", reward: 500, test: (r) => r.victory },
+  { id: "victoria", name: "Rey de reyes", desc: "Gana una partida derrotando al jefe final", reward: 500, test: (r) => r.victory },
   { id: "nivel30", name: "Muy preparado", desc: "Llega a nivel 30 en una partida", reward: 200, test: (r) => r.level >= 30 },
   { id: "evolucion", name: "Evolución", desc: "Evoluciona un arma", reward: 150, test: (r, s) => s.stats.evolutions >= 1 },
   { id: "rompe", name: "Manazas", desc: "Rompe 50 objetos en total", reward: 100, test: (r, s) => s.stats.props >= 50 },
-  { id: "sunk", name: "Sin camiseta", desc: "Derrota al Rey Zombi con Sunk", reward: 300, test: (r) => r.victory && r.charId === "sunk" },
+  { id: "sunk", name: "Sin camiseta", desc: "Gana una partida con Sunk", reward: 300, test: (r) => r.victory && r.charId === "sunk" },
   { id: "coleccion5", name: "Coleccionista", desc: "Consigue 5 personajes", reward: 100, test: (r, s) => Object.keys(s.owned).length >= 5 },
   { id: "coleccion", name: "Todos los Tronks", desc: "Consigue los 16 personajes", reward: 1000, test: (r, s) => Object.keys(s.owned).length >= TS.CHARACTERS.length },
   { id: "legendario", name: "¡Legendario!", desc: "Consigue un personaje legendario", reward: 200, test: (r, s) => TS.CHARACTERS.some((c) => c.rarity === "legendario" && s.owned[c.id]) },
@@ -491,4 +495,44 @@ TS.ACHIEVEMENTS = [
   { id: "amigos", name: "Mejor con amigos", desc: "Juega una partida con amigos", reward: 150, test: (r, s) => s.stats.coop >= 1 },
   { id: "mapas", name: "Explorador", desc: "Desbloquea los 4 mapas", reward: 200, test: (r, s) => Object.keys(TS.MAPS).every((m) => s.maps[m]) },
   { id: "rico", name: "Forrado", desc: "Junta 5.000 monedas a la vez", reward: 100, test: (r, s) => s.coins >= 5000 }
+];
+
+/* ---------- HABILIDADES ESPECIALES ----------
+   Una por personaje. Se lanza con Espacio (o el botón en el móvil)
+   y tarda «cd» segundos en volver a estar lista. */
+TS.ABILITIES = {
+  ranjay: { name: "Tajo Giratorio", desc: "Un barrido enorme a tu alrededor.", cd: 18 },
+  bruno: { name: "Megapetardo", desc: "Una explosión gigante a tu alrededor.", cd: 22 },
+  lia: { name: "Perfume Curativo", desc: "Recuperas el 40 % de la vida y eres invencible 3 segundos.", cd: 30 },
+  toto: { name: "Chilena", desc: "Lanza 12 balones en todas direcciones.", cd: 18 },
+  omogos: { name: "Lluvia de Virotes", desc: "Dispara 24 virotes en círculo.", cd: 18 },
+  finillos: { name: "Terremoto", desc: "Un mazazo que sacude a todos los de la pantalla.", cd: 24 },
+  chambas: { name: "Torbellino de Hachas", desc: "Lanza 8 hachas que vuelven.", cd: 20 },
+  frosti: { name: "Congelación", desc: "Congela a todos los enemigos de la pantalla 4 segundos.", cd: 26 },
+  yant: { name: "Carga con Lanza", desc: "Embiste hacia delante atravesando a todos.", cd: 16 },
+  eledemak: { name: "Ráfaga de Golpes", desc: "Una lluvia de puñetazos alrededor que manda a volar.", cd: 18 },
+  kaito: { name: "Danza Ninja", desc: "Te teletransportas cortando a todos por el camino.", cd: 14 },
+  nova: { name: "Lluvia de Estrellas", desc: "Caen 10 meteoritos sobre los enemigos.", cd: 22 },
+  sunk: { name: "Puñetazo Titánico", desc: "Un puñetazo al suelo que lanza una onda enorme.", cd: 20 },
+  quizo: { name: "Tormenta", desc: "Caen rayos sobre los 14 enemigos más cercanos.", cd: 20 },
+  zeta: { name: "Ataque Orbital", desc: "Un láser gigante desde el espacio.", cd: 24 },
+  duna: { name: "Huracán", desc: "4 tornados salen hacia fuera arrastrándolo todo.", cd: 22 }
+};
+
+/* ---------- MISIONES DE LA SEMANA ----------
+   Cada lunes salen 3 de esta lista (las mismas para todos). «kind»:
+   «sum» se va sumando partida a partida; «best» cuenta la mejor partida. */
+TS.MISSIONS = [
+  { id: "kills", text: "Derrota a {n} enemigos", stat: "kills", kind: "sum", goal: 3000, reward: 250 },
+  { id: "bosses", text: "Derrota a {n} jefes", stat: "bosses", kind: "sum", goal: 6, reward: 300 },
+  { id: "runs", text: "Juega {n} partidas", stat: "runs", kind: "sum", goal: 10, reward: 200 },
+  { id: "props", text: "Rompe {n} barriles, cajas o jarrones", stat: "props", kind: "sum", goal: 80, reward: 200 },
+  { id: "survive", text: "Aguanta {n} minutos en una partida", stat: "minutes", kind: "best", goal: 7, reward: 300 },
+  { id: "level", text: "Llega a nivel {n} en una partida", stat: "level", kind: "best", goal: 25, reward: 250 },
+  { id: "win", text: "Gana {n} partida", stat: "wins", kind: "sum", goal: 1, reward: 400 },
+  { id: "coop", text: "Juega {n} partidas con amigos", stat: "coop", kind: "sum", goal: 2, reward: 300 },
+  { id: "daily", text: "Juega {n} retos diarios", stat: "dailies", kind: "sum", goal: 3, reward: 250 },
+  { id: "evolve", text: "Evoluciona {n} armas", stat: "evolutions", kind: "sum", goal: 2, reward: 300 },
+  { id: "maps", text: "Juega {n} partidas fuera del bosque", stat: "otherMaps", kind: "sum", goal: 3, reward: 250 },
+  { id: "ability", text: "Usa la habilidad especial {n} veces", stat: "abilities", kind: "sum", goal: 40, reward: 200 }
 ];

@@ -110,10 +110,9 @@
     spinTimer = setInterval(() => (current === "menu" ? spinHero() : clearInterval(spinTimer)), 700);
     $("menu-free").hidden = !save.freePull;
     $("menu-daily").hidden = save.dailyDone === dailyConfig().day;
-    const done = TS.ACHIEVEMENTS.filter((a) => save.achievements[a.id]).length;
-    $("menu-ach").textContent = LT("achCount", { a: done, b: TS.ACHIEVEMENTS.length });
+    $("menu-ach").hidden = (save.weekly && save.weekly.seen) === weekKey();
     const b = save.best;
-    $("menu-best").textContent = b.time ? LT("best", { time: fmtTime(b.time), kills: b.kills, level: b.level }) + (b.wins ? LT("wins", { n: b.wins }) : "") : L("Aguanta 10 minutos y derrota al Rey Zombi.");
+    $("menu-best").textContent = b.time ? LT("best", { time: fmtTime(b.time), kills: b.kills, level: b.level }) + (b.wins ? LT("wins", { n: b.wins }) : "") : L("Aguanta 10 minutos y derrota al jefe final.");
     renderAccount();
   }
 
@@ -162,6 +161,17 @@
       });
       grid.appendChild(card);
     }
+    renderEndlessTop();
+  }
+
+  async function renderEndlessTop() {
+    const top = $("endless-top");
+    top.textContent = "";
+    if (!Account.client) return;
+    const rows = await Account.endlessTop();
+    top.textContent = "";
+    if (!rows.length) top.appendChild(el("li", "empty", L("Todavía no hay nadie. ¡Sé el primero!")));
+    for (const r of rows) top.appendChild(el("li", r.me ? "me" : "", `${r.name} — ${fmtTime(r.seconds)}${r.character ? ` (${(charById(r.character) || {}).name || ""})` : ""}`));
   }
 
   /* =======================================================
@@ -220,6 +230,7 @@
      ======================================================= */
 
   function renderAchievements() {
+    renderMissions();
     const list = $("ach-list");
     list.textContent = "";
     let done = 0;
@@ -255,6 +266,82 @@
   }
 
   /* =======================================================
+     MISIONES DE LA SEMANA
+     ======================================================= */
+
+  // La semana empieza el lunes (hora universal)
+  function weekKey() {
+    const d = new Date();
+    d.setUTCHours(0, 0, 0, 0);
+    d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+    return d.toISOString().slice(0, 10);
+  }
+
+  function weekMissions() {
+    const key = weekKey();
+    let h = 2166136261;
+    for (const ch of `semana-${key}`) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
+    const pool = [...TS.MISSIONS];
+    const out = [];
+    while (out.length < 3 && pool.length) {
+      h = Math.imul(h ^ (h >>> 15), 2246822507) >>> 0;
+      out.push(pool.splice(h % pool.length, 1)[0]);
+    }
+    return out;
+  }
+
+  function weekly() {
+    const key = weekKey();
+    if (!save.weekly || save.weekly.week !== key) save.weekly = { week: key, prog: {}, claimed: {} };
+    return save.weekly;
+  }
+
+  function missionText(m) {
+    return L(m.text).replace("{n}", m.goal);
+  }
+
+  function updateWeekly(r) {
+    const w = weekly();
+    const value = {
+      kills: r.kills, bosses: r.bosses || 0, runs: 1, props: r.props || 0, minutes: Math.floor(r.seconds / 60), level: r.level,
+      wins: r.victory ? 1 : 0, coop: r.coop ? 1 : 0, dailies: r.daily ? 1 : 0, evolutions: r.evolutions || 0,
+      otherMaps: r.map && r.map !== "bosque" ? 1 : 0, abilities: r.abilities || 0
+    };
+    const done = [];
+    for (const m of weekMissions()) {
+      const v = value[m.stat] || 0;
+      w.prog[m.id] = m.kind === "best" ? Math.max(w.prog[m.id] || 0, v) : (w.prog[m.id] || 0) + v;
+      if (w.prog[m.id] >= m.goal && !w.claimed[m.id]) {
+        w.claimed[m.id] = true;
+        save.coins += m.reward;
+        done.push(m);
+      }
+    }
+    done.forEach((m, i) => setTimeout(() => { toast(LT("missionDone", { name: missionText(m), n: m.reward })); Sfx.play("chest"); }, 1800 + i * 900));
+  }
+
+  function renderMissions() {
+    const w = weekly();
+    w.seen = w.week;
+    Save.persist();
+    const box = $("missions");
+    box.textContent = "";
+    for (const m of weekMissions()) {
+      const prog = Math.min(m.goal, w.prog[m.id] || 0);
+      const row = el("div", `mission${w.claimed[m.id] ? " claimed" : ""}`);
+      const bar = el("div", "bar");
+      const fill = el("i");
+      fill.style.width = `${(prog / m.goal) * 100}%`;
+      bar.appendChild(fill);
+      row.append(el("b", "", missionText(m)), el("span", "", w.claimed[m.id] ? "✓" : `+${m.reward}`), bar, el("small", "", `${prog} / ${m.goal}`));
+      box.appendChild(row);
+    }
+    const end = new Date(`${w.week}T00:00:00Z`).getTime() + 7 * 86400000;
+    const days = Math.max(0, Math.ceil((end - Date.now()) / 86400000));
+    $("week-left").textContent = LT("weekLeft", { n: days });
+  }
+
+  /* =======================================================
      AJUSTES
      ======================================================= */
 
@@ -263,6 +350,7 @@
     Sfx.setVolume("sfx", save.settings.sfxVol ?? 0.9);
     Game.options.numbers = save.settings.numbers !== false;
     Game.options.shake = save.settings.shake !== false;
+    Game.options.fx = save.settings.fx || "auto";
   }
 
   function renderSettings() {
@@ -275,12 +363,16 @@
     $("lang-select").value = LANG;
     $("opt-numbers").checked = save.settings.numbers !== false;
     $("opt-shake").checked = save.settings.shake !== false;
+    $("opt-fx").value = save.settings.fx || "auto";
+    $("opt-tips").checked = !save.tutorial;
   }
 
   $("vol-music").addEventListener("input", (e) => { save.settings.musicVol = e.target.value / 100; applySettings(); renderSettings(); Save.persist(); });
   $("vol-sfx").addEventListener("input", (e) => { save.settings.sfxVol = e.target.value / 100; applySettings(); renderSettings(); Save.persist(); Sfx.play("coin", 0.15); });
   $("opt-numbers").addEventListener("change", (e) => { save.settings.numbers = e.target.checked; applySettings(); Save.persist(); });
   $("opt-shake").addEventListener("change", (e) => { save.settings.shake = e.target.checked; applySettings(); Save.persist(); });
+  $("opt-fx").addEventListener("change", (e) => { save.settings.fx = e.target.value; applySettings(); Save.persist(); });
+  $("opt-tips").addEventListener("change", (e) => { save.tutorial = !e.target.checked; Save.persist(); });
   $("lang-select").addEventListener("change", (e) => {
     setLang(e.target.value);
     translatePage();
@@ -481,7 +573,7 @@
   function enterGame(prepare) {
     goLandscape();
     for (const s of document.querySelectorAll(".screen")) s.classList.remove("is-on");
-    for (const id of ["levelup", "pause", "end"]) $(id).hidden = true;
+    for (const id of ["levelup", "pause", "end", "victory"]) $(id).hidden = true;
     current = "game";
     $("hud").hidden = false;
     $("loading").classList.add("is-on");
@@ -500,14 +592,24 @@
   function play(setups, opts) {
     const s = setups || [localSetup()];
     const o = { mode: "solo", localId: 0, map: save.settings.map || "bosque", ...(opts || {}) };
+    // en las 3 primeras partidas los enemigos pegan menos
+    if (o.mode === "solo" && !o.daily && save.runs < 3) o.easy = true;
     lastRun = { setups, opts: o };
     for (const x of s) Sprites.get(`char:${x.charId}`);
-    enterGame(() => Game.start(s, o));
+    Account.startRun();
+    enterGame(() => {
+      Game.start(s, o);
+      startTips(o.easy);
+    });
   }
 
   function playGuest(info) {
     lastRun = { guest: true };
-    enterGame(() => Game.startGuest(info));
+    Account.startRun();
+    enterGame(() => {
+      Game.startGuest(info);
+      startTips(false);
+    });
   }
 
   function renderSlots(box, data, big) {
@@ -524,18 +626,54 @@
     }
   }
 
+  /* ---------- consejos de la primera partida ---------- */
+  const TIPS = [
+    { at: 1, text: "tipMove" },
+    { at: 9, text: "tipGems" },
+    { at: 22, text: "tipProps" },
+    { at: 34, text: "tipAbility" },
+    { at: 50, text: "tipRanged" }
+  ];
+  let tipIdx = -1;
+  let tipUntil = 0;
+  function startTips(easy) {
+    tipIdx = save.tutorial ? TIPS.length : 0;
+    $("hud-tip").hidden = true;
+    if (easy) setTimeout(() => toast(L("Primeras partidas: los enemigos pegan un 25 % menos.")), 1500);
+  }
+  function updateTips(seconds) {
+    const tip = $("hud-tip");
+    if (!tip.hidden && seconds >= tipUntil) tip.hidden = true;
+    if (tipIdx < 0 || tipIdx >= TIPS.length || seconds < TIPS[tipIdx].at) return;
+    tip.textContent = LT(TIPS[tipIdx].text, { key: isTouch ? L("el botón redondo") : L("Espacio") });
+    tip.hidden = false;
+    tipUntil = seconds + 7;
+    tipIdx++;
+    if (tipIdx >= TIPS.length) { save.tutorial = true; Save.persist(); }
+  }
+
   let slotKey = "";
   Game.on("hud", (d) => {
+    updateTips(d.seconds);
     $("hud-xp-bar").style.width = `${Math.min(100, (d.xp / d.xpNext) * 100)}%`;
     $("hud-level").textContent = `${LANG === "en" ? "Lv." : "Nv."} ${d.level}`;
     $("hud-name").textContent = d.name;
     $("hud-time").textContent = fmtTime(d.seconds);
-    $("hud-sub").textContent = LT("hudSub", { map: L(TS.MAPS[Game.mapId].name), kills: d.kills, coins: d.coins });
+    $("hud-sub").textContent = (Game.state && Game.state.endless ? `${L("Modo infinito")} · ` : "") + LT("hudSub", { map: L(TS.MAPS[Game.mapId].name), kills: d.kills, coins: d.coins });
     const pct = Math.max(0, d.hp / d.maxHp);
     $("hud-hp-bar").style.width = `${pct * 100}%`;
     $("hud-hp-bar").classList.toggle("is-low", pct < 0.35);
     $("hud-hp").textContent = `${Math.ceil(Math.max(0, d.hp))} / ${d.maxHp}`;
     $("hud-evo").hidden = !d.canEvolve;
+    const ab = $("hud-ab");
+    ab.hidden = !d.ability;
+    if (d.ability) {
+      const ready = d.ability.pct >= 1;
+      $("hud-ab-name").textContent = d.ability.name;
+      $("hud-ab-fill").style.height = `${Math.min(1, d.ability.pct) * 100}%`;
+      $("hud-ab-state").textContent = ready ? (isTouch ? L("¡Toca!") : L("Espacio")) : `${Math.round(d.ability.pct * 100)}%`;
+      ab.classList.toggle("is-ready", ready);
+    }
     const key = JSON.stringify([d.weapons, d.passives]);
     if (key !== slotKey) { slotKey = key; renderSlots($("hud-slots"), d); }
     const boss = $("hud-boss");
@@ -575,6 +713,7 @@
   }
 
   Game.on("toast", (d) => toast(d.text));
+  Game.on("lowFx", () => toast(L("Efectos reducidos para que el juego vaya más fluido.")));
   Game.on("boss", (d) => banner(L("¡JEFE!"), d.name));
   Game.on("bossDown", (d) => toast(LT("bossDown", { name: d.name })));
   Game.on("chest", (d) => { toast(L("¡Cofre! +40 monedas")); for (const l of d.lines) toast(l); });
@@ -584,7 +723,7 @@
   /* ---------- subida de nivel ---------- */
 
   function showLevelUp(d) {
-    $("levelup-level").textContent = d.level;
+    $("levelup-title").textContent = LT("levelTitle", { n: d.level });
     const box = $("levelup-cards");
     box.textContent = "";
     $("levelup-wait").hidden = true;
@@ -639,6 +778,7 @@
     if (on) renderSlots($("pause-build"), Game.hudData(), true);
   }
   $("hud-pause").addEventListener("click", () => pause(true));
+  $("hud-ab").addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); Game.pressAbility(); });
   $("pause-resume").addEventListener("click", () => pause(false));
   $("pause-quit").addEventListener("click", () => {
     $("pause").hidden = true;
@@ -655,12 +795,13 @@
       r.coins += 100;
       setTimeout(() => toast(LT("dailyBonus")), 400);
     }
+    updateWeekly(r);
     Save.recordRun(r);
     for (const id of checkMapUnlocks()) setTimeout(() => toast(LT("mapUnlocked", { name: L(TS.MAPS[id].name) })), 1200);
     checkAchievements(r);
     TronkNet.leave();
     const points = Account.points(r);
-    $("end-title").textContent = r.victory ? L("¡VICTORIA!") : L("¡Has caído!");
+    $("end-title").textContent = r.endless ? L("¡Fin del modo infinito!") : r.victory ? L("¡VICTORIA!") : L("¡Has caído!");
     const stats = $("end-stats");
     stats.textContent = "";
     const add = (label, value, cls) => {
@@ -672,6 +813,7 @@
     add("Nivel", r.level);
     add("Enemigos", r.kills);
     add("Jefes", r.bosses);
+    if (r.endless) add("Modo infinito", fmtTime(r.endlessSeconds), "coins");
     add("Puntos", points, "coins");
     add("Monedas ganadas", `+${r.coins}`, "coins");
     hideLevelUp();
@@ -684,8 +826,19 @@
   }
   Game.on("end", showEnd);
 
+  Game.on("victory", () => {
+    if (Game.mode === "guest") return;
+    hideLevelUp();
+    $("pause").hidden = true;
+    $("victory").hidden = false;
+    $("victory-endless").focus();
+  });
+  Game.on("endless", () => banner(L("¡MODO INFINITO!"), L("Aguanta todo lo que puedas")));
+  $("victory-endless").addEventListener("click", () => { $("victory").hidden = true; Game.continueEndless(); });
+  $("victory-end").addEventListener("click", () => { $("victory").hidden = true; Game.endWin(); });
+
   function backToMenu() {
-    for (const id of ["end", "levelup", "pause"]) $(id).hidden = true;
+    for (const id of ["end", "levelup", "pause", "victory"]) $(id).hidden = true;
     $("hud").hidden = true;
     Game.stop();
     demoOn = false;
@@ -709,7 +862,7 @@
       return;
     }
     if (current === "game" && (e.code === "Escape" || e.code === "KeyP")) {
-      if (!$("levelup").hidden || !$("end").hidden) return;
+      if (!$("levelup").hidden || !$("end").hidden || !$("victory").hidden) return;
       pause($("pause").hidden);
     }
   });
