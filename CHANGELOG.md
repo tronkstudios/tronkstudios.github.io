@@ -9,6 +9,14 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.35 · Tronker busca en internet
+
+#### Añadido
+- Tronker responde con Groq, más listo y rápido, y busca en internet con Tavily
+  cuando le preguntan algo actual (noticias, resultados, precios...). Dice de
+  qué web ha sacado la información.
+- Si Groq falla o se acaba su uso gratis, responde la IA de Cloudflare.
+
 ### 6.34 · La galería se abre en una pestaña
 
 #### Corregido

@@ -3,6 +3,8 @@
 # (Cloudflare Worker)
 #
 # Aquí SOLO van valores públicos. Las claves secretas se guardan con:
+#   npx wrangler secret put GROQ_API_KEY     (IA de Tronker)
+#   npx wrangler secret put TAVILY_API_KEY   (búsquedas en internet)
 #   npx wrangler secret put AI_API_KEY
 #   npx wrangler secret put RESEND_API_KEY
 #   npx wrangler secret put SUPPORT_EMAIL_TO
@@ -20,11 +22,17 @@ compatibility_date = "2025-09-01"
 # Para probar en local puedes añadir: ,http://127.0.0.1:5500
 ALLOWED_ORIGINS = "https://tronkstudios.github.io"
 
-# Proveedor de IA del chat de Tronker: "workers-ai" (gratis, de Cloudflare,
-# sin clave), "anthropic" u "openai-compatible" (estos dos necesitan AI_API_KEY)
-AI_PROVIDER = "workers-ai"
+# Proveedor de IA del chat de Tronker:
+#   "groq"       → gratis con cuenta, necesita GROQ_API_KEY; con TAVILY_API_KEY
+#                  también busca en internet. Si falla, responde Workers AI.
+#   "workers-ai" → gratis, de Cloudflare, sin clave
+#   "anthropic" u "openai-compatible" → necesitan AI_API_KEY
+AI_PROVIDER = "groq"
 
-# Modelo del proveedor elegido (cámbialo si usas otro proveedor)
+# Modelo de Groq
+GROQ_MODEL = "openai/gpt-oss-120b"
+
+# Modelo de Workers AI (también se usa de reserva si falla Groq)
 AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
 
 # Solo para "openai-compatible": dirección base de la API, por ejemplo
