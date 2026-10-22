@@ -9,6 +9,22 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.36 · Tronk Survivors
+
+#### Añadido
+- Nuevo juego, Tronk Survivors (`/survivors/`): sobrevive 10 minutos a hordas
+  de zombis, Antitronks, ninjas, esqueletos, fantasmas y 4 jefes. Atacas solo.
+- 16 personajes en pixel art: los 7 de Tronk Fight (Sulius ahora es Eledemak,
+  con guantes de boxeo), 8 nuevos y Sunk. Se ven en 8 direcciones, con
+  animaciones de andar y de ataque propias de cada arma.
+- 15 armas con 6 niveles y 11 objetos pasivos que se eligen al subir de nivel.
+- Mapa de bosque con tierra, lagos, árboles, rocas y troncos con colisión,
+  hierba alta y objetos que se rompen y sueltan premios.
+- Cofre Tronk para conseguir personajes con las monedas que se ganan jugando
+  (sin dinero real), con probabilidades a la vista y legendario seguro a las
+  60 tiradas. Los repetidos suben de estrella.
+- Tienda de mejoras permanentes y menú con los personajes paseando de fondo.
+
 ### 6.35 · Tronker busca en internet
 
 #### Añadido
