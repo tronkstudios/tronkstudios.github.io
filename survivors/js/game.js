@@ -1396,9 +1396,15 @@ const Game = (() => {
           if (target) {
             dr.cd = L.cd * p.stats.cdMul;
             const ang = Math.atan2(target.y - 16 - dr.y, target.x - dr.x);
-            const len = 240 * area;
-            st.zones.push({ type: "laser", x: dr.x, y: dr.y, ang, len, life: 10, t: 0 });
-            for (const e of enemiesOnLine(dr.x, dr.y, ang, len, 6)) hitEnemy(e, L.dmg, p, { kx: Math.cos(ang), ky: Math.sin(ang), kb: 1 });
+            // atraviesa a todos los de la línea, pero se corta tras el último que toca
+            const reach = 240 * area;
+            const hits = enemiesOnLine(dr.x, dr.y, ang, reach, 6);
+            let len = Math.hypot(target.x - dr.x, target.y - 16 - dr.y);
+            for (const e of hits) {
+              len = Math.max(len, (e.x - dr.x) * Math.cos(ang) + (e.y - 16 - dr.y) * Math.sin(ang));
+              hitEnemy(e, L.dmg, p, { kx: Math.cos(ang), ky: Math.sin(ang), kb: 1 });
+            }
+            st.zones.push({ type: "laser", x: dr.x, y: dr.y, ang, len: Math.min(reach, len + 12), life: 10, t: 0 });
             sound("laser", 0.06);
             if (i === 0) attackAnim(p, "dron", Math.cos(ang), Math.sin(ang), 12);
           } else dr.cd = 10;
@@ -2112,6 +2118,12 @@ const Game = (() => {
 
   // Dibuja una imagen con los pies en (x, y), girada si mira a la izquierda
   function drawSprite(img, x, y, footY, flip, scale = 1) {
+    // stickmen: vienen a más resolución y se dibujan suaves
+    if (img.res) {
+      footY = img.foot;
+      scale /= img.res;
+      ctx.imageSmoothingEnabled = true;
+    }
     const w = img.width * scale;
     const h = img.height * scale;
     const dx = Math.round(x - w / 2);
@@ -2123,13 +2135,15 @@ const Game = (() => {
       ctx.drawImage(img, 0, 0, w, h);
       ctx.restore();
     } else ctx.drawImage(img, dx, dy, w, h);
+    ctx.imageSmoothingEnabled = false;
   }
 
   function personImage(set, dir, flash, moving, walkT, atk) {
     const s = set[flash ? `${dir}Flash` : dir];
     if (atk && atk.t > 0) {
       const k = 1 - atk.t / atk.total;
-      return s.attack[Math.max(0, Math.min(2, Math.floor(k * 3)))];
+      const n = s.attack.length;
+      return s.attack[Math.max(0, Math.min(n - 1, Math.floor(k * n)))];
     }
     if (moving) return s.walk[Math.floor(walkT / 7) % s.walk.length];
     return s.idle;
@@ -2603,6 +2617,7 @@ const Game = (() => {
 
   function render() {
     if (!st) return;
+    if (use3D) { render3D(); return; }
     const me = st.players[localId];
     const k = view.k;
     const wW = view.w / k;
@@ -2756,6 +2771,126 @@ const Game = (() => {
     resize();
     window.addEventListener("resize", resize);
     bindInput();
+    // 3D (render3d.js): si el navegador no puede, se queda el dibujo en 2D
+    if (typeof Render3D !== "undefined" && Render3D.init(canvas, { CHUNK, chunkCanvas, obstaclesNear, mapId: () => mapId })) use3D = true;
+  }
+
+  /* =======================================================
+     DIBUJO EN 3D (render3d.js) + capa 2D por encima con los números,
+     nombres, barras de vida y la flecha del jefe
+     ======================================================= */
+  let use3D = false;
+
+  function actorOfPlayer(p) {
+    let ang;
+    if (p.atk && p.atk.t > 0 && p.atk.ax !== undefined) ang = Math.atan2(p.atk.ay, p.atk.ax);
+    else if (p.moving && p.moveX !== undefined) ang = Math.atan2(p.moveY, p.moveX);
+    else ang = p.ang3 ?? Render3D.angleOf(p.dir, p.face);
+    p.ang3 = ang;
+    return { kind: "char", id: p.charId, x: p.x, y: p.y, ang, moving: p.moving, walkT: p.walkT, atk: p.atk, flash: p.flash > 6 || (p.iframes > 0 && p.iframes % 6 < 3) };
+  }
+
+  function actorOfEnemy(e) {
+    const d = TS.ENEMIES[e.type];
+    if (!d) return null;
+    if (d.prop) return { prop: true, type: e.type, x: e.x, y: e.y, t: e.t, flash: e.flash > 0 };
+    const sprite = d.sprite || e.type;
+    const scale = d.scale || 1;
+    const flash = e.flash > 3 || ((e.ai === "dash" || e.ai === "kamikaze") && e.state === 1 && e.t % 6 < 3);
+    if (["slime", "slimito", "fantasma", "murcielago"].includes(sprite)) return { creature: true, type: sprite, x: e.x, y: e.y, t: e.t, flash, phased: e.phased, scale };
+    return { kind: "enemy", id: sprite, x: e.x, y: e.y, ang: Render3D.angleOf(e.dir || "side", e.face), moving: Math.hypot(e.vx || 0, e.vy || 0) > 0.1, walkT: e.t, atk: e.atk > 0 ? { t: e.atk, total: 18 } : null, flash, scale };
+  }
+
+  function render3D() {
+    const me = st.players[localId];
+    cam.x += (me.x - cam.x) * 0.15;
+    cam.y += (me.y - 12 - cam.y) * 0.15;
+    const shakeNow = cam.shake;
+    if (cam.shake > 0) { cam.shake *= 0.85; if (cam.shake < 0.3) cam.shake = 0; }
+    const wH = view.h / view.k;
+    const actors = [];
+    const R2 = (Math.max(view.w, view.h) / view.k) ** 2;
+    for (const e of st.enemies) {
+      if ((e.x - cam.x) ** 2 + (e.y - cam.y) ** 2 > R2) continue;
+      const a = actorOfEnemy(e);
+      if (a) actors.push(a);
+    }
+    for (const p of st.players) if (!p.down || st.t % 20 < 14) actors.push(actorOfPlayer(p));
+    const auras = [];
+    const drones = [];
+    for (const p of st.players) {
+      if (p.down) continue;
+      const col = p.weapons.find((w) => w.id === "colonia");
+      if (col) auras.push({ x: p.x, y: p.y, r: 44 * TS.WEAPONS.colonia.levels[col.lvl - 1].area * p.stats.area });
+      const dr = p.weapons.find((w) => w.id === "dron");
+      if (dr) for (const q of dr.drones || []) if (q.x !== undefined) drones.push({ x: q.x, y: q.y + 50, h: 50 + Math.sin(st.t * 0.2) });
+    }
+    for (const f of st.fx) f.t++;
+    Render3D.draw({
+      cx: cam.x, cy: cam.y, wH, shake: shakeNow, dark: map.dark || 0, t: st.t,
+      actors, gems: st.gems, pickups: st.pickups, shots: st.shots.filter((x) => !(x.delay > 0)), eshots: st.eshots,
+      zones: st.zones, fx: st.fx, auras, drones
+    });
+    // capa 2D: números, nombres, barras de vida, flecha del jefe y joystick
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, view.w, view.h);
+    const d = view.dpr;
+    const P = (x, y, h) => Render3D.project(x, y, h, view.w, view.h);
+    ctx.textAlign = "center";
+    for (const f of st.fx) {
+      if (f.k !== "num" && f.k !== "text") continue;
+      if (f.k === "num" && !options.numbers) continue;
+      const k = f.t / f.life;
+      const [x, y] = P(f.x, f.y + 20, 30 + k * 14);
+      ctx.globalAlpha = 1 - Math.max(0, k - 0.6) / 0.4;
+      ctx.font = `bold ${Math.round((f.k === "text" ? 13 : f.big ? 17 : 13) * d * 1.15)}px monospace`;
+      const txt = f.k === "num" ? String(f.v) : f.text;
+      ctx.fillStyle = "#14112b";
+      ctx.fillText(txt, x + d, y + d);
+      ctx.fillStyle = f.k === "text" ? f.color || "#ffffff" : f.hurt ? "#ff5a5a" : f.big ? "#ffd23f" : "#ffffff";
+      ctx.fillText(txt, x, y);
+    }
+    ctx.globalAlpha = 1;
+    st.fx = st.fx.filter((f) => f.t < f.life);
+    for (const p of st.players) {
+      const [x, y] = P(p.x, p.y, 0);
+      const pct = clamp(p.hp / p.stats.maxHp, 0, 1);
+      ctx.fillStyle = "#14112b";
+      ctx.fillRect(Math.round(x - 14 * d), Math.round(y + 6 * d), Math.round(28 * d), Math.round(5 * d));
+      ctx.fillStyle = pct > 0.35 ? "#3cc24f" : "#e63946";
+      ctx.fillRect(Math.round(x - 13 * d), Math.round(y + 7 * d), Math.round(26 * d * pct), Math.round(3 * d));
+      if (p.down) {
+        const [hx, hy] = P(p.x, p.y, 30);
+        ctx.strokeStyle = "#3cc24f"; ctx.lineWidth = 3 * d;
+        ctx.beginPath(); ctx.arc(hx, hy, 22 * d, -Math.PI / 2, -Math.PI / 2 + (p.reviveT / 150) * TAU); ctx.stroke();
+      }
+      if (st.players.length > 1) {
+        const [nx, ny] = P(p.x, p.y, 62);
+        ctx.font = `bold ${Math.round(12 * d)}px monospace`;
+        ctx.fillStyle = "#14112b"; ctx.fillText(p.name, nx + d, ny + d);
+        ctx.fillStyle = p.id === localId ? "#ffd23f" : "#ffffff"; ctx.fillText(p.name, nx, ny);
+      }
+    }
+    if (st.boss && st.boss.x !== undefined) {
+      const [bx, by] = P(st.boss.x, st.boss.y, 20);
+      if (bx < 0 || by < 0 || bx > view.w || by > view.h) {
+        const a = Math.atan2(by - view.h / 2, bx - view.w / 2);
+        ctx.save();
+        ctx.translate(clamp(bx, 30, view.w - 30), clamp(by, 80, view.h - 30));
+        ctx.rotate(a);
+        ctx.fillStyle = "#e63946";
+        ctx.beginPath(); ctx.moveTo(14 * d, 0); ctx.lineTo(-8 * d, -9 * d); ctx.lineTo(-8 * d, 9 * d); ctx.fill();
+        ctx.restore();
+      }
+    }
+    if (input.joy && input.joy.active) {
+      const j = input.joy;
+      ctx.globalAlpha = 0.35; ctx.fillStyle = "#ffffff";
+      ctx.beginPath(); ctx.arc(j.ox * d, j.oy * d, 46 * d, 0, TAU); ctx.fill();
+      ctx.globalAlpha = 0.7;
+      ctx.beginPath(); ctx.arc((j.ox + j.dx * 40) * d, (j.oy + j.dy * 40) * d, 20 * d, 0, TAU); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
   }
 
   // Vista previa de un mapa (para elegirlo): un trozo del terreno con sus objetos
@@ -2996,6 +3131,18 @@ const Game = (() => {
   }
 
   function renderDemo() {
+    if (use3D) {
+      // el menú de fondo, también en 3D
+      const actors = [];
+      for (const a of demo.actors) {
+        if (a.hero) actors.push({ kind: "char", id: a.charId, x: a.x, y: a.y, ang: Render3D.angleOf(a.dir, a.face), moving: a.moving, walkT: a.walkT, atk: a.atk });
+        else { const x = actorOfEnemy(a); if (x) actors.push(x); }
+      }
+      Render3D.draw({ cx: demo.camX, cy: demo.camY, wH: view.h / view.k, shake: 0, dark: map.dark || 0, t: demo.t, actors, gems: [], pickups: [], shots: [], eshots: [], zones: [], fx: [], auras: [], drones: [] });
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, view.w, view.h);
+      return;
+    }
     const k = view.k;
     const wW = view.w / k;
     const wH = view.h / k;

@@ -9,6 +9,20 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.39 · Tronk Survivors en 3D con stickmen
+
+#### Cambiado
+- Tronk Survivors se ve en 3D: suelo, árboles, rocas, disparos y efectos.
+  Si el navegador no puede con el 3D, se juega en 2D.
+- Los personajes y los enemigos son stickmen como en Tronk Fight, con su
+  peinado y su arma, en todas las direcciones. Eledemak lleva guantes de
+  boxeo y un mullet con flequillo.
+- Solo se puede jugar en ordenador: en el móvil sale un aviso.
+
+#### Arreglado
+- El hacha de Chambas tenía la hoja del revés.
+- El láser del dron se corta en el último enemigo que toca.
+
 ### 6.38 · Tronk Survivors: habilidades, modo infinito y misiones
 
 #### Añadido

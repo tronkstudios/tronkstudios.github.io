@@ -13,7 +13,15 @@
 const People = (() => {
   const { ramp, mix } = Sprites;
   const INK = "#120c24";
-  let SC = 1.3; // píxeles por unidad: más alto = sprites más grandes y con más detalle
+  let SC = 1.25; // píxeles por unidad: más alto = sprites más grandes y con más detalle
+  const SC_MAP = 1.3; // el mapa (árboles, rocas...) va a su propia escala
+  // Proporciones de persona real: la cabeza ocupa más o menos una cuarta
+  // parte de la altura. HK = tamaño de la cabeza respecto al muñeco original
+  const HK = 0.74;
+  // Altura de manos y armas: las posturas se diseñaron para el cuerpo
+  // original; esto las lleva al cuerpo nuevo (más alto)
+  const bodyY = (y) => 1.585 + 1.174 * y;
+  const lift = (v) => (v ? [v[0], bodyY(v[1]), v[2]] : v);
   const FW = 54; // ancho de cada imagen
   const FH = 64; // alto
   const OX = 27; // pies en (OX, OY)
@@ -42,9 +50,13 @@ const People = (() => {
   const DOWN = [0, -CT, SN]; // hacia abajo en la pantalla
   const LIGHT = norm([-0.55, 0.8, 0.55]);
 
+  const SHADE = {};
   function tone(r, i) {
-    // Sombreado plano de dibujo animado: brillo, color y sombra
-    return i > 0.86 ? r.lt : i > 0.42 ? r.base : i > 0.1 ? r.mid : r.sh;
+    // 5 tonos: brillo fuerte, luz, color, media sombra y sombra
+    // las sombras van bastante más oscuras y frías que la rampa base (más volumen)
+    const key = r.base;
+    if (!SHADE[key]) SHADE[key] = { mid: mix(r.mid, "#1c1238", 0.2), sh: mix(r.sh, "#1c1238", 0.42) };
+    return i > 0.95 ? r.hl || r.lt : i > 0.76 ? r.lt : i > 0.5 ? r.base : i > 0.26 ? SHADE[key].mid : SHADE[key].sh;
   }
 
   // Rampa para pelo: brillos suaves, sombras hondas
@@ -197,6 +209,8 @@ const People = (() => {
     const dep = new Float32Array(FW * FH).fill(-1e9);
     const grp = new Int16Array(FW * FH).fill(-1);
     const tag = new Int8Array(FW * FH);
+    const lit = new Float32Array(FW * FH);
+    const ramps = new Array(FW * FH).fill(null);
     const D = mul(TOWARD, -1);
     for (let y = 0; y < FH; y++) {
       for (let x = 0; x < FW; x++) {
@@ -216,12 +230,28 @@ const People = (() => {
         const i = y * FW + x;
         const out = bp.mat.paint ? bp.mat.paint(best, bp) : { r: bp.mat.r };
         if (!out) continue;
-        let light = 0.28 + 0.72 * Math.max(0, dot(best.n, LIGHT));
+        // luz con más contraste: un lado iluminado y el otro en sombra
+        let light = 0.12 + 1.0 * Math.max(0, dot(best.n, LIGHT));
         if (best.inner) light *= 0.55;
         col[i] = out.c || tone(out.r, clamp(light + (out.bias || 0), 0, 1));
         dep[i] = 200 - best.s;
         grp[i] = bp.mat.group;
+        lit[i] = light + (out.bias || 0);
+        ramps[i] = out.c ? null : out.r;
         if (out.tag) tag[i] = out.tag;
+      }
+    }
+    // Sombra de contacto: lo que tiene otra pieza justo encima y por delante
+    // (debajo de la cabeza, de los brazos, del pelo) se oscurece un tono
+    for (let y = 1; y < FH; y++) {
+      for (let x = 0; x < FW; x++) {
+        const i = y * FW + x;
+        if (!ramps[i]) continue;
+        for (let k = 1; k <= 2; k++) {
+          const j = i - k * FW;
+          if (j < 0 || !col[j]) break;
+          if (grp[j] !== grp[i] && dep[j] > dep[i] + 1.2) { col[i] = tone(ramps[i], clamp(lit[i] - 0.38, 0, 1)); break; }
+        }
       }
     }
     // Contornos: por fuera y entre piezas a distinta profundidad
@@ -236,7 +266,7 @@ const People = (() => {
             const yy = y + dy;
             if (xx < 0 || yy < 0 || xx >= FW || yy >= FH) continue;
             const j = yy * FW + xx;
-            if (col[j]) { outCol[i] = "#0e0a16"; break; }
+            if (col[j]) { outCol[i] = mix(col[j], "#0e0a16", 0.82); break; }
           }
           continue;
         }
@@ -442,8 +472,20 @@ const People = (() => {
     };
   }
 
-  function addHead(S, o, hp) {
+  // Lo mismo que S, pero todo lo que se añade se encoge alrededor de c
+  function scaledAround(S, c, k) {
+    const at = (p) => add(c, mul(sub(p, c), k));
+    return {
+      ...S,
+      ell: (p, r, m, extra) => S.ell(at(p), r.map((v) => v * k), m, extra),
+      cap: (a, b, r, m, extra) => S.cap(at(a), at(b), r * k, m, extra),
+      box: (p, axes, h, m) => S.box(at(p), axes, h.map((v) => v * k), m)
+    };
+  }
+
+  function addHead(S0, o, hp) {
     const hc = hp.head; // centro de la cabeza
+    const S = scaledAround(S0, hc, HK);
     const rx = 7.5;
     const ry = 7.1;
     const rz = 7.2;
@@ -653,11 +695,13 @@ const People = (() => {
       return;
     }
     if (o.fat) S.ell(add(t, [0, -1, 1]), [8, 7.4, 6.6], shirtMat(o, "torso"));
-    else S.ell(add(t, [0, 0, 0]), [5 + m, 5.4, 3 + m * 0.3], shirtMat(o, "torso"));
-    S.cap(add(hp.head, [0, -6.5, -0.5]), add(t, [0, 3.5, 0]), 1.6, mat(o.skinR, G.body));
+    else S.ell(add(t, [0, 0, 0]), [5.3 + m, 6.4, 3.2 + m * 0.3], shirtMat(o, "torso"));
+    S.cap(add(hp.head, [0, -6.5 * HK, -0.5]), add(t, [0, 4.5, 0]), 1.4, mat(o.skinR, G.body));
     // cadera
-    S.ell(add(t, [0, -5.2, 0]), [4.2 + m * 0.3, 2.2, 2.7], mat(ramp(o.pants), G.body));
-    if (o.hoodie) S.ell(add(hp.head, [0, -6.5, -3.4]), [4.2, 1.8, 1.6], mat(ramp(o.shirt), G.body));
+    S.ell(add(t, [0, -6.2, 0]), [4.2 + m * 0.3, 2.4, 2.7], mat(ramp(o.pants), G.body));
+    // cinturón
+    if (!o.robe && !o.shirtless && !o.enemy) S.ell(add(t, [0, -4.9, 0]), [4.45 + m * 0.3, 0.75, 2.95], mat(ramp("#3a2a20"), G.body, (h) => (Math.abs(h.lp[0]) < 0.16 && h.lp[2] > 0.6 ? { r: ramp("#c9a227") } : { r: ramp("#3a2a20") })));
+    if (o.hoodie) S.ell(add(hp.head, [0, -6.5 * HK - 0.6, -3]), [4.2, 1.8, 1.6], mat(ramp(o.shirt), G.body));
     if (o.cape) {
       const cr = ramp(o.cape);
       S.box(add(t, [0, -2.5, -3.6]), [[1, 0, 0], [0, 1, 0.12], [0, -0.12, 1]], [5.6, 8.5, 0.5], mat(cr, G.cape, (h) => ({ r: cr, bias: Math.floor((h.lp[0] + 1) * 3) % 2 ? -0.1 : 0 })));
@@ -676,7 +720,7 @@ const People = (() => {
 
   function addArm(S, o, side, shoulder, hand, grp) {
     const m = o.muscular ? 1 : 0;
-    const r = o.skeleton ? 0.75 : 1.3 + m * 0.45;
+    const r = o.skeleton ? 0.75 : 1.45 + m * 0.45;
     const sleeve = o.shirtless || o.sleeveless || o.skeleton ? null : ramp(o.shirt);
     const skin = o.skeleton ? SKINS.bone : o.skinR;
     // codo: un poco hacia fuera y atrás
@@ -704,13 +748,13 @@ const People = (() => {
       S.cap(hip, knee, 0.8, mat(skin, grp));
       S.cap(knee, ankle, 0.8, mat(skin, grp));
     } else if (!o.robe) {
-      const rr = o.baggy ? 2.3 : 1.75;
+      const rr = o.baggy ? 2.4 : 2.05;
       if (o.shorts) {
         S.cap(hip, knee, 2, mat(pants, grp));
         S.cap(knee, ankle, 1.3, mat(skin, grp, (h) => (h.t > 0.55 ? { r: ramp("#f4d35e") } : { r: skin })));
       } else {
         S.cap(hip, knee, rr, mat(pants, grp));
-        S.cap(knee, ankle, o.baggy ? 2.5 : 1.6, mat(pants, grp, (h) => ({ r: pants, bias: o.baggy && Math.floor(h.t * 4) % 2 ? -0.12 : 0 })));
+        S.cap(knee, ankle, o.baggy ? 2.5 : 1.8, mat(pants, grp, (h) => ({ r: pants, bias: o.baggy && Math.floor(h.t * 4) % 2 ? -0.12 : 0 })));
       }
     }
     // zapato (o calcetín)
@@ -915,18 +959,18 @@ const People = (() => {
     const walking = kind === "walk";
     const bob = walking ? Math.abs(Math.cos(ph)) * 0.8 : 0;
     const P = {
-      head: [0, 28.2 + bob, 0.2],
-      torso: [0, 16.4 + bob, 0],
-      shoulderR: [5.2 + m, 19.6 + bob, -0.2],
-      shoulderL: [-5.2 - m, 19.6 + bob, -0.2],
-      hipR: [2.1, 11 + bob, 0],
-      hipL: [-2.1, 11 + bob, 0],
+      head: [0, 31.2 + bob, 0.2],
+      torso: [0, 20.6 + bob, 0],
+      shoulderR: [5.2 + m, 24.6 + bob, -0.2],
+      shoulderL: [-5.2 - m, 24.6 + bob, -0.2],
+      hipR: [2.1, 14.5 + bob, 0],
+      hipL: [-2.1, 14.5 + bob, 0],
       footR: [2.3, 0.5, 0],
       footL: [-2.3, 0.5, 0],
       liftR: 0,
       liftL: 0,
-      handR: [6 + m, 12.6 + bob, 0.8],
-      handL: [-6 - m, 12.6 + bob, 0.8],
+      handR: [6 + m, 16.4 + bob, 0.8],
+      handL: [-6 - m, 16.4 + bob, 0.8],
       weapon: null
     };
     if (walking) {
@@ -935,12 +979,12 @@ const People = (() => {
       P.footL = [-2.3, 0.5 + Math.max(0, -Math.cos(ph)) * 1.8, -sw * 3.6];
       P.liftR = Math.max(0, Math.cos(ph));
       P.liftL = Math.max(0, -Math.cos(ph));
-      P.handR = [6 + m, 12.8 + bob, 0.8 - sw * 2.6];
-      P.handL = [-6 - m, 12.8 + bob, 0.8 + sw * 2.6];
+      P.handR = [6 + m, 16.6 + bob, 0.8 - sw * 2.6];
+      P.handL = [-6 - m, 16.6 + bob, 0.8 + sw * 2.6];
     }
     if (o.armsForward) {
-      P.handR = [2.4, 18.4 + bob, 9];
-      P.handL = [-2.4, 18 + bob, 8.6];
+      P.handR = [2.4, 23 + bob, 9];
+      P.handL = [-2.4, 22.6 + bob, 8.6];
       return P;
     }
     const hold = HOLD[o.weapon];
@@ -948,15 +992,15 @@ const People = (() => {
     const up = (v) => [v[0], v[1] + bob, v[2]];
     if (kind === "attack" && style) {
       const a = ATTACK[style][i];
-      P.handR = a.h;
-      if (a.o) P.handL = a.o;
-      if (!a.hide && a.d) P.weapon = { hand: a.h, d: a.d };
+      P.handR = lift(a.h);
+      if (a.o) P.handL = lift(a.o);
+      if (!a.hide && a.d) P.weapon = { hand: P.handR, d: a.d };
       if (style === "punch") P.weapon = null;
       return P;
     }
     if (hold) {
-      P.handR = up(hold.h);
-      if (hold.o) P.handL = up(hold.o);
+      P.handR = up(lift(hold.h));
+      if (hold.o) P.handL = up(lift(hold.o));
       if (hold.d) P.weapon = { hand: P.handR, d: hold.d };
     }
     return P;
@@ -1184,7 +1228,7 @@ const People = (() => {
     // el mapa va con píxeles el doble de grandes (estilo PokeSurvivor)
     const k = 0.5;
     const keep = SC;
-    SC = keep * k;
+    SC = SC_MAP * k;
     const out = renderScene(S, { w: Math.ceil(dims.w * k), h: Math.ceil(dims.h * k), ox: Math.round(dims.ox * k), oy: Math.round(dims.oy * k) });
     SC = keep;
     return out;
