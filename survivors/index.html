@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
   <title>Tronk Survivors · Juego de sobrevivir a hordas gratis | TronkStudios</title>
-  <meta name="description" content="Tronk Survivors: sobrevive a hordas de zombis, Antitronks y ninjas con 16 personajes en pixel art. Consigue personajes en el cofre, mejora tus armas y juega con tus amigos. Gratis en el navegador, en PC y móvil." />
+  <meta name="description" content="Tronk Survivors: sobrevive a hordas de zombis, Antitronks y ninjas con 16 personajes en pixel art. Consigue personajes en el cofre, mejora tus armas y juega con tus amigos. Gratis en el navegador, en 3D, para ordenador." />
   <meta name="robots" content="index, follow, max-image-preview:large" />
   <link rel="canonical" href="https://tronkstudios.github.io/survivors/" />
   <meta name="theme-color" content="#120c24" />
@@ -249,11 +249,14 @@
   <div id="banner" class="banner" hidden></div>
   <div id="toasts" class="toasts" aria-live="polite"></div>
 
-  <!-- En el móvil se juega en horizontal -->
-  <div id="rotate" class="rotate" hidden>
-    <div class="rotate-phone" aria-hidden="true"></div>
-    <b>Gira el móvil</b>
-    <small>Tronk Survivors se juega en horizontal.</small>
+  <!-- Solo se puede jugar en ordenador -->
+  <div id="mobile-block" class="mobile-block" hidden>
+    <div class="mobile-box">
+      <div class="mobile-icon" aria-hidden="true">🖥️</div>
+      <b>Tronk Survivors solo se puede jugar en ordenador</b>
+      <small>Es un juego en 3D que necesita teclado y un ordenador. Ábrelo desde un ordenador para jugar.</small>
+      <a class="btn btn-big" href="/">← Volver a TronkStudios</a>
+    </div>
   </div>
 
   <!-- Subida de nivel -->
@@ -302,16 +305,19 @@
   </div>
 
   <script src="js/data.js?v=3" defer></script>
-  <script src="js/sprites.js?v=9" defer></script>
+  <script src="js/art.js?v=6" defer></script>
+  <script src="js/sprites.js?v=10" defer></script>
   <script src="js/people.js?v=4" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js" defer></script>
   <script src="js/stick.js?v=9" defer></script>
+  <script src="js/render3d.js?v=2" defer></script>
   <script src="js/audio.js?v=3" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <script src="js/lang.js?v=3" defer></script>
   <script src="js/save.js?v=3" defer></script>
   <script src="js/account.js?v=3" defer></script>
-  <script src="js/game.js?v=9" defer></script>
+  <script src="js/game.js?v=10" defer></script>
   <script src="js/net.js?v=3" defer></script>
-  <script src="js/ui.js?v=9" defer></script>
+  <script src="js/ui.js?v=10" defer></script>
 </body>
 </html>

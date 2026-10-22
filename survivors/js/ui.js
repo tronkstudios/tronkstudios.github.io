@@ -69,10 +69,11 @@
   const SPIN = [["down", false], ["downSide", false], ["side", false], ["upSide", false], ["up", false], ["upSide", true], ["side", true], ["downSide", true]];
   function spinHero() {
     const set = Sprites.get(`char:${save.selected}`);
-    const [view, flip] = SPIN[spinStep % SPIN.length];
+    // los dibujos de art.js se enseñan tal cual (sin girarlos)
+    const [view, flip] = set.down.idle.art ? ["down", false] : SPIN[spinStep % SPIN.length];
     const key = `${save.selected}:${view}:${flip}`;
     if (!spinCache[key]) {
-      const img = Sprites.scaled(Stick.portrait(set[view].idle), 4);
+      const img = Sprites.scaled(set[view].idle.art ? set[view].idle : Stick.portrait(set[view].idle), 4);
       if (flip) {
         const c = document.createElement("canvas");
         c.width = img.width;
@@ -551,34 +552,14 @@
     return { charId: save.selected, stars: own.stars, meta: Save.shopStats(), name: Account.name || charById(save.selected).name };
   }
 
-  /* ---------- móvil: se juega en horizontal ---------- */
+  /* ---------- solo en ordenador ----------
+     En móviles y tablets sin ratón no se puede jugar: sale un aviso. */
   const isTouch = window.matchMedia("(pointer: coarse)").matches;
-
-  // En Android se pone a pantalla completa y se gira solo; en iPhone no
-  // se puede, así que se pide girar el móvil
-  function goLandscape() {
-    if (!isTouch) return;
-    const root = document.documentElement;
-    const lock = () => screen.orientation && screen.orientation.lock ? screen.orientation.lock("landscape").catch(() => {}) : null;
-    if (root.requestFullscreen && !document.fullscreenElement) root.requestFullscreen({ navigationUI: "hide" }).then(lock, () => {});
-    else lock();
-  }
-
-  function leaveLandscape() {
-    if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
-  }
-
-  function checkOrientation() {
-    const portrait = isTouch && current === "game" && window.innerHeight > window.innerWidth;
-    const box = $("rotate");
-    if (portrait && box.hidden && Game.state && !Game.state.over && $("levelup").hidden) pause(true);
-    box.hidden = !portrait;
-  }
-  window.addEventListener("resize", checkOrientation);
-  window.addEventListener("orientationchange", () => setTimeout(checkOrientation, 200));
+  const desktopOnly = isTouch && !window.matchMedia("(any-pointer: fine)").matches;
+  if (desktopOnly) $("mobile-block").hidden = false;
 
   function enterGame(prepare) {
-    goLandscape();
+    if (desktopOnly) return;
     for (const s of document.querySelectorAll(".screen")) s.classList.remove("is-on");
     for (const id of ["levelup", "pause", "end", "victory"]) $(id).hidden = true;
     current = "game";
@@ -592,7 +573,6 @@
       demoOn = false;
       slotKey = "";
       prepare();
-      checkOrientation();
     }, 30);
   }
 
@@ -849,9 +829,7 @@
     $("hud").hidden = true;
     Game.stop();
     demoOn = false;
-    leaveLandscape();
     show("menu");
-    checkOrientation();
   }
 
   $("end-again").addEventListener("click", () => {
@@ -907,6 +885,7 @@
   translatePage();
   setTimeout(async () => {
     Sprites.build();
+    await Sprites.loadArt(); // los dibujos de los personajes (js/art.js)
     Game.init($("game"));
     fillIcons();
     Account.init();
