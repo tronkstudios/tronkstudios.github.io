@@ -448,7 +448,8 @@ const Sprites = (() => {
       return c;
     };
     const set = {};
-    ART_VIEWS.forEach((view, row) => {
+    ART_VIEWS.forEach((view, r) => {
+      const row = a.single ? 0 : r; // una sola postura: la misma en todas las vistas
       const n = (a.walk && a.walk[view]) || 0;
       const idle = cell(0, row);
       const walk = n ? Array.from({ length: n }, (_, i) => cell(i + 1, row)) : [cell(0, row, 0, 0, 1), cell(0, row, 0, -1), cell(0, row, 0, 0, -1), cell(0, row, 0, -1)];
