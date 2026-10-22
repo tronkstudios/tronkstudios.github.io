@@ -200,7 +200,7 @@ grant execute on function public.due_launch_notifications() to service_role;
 create table if not exists public.game_scores (
   user_id uuid not null references public.profiles (id) on delete cascade,
   game text not null
-    check (game in ('antitronks', 'protect-mogos', 'stick-drill', 'tronk-fight', 'miente')),
+    check (game in ('antitronks', 'protect-mogos', 'stick-drill', 'tronk-fight', 'miente', 'survivors')),
   score numeric not null default 0 check (score >= 0),
   updated_at timestamptz not null default now(),
   primary key (user_id, game)
@@ -239,6 +239,7 @@ begin
     when 'protect-mogos' then 1000000
     when 'stick-drill' then 3600
     when 'miente' then 100000
+    when 'survivors' then 1000000
     else null
   end;
 

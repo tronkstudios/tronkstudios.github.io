@@ -89,6 +89,10 @@ const SCORE_GAMES = {
     title: "El Juego Miente",
     unit: "aciertos",
     localKey: "miente-record"
+  },
+  survivors: {
+    title: "Tronk Survivors",
+    unit: "puntos"
   }
 };
 

@@ -7,3 +7,5 @@ RESEND_API_KEY=pon_aqui_tu_clave_de_resend
 SUPPORT_EMAIL_TO=tronkstudios7@gmail.com
 # TURNSTILE_SECRET=pon_aqui_la_clave_secreta_de_turnstile
 # SUPABASE_SERVICE_ROLE_KEY=pon_aqui_la_clave_service_role_de_supabase
+# TURN_KEY_ID=pon_aqui_el_id_de_la_clave_turn_de_cloudflare
+# TURN_KEY_API_TOKEN=pon_aqui_el_token_de_la_clave_turn_de_cloudflare

@@ -11,6 +11,8 @@
 #   npx wrangler secret put TURNSTILE_SECRET   (opcional)
 #   npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY   (avisos de lanzamiento y push)
 #   npx wrangler secret put VAPID_PRIVATE_KEY   (notificaciones push)
+#   npx wrangler secret put TURN_KEY_ID          (online de Tronk Survivors, opcional)
+#   npx wrangler secret put TURN_KEY_API_TOKEN   (online de Tronk Survivors, opcional)
 # =========================================================
 
 name = "tronkstudios-support"
@@ -70,6 +72,11 @@ simple = { limit = 8, period = 60 }
 name = "CONTACT_LIMITER"
 namespace_id = "1002"
 simple = { limit = 2, period = 60 }
+
+[[ratelimits]]
+name = "TURN_LIMITER"
+namespace_id = "1003"
+simple = { limit = 10, period = 60 }
 
 # Avisos de lanzamiento: una vez al día (9:00 UTC).
 # Notificaciones push: cada minuto.

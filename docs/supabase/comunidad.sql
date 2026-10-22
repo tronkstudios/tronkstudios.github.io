@@ -319,6 +319,7 @@ begin
     when 'protect-mogos' then 1000000
     when 'stick-drill' then 3600
     when 'miente' then 100000
+    when 'survivors' then 1000000
     else null
   end;
 
@@ -358,6 +359,7 @@ begin
       when 'antitronks' then 'Antitronks'
       when 'protect-mogos' then 'Protect Mogos'
       when 'miente' then 'El Juego Miente'
+      when 'survivors' then 'Tronk Survivors'
       else 'Stick Drill'
     end;
 

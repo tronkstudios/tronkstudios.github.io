@@ -9,6 +9,72 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.38 · Tronk Survivors: habilidades, modo infinito y misiones
+
+#### Añadido
+- Habilidad especial para cada uno de los 16 personajes (Espacio o el botón
+  redondo en el móvil), con su tiempo de recarga.
+- Cada mapa tiene su propio jefe final: el Rey Esqueleto en el cementerio, el
+  Moco Rey en la playa (se divide en mocos) y el General Antitronk en la
+  ciudad (pide bombardeos y refuerzos).
+- Modo infinito: al ganar se puede seguir jugando, con un jefe cada minuto y
+  medio, y tiene su propia clasificación.
+- Misiones de la semana: 3 nuevas cada lunes, iguales para todos, con monedas.
+- Consejos en la primera partida y ajuste de calidad de los efectos (se
+  reduce solo si el juego va lento en el móvil).
+- Página del juego para buscadores en `/juegos/tronk-survivors/`.
+- Servidor de reenvío (TURN) para jugar online en redes que no dejan
+  conectar directamente, a través del backend.
+
+#### Cambiado
+- Las primeras partidas son más fáciles: se sube de nivel antes, los
+  Antitronks y los jefes disparan menos fuerte y en las 3 primeras partidas
+  los enemigos pegan menos.
+- Los récords de Tronk Survivors se comprueban en el servidor: cada partida
+  pide un ticket al empezar y el servidor calcula los puntos al final.
+
+#### Arreglado
+- Un fallo al dibujar a algunos jefes mientras preparaban un ataque largo.
+
+### 6.37 · Tronk Survivors: online, mapas y reto diario
+
+#### Añadido
+- Cooperativo online de hasta 4 jugadores con código de sala: uno crea la
+  sala, los demás entran con el código y se juega a la vez en el mismo mapa.
+  Si un compañero cae, se le levanta quedándose a su lado.
+- 3 mapas nuevos que se desbloquean jugando: Cementerio Maldito, Playa Tronk
+  y Ciudad de Noche, con sus propios obstáculos y enemigos.
+- Evoluciones de armas: un arma al máximo junto con su objeto pasivo se
+  convierte en su versión definitiva al abrir un cofre.
+- Reto diario: cada día el mismo personaje, mapa y reglas para todos, con
+  clasificación del día y 100 monedas por el primero.
+- 18 logros con premio en monedas.
+- Tronk Survivors en las clasificaciones y el podio de la web y en los retos
+  de la comunidad. Con sesión iniciada, el progreso se guarda en la cuenta.
+- Ajustes: volumen de música y efectos, idioma (español o inglés), números
+  de daño y temblor de pantalla.
+
+#### Cambiado
+- En el móvil se juega en horizontal: se pone a pantalla completa y se gira
+  solo donde el navegador lo permite, y si no, pide girar el móvil y pausa.
+- En el móvil el mapa se ve más cerca y el menú cabe tumbado.
+
+### 6.36 · Tronk Survivors
+
+#### Añadido
+- Nuevo juego, Tronk Survivors (`/survivors/`): sobrevive 10 minutos a hordas
+  de zombis, Antitronks, ninjas, esqueletos, fantasmas y 4 jefes. Atacas solo.
+- 16 personajes en pixel art: los 7 de Tronk Fight (Sulius ahora es Eledemak,
+  con guantes de boxeo), 8 nuevos y Sunk. Se ven en 8 direcciones, con
+  animaciones de andar y de ataque propias de cada arma.
+- 15 armas con 6 niveles y 11 objetos pasivos que se eligen al subir de nivel.
+- Mapa de bosque con tierra, lagos, árboles, rocas y troncos con colisión,
+  hierba alta y objetos que se rompen y sueltan premios.
+- Cofre Tronk para conseguir personajes con las monedas que se ganan jugando
+  (sin dinero real), con probabilidades a la vista y legendario seguro a las
+  60 tiradas. Los repetidos suben de estrella.
+- Tienda de mejoras permanentes y menú con los personajes paseando de fondo.
+
 ### 6.35 · Tronker busca en internet
 
 #### Añadido

@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>Tronk Survivors · Juego de sobrevivir a hordas gratis | TronkStudios</title>
+  <meta name="description" content="Tronk Survivors: sobrevive a hordas de zombis, Antitronks y ninjas con 16 personajes en pixel art. Consigue personajes en el cofre, mejora tus armas y juega con tus amigos. Gratis en el navegador, en PC y móvil." />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <link rel="canonical" href="https://tronkstudios.github.io/survivors/" />
+  <meta name="theme-color" content="#120c24" />
+  <link rel="icon" href="/favicon.png" type="image/png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="TronkStudios" />
+  <meta property="og:title" content="Tronk Survivors · Sobrevive a las hordas" />
+  <meta property="og:description" content="16 personajes en pixel art, zombis, Antitronks, ninjas y 4 jefes. Gratis en el navegador." />
+  <meta property="og:url" content="https://tronkstudios.github.io/survivors/" />
+  <meta property="og:image" content="https://tronkstudios.github.io/img/juegos/tronk-survivors.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://qjjnqhbtovjcbwgcwhgl.supabase.co wss://qjjnqhbtovjcbwgcwhgl.supabase.co https://tronkstudios-support.tronkstudios7.workers.dev; object-src 'none'; base-uri 'self'; form-action 'self'"
+  />
+  <link rel="stylesheet" href="survivors.css?v=3" />
+</head>
+<body>
+  <canvas id="game" aria-label="Tronk Survivors"></canvas>
+
+  <!-- Cargando -->
+  <div id="loading" class="screen is-on">
+    <div class="loading-box">
+      <h1 class="logo">TRONK<br /><span>SURVIVORS</span></h1>
+      <p id="loading-text">Dibujando personajes…</p>
+    </div>
+  </div>
+
+  <!-- Menú principal -->
+  <section id="menu" class="screen" aria-label="Menú">
+    <div class="menu-layout">
+      <div class="menu-box">
+        <h1 class="logo">TRONK<br /><span>SURVIVORS</span></h1>
+        <div class="menu-chips"><span>16 personajes</span><span>16 armas</span><span>7 jefes</span><span>Online</span></div>
+        <div class="menu-buttons">
+          <button class="btn btn-big" data-go="maps"><img data-icon="tajo" alt="" /> Jugar</button>
+          <button class="btn btn-daily" data-go="daily"><img data-icon="reloj" alt="" /> Reto diario <span id="menu-daily" class="badge" hidden>¡Nuevo!</span></button>
+          <button class="btn" data-go="online"><img data-icon="clon" alt="" /> Jugar con amigos</button>
+          <button class="btn" data-go="chars"><img data-icon="corazon" alt="" /> Personajes</button>
+          <button class="btn btn-gold" data-go="gacha"><img data-icon="cofre" alt="" /> Cofre Tronk <span id="menu-free" class="badge" hidden>¡Gratis!</span></button>
+          <div class="menu-row">
+            <button class="btn" data-go="shop"><img data-icon="musculo" alt="" /> Mejoras</button>
+            <button class="btn" data-go="achievements"><img data-icon="trebol" alt="" /> Misiones <span id="menu-ach" class="badge" hidden>!</span></button>
+          </div>
+        </div>
+        <p class="menu-account" id="menu-account"></p>
+        <p class="menu-best" id="menu-best"></p>
+        <div class="menu-foot">
+          <button class="btn btn-small" data-go="settings">Ajustes</button>
+          <a class="btn btn-small" href="/">← TronkStudios</a>
+        </div>
+      </div>
+
+      <div class="menu-stage" aria-live="polite">
+        <div class="coins-pill menu-coins"><img data-icon="moneda" alt="" /> <span id="menu-coins">0</span></div>
+        <div class="stage-hero">
+          <img id="stage-img" alt="" />
+          <div class="stage-floor"></div>
+        </div>
+        <div class="stage-info">
+          <span class="stage-rarity" id="stage-rarity"></span>
+          <b class="stage-name" id="stage-name"></b>
+          <span class="stage-stars" id="stage-stars"></span>
+          <span class="stage-weapon"><img id="stage-weapon-icon" alt="" /> <span id="stage-weapon"></span></span>
+          <button class="btn btn-small" data-go="chars">Cambiar personaje</button>
+        </div>
+      </div>
+    </div>
+    <span class="menu-version">Tronk Survivors v1 · TronkStudios</span>
+  </section>
+
+  <!-- Personajes -->
+  <section id="chars" class="screen" aria-label="Personajes">
+    <div class="panel wide">
+      <header class="panel-head">
+        <button class="btn btn-small" data-go="menu">← Volver</button>
+        <h2>Personajes</h2>
+        <span class="panel-count" id="chars-count"></span>
+      </header>
+      <div class="chars-layout">
+        <div class="chars-grid" id="chars-grid"></div>
+        <aside class="char-detail" id="char-detail"></aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cofre -->
+  <section id="gacha" class="screen" aria-label="Cofre Tronk">
+    <div class="panel">
+      <header class="panel-head">
+        <button class="btn btn-small" data-go="menu">← Volver</button>
+        <h2>Cofre Tronk</h2>
+        <div class="coins-pill"><img data-icon="moneda" alt="" /> <span class="js-coins">0</span></div>
+      </header>
+      <div class="gacha-stage">
+        <div class="gacha-chest" id="gacha-chest"></div>
+        <p class="gacha-note">Se paga con las monedas que ganas jugando. Nada de dinero real.</p>
+      </div>
+      <div class="gacha-buttons">
+        <button class="btn btn-gold btn-big" id="pull-1">Abrir 1 · <img data-icon="moneda" alt="" /> <span id="cost-1">150</span></button>
+        <button class="btn btn-gold btn-big" id="pull-10">Abrir 10 · <img data-icon="moneda" alt="" /> <span id="cost-10">1350</span></button>
+      </div>
+      <p class="gacha-pity" id="gacha-pity"></p>
+      <details class="gacha-rates">
+        <summary>Probabilidades</summary>
+        <ul id="gacha-rates"></ul>
+        <p>Los personajes repetidos suben de estrella (+5 % de daño y vida cada una, hasta 5). Con 5 estrellas, se cambian por monedas.</p>
+      </details>
+    </div>
+    <div class="gacha-reveal" id="gacha-reveal" hidden>
+      <div class="reveal-cards" id="reveal-cards"></div>
+      <button class="btn btn-big" id="reveal-ok">¡Genial!</button>
+    </div>
+  </section>
+
+  <!-- Tienda -->
+  <section id="shop" class="screen" aria-label="Mejoras">
+    <div class="panel">
+      <header class="panel-head">
+        <button class="btn btn-small" data-go="menu">← Volver</button>
+        <h2>Mejoras</h2>
+        <div class="coins-pill"><img data-icon="moneda" alt="" /> <span class="js-coins">0</span></div>
+      </header>
+      <p class="panel-sub">Se quedan para siempre en todas las partidas.</p>
+      <div class="shop-list" id="shop-list"></div>
+    </div>
+  </section>
+
+  <!-- Elegir mapa -->
+  <section id="maps" class="screen" aria-label="Elegir mapa">
+    <div class="panel wide">
+      <header class="panel-head">
+        <button class="btn btn-small" data-go="menu">← Volver</button>
+        <h2>Elige el mapa</h2>
+      </header>
+      <div class="maps-grid" id="maps-grid"></div>
+      <h3 class="daily-title">Modo infinito: los que más aguantan</h3>
+      <p class="online-note">Al ganar una partida puedes seguir jugando sin final.</p>
+      <ol class="daily-top" id="endless-top"></ol>
+    </div>
+  </section>
+
+  <!-- Reto diario -->
+  <section id="daily" class="screen" aria-label="Reto diario">
+    <div class="panel">
+      <header class="panel-head">
+        <button class="btn btn-small" data-go="menu">← Volver</button>
+        <h2>Reto diario</h2>
+        <span class="panel-count" id="daily-date"></span>
+      </header>
+      <p class="panel-sub">Hoy todos juegan con el mismo personaje, en el mismo mapa y con las mismas reglas. ¡A ver quién llega más lejos! El primer reto de cada día da 100 monedas.</p>
+      <div class="daily-card" id="daily-card"></div>
+      <button class="btn btn-big" id="daily-play">Jugar el reto de hoy</button>
+      <h3 class="daily-title">Clasificación de hoy</h3>
+      <ol class="daily-top" id="daily-top"></ol>
+    </div>
+  </section>
+
+  <!-- Logros -->
+  <section id="achievements" class="screen" aria-label="Logros">
+    <div class="panel">
+      <header class="panel-head">
+        <button class="btn btn-small" data-go="menu">← Volver</button>
+        <h2>Misiones y logros</h2>
+        <span class="panel-count" id="ach-count"></span>
+      </header>
+      <h3 class="daily-title">Misiones de la semana <small id="week-left"></small></h3>
+      <div class="missions" id="missions"></div>
+      <h3 class="daily-title">Logros</h3>
+      <div class="ach-list" id="ach-list"></div>
+    </div>
+  </section>
+
+  <!-- Ajustes -->
+  <section id="settings" class="screen" aria-label="Ajustes">
+    <div class="panel">
+      <header class="panel-head">
+        <button class="btn btn-small" data-go="menu">← Volver</button>
+        <h2>Ajustes</h2>
+      </header>
+      <label class="setting"><span>Música</span><input type="range" id="vol-music" min="0" max="100" step="5" /><b id="vol-music-v"></b></label>
+      <label class="setting"><span>Efectos de sonido</span><input type="range" id="vol-sfx" min="0" max="100" step="5" /><b id="vol-sfx-v"></b></label>
+      <label class="setting"><span>Idioma</span>
+        <select id="lang-select">
+          <option value="es">Español</option>
+          <option value="en">English</option>
+        </select>
+      </label>
+      <label class="setting"><span>Números de daño</span><input type="checkbox" id="opt-numbers" /></label>
+      <label class="setting"><span>Temblor de pantalla</span><input type="checkbox" id="opt-shake" /></label>
+      <label class="setting"><span>Calidad de los efectos</span>
+        <select id="opt-fx">
+          <option value="auto">Automática</option>
+          <option value="high">Alta</option>
+          <option value="low">Baja (para móviles lentos)</option>
+        </select>
+      </label>
+      <label class="setting"><span>Consejos de la primera partida</span><input type="checkbox" id="opt-tips" /></label>
+    </div>
+  </section>
+
+  <!-- Online -->
+  <section id="online" class="screen" aria-label="Jugar con amigos">
+    <div class="panel">
+      <header class="panel-head">
+        <button class="btn btn-small" data-go="menu">← Volver</button>
+        <h2>Jugar con amigos</h2>
+      </header>
+      <div id="online-body"></div>
+    </div>
+  </section>
+
+  <!-- En partida -->
+  <div id="hud" class="hud" hidden>
+    <div class="hud-me">
+      <b id="hud-name">Ranjay</b>
+      <span class="hud-lvl" id="hud-level">Nv. 1</span>
+      <div class="hud-hp"><span id="hud-hp-bar"></span><b id="hud-hp">100 / 100</b></div>
+      <div class="hud-xp"><span id="hud-xp-bar"></span></div>
+    </div>
+    <div class="hud-center">
+      <div class="hud-time" id="hud-time">0:00</div>
+      <div class="hud-sub" id="hud-sub"></div>
+    </div>
+    <button class="btn btn-small hud-pause" id="hud-pause" type="button" aria-label="Pausa">II</button>
+    <div class="hud-team" id="hud-team"></div>
+    <div class="hud-tip" id="hud-tip" hidden></div>
+    <div class="hud-boss" id="hud-boss" hidden><b id="hud-boss-name"></b><span><i id="hud-boss-bar"></i></span></div>
+    <div class="hud-bottom">
+      <span class="hud-evo" id="hud-evo" hidden>¡Evolución disponible! Coge un cofre</span>
+      <div class="hud-slots" id="hud-slots"></div>
+      <p class="hud-hint">WASD o flechas para moverte · los ataques son automáticos · Espacio: habilidad · Esc pausa</p>
+    </div>
+    <button class="hud-ab" id="hud-ab" type="button">
+      <i class="hud-ab-fill" id="hud-ab-fill"></i>
+      <b id="hud-ab-name">Habilidad</b>
+      <small id="hud-ab-state">Espacio</small>
+    </button>
+  </div>
+
+  <div id="banner" class="banner" hidden></div>
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+
+  <!-- En el móvil se juega en horizontal -->
+  <div id="rotate" class="rotate" hidden>
+    <div class="rotate-phone" aria-hidden="true"></div>
+    <b>Gira el móvil</b>
+    <small>Tronk Survivors se juega en horizontal.</small>
+  </div>
+
+  <!-- Subida de nivel -->
+  <div id="levelup" class="modal" hidden>
+    <div class="modal-box">
+      <h2 id="levelup-title">¡Nivel 2!</h2>
+      <p class="modal-sub">Elige una mejora</p>
+      <div class="levelup-cards" id="levelup-cards"></div>
+      <p class="modal-wait" id="levelup-wait" hidden>Esperando a los demás…</p>
+    </div>
+  </div>
+
+  <!-- Pausa -->
+  <div id="pause" class="modal" hidden>
+    <div class="modal-box">
+      <h2>Pausa</h2>
+      <div class="pause-build" id="pause-build"></div>
+      <div class="modal-buttons">
+        <button class="btn btn-big" id="pause-resume">Seguir</button>
+        <button class="btn" id="pause-quit">Terminar partida</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fin -->
+  <div id="end" class="modal" hidden>
+    <div class="modal-box">
+      <h2 id="end-title">¡Has caído!</h2>
+      <div class="end-stats" id="end-stats"></div>
+      <div class="modal-buttons">
+        <button class="btn btn-big" id="end-again">Otra vez</button>
+        <button class="btn" id="end-menu">Menú</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="victory" class="modal" hidden>
+    <div class="modal-box">
+      <h2>¡VICTORIA!</h2>
+      <p>Has derrotado al jefe final. ¿Sigues en modo infinito? Los enemigos no paran, cada minuto y medio sale un jefe más fuerte y tu tiempo cuenta para su propia clasificación.</p>
+      <div class="modal-buttons">
+        <button class="btn btn-big" id="victory-endless">Seguir jugando</button>
+        <button class="btn" id="victory-end">Terminar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/data.js?v=3" defer></script>
+  <script src="js/art.js?v=1" defer></script>
+  <script src="js/sprites.js?v=4" defer></script>
+  <script src="js/people.js?v=3" defer></script>
+  <script src="js/audio.js?v=3" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="js/lang.js?v=3" defer></script>
+  <script src="js/save.js?v=3" defer></script>
+  <script src="js/account.js?v=3" defer></script>
+  <script src="js/game.js?v=4" defer></script>
+  <script src="js/net.js?v=3" defer></script>
+  <script src="js/ui.js?v=4" defer></script>
+</body>
+</html>

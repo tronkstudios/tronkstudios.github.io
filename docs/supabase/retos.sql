@@ -15,7 +15,7 @@ create table if not exists public.challenges (
   id bigint generated always as identity primary key,
   title text not null check (char_length(trim(title)) between 3 and 80),
   game text not null
-    check (game in ('antitronks', 'protect-mogos', 'stick-drill', 'tronk-fight', 'miente')),
+    check (game in ('antitronks', 'protect-mogos', 'stick-drill', 'tronk-fight', 'miente', 'survivors')),
   goal integer not null check (goal between 1 and 10000000),
   progress bigint not null default 0,
   starts_at timestamptz not null default now(),
@@ -112,6 +112,7 @@ begin
     when 'stick-drill' then 600     -- segundos aguantados
     when 'tronk-fight' then 1       -- victorias
     when 'miente' then 300          -- aciertos
+    when 'survivors' then 3000      -- enemigos derrotados
     else 0
   end;
 
