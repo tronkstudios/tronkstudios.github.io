@@ -1396,9 +1396,15 @@ const Game = (() => {
           if (target) {
             dr.cd = L.cd * p.stats.cdMul;
             const ang = Math.atan2(target.y - 16 - dr.y, target.x - dr.x);
-            const len = 240 * area;
-            st.zones.push({ type: "laser", x: dr.x, y: dr.y, ang, len, life: 10, t: 0 });
-            for (const e of enemiesOnLine(dr.x, dr.y, ang, len, 6)) hitEnemy(e, L.dmg, p, { kx: Math.cos(ang), ky: Math.sin(ang), kb: 1 });
+            // atraviesa a todos los de la línea, pero se corta tras el último que toca
+            const reach = 240 * area;
+            const hits = enemiesOnLine(dr.x, dr.y, ang, reach, 6);
+            let len = Math.hypot(target.x - dr.x, target.y - 16 - dr.y);
+            for (const e of hits) {
+              len = Math.max(len, (e.x - dr.x) * Math.cos(ang) + (e.y - 16 - dr.y) * Math.sin(ang));
+              hitEnemy(e, L.dmg, p, { kx: Math.cos(ang), ky: Math.sin(ang), kb: 1 });
+            }
+            st.zones.push({ type: "laser", x: dr.x, y: dr.y, ang, len: Math.min(reach, len + 12), life: 10, t: 0 });
             sound("laser", 0.06);
             if (i === 0) attackAnim(p, "dron", Math.cos(ang), Math.sin(ang), 12);
           } else dr.cd = 10;
