@@ -1,9 +1,10 @@
 "use strict";
 
 /* TronkStudios · survivors/js/ui.js
-   Menús de Tronk Survivors (inicio, personajes, cofre, mejoras) y la
-   interfaz de la partida (barra de experiencia, vida, armas, jefe,
-   subidas de nivel, pausa y final). Arranca el juego.
+   Menús de Tronk Survivors (inicio, mapas, reto diario, personajes,
+   cofre, mejoras, logros, ajustes, online) y la interfaz de la partida
+   (vida, experiencia, armas, jefe, subidas de nivel, pausa y final).
+   Arranca el juego.
    Scripts clásicos (ver docs/adr/0002). */
 
 (() => {
@@ -11,19 +12,23 @@
   const save = Save.load();
   let current = "loading";
   let selectedView = save.selected;
-  let lastSetup = null;
+  let lastRun = null; // cómo empezó la última partida (para «Otra vez»)
 
   const charById = (id) => TS.CHARACTERS.find((c) => c.id === id);
   const fmtTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  const el = (tag, cls, text) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  };
 
   function show(id) {
-    for (const el of document.querySelectorAll(".screen")) el.classList.toggle("is-on", el.id === id);
+    for (const s of document.querySelectorAll(".screen")) s.classList.toggle("is-on", s.id === id);
     current = id;
-    if (id === "menu") renderMenu();
-    if (id === "chars") renderChars();
-    if (id === "gacha") renderGacha();
-    if (id === "shop") renderShop();
-    if (id === "online") window.TronkNet?.render($("online-body"));
+    const renders = { menu: renderMenu, chars: renderChars, gacha: renderGacha, shop: renderShop, maps: renderMaps, daily: renderDaily, achievements: renderAchievements, settings: renderSettings };
+    if (renders[id]) renders[id]();
+    if (id === "online") TronkNet.render($("online-body"));
     if (id !== "game") {
       Sfx.startMusic("menu");
       if (!Game.state || Game.state.over) startMenuBackground();
@@ -35,11 +40,17 @@
   }
 
   function syncCoins() {
-    for (const el of document.querySelectorAll(".js-coins")) el.textContent = save.coins;
+    for (const e of document.querySelectorAll(".js-coins")) e.textContent = save.coins;
     $("menu-coins").textContent = save.coins;
   }
 
-  /* ---------- inicio ---------- */
+  function stars(n) {
+    return "★".repeat(n) + "☆".repeat(TS.GACHA.maxStars - n);
+  }
+
+  /* =======================================================
+     INICIO
+     ======================================================= */
 
   // Fondo del menú: todos los personajes paseando y peleando por el mapa
   let demoOn = false;
@@ -47,6 +58,7 @@
     if (demoOn) return;
     demoOn = true;
     $("hud").hidden = true;
+    Game.setMap(save.settings.map || "bosque");
     Game.startDemo(TS.CHARACTERS.map((c) => c.id));
   }
 
@@ -57,8 +69,7 @@
   function spinHero() {
     const set = Sprites.get(`char:${save.selected}`);
     const [view, flip] = SPIN[spinStep % SPIN.length];
-    const k = 4;
-    const img = Sprites.scaled(set[view].idle, k);
+    const img = Sprites.scaled(set[view].idle, 4);
     if (flip) {
       const c = document.createElement("canvas");
       c.width = img.width;
@@ -72,53 +83,227 @@
     spinStep++;
   }
 
+  function renderAccount() {
+    const p = $("menu-account");
+    p.textContent = "";
+    if (Account.user) p.textContent = LT("loggedIn", { name: Account.name || "Tronker" });
+    else {
+      const a = el("a", "", LT("loggedOut"));
+      a.href = "/";
+      p.appendChild(a);
+    }
+  }
+
   function renderMenu() {
     syncCoins();
     const ch = charById(save.selected);
     const own = save.owned[ch.id];
     $("stage-name").textContent = ch.name;
-    $("stage-rarity").textContent = TS.RARITIES[ch.rarity].name;
+    $("stage-rarity").textContent = L(TS.RARITIES[ch.rarity].name);
     $("stage-rarity").style.color = TS.RARITIES[ch.rarity].color;
     $("stage-stars").textContent = stars(own ? own.stars : 1);
-    $("stage-weapon").textContent = `${TS.WEAPONS[ch.weapon].name} · ${ch.perkText}`;
+    $("stage-weapon").textContent = LT("weaponPerk", { weapon: L(TS.WEAPONS[ch.weapon].name), perk: L(ch.perkText) });
     $("stage-weapon-icon").src = Sprites.iconUrl(ch.weapon, 2);
     spinStep = 0;
     spinHero();
     clearInterval(spinTimer);
     spinTimer = setInterval(() => (current === "menu" ? spinHero() : clearInterval(spinTimer)), 700);
     $("menu-free").hidden = !save.freePull;
+    $("menu-daily").hidden = save.dailyDone === dailyConfig().day;
+    const done = TS.ACHIEVEMENTS.filter((a) => save.achievements[a.id]).length;
+    $("menu-ach").textContent = LT("achCount", { a: done, b: TS.ACHIEVEMENTS.length });
     const b = save.best;
-    $("menu-best").textContent = b.time ? `Mejor partida: ${fmtTime(b.time)} · ${b.kills} enemigos · nivel ${b.level}${b.wins ? ` · ${b.wins} victorias` : ""}` : "Aguanta 10 minutos y derrota al Rey Zombi.";
-    $("toggle-music").textContent = `Música: ${save.settings.music ? "sí" : "no"}`;
-    $("toggle-sfx").textContent = `Sonido: ${save.settings.sfx ? "sí" : "no"}`;
+    $("menu-best").textContent = b.time ? LT("best", { time: fmtTime(b.time), kills: b.kills, level: b.level }) + (b.wins ? LT("wins", { n: b.wins }) : "") : L("Aguanta 10 minutos y derrota al Rey Zombi.");
+    renderAccount();
   }
 
-  /* ---------- personajes ---------- */
+  /* =======================================================
+     MAPAS
+     ======================================================= */
 
-  function stars(n) {
-    return "★".repeat(n) + "☆".repeat(TS.GACHA.maxStars - n);
+  function mapUnlocked(id) {
+    const m = TS.MAPS[id];
+    return !m.unlock || !!save.maps[id];
   }
+
+  function checkMapUnlocks() {
+    const out = [];
+    for (const [id, m] of Object.entries(TS.MAPS)) {
+      if (!m.unlock || save.maps[id]) continue;
+      const u = m.unlock;
+      const value = u.best === "time" ? save.best.time : u.best === "bosses" ? save.stats.bosses : save.best.wins;
+      if (value >= u.value) { save.maps[id] = true; out.push(id); }
+    }
+    return out;
+  }
+
+  const previews = {};
+  function renderMaps() {
+    const grid = $("maps-grid");
+    grid.textContent = "";
+    for (const [id, m] of Object.entries(TS.MAPS)) {
+      const open = mapUnlocked(id);
+      const card = el("button", "map-card");
+      card.type = "button";
+      card.disabled = !open;
+      if (!previews[id]) previews[id] = Game.mapPreview(id);
+      const c = document.createElement("canvas");
+      c.width = previews[id].width;
+      c.height = previews[id].height;
+      c.getContext("2d").drawImage(previews[id], 0, 0);
+      const info = el("div");
+      info.append(el("b", "", L(m.name)), el("small", "", L(m.desc)));
+      card.append(c, info);
+      if (!open) card.appendChild(el("span", "map-lock", `🔒 ${L(m.unlock.text)}`));
+      card.addEventListener("click", () => {
+        save.settings.map = id;
+        Save.persist();
+        play(null, { mode: "solo", localId: 0, map: id });
+      });
+      grid.appendChild(card);
+    }
+  }
+
+  /* =======================================================
+     RETO DIARIO
+     ======================================================= */
+
+  function dailyConfig() {
+    const day = new Date().toISOString().slice(0, 10); // día en hora universal
+    let h = 2166136261;
+    for (const ch of day) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
+    let x = h || 1;
+    const rng = () => { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; return (x >>> 0) / 4294967296; };
+    const charId = TS.CHARACTERS[Math.floor(rng() * TS.CHARACTERS.length)].id;
+    const maps = Object.keys(TS.MAPS);
+    const map = maps[Math.floor(rng() * maps.length)];
+    const keys = Object.keys(TS.DAILY_MODS);
+    const m1 = keys[Math.floor(rng() * keys.length)];
+    let m2 = m1;
+    while (m2 === m1) m2 = keys[Math.floor(rng() * keys.length)];
+    return { day, seed: h || 1, charId, map, mods: [m1, m2] };
+  }
+
+  async function renderDaily() {
+    const cfg = dailyConfig();
+    $("daily-date").textContent = new Date(`${cfg.day}T12:00:00Z`).toLocaleDateString(LANG === "en" ? "en-US" : "es-ES", { day: "numeric", month: "long" });
+    const card = $("daily-card");
+    card.textContent = "";
+    const img = document.createElement("img");
+    img.src = Sprites.portrait(cfg.charId, 2);
+    img.alt = "";
+    const info = el("div");
+    const ch = charById(cfg.charId);
+    info.append(el("b", "", `${ch.name} · ${L(TS.MAPS[cfg.map].name)}`));
+    const ul = el("ul");
+    for (const m of cfg.mods) ul.appendChild(el("li", "", `${L(TS.DAILY_MODS[m].name)}: ${L(TS.DAILY_MODS[m].desc)}`));
+    info.append(el("small", "", L("Reglas de hoy")), ul);
+    card.append(img, info);
+    const top = $("daily-top");
+    top.textContent = "";
+    if (!Account.client) return;
+    const rows = await Account.dailyTop(cfg.day);
+    top.textContent = "";
+    if (!rows.length) top.appendChild(el("li", "empty", L("Todavía no hay nadie. ¡Sé el primero!")));
+    for (const r of rows) top.appendChild(el("li", r.me ? "me" : "", `${r.name} — ${LT("points", { n: r.score })}${r.character ? ` (${(charById(r.character) || {}).name || ""})` : ""}`));
+    if (!Account.user) top.appendChild(el("li", "empty", L("Inicia sesión en TronkStudios para salir en la clasificación.")));
+  }
+
+  function playDaily() {
+    const cfg = dailyConfig();
+    const ch = charById(cfg.charId);
+    play([{ charId: cfg.charId, stars: 1, meta: {}, name: Account.name || ch.name }], { mode: "solo", localId: 0, map: cfg.map, seed: cfg.seed, mods: cfg.mods, daily: cfg.day });
+  }
+
+  /* =======================================================
+     LOGROS
+     ======================================================= */
+
+  function renderAchievements() {
+    const list = $("ach-list");
+    list.textContent = "";
+    let done = 0;
+    for (const a of TS.ACHIEVEMENTS) {
+      const ok = !!save.achievements[a.id];
+      if (ok) done++;
+      const row = el("div", `ach${ok ? " done" : ""}`);
+      const text = el("div");
+      text.append(el("b", "", L(a.name)), el("small", "", L(a.desc)));
+      row.append(el("i", "", ok ? "🏆" : "🔒"), text, el("span", "", `+${a.reward}`));
+      list.appendChild(row);
+    }
+    $("ach-count").textContent = LT("achCount", { a: done, b: TS.ACHIEVEMENTS.length });
+  }
+
+  function checkAchievements(run) {
+    const got = [];
+    for (const a of TS.ACHIEVEMENTS) {
+      if (save.achievements[a.id]) continue;
+      let ok = false;
+      try { ok = a.test(run || { kills: 0, seconds: 0, bosses: 0, level: 0 }, save); } catch { ok = false; }
+      if (ok) {
+        save.achievements[a.id] = true;
+        save.coins += a.reward;
+        got.push(a);
+      }
+    }
+    if (got.length) {
+      Save.persist();
+      got.forEach((a, i) => setTimeout(() => { toast(LT("achDone", { name: L(a.name), n: a.reward })); Sfx.play("chest"); }, 600 + i * 900));
+    }
+    return got;
+  }
+
+  /* =======================================================
+     AJUSTES
+     ======================================================= */
+
+  function applySettings() {
+    Sfx.setVolume("music", save.settings.musicVol ?? 0.7);
+    Sfx.setVolume("sfx", save.settings.sfxVol ?? 0.9);
+    Game.options.numbers = save.settings.numbers !== false;
+    Game.options.shake = save.settings.shake !== false;
+  }
+
+  function renderSettings() {
+    const mv = Math.round((save.settings.musicVol ?? 0.7) * 100);
+    const sv = Math.round((save.settings.sfxVol ?? 0.9) * 100);
+    $("vol-music").value = mv;
+    $("vol-sfx").value = sv;
+    $("vol-music-v").textContent = `${mv}%`;
+    $("vol-sfx-v").textContent = `${sv}%`;
+    $("lang-select").value = LANG;
+    $("opt-numbers").checked = save.settings.numbers !== false;
+    $("opt-shake").checked = save.settings.shake !== false;
+  }
+
+  $("vol-music").addEventListener("input", (e) => { save.settings.musicVol = e.target.value / 100; applySettings(); renderSettings(); Save.persist(); });
+  $("vol-sfx").addEventListener("input", (e) => { save.settings.sfxVol = e.target.value / 100; applySettings(); renderSettings(); Save.persist(); Sfx.play("coin", 0.15); });
+  $("opt-numbers").addEventListener("change", (e) => { save.settings.numbers = e.target.checked; applySettings(); Save.persist(); });
+  $("opt-shake").addEventListener("change", (e) => { save.settings.shake = e.target.checked; applySettings(); Save.persist(); });
+  $("lang-select").addEventListener("change", (e) => {
+    setLang(e.target.value);
+    translatePage();
+    renderSettings();
+  });
+
+  /* =======================================================
+     PERSONAJES
+     ======================================================= */
 
   function renderChars() {
     const grid = $("chars-grid");
     grid.textContent = "";
-    const owned = Object.keys(save.owned).length;
-    $("chars-count").textContent = `${owned} / ${TS.CHARACTERS.length}`;
+    $("chars-count").textContent = `${Object.keys(save.owned).length} / ${TS.CHARACTERS.length}`;
     for (const ch of TS.CHARACTERS) {
       const have = save.owned[ch.id];
-      const card = document.createElement("button");
+      const card = el("button", `char-card${have ? "" : " is-locked"}${ch.id === save.selected ? " is-selected" : ""}`);
       card.type = "button";
-      card.className = `char-card${have ? "" : " is-locked"}${ch.id === save.selected ? " is-selected" : ""}`;
       card.style.setProperty("--rarity", TS.RARITIES[ch.rarity].color);
       const img = document.createElement("img");
       img.src = have ? Sprites.portrait(ch.id, 2) : Sprites.silhouettePortrait(ch.id, 2);
       img.alt = "";
-      const name = document.createElement("span");
-      name.textContent = have ? ch.name : "???";
-      const st = document.createElement("span");
-      st.className = "stars";
-      st.textContent = have ? stars(have.stars) : "";
-      card.append(img, name, st);
+      card.append(img, el("span", "", have ? ch.name : "???"), el("span", "stars", have ? stars(have.stars) : ""));
       card.addEventListener("click", () => {
         selectedView = ch.id;
         Sfx.play("click");
@@ -138,80 +323,60 @@
     const have = save.owned[id];
     const box = $("char-detail");
     box.textContent = "";
-    const big = document.createElement("div");
-    big.className = "big";
+    const big = el("div", "big");
     for (const view of have ? ["down", "side"] : ["down"]) {
       const img = document.createElement("img");
-      if (have) {
-        const set = Sprites.get(`char:${id}`);
-        img.src = Sprites.scaled(set[view].idle, 3).toDataURL();
-      } else img.src = Sprites.silhouettePortrait(id, 3);
+      img.src = have ? Sprites.scaled(Sprites.get(`char:${id}`)[view].idle, 3).toDataURL() : Sprites.silhouettePortrait(id, 3);
       img.alt = "";
       big.appendChild(img);
     }
-    const title = document.createElement("h3");
-    title.textContent = have ? ch.name : "Personaje sin conseguir";
-    const rarity = document.createElement("span");
-    rarity.className = "rarity";
+    const rarity = el("span", "rarity", `${L(TS.RARITIES[ch.rarity].name)}${ch.from === "Tronk Fight" ? ` · ${L("de Tronk Fight")}` : ""}${have ? ` · ${stars(have.stars)}` : ""}`);
     rarity.style.color = TS.RARITIES[ch.rarity].color;
-    rarity.textContent = `${TS.RARITIES[ch.rarity].name}${ch.from === "Tronk Fight" ? " · de Tronk Fight" : ""}${have ? ` · ${stars(have.stars)}` : ""}`;
-    box.append(big, title, rarity);
+    box.append(big, el("h3", "", have ? ch.name : L("Personaje sin conseguir")), rarity);
     if (have) {
-      const desc = document.createElement("p");
-      desc.textContent = ch.desc;
-      const weapon = document.createElement("div");
-      weapon.className = "weapon";
+      const weapon = el("div", "weapon");
       const wi = document.createElement("img");
       wi.src = Sprites.iconUrl(ch.weapon, 2);
       wi.alt = "";
       wi.className = "pix";
-      const wt = document.createElement("span");
-      wt.innerHTML = `<b></b><br><small></small>`;
-      wt.querySelector("b").textContent = TS.WEAPONS[ch.weapon].name;
-      wt.querySelector("small").textContent = TS.WEAPONS[ch.weapon].desc;
+      const wt = el("span");
+      wt.append(el("b", "", L(TS.WEAPONS[ch.weapon].name)), document.createElement("br"), el("small", "", L(TS.WEAPONS[ch.weapon].desc)));
       weapon.append(wi, wt);
-      const perk = document.createElement("p");
-      perk.textContent = `Ventaja: ${ch.perkText}`;
-      const btn = document.createElement("button");
-      btn.className = "btn btn-big";
-      btn.textContent = save.selected === id ? "¡A jugar!" : "Elegir";
+      const btn = el("button", "btn btn-big", save.selected === id ? L("¡A jugar!") : L("Elegir"));
       btn.addEventListener("click", () => {
+        const go = save.selected === id;
         save.selected = id;
         Save.persist();
-        if (btn.textContent === "¡A jugar!") play();
+        if (go) show("maps");
         else renderChars();
       });
-      box.append(desc, weapon, perk, btn);
+      box.append(el("p", "", L(ch.desc)), weapon, el("p", "", LT("perk", { perk: L(ch.perkText) })), btn);
     } else {
-      const p = document.createElement("p");
-      p.textContent = "Consíguelo en el Cofre Tronk con las monedas que ganas jugando.";
-      const btn = document.createElement("button");
-      btn.className = "btn btn-gold";
-      btn.textContent = "Ir al cofre";
+      const btn = el("button", "btn btn-gold", L("Ir al cofre"));
       btn.addEventListener("click", () => show("gacha"));
-      box.append(p, btn);
+      box.append(el("p", "", L("Consíguelo en el Cofre Tronk con las monedas que ganas jugando.")), btn);
     }
   }
 
-  /* ---------- cofre ---------- */
+  /* =======================================================
+     COFRE
+     ======================================================= */
 
   function renderGacha() {
     syncCoins();
     $("gacha-chest").style.backgroundImage = `url(${Sprites.iconUrl("cofre", 12)})`;
-    $("cost-1").textContent = save.freePull ? "¡gratis!" : TS.GACHA.cost1;
+    $("cost-1").textContent = save.freePull ? LT("free") : TS.GACHA.cost1;
     $("cost-10").textContent = TS.GACHA.cost10;
     $("pull-1").disabled = !save.freePull && save.coins < TS.GACHA.cost1;
     $("pull-10").disabled = save.coins < TS.GACHA.cost10;
-    $("gacha-pity").textContent = `Legendario seguro en ${TS.GACHA.pity - save.pity} tiradas`;
+    $("gacha-pity").textContent = LT("pity", { n: TS.GACHA.pity - save.pity });
     const ul = $("gacha-rates");
     ul.textContent = "";
     for (const id of TS.RARITY_ORDER) {
-      const li = document.createElement("li");
-      const list = TS.CHARACTERS.filter((c) => c.rarity === id).map((c) => c.name).join(", ");
-      li.innerHTML = `<b></b> <span></span>`;
-      li.querySelector("b").textContent = `${TS.RARITIES[id].name}: ${Math.round(TS.RARITIES[id].rate * 100)} %`;
-      li.querySelector("b").style.color = TS.RARITIES[id].color;
-      li.querySelector("span").textContent = `(${list})`;
+      const li = el("li");
+      const b = el("b", "", LT("rate", { name: L(TS.RARITIES[id].name), n: Math.round(TS.RARITIES[id].rate * 100) }));
+      b.style.color = TS.RARITIES[id].color;
+      li.append(b, document.createTextNode(` (${TS.CHARACTERS.filter((c) => c.rarity === id).map((c) => c.name).join(", ")})`));
       ul.appendChild(li);
     }
   }
@@ -230,29 +395,24 @@
       const cards = $("reveal-cards");
       cards.textContent = "";
       results.forEach((r, i) => {
-        const card = document.createElement("div");
-        card.className = `reveal-card${r.kind === "new" ? " is-new" : ""}`;
+        const card = el("div", `reveal-card${r.kind === "new" ? " is-new" : ""}`);
         card.style.setProperty("--rarity", TS.RARITIES[r.ch.rarity].color);
         card.style.animationDelay = `${i * 0.12}s`;
         const img = document.createElement("img");
         img.src = Sprites.portrait(r.ch.id, 2);
         img.alt = "";
-        const name = document.createElement("b");
-        name.textContent = r.ch.name;
-        const tag = document.createElement("span");
-        tag.className = "tag";
-        tag.textContent = TS.RARITIES[r.ch.rarity].name;
-        const extra = document.createElement("small");
-        extra.textContent = r.kind === "star" ? `★ ${r.stars} estrellas` : r.kind === "coins" ? `+${r.coins} monedas` : "";
-        card.append(img, name, tag, extra);
+        card.append(img, el("b", "", r.ch.name), el("span", "tag", L(TS.RARITIES[r.ch.rarity].name)), el("small", "", r.kind === "star" ? LT("stars", { n: r.stars }) : r.kind === "coins" ? LT("plusCoins", { n: r.coins }) : ""));
         cards.appendChild(card);
       });
       $("gacha-reveal").hidden = false;
       $("reveal-ok").focus();
+      checkAchievements(null);
     }, 900);
   }
 
-  /* ---------- tienda ---------- */
+  /* =======================================================
+     TIENDA
+     ======================================================= */
 
   function renderShop() {
     syncCoins();
@@ -260,31 +420,23 @@
     list.textContent = "";
     for (const item of TS.SHOP) {
       const lvl = Save.shopLevel(item.id);
-      const row = document.createElement("div");
-      row.className = "shop-item";
-      const info = document.createElement("div");
-      info.innerHTML = "<b></b><small></small><div class='shop-pips'></div>";
-      info.querySelector("b").textContent = item.name;
-      info.querySelector("small").textContent = item.desc;
-      for (let i = 0; i < item.max; i++) {
-        const pip = document.createElement("i");
-        if (i < lvl) pip.className = "on";
-        info.querySelector(".shop-pips").appendChild(pip);
-      }
-      const btn = document.createElement("button");
-      btn.className = "btn btn-gold";
+      const row = el("div", "shop-item");
+      const info = el("div");
+      const pips = el("div", "shop-pips");
+      for (let i = 0; i < item.max; i++) pips.appendChild(el("i", i < lvl ? "on" : ""));
+      info.append(el("b", "", L(item.name)), el("small", "", L(item.desc)), pips);
+      const btn = el("button", "btn btn-gold");
       if (lvl >= item.max) {
-        btn.textContent = "Al máximo";
+        btn.textContent = L("Al máximo");
         btn.disabled = true;
       } else {
         const cost = Save.shopCost(item);
-        btn.innerHTML = `<img alt="" /> <span></span>`;
-        btn.querySelector("img").src = Sprites.iconUrl("moneda", 2);
-        btn.querySelector("span").textContent = cost;
+        const img = document.createElement("img");
+        img.src = Sprites.iconUrl("moneda", 2);
+        img.alt = "";
+        btn.append(img, el("span", "", cost));
         btn.disabled = save.coins < cost;
-        btn.addEventListener("click", () => {
-          if (Save.buy(item)) { Sfx.play("coin"); renderShop(); }
-        });
+        btn.addEventListener("click", () => { if (Save.buy(item)) { Sfx.play("coin"); renderShop(); } });
       }
       row.append(info, btn);
       list.appendChild(row);
@@ -297,79 +449,116 @@
 
   function localSetup() {
     const own = save.owned[save.selected] || { stars: 1 };
-    return { charId: save.selected, stars: own.stars, meta: Save.shopStats(), name: save.name || charById(save.selected).name };
+    return { charId: save.selected, stars: own.stars, meta: Save.shopStats(), name: Account.name || charById(save.selected).name };
   }
 
-  function play(setups, opts) {
-    lastSetup = setups ? { setups, opts } : null;
-    for (const el of document.querySelectorAll(".screen")) el.classList.remove("is-on");
+  /* ---------- móvil: se juega en horizontal ---------- */
+  const isTouch = window.matchMedia("(pointer: coarse)").matches;
+
+  // En Android se pone a pantalla completa y se gira solo; en iPhone no
+  // se puede, así que se pide girar el móvil
+  function goLandscape() {
+    if (!isTouch) return;
+    const root = document.documentElement;
+    const lock = () => screen.orientation && screen.orientation.lock ? screen.orientation.lock("landscape").catch(() => {}) : null;
+    if (root.requestFullscreen && !document.fullscreenElement) root.requestFullscreen({ navigationUI: "hide" }).then(lock, () => {});
+    else lock();
+  }
+
+  function leaveLandscape() {
+    if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+  }
+
+  function checkOrientation() {
+    const portrait = isTouch && current === "game" && window.innerHeight > window.innerWidth;
+    const box = $("rotate");
+    if (portrait && box.hidden && Game.state && !Game.state.over && $("levelup").hidden) pause(true);
+    box.hidden = !portrait;
+  }
+  window.addEventListener("resize", checkOrientation);
+  window.addEventListener("orientationchange", () => setTimeout(checkOrientation, 200));
+
+  function enterGame(prepare) {
+    goLandscape();
+    for (const s of document.querySelectorAll(".screen")) s.classList.remove("is-on");
     for (const id of ["levelup", "pause", "end"]) $(id).hidden = true;
     current = "game";
     $("hud").hidden = false;
     $("loading").classList.add("is-on");
-    $("loading-text").textContent = "Preparando la partida…";
-    // los dibujos de los enemigos se hacen ahora (tarda un momento)
+    $("loading-text").textContent = L("Preparando la partida…");
     setTimeout(() => {
+      // los dibujos de los enemigos se hacen ahora (tarda un momento)
       for (const id of [...Object.keys(People.ENEMIES), "slime", "slimito", "fantasma", "murcielago"]) Sprites.get(`enemy:${id}`);
-      for (const s of setups || [localSetup()]) Sprites.get(`char:${s.charId}`);
       $("loading").classList.remove("is-on");
       demoOn = false;
-      Game.start(setups || [localSetup()], opts || { mode: "solo", localId: 0 });
+      slotKey = "";
+      prepare();
+      checkOrientation();
     }, 30);
   }
-  window.TronkPlay = play;
 
-  function renderSlots(el, data, big) {
-    el.textContent = "";
+  function play(setups, opts) {
+    const s = setups || [localSetup()];
+    const o = { mode: "solo", localId: 0, map: save.settings.map || "bosque", ...(opts || {}) };
+    lastRun = { setups, opts: o };
+    for (const x of s) Sprites.get(`char:${x.charId}`);
+    enterGame(() => Game.start(s, o));
+  }
+
+  function playGuest(info) {
+    lastRun = { guest: true };
+    enterGame(() => Game.startGuest(info));
+  }
+
+  function renderSlots(box, data, big) {
+    box.textContent = "";
     const items = [...data.weapons.map((w) => ({ ...w, kind: "w" })), ...data.passives.map((p) => ({ ...p, kind: "p" }))];
     for (const it of items) {
-      const slot = document.createElement("div");
-      slot.className = `hud-slot${it.kind === "p" ? " is-passive" : ""}`;
+      const slot = el("div", `hud-slot${it.kind === "p" ? " is-passive" : ""}${it.evo ? " is-evo" : ""}`);
       const img = document.createElement("img");
       img.src = Sprites.iconUrl(it.id, big ? 3 : 2);
       img.alt = "";
-      const lvl = document.createElement("i");
-      lvl.textContent = it.lvl;
-      slot.append(img, lvl);
-      el.appendChild(slot);
+      slot.title = it.evo ? L(TS.EVOLUTIONS[it.id].name) : L((TS.WEAPONS[it.id] || TS.PASSIVES[it.id] || {}).name || "");
+      slot.append(img, el("i", "", it.evo ? "★" : it.lvl));
+      box.appendChild(slot);
     }
   }
 
   let slotKey = "";
   Game.on("hud", (d) => {
     $("hud-xp-bar").style.width = `${Math.min(100, (d.xp / d.xpNext) * 100)}%`;
-    $("hud-level").textContent = `Nv. ${d.level}`;
+    $("hud-level").textContent = `${LANG === "en" ? "Lv." : "Nv."} ${d.level}`;
     $("hud-name").textContent = d.name;
     $("hud-time").textContent = fmtTime(d.seconds);
-    $("hud-kills").textContent = d.kills;
-    $("hud-coins").textContent = d.coins;
+    $("hud-sub").textContent = LT("hudSub", { map: L(TS.MAPS[Game.mapId].name), kills: d.kills, coins: d.coins });
     const pct = Math.max(0, d.hp / d.maxHp);
     $("hud-hp-bar").style.width = `${pct * 100}%`;
     $("hud-hp-bar").classList.toggle("is-low", pct < 0.35);
     $("hud-hp").textContent = `${Math.ceil(Math.max(0, d.hp))} / ${d.maxHp}`;
+    $("hud-evo").hidden = !d.canEvolve;
     const key = JSON.stringify([d.weapons, d.passives]);
     if (key !== slotKey) { slotKey = key; renderSlots($("hud-slots"), d); }
     const boss = $("hud-boss");
     boss.hidden = !d.boss;
     if (d.boss) { $("hud-boss-name").textContent = d.boss.name; $("hud-boss-bar").style.width = `${d.boss.pct * 100}%`; }
     const team = $("hud-team");
+    team.textContent = "";
     if (d.players.length > 1) {
-      team.textContent = "";
       d.players.forEach((p, i) => {
         if (i === Game.localId) return;
-        const row = document.createElement("div");
-        row.innerHTML = "<b></b><span><i></i></span>";
-        row.querySelector("b").textContent = p.down ? `${p.name} (caído)` : p.name;
-        row.querySelector("i").style.width = `${Math.max(0, p.hp / p.maxHp) * 100}%`;
+        const row = el("div");
+        const bar = el("span");
+        const fill = el("i");
+        fill.style.width = `${Math.max(0, p.hp / p.maxHp) * 100}%`;
+        bar.appendChild(fill);
+        row.append(el("b", "", p.down ? LT("fallen", { name: p.name }) : p.name), bar);
         team.appendChild(row);
       });
-    } else team.textContent = "";
+    }
   });
 
   function toast(text) {
-    const t = document.createElement("div");
-    t.className = "toast";
-    t.textContent = text;
+    const t = el("div", "toast", text);
     $("toasts").appendChild(t);
     setTimeout(() => t.remove(), 3300);
   }
@@ -378,74 +567,75 @@
     const b = $("banner");
     b.hidden = true;
     void b.offsetWidth;
-    b.innerHTML = "";
     b.textContent = text;
-    if (small) { const s = document.createElement("small"); s.textContent = small; b.appendChild(s); }
+    if (small) b.appendChild(el("small", "", small));
     b.hidden = false;
     clearTimeout(banner.t);
     banner.t = setTimeout(() => (b.hidden = true), 2700);
   }
 
   Game.on("toast", (d) => toast(d.text));
-  Game.on("boss", (d) => banner("¡JEFE!", d.name));
-  Game.on("bossDown", (d) => toast(`¡Has derrotado a ${d.name}!`));
-  Game.on("chest", (d) => { toast("¡Cofre! +40 monedas"); for (const l of d.lines) toast(l); });
-  Game.on("down", (d) => { if (d.id === Game.localId && Game.state.players.length > 1) toast("¡Has caído! Un compañero puede levantarte si se queda a tu lado."); });
+  Game.on("boss", (d) => banner(L("¡JEFE!"), d.name));
+  Game.on("bossDown", (d) => toast(LT("bossDown", { name: d.name })));
+  Game.on("chest", (d) => { toast(L("¡Cofre! +40 monedas")); for (const l of d.lines) toast(l); });
+  Game.on("evolve", (d) => banner(L(d.name), L(d.desc)));
+  Game.on("down", (d) => { if (d.id === Game.localId && Game.state.players.length > 1) toast(L("¡Has caído! Un compañero puede levantarte si se queda a tu lado.")); });
 
-  // Subida de nivel
-  Game.on("levelUp", (d) => {
+  /* ---------- subida de nivel ---------- */
+
+  function showLevelUp(d) {
     $("levelup-level").textContent = d.level;
     const box = $("levelup-cards");
     box.textContent = "";
     $("levelup-wait").hidden = true;
     d.options.forEach((o, i) => {
-      const card = document.createElement("button");
+      const card = el("button", "up-card");
       card.type = "button";
-      card.className = "up-card";
       const img = document.createElement("img");
       img.src = Sprites.iconUrl(o.icon, 3);
       img.alt = "";
       img.className = "pix";
-      const text = document.createElement("div");
-      text.innerHTML = "<span class='new'></span><b></b><small></small>";
-      text.querySelector(".new").textContent = o.isNew ? "¡NUEVO!" : "";
-      text.querySelector("b").textContent = o.title;
-      text.querySelector("small").textContent = o.desc;
-      const key = document.createElement("kbd");
-      key.textContent = i + 1;
-      card.append(img, text, key);
+      const text = el("div");
+      text.append(el("span", "new", o.isNew ? L("¡NUEVO!") : ""), el("b", "", o.title), el("small", "", o.desc));
+      card.append(img, text, el("kbd", "", i + 1));
       card.addEventListener("click", () => pickLevel(i));
       box.appendChild(card);
     });
     $("levelup").hidden = false;
     setTimeout(() => box.querySelector("button")?.focus(), 50);
-  });
+  }
+
+  function waitOthers() {
+    $("levelup-cards").textContent = "";
+    $("levelup-wait").hidden = false;
+  }
+
+  function hideLevelUp() {
+    $("levelup").hidden = true;
+  }
+
+  Game.on("levelUp", showLevelUp);
 
   function pickLevel(i) {
-    if ($("levelup").hidden) return;
+    if ($("levelup").hidden || !$("levelup-cards").children.length) return;
     Sfx.play("pick");
-    if (Game.mode === "guest") window.TronkNet?.sendChoice(i);
+    if (Game.mode === "guest") TronkNet.sendChoice(i);
     else Game.choose(Game.localId, i);
   }
 
   Game.on("chosen", () => {
-    if (Game.state && Game.state.choosing && Object.keys(Game.state.choosing).length) {
-      $("levelup-cards").textContent = "";
-      $("levelup-wait").hidden = false;
-    } else $("levelup").hidden = true;
+    if (Game.state && Game.state.choosing && Object.keys(Game.state.choosing).length) waitOthers();
+    else hideLevelUp();
   });
-  Game.on("resume", () => ($("levelup").hidden = true));
+  Game.on("resume", hideLevelUp);
 
-  // Pausa
+  /* ---------- pausa ---------- */
+
   function pause(on) {
     if (current !== "game" || !Game.state || Game.state.over) return;
-    if (Game.mode !== "solo") {
-      // en el modo online no se para el juego: solo se ve el menú
-      $("pause").hidden = !on;
-      return;
-    }
-    Game.setPaused(on);
+    if (Game.mode === "solo") Game.setPaused(on);
     $("pause").hidden = !on;
+    $("pause-quit").hidden = Game.mode === "guest";
     if (on) renderSlots($("pause-build"), Game.hudData(), true);
   }
   $("hud-pause").addEventListener("click", () => pause(true));
@@ -456,46 +646,61 @@
     Game.finish(false);
   });
 
-  // Fin de la partida
-  Game.on("end", (r) => {
+  /* ---------- final ---------- */
+
+  async function showEnd(r) {
+    if (Game.mode === "guest") r = { ...r, charId: save.selected, coop: true };
+    if (r.daily && save.dailyDone !== r.daily) {
+      save.dailyDone = r.daily;
+      r.coins += 100;
+      setTimeout(() => toast(LT("dailyBonus")), 400);
+    }
     Save.recordRun(r);
-    window.TronkNet?.leave?.();
-    $("end-title").textContent = r.victory ? "¡VICTORIA!" : "¡Has caído!";
+    for (const id of checkMapUnlocks()) setTimeout(() => toast(LT("mapUnlocked", { name: L(TS.MAPS[id].name) })), 1200);
+    checkAchievements(r);
+    TronkNet.leave();
+    const points = Account.points(r);
+    $("end-title").textContent = r.victory ? L("¡VICTORIA!") : L("¡Has caído!");
     const stats = $("end-stats");
     stats.textContent = "";
     const add = (label, value, cls) => {
-      const d = document.createElement("div");
-      if (cls) d.className = cls;
-      d.innerHTML = "<b></b><small></small>";
-      d.querySelector("b").textContent = value;
-      d.querySelector("small").textContent = label;
+      const d = el("div", cls || "");
+      d.append(el("b", "", value), el("small", "", L(label)));
       stats.appendChild(d);
     };
     add("Tiempo", fmtTime(r.seconds));
     add("Nivel", r.level);
     add("Enemigos", r.kills);
     add("Jefes", r.bosses);
+    add("Puntos", points, "coins");
     add("Monedas ganadas", `+${r.coins}`, "coins");
-    $("levelup").hidden = true;
+    hideLevelUp();
     $("pause").hidden = true;
     setTimeout(() => {
       $("end").hidden = false;
       $("end-again").focus();
     }, 900);
-  });
-  $("end-again").addEventListener("click", () => {
-    $("end").hidden = true;
-    Game.stop();
-    if (lastSetup) show("online");
-    else play();
-  });
-  $("end-menu").addEventListener("click", () => {
-    $("end").hidden = true;
+    Account.submitRun(r);
+  }
+  Game.on("end", showEnd);
+
+  function backToMenu() {
+    for (const id of ["end", "levelup", "pause"]) $(id).hidden = true;
     $("hud").hidden = true;
     Game.stop();
     demoOn = false;
+    leaveLandscape();
     show("menu");
+    checkOrientation();
+  }
+
+  $("end-again").addEventListener("click", () => {
+    $("end").hidden = true;
+    Game.stop();
+    if (!lastRun || lastRun.guest || (lastRun.opts && lastRun.opts.mode === "host")) { demoOn = false; show("online"); }
+    else play(lastRun.setups, lastRun.opts);
   });
+  $("end-menu").addEventListener("click", backToMenu);
 
   /* ---------- teclado ---------- */
   window.addEventListener("keydown", (e) => {
@@ -512,14 +717,13 @@
     if (document.hidden && current === "game" && Game.mode === "solo" && $("levelup").hidden) pause(true);
   });
 
-  /* ---------- botones del menú ---------- */
+  /* ---------- botones ---------- */
   document.addEventListener("click", (e) => {
     const go = e.target.closest("[data-go]");
     if (!go) return;
     Sfx.init();
     Sfx.play("click");
-    if (go.dataset.go === "play") play();
-    else show(go.dataset.go);
+    show(go.dataset.go);
   });
   $("pull-1").addEventListener("click", () => pull(1));
   $("pull-10").addEventListener("click", () => pull(10));
@@ -527,41 +731,40 @@
     $("gacha-reveal").hidden = true;
     renderGacha();
   });
-  $("toggle-music").addEventListener("click", () => {
-    save.settings.music = !save.settings.music;
-    Sfx.setEnabled("music", save.settings.music);
-    Save.persist();
-    renderMenu();
-  });
-  $("toggle-sfx").addEventListener("click", () => {
-    save.settings.sfx = !save.settings.sfx;
-    Sfx.setEnabled("sfx", save.settings.sfx);
-    Save.persist();
-    renderMenu();
-  });
+  $("daily-play").addEventListener("click", playDaily);
   // el sonido del navegador solo arranca tras tocar algo
   window.addEventListener("pointerdown", () => Sfx.init(), { once: true });
   window.addEventListener("keydown", () => Sfx.init(), { once: true });
 
+  /* ---------- cuenta ---------- */
+  Save.setOnChange(() => Account.scheduleUpload());
+  Account.onChange(() => {
+    if (current === "menu") renderMenu();
+  });
+
   /* ---------- arranque ---------- */
-  Sfx.setEnabled("music", save.settings.music);
-  Sfx.setEnabled("sfx", save.settings.sfx);
+  applySettings();
+  translatePage();
   setTimeout(() => {
     Sprites.build();
     Game.init($("game"));
     fillIcons();
+    Account.init();
     // los personajes se dibujan poco a poco para no congelar la página
     const ids = [...TS.CHARACTERS.map((c) => `char:${c.id}`), ...["zombi", "corredor", "antitronk", "ninja", "esqueleto", "murcielago", "slime"].map((id) => `enemy:${id}`)];
     let i = 0;
     const next = () => {
       if (i < ids.length) {
-        $("loading-text").textContent = `Dibujando personajes… ${Math.round((i / ids.length) * 100)} %`;
+        $("loading-text").textContent = LT("drawing", { n: Math.round((i / ids.length) * 100) });
         Sprites.get(ids[i++]);
         setTimeout(next, 0);
-      } else show("menu");
+      } else {
+        checkMapUnlocks();
+        show("menu");
+      }
     };
     next();
   }, 20);
 
-  window.TronkUI = { show, toast, play, localSetup };
+  window.TronkUI = { show, toast, banner, play, playGuest, localSetup, showLevelUp, waitOthers, hideLevelUp, showEnd, backToMenu, selectedMap: () => save.settings.map || "bosque" };
 })();

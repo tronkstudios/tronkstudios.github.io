@@ -403,3 +403,92 @@ TS.GACHA = {
   maxStars: 5, // los repetidos suben estrellas (+5 % de daño y vida cada una)
   refund: { comun: 20, raro: 45, epico: 90, legendario: 200 } // repetido con 5 estrellas → monedas
 };
+
+/* ---------- EVOLUCIONES ----------
+   Un arma al nivel 6 + el objeto indicado (a cualquier nivel): el
+   siguiente cofre la convierte en su versión evolucionada. */
+TS.EVOLUTIONS = {
+  tajo: { passive: "musculo", name: "Excalibur", desc: "Barridos dorados enormes en todas direcciones." },
+  virote: { passive: "reloj", name: "Ballesta Tormenta", desc: "Una lluvia de virotes que no para." },
+  mazazo: { passive: "corazon", name: "Martillo Sísmico", desc: "Terremotos gigantes que lo tumban todo." },
+  estocada: { passive: "lupa", name: "Lanza Celestial", desc: "Estocadas larguísimas en abanico." },
+  guantes: { passive: "zapatillas", name: "Guantes del Campeón", desc: "Combos rapidísimos que mandan a volar." },
+  punos: { passive: "escudo", name: "Puño del Titán", desc: "Ondas de choque gigantes." },
+  hacha: { passive: "iman", name: "Hachas Gemelas", desc: "Muchas más hachas que vuelven." },
+  rayo: { passive: "libro", name: "Tridente de Zeus", desc: "Rayos que saltan sin parar." },
+  petardo: { passive: "trebol", name: "Traca Final", desc: "Explosiones enormes por todas partes." },
+  colonia: { passive: "tirita", name: "Perfume Mortal", desc: "Una nube enorme que además te cura." },
+  balon: { passive: "zapatillas", name: "Balón de Oro", desc: "Balones que rebotan muchísimas veces." },
+  copos: { passive: "reloj", name: "Ventisca", desc: "Una tormenta de hielo constante." },
+  kunai: { passive: "clon", name: "Mil Kunais", desc: "Una pared de kunais." },
+  meteoro: { passive: "libro", name: "Lluvia de Estrellas", desc: "Caen meteoritos sin parar." },
+  dron: { passive: "lupa", name: "Enjambre de Drones", desc: "Más drones con láseres más largos." },
+  tornado: { passive: "zapatillas", name: "Huracán", desc: "Tornados enormes que arrastran a todos." }
+};
+
+/* ---------- MAPAS ---------- */
+TS.MAPS = {
+  bosque: {
+    name: "Bosque de los Tronks", desc: "Árboles, lagos y zombis. Para empezar.",
+    ground: { grass: ["#4a8a3a", "#43803a", "#52933f", "#3e7a35", "#4d8e3c"], grassEdge: "#3a6e30", dirt: ["#8a6a42", "#7d5f3a", "#94744a", "#6f5432", "#856540"], dirtEdge: "#6a5232", water: ["#3b7ac8", "#3672bd", "#4282d0"], shore: ["#c9b07a", "#bba26e"], foam: "#8fc6f0", wave: "#7ab4ec", flowers: ["#ffffff", "#ff9fd0", "#ffe066"] },
+    dirt: 0.67, water: 0.73,
+    obstacles: { arbol: 5, pino: 3, roca: 3, rocaGrande: 1, tronco: 1.4, arbusto: 2, hierba: 5 },
+    mix: {}, unlock: null
+  },
+  cementerio: {
+    name: "Cementerio Maldito", desc: "Niebla, tumbas, esqueletos y fantasmas.",
+    ground: { grass: ["#3b5a3e", "#365438", "#41613f", "#324e35", "#3d5c3c"], grassEdge: "#2a4230", dirt: ["#5e5650", "#544c47", "#665e57", "#4a4340", "#5a524c"], dirtEdge: "#403a36", water: ["#3a5a4a", "#355445", "#40624f"], shore: ["#4a4a3a", "#424234"], foam: "#5a7a62", wave: "#4f6f58", flowers: ["#b8a8ff", "#8a7aaa", "#e8e0ff"] },
+    dirt: 0.58, water: 0.8, dark: 0.35,
+    obstacles: { tumba: 5, cruz: 3, arbolMuerto: 3, roca: 2, hierba: 3 },
+    mix: { esqueleto: 3, fantasma: 2.5, brujo: 1.5, murcielago: 1.5 }, unlock: { best: "time", value: 300, text: "Aguanta 5 minutos en cualquier mapa" }
+  },
+  playa: {
+    name: "Playa Tronk", desc: "Arena, mar y mocos al sol.",
+    ground: { grass: ["#e3cc8c", "#dcc382", "#e8d398", "#d6bd7c", "#e0c888"], grassEdge: "#c9b070", dirt: ["#c9ad74", "#bfa36a", "#d1b57c", "#b49860", "#c4a870"], dirtEdge: "#a88e58", water: ["#2f8ad0", "#2a80c4", "#3896dc"], shore: ["#f2e4b4", "#ece0ac"], foam: "#e8f8ff", wave: "#6ab8ec", flowers: ["#ffffff", "#ff9fd0", "#ff8a3b"] },
+    dirt: 0.62, water: 0.62,
+    obstacles: { palmera: 5, roca: 3, rocaGrande: 1.5, sombrilla: 1.5, hierba: 1 },
+    mix: { slime: 3, corredor: 2, murcielago: 0.5 }, unlock: { best: "bosses", value: 2, text: "Derrota a 2 jefes en total" }
+  },
+  ciudad: {
+    name: "Ciudad de Noche", desc: "Calles, farolas y Antitronks por todas partes.",
+    ground: { grass: ["#4a4e58", "#454953", "#50545e", "#41454f", "#4c505a"], grassEdge: "#383c46", dirt: ["#5a5f6a", "#555a65", "#60656f", "#4e535e", "#585d68"], dirtEdge: "#3e434e", water: ["#2a3a5a", "#263552", "#304062"], shore: ["#8a8a92", "#80808a"], foam: "#4a5a7a", wave: "#3a4a6a", flowers: ["#ffe066", "#9aa3b0", "#ffffff"] },
+    dirt: 0.55, water: 0.85, dark: 0.45, roads: true,
+    obstacles: { farola: 3, contenedor: 2, coche: 2, banco: 2, arbusto: 1 },
+    mix: { antitronk: 3, ninja: 2.5, supremo: 0, brujo: 1 }, unlock: { best: "wins", value: 1, text: "Derrota al Rey Zombi una vez" }
+  }
+};
+
+/* ---------- RETO DIARIO ----------
+   Cada día, el mismo personaje, mapa y 2 reglas para todos. */
+TS.DAILY_MODS = {
+  turbo: { name: "Turbo", desc: "Los enemigos van un 35 % más rápido" },
+  cristal: { name: "De cristal", desc: "Mitad de vida, pero +60 % de daño" },
+  oro: { name: "Lluvia de oro", desc: "Monedas triples" },
+  horda: { name: "Horda", desc: "Salen un 60 % más de enemigos (y más experiencia)" },
+  gigantes: { name: "Gigantes", desc: "Enemigos con +70 % de vida que dan +70 % de experiencia" },
+  jefes: { name: "Jefes con prisa", desc: "Los jefes salen mucho antes" },
+  rapido: { name: "Zapatillas nuevas", desc: "Vas un 30 % más rápido" },
+  iman: { name: "Superimán", desc: "Recoges cosas desde el triple de lejos" }
+};
+
+/* ---------- LOGROS (dan monedas) ---------- */
+TS.ACHIEVEMENTS = [
+  { id: "primera", name: "Primera sangre", desc: "Derrota a tu primer enemigo", reward: 20, test: (r) => r.kills >= 1 },
+  { id: "cien", name: "Esto empieza", desc: "Derrota a 100 enemigos en una partida", reward: 50, test: (r) => r.kills >= 100 },
+  { id: "mil", name: "Imparable", desc: "Derrota a 1.000 enemigos en una partida", reward: 200, test: (r) => r.kills >= 1000 },
+  { id: "cinco", name: "Superviviente", desc: "Aguanta 5 minutos", reward: 100, test: (r) => r.seconds >= 300 },
+  { id: "jefe", name: "Cazajefes", desc: "Derrota a un jefe", reward: 100, test: (r) => r.bosses >= 1 },
+  { id: "victoria", name: "Rey de reyes", desc: "Derrota al Rey Zombi", reward: 500, test: (r) => r.victory },
+  { id: "nivel30", name: "Muy preparado", desc: "Llega a nivel 30 en una partida", reward: 200, test: (r) => r.level >= 30 },
+  { id: "evolucion", name: "Evolución", desc: "Evoluciona un arma", reward: 150, test: (r, s) => s.stats.evolutions >= 1 },
+  { id: "rompe", name: "Manazas", desc: "Rompe 50 objetos en total", reward: 100, test: (r, s) => s.stats.props >= 50 },
+  { id: "sunk", name: "Sin camiseta", desc: "Derrota al Rey Zombi con Sunk", reward: 300, test: (r) => r.victory && r.charId === "sunk" },
+  { id: "coleccion5", name: "Coleccionista", desc: "Consigue 5 personajes", reward: 100, test: (r, s) => Object.keys(s.owned).length >= 5 },
+  { id: "coleccion", name: "Todos los Tronks", desc: "Consigue los 16 personajes", reward: 1000, test: (r, s) => Object.keys(s.owned).length >= TS.CHARACTERS.length },
+  { id: "legendario", name: "¡Legendario!", desc: "Consigue un personaje legendario", reward: 200, test: (r, s) => TS.CHARACTERS.some((c) => c.rarity === "legendario" && s.owned[c.id]) },
+  { id: "estrellas", name: "Cinco estrellas", desc: "Sube un personaje a 5 estrellas", reward: 300, test: (r, s) => Object.values(s.owned).some((o) => o.stars >= 5) },
+  { id: "diario", name: "Cada día", desc: "Juega un reto diario", reward: 100, test: (r, s) => s.stats.dailies >= 1 },
+  { id: "amigos", name: "Mejor con amigos", desc: "Juega una partida con amigos", reward: 150, test: (r, s) => s.stats.coop >= 1 },
+  { id: "mapas", name: "Explorador", desc: "Desbloquea los 4 mapas", reward: 200, test: (r, s) => Object.keys(TS.MAPS).every((m) => s.maps[m]) },
+  { id: "rico", name: "Forrado", desc: "Junta 5.000 monedas a la vez", reward: 100, test: (r, s) => s.coins >= 5000 }
+];

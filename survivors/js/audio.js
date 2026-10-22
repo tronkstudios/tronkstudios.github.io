@@ -12,6 +12,8 @@ const Sfx = (() => {
   let musicGain = null;
   let noise = null;
   let enabled = { sfx: true, music: true };
+  const volume = { sfx: 0.9, music: 0.7 };
+  const target = (kind) => (enabled[kind] ? volume[kind] * (kind === "music" ? 0.45 : 1.1) : 0);
   const last = {}; // para no repetir el mismo sonido 50 veces por segundo
 
   function init() {
@@ -28,8 +30,8 @@ const Sfx = (() => {
       master.gain.value = 0.7;
       sfxGain = ctx.createGain();
       musicGain = ctx.createGain();
-      musicGain.gain.value = enabled.music ? 0.32 : 0;
-      sfxGain.gain.value = enabled.sfx ? 1 : 0;
+      musicGain.gain.value = target("music");
+      sfxGain.gain.value = target("sfx");
       sfxGain.connect(master);
       musicGain.connect(master);
       master.connect(comp).connect(ctx.destination);
@@ -41,11 +43,21 @@ const Sfx = (() => {
     if (ctx.state === "suspended") ctx.resume();
   }
 
+  function apply(kind) {
+    if (!ctx) return;
+    (kind === "music" ? musicGain : sfxGain).gain.setTargetAtTime(target(kind), ctx.currentTime, 0.05);
+  }
+
   function setEnabled(kind, on) {
     enabled[kind] = on;
-    if (!ctx) return;
-    if (kind === "music") musicGain.gain.setTargetAtTime(on ? 0.32 : 0, ctx.currentTime, 0.05);
-    else sfxGain.gain.setTargetAtTime(on ? 1 : 0, ctx.currentTime, 0.02);
+    apply(kind);
+  }
+
+  // v entre 0 y 1
+  function setVolume(kind, v) {
+    volume[kind] = Math.max(0, Math.min(1, v));
+    enabled[kind] = volume[kind] > 0;
+    apply(kind);
   }
 
   function tone(type, freq, start, dur, vol, { slide, dest } = {}) {
@@ -107,7 +119,7 @@ const Sfx = (() => {
 
   // gap: segundos mínimos entre dos sonidos iguales
   function play(name, gap = 0.03) {
-    if (!ctx || !enabled.sfx || !SOUNDS[name]) return;
+    if (!ctx || !enabled.sfx || !volume.sfx || !SOUNDS[name]) return;
     const t = ctx.currentTime;
     if (last[name] && t - last[name] < gap) return;
     last[name] = t;
@@ -156,5 +168,5 @@ const Sfx = (() => {
     }
   }
 
-  return { init, play, startMusic, stopMusic, setEnabled };
+  return { init, play, startMusic, stopMusic, setEnabled, setVolume };
 })();

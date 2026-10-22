@@ -378,8 +378,9 @@ img[data-icon], .pix { image-rendering: pixelated; }
 @media (max-width: 760px) {
   .hud-me { min-width: 0; }
   .hud-hp, .hud-xp { width: 150px; }
-  .hud-center { top: 56px; }
+  .hud-center { top: 78px; }
   .hud-time { font-size: 22px; }
+  .hud-sub { font-size: 10px; }
   .hud-hint { display: none; }
   .hud-slot { width: 38px; height: 38px; }
   .hud-slot img { width: 28px; height: 28px; }
@@ -470,4 +471,92 @@ img[data-icon], .pix { image-rendering: pixelated; }
   .chars-layout { grid-template-columns: 1fr; }
   .char-detail { order: -1; }
   .gacha-buttons { grid-template-columns: 1fr; }
+}
+
+/* ---------- menú: extras ---------- */
+.menu-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.btn-daily { background: linear-gradient(#7a5cff, #5a3ce0); box-shadow: inset 0 -5px 0 rgba(0, 0, 0, 0.25), 0 0 0 2px #3a20a8; }
+.mini-count { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.menu-account { margin: 0; font-size: 12px; color: var(--muted); }
+.menu-account a { color: var(--gold); }
+
+/* ---------- mapas ---------- */
+.maps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.map-card { position: relative; border: 0; border-radius: 12px; overflow: hidden; padding: 0; background: var(--panel-2); color: var(--text); font: inherit; text-align: left; cursor: pointer; box-shadow: 0 0 0 2px var(--line); display: grid; }
+.map-card:hover:not(:disabled) { box-shadow: 0 0 0 3px var(--gold); }
+.map-card canvas { width: 100%; aspect-ratio: 16 / 9; image-rendering: pixelated; display: block; }
+.map-card div { padding: 10px 12px 12px; display: grid; gap: 4px; }
+.map-card b { font-size: 16px; }
+.map-card small { color: var(--muted); }
+.map-card:disabled { cursor: default; }
+.map-card:disabled canvas { filter: grayscale(1) brightness(0.45); }
+.map-lock { position: absolute; top: 8px; left: 8px; right: 8px; background: rgba(0, 0, 0, 0.7); border-radius: 8px; padding: 6px 8px; font-size: 12px; text-align: center; }
+
+/* ---------- reto diario ---------- */
+.daily-card { display: grid; grid-template-columns: 96px 1fr; gap: 12px; align-items: center; background: var(--panel-2); border-radius: 12px; padding: 10px; }
+.daily-card img { width: 96px; height: 114px; image-rendering: pixelated; }
+.daily-card ul { margin: 4px 0 0; padding-left: 18px; color: var(--muted); font-size: 13px; }
+.daily-card b { display: block; font-size: 16px; }
+.daily-card small { display: block; margin-top: 4px; color: var(--muted); }
+.daily-title { margin: 0; font-size: 16px; }
+.daily-top { margin: 0; padding-left: 24px; display: grid; gap: 4px; font-size: 14px; }
+.daily-top li.me { color: var(--gold); font-weight: 800; }
+.daily-top .empty { list-style: none; margin-left: -24px; color: var(--muted); }
+
+/* ---------- logros ---------- */
+.ach-list { display: grid; gap: 8px; max-height: 60vh; overflow-y: auto; }
+.ach { display: grid; grid-template-columns: 40px 1fr auto; gap: 10px; align-items: center; background: var(--panel-2); border-radius: 10px; padding: 8px 12px; opacity: 0.55; }
+.ach.done { opacity: 1; box-shadow: 0 0 0 2px rgba(255, 197, 49, 0.4); }
+.ach i { font-style: normal; font-size: 24px; text-align: center; }
+.ach small { color: var(--muted); display: block; }
+.ach span { color: var(--gold); font-weight: 800; font-size: 13px; white-space: nowrap; }
+
+/* ---------- ajustes ---------- */
+.setting { display: grid; grid-template-columns: 160px 1fr 44px; gap: 10px; align-items: center; background: var(--panel-2); border-radius: 10px; padding: 10px 12px; }
+.setting input[type="range"] { width: 100%; accent-color: var(--gold); }
+.setting input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--gold); justify-self: start; }
+.setting select { font: inherit; background: #0d0920; color: var(--text); border: 0; border-radius: 8px; padding: 6px 10px; box-shadow: 0 0 0 2px var(--line); }
+
+.hud-slot.is-evo { box-shadow: 0 0 0 2px var(--gold), 0 0 12px rgba(255, 197, 49, 0.7); }
+.hud-evo { font-size: 11px; color: var(--gold); font-weight: 800; text-shadow: 0 1px 0 #000; animation: low 0.8s steps(2) infinite; }
+
+@media (max-width: 600px) {
+  .setting { grid-template-columns: 1fr; }
+  .daily-card { grid-template-columns: 70px 1fr; }
+  .daily-card img { width: 70px; height: 83px; }
+}
+
+/* ---------- móvil en horizontal ---------- */
+.rotate { position: fixed; inset: 0; z-index: 60; display: grid; place-content: center; justify-items: center; gap: 10px; padding: 24px; text-align: center; background: rgba(12, 9, 24, 0.96); color: #fff; }
+.rotate[hidden] { display: none; }
+.rotate b { font-size: 22px; }
+.rotate small { color: var(--muted); font-size: 14px; }
+.rotate-phone { width: 46px; height: 80px; border: 4px solid #fff; border-radius: 10px; margin-bottom: 14px; animation: rotate-phone 1.8s ease-in-out infinite; }
+@keyframes rotate-phone { 0%, 20% { transform: rotate(0); } 55%, 100% { transform: rotate(-90deg); } }
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .hud-hp, .hud-xp { width: 150px; }
+  .hud-center { top: 6px; }
+  .hud-time { font-size: 22px; }
+  .hud-hint { display: none; }
+  .hud-slot { width: 34px; height: 34px; }
+  .hud-slot img { width: 24px; height: 24px; }
+}
+
+/* menú compacto en el móvil tumbado */
+@media (max-height: 500px) and (orientation: landscape) {
+  .menu-layout { grid-template-columns: minmax(0, 1fr) 200px; gap: 12px; align-items: start; }
+  .menu-stage { order: 0; }
+  .menu-box { padding: 10px 14px; gap: 6px; }
+  .menu-box .logo { font-size: 26px; line-height: 0.95; }
+  .menu-chips { display: none; }
+  .menu-buttons { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .menu-buttons .btn { padding: 7px 10px; font-size: 13px; }
+  .menu-buttons .btn-big { grid-column: 1 / -1; font-size: 16px; }
+  .menu-row { grid-column: 1 / -1; gap: 6px; }
+  .menu-best { display: none; }
+  .stage-hero img { width: 108px; height: 128px; }
+  .stage-info { padding: 8px 12px; }
+  .stage-name { font-size: 20px; }
+  .stage-floor { width: 140px; }
 }

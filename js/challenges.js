@@ -15,7 +15,8 @@ const CHALLENGE_GAMES = {
   "protect-mogos": { title: "Protect Mogos", unit: "ninjas derrotados", one: "ninja derrotado" },
   "stick-drill": { title: "Stick Drill", unit: "segundos aguantados", one: "segundo aguantado" },
   "tronk-fight": { title: "Tronk Fight", unit: "victorias", one: "victoria" },
-  miente: { title: "El Juego Miente", unit: "aciertos", one: "acierto" }
+  miente: { title: "El Juego Miente", unit: "aciertos", one: "acierto" },
+  survivors: { title: "Tronk Survivors", unit: "enemigos derrotados", one: "enemigo derrotado" }
 };
 
 // Cada cuánto se actualizan las barras (ms)

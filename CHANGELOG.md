@@ -9,6 +9,29 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.37 · Tronk Survivors: online, mapas y reto diario
+
+#### Añadido
+- Cooperativo online de hasta 4 jugadores con código de sala: uno crea la
+  sala, los demás entran con el código y se juega a la vez en el mismo mapa.
+  Si un compañero cae, se le levanta quedándose a su lado.
+- 3 mapas nuevos que se desbloquean jugando: Cementerio Maldito, Playa Tronk
+  y Ciudad de Noche, con sus propios obstáculos y enemigos.
+- Evoluciones de armas: un arma al máximo junto con su objeto pasivo se
+  convierte en su versión definitiva al abrir un cofre.
+- Reto diario: cada día el mismo personaje, mapa y reglas para todos, con
+  clasificación del día y 100 monedas por el primero.
+- 18 logros con premio en monedas.
+- Tronk Survivors en las clasificaciones y el podio de la web y en los retos
+  de la comunidad. Con sesión iniciada, el progreso se guarda en la cuenta.
+- Ajustes: volumen de música y efectos, idioma (español o inglés), números
+  de daño y temblor de pantalla.
+
+#### Cambiado
+- En el móvil se juega en horizontal: se pone a pantalla completa y se gira
+  solo donde el navegador lo permite, y si no, pide girar el móvil y pausa.
+- En el móvil el mapa se ve más cerca y el menú cabe tumbado.
+
 ### 6.36 · Tronk Survivors
 
 #### Añadido

@@ -21,7 +21,7 @@
     http-equiv="Content-Security-Policy"
     content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://qjjnqhbtovjcbwgcwhgl.supabase.co wss://qjjnqhbtovjcbwgcwhgl.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'"
   />
-  <link rel="stylesheet" href="survivors.css?v=1" />
+  <link rel="stylesheet" href="survivors.css?v=2" />
 </head>
 <body>
   <canvas id="game" aria-label="Tronk Survivors"></canvas>
@@ -41,16 +41,20 @@
         <h1 class="logo">TRONK<br /><span>SURVIVORS</span></h1>
         <div class="menu-chips"><span>16 personajes</span><span>15 armas</span><span>4 jefes</span><span>Online</span></div>
         <div class="menu-buttons">
-          <button class="btn btn-big" data-go="play"><img data-icon="tajo" alt="" /> Jugar</button>
+          <button class="btn btn-big" data-go="maps"><img data-icon="tajo" alt="" /> Jugar</button>
+          <button class="btn btn-daily" data-go="daily"><img data-icon="reloj" alt="" /> Reto diario <span id="menu-daily" class="badge" hidden>¡Nuevo!</span></button>
           <button class="btn" data-go="online"><img data-icon="clon" alt="" /> Jugar con amigos</button>
           <button class="btn" data-go="chars"><img data-icon="corazon" alt="" /> Personajes</button>
           <button class="btn btn-gold" data-go="gacha"><img data-icon="cofre" alt="" /> Cofre Tronk <span id="menu-free" class="badge" hidden>¡Gratis!</span></button>
-          <button class="btn" data-go="shop"><img data-icon="musculo" alt="" /> Mejoras</button>
+          <div class="menu-row">
+            <button class="btn" data-go="shop"><img data-icon="musculo" alt="" /> Mejoras</button>
+            <button class="btn" data-go="achievements"><img data-icon="trebol" alt="" /> Logros <span id="menu-ach" class="mini-count"></span></button>
+          </div>
         </div>
+        <p class="menu-account" id="menu-account"></p>
         <p class="menu-best" id="menu-best"></p>
         <div class="menu-foot">
-          <button class="btn btn-small" id="toggle-music" type="button">Música: sí</button>
-          <button class="btn btn-small" id="toggle-sfx" type="button">Sonido: sí</button>
+          <button class="btn btn-small" data-go="settings">Ajustes</button>
           <a class="btn btn-small" href="/">← TronkStudios</a>
         </div>
       </div>
@@ -130,6 +134,65 @@
     </div>
   </section>
 
+  <!-- Elegir mapa -->
+  <section id="maps" class="screen" aria-label="Elegir mapa">
+    <div class="panel wide">
+      <header class="panel-head">
+        <button class="btn btn-small" data-go="menu">← Volver</button>
+        <h2>Elige el mapa</h2>
+      </header>
+      <div class="maps-grid" id="maps-grid"></div>
+    </div>
+  </section>
+
+  <!-- Reto diario -->
+  <section id="daily" class="screen" aria-label="Reto diario">
+    <div class="panel">
+      <header class="panel-head">
+        <button class="btn btn-small" data-go="menu">← Volver</button>
+        <h2>Reto diario</h2>
+        <span class="panel-count" id="daily-date"></span>
+      </header>
+      <p class="panel-sub">Hoy todos juegan con el mismo personaje, en el mismo mapa y con las mismas reglas. ¡A ver quién llega más lejos! El primer reto de cada día da 100 monedas.</p>
+      <div class="daily-card" id="daily-card"></div>
+      <button class="btn btn-big" id="daily-play">Jugar el reto de hoy</button>
+      <h3 class="daily-title">Clasificación de hoy</h3>
+      <ol class="daily-top" id="daily-top"></ol>
+    </div>
+  </section>
+
+  <!-- Logros -->
+  <section id="achievements" class="screen" aria-label="Logros">
+    <div class="panel">
+      <header class="panel-head">
+        <button class="btn btn-small" data-go="menu">← Volver</button>
+        <h2>Logros</h2>
+        <span class="panel-count" id="ach-count"></span>
+      </header>
+      <div class="ach-list" id="ach-list"></div>
+    </div>
+  </section>
+
+  <!-- Ajustes -->
+  <section id="settings" class="screen" aria-label="Ajustes">
+    <div class="panel">
+      <header class="panel-head">
+        <button class="btn btn-small" data-go="menu">← Volver</button>
+        <h2>Ajustes</h2>
+      </header>
+      <label class="setting"><span>Música</span><input type="range" id="vol-music" min="0" max="100" step="5" /><b id="vol-music-v"></b></label>
+      <label class="setting"><span>Efectos de sonido</span><input type="range" id="vol-sfx" min="0" max="100" step="5" /><b id="vol-sfx-v"></b></label>
+      <label class="setting"><span>Idioma</span>
+        <select id="lang-select">
+          <option value="es">Español</option>
+          <option value="en">English</option>
+        </select>
+      </label>
+      <label class="setting"><span>Números de daño</span><input type="checkbox" id="opt-numbers" /></label>
+      <label class="setting"><span>Temblor de pantalla</span><input type="checkbox" id="opt-shake" /></label>
+    </div>
+  </section>
+
   <!-- Online -->
   <section id="online" class="screen" aria-label="Jugar con amigos">
     <div class="panel">
@@ -151,12 +214,13 @@
     </div>
     <div class="hud-center">
       <div class="hud-time" id="hud-time">0:00</div>
-      <div class="hud-sub">Bosque de los Tronks · <b id="hud-kills">0</b> derrotados · <b id="hud-coins">0</b> monedas</div>
+      <div class="hud-sub" id="hud-sub"></div>
     </div>
     <button class="btn btn-small hud-pause" id="hud-pause" type="button" aria-label="Pausa">II</button>
     <div class="hud-team" id="hud-team"></div>
     <div class="hud-boss" id="hud-boss" hidden><b id="hud-boss-name"></b><span><i id="hud-boss-bar"></i></span></div>
     <div class="hud-bottom">
+      <span class="hud-evo" id="hud-evo" hidden>¡Evolución disponible! Coge un cofre</span>
       <div class="hud-slots" id="hud-slots"></div>
       <p class="hud-hint">WASD o flechas para moverte · los ataques son automáticos · Esc pausa</p>
     </div>
@@ -164,6 +228,13 @@
 
   <div id="banner" class="banner" hidden></div>
   <div id="toasts" class="toasts" aria-live="polite"></div>
+
+  <!-- En el móvil se juega en horizontal -->
+  <div id="rotate" class="rotate" hidden>
+    <div class="rotate-phone" aria-hidden="true"></div>
+    <b>Gira el móvil</b>
+    <small>Tronk Survivors se juega en horizontal.</small>
+  </div>
 
   <!-- Subida de nivel -->
   <div id="levelup" class="modal" hidden>
@@ -199,12 +270,16 @@
     </div>
   </div>
 
-  <script src="js/data.js?v=1" defer></script>
-  <script src="js/sprites.js?v=1" defer></script>
-  <script src="js/people.js?v=1" defer></script>
-  <script src="js/audio.js?v=1" defer></script>
-  <script src="js/save.js?v=1" defer></script>
-  <script src="js/game.js?v=1" defer></script>
-  <script src="js/ui.js?v=1" defer></script>
+  <script src="js/data.js?v=2" defer></script>
+  <script src="js/sprites.js?v=2" defer></script>
+  <script src="js/people.js?v=2" defer></script>
+  <script src="js/audio.js?v=2" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="js/lang.js?v=1" defer></script>
+  <script src="js/save.js?v=2" defer></script>
+  <script src="js/account.js?v=1" defer></script>
+  <script src="js/game.js?v=2" defer></script>
+  <script src="js/net.js?v=1" defer></script>
+  <script src="js/ui.js?v=2" defer></script>
 </body>
 </html>

@@ -14,8 +14,15 @@ const Game = (() => {
   // distancias del juego (velocidades, alcances, radios) se multiplican por U
   const U = 1.7;
   const STEP = 1000 / 60;
-  const rand = (a, b) => a + Math.random() * (b - a);
-  const pick = (list) => list[Math.floor(Math.random() * list.length)];
+  // Azar: normal, o con semilla en el reto diario (todos juegan igual)
+  let seed = 0;
+  function R() {
+    if (!seed) return Math.random();
+    seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5;
+    return ((seed >>> 0) % 1000000) / 1000000;
+  }
+  const rand = (a, b) => a + R() * (b - a);
+  const pick = (list) => list[Math.floor(R() * list.length)];
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
   const charById = (id) => TS.CHARACTERS.find((c) => c.id === id) || TS.CHARACTERS[0];
@@ -119,18 +126,37 @@ const Game = (() => {
   }
 
   function addWeapon(pl, id) {
-    pl.weapons.push({ id, lvl: 1, cd: 30 + Math.random() * 20, combo: 0, comboT: 0, drones: [] });
+    pl.weapons.push({ id, lvl: 1, cd: 30 + R() * 20, combo: 0, comboT: 0, drones: [] });
   }
 
   /* =======================================================
      PARTIDA
      ======================================================= */
 
+  let map = TS.MAPS.bosque;
+  let mapId = "bosque";
+
+  function setMap(id) {
+    if (mapId === id && map) return;
+    mapId = TS.MAPS[id] ? id : "bosque";
+    map = TS.MAPS[mapId];
+    chunks.clear();
+    obstacles.clear();
+  }
+
   function start(setups, opts = {}) {
     stopDemo();
     mode = opts.mode || "solo";
     localId = opts.localId || 0;
+    setMap(opts.map || "bosque");
+    seed = opts.seed ? opts.seed >>> 0 || 1 : 0;
+    const mods = opts.mods || [];
     st = {
+      mapId,
+      mods,
+      daily: opts.daily || null,
+      evolutions: 0,
+      propsBroken: 0,
       t: 0,
       players: setups.map((s, i) => newPlayer(i, s)),
       enemies: [],
@@ -159,6 +185,23 @@ const Game = (() => {
       endT: 0
     };
     st.xpNext = xpFor(1);
+    // Reglas del reto diario
+    st.mod = {
+      enemySpeed: mods.includes("turbo") ? 1.35 : 1,
+      enemyHp: mods.includes("gigantes") ? 1.7 : 1,
+      xp: (mods.includes("gigantes") ? 1.7 : 1) * (mods.includes("horda") ? 1.25 : 1),
+      spawn: mods.includes("horda") ? 1.6 : 1,
+      coins: mods.includes("oro") ? 3 : 1,
+      bossTime: mods.includes("jefes") ? 0.55 : 1
+    };
+    for (const p of st.players) {
+      if (mods.includes("cristal")) { p.meta = { ...p.meta, maxHp: (p.meta.maxHp || 0) - 0.5, might: (p.meta.might || 0) + 0.6 }; }
+      if (mods.includes("rapido")) p.meta = { ...p.meta, speed: (p.meta.speed || 0) + 0.3 };
+      if (mods.includes("iman")) p.meta = { ...p.meta, magnet: (p.meta.magnet || 0) + 2 };
+      p.stats = null;
+      computeStats(p);
+      p.hp = p.stats.maxHp;
+    }
     cam.x = st.players[localId].x;
     cam.y = st.players[localId].y;
     paused = false;
@@ -259,8 +302,9 @@ const Game = (() => {
   function waterV(x, y) { return vnoise(x / 420 + 200, y / 420 + 100) * 0.75 + vnoise(x / 110 - 70, y / 110 + 20) * 0.25; }
   // 0 hierba, 1 tierra, 2 agua
   function terrain(x, y) {
-    if (waterV(x, y) > 0.73 && x * x + y * y > 400 * 400) return 2;
-    return dirtV(x, y) > 0.67 ? 1 : 0;
+    if (waterV(x, y) > map.water && x * x + y * y > 400 * 400) return 2;
+    if (map.roads && (((x % 640) + 640) % 640 < 84 || ((y % 640) + 640) % 640 < 84)) return 3; // calles
+    return dirtV(x, y) > map.dirt ? 1 : 0;
   }
 
   // Si algo se mete en el agua, vuelve atrás (resbala por la orilla)
@@ -275,9 +319,6 @@ const Game = (() => {
   // (píxeles el doble de grandes, como en PokeSurvivor)
   const CHUNK = 256;
   const chunks = new Map();
-  const GRASS = ["#4a8a3a", "#43803a", "#52933f", "#3e7a35", "#4d8e3c"];
-  const DIRT = ["#8a6a42", "#7d5f3a", "#94744a", "#6f5432", "#856540"];
-  const WATER = ["#3b7ac8", "#3672bd", "#4282d0"];
 
   function chunkCanvas(cx, cy) {
     const key = `${cx},${cy}`;
@@ -299,20 +340,33 @@ const Game = (() => {
         const t = terrain(wx, wy);
         const h = hash(wx >> 1, wy >> 1);
         const i = py * N + px;
+        const G = map.ground;
+        if (t === 3) {
+          // calle: asfalto con raya amarilla discontinua en el centro
+          const mx = ((wx % 640) + 640) % 640;
+          const my = ((wy % 640) + 640) % 640;
+          const vert = mx < 84;
+          const along = vert ? wy : wx;
+          const across = vert ? mx : my;
+          const dash = Math.abs(across - 42) < 2 && Math.floor(along / 24) % 2 === 0;
+          const curb = across < 4 || across > 80;
+          put(i, dash ? "#e9c46a" : curb ? "#8a8d96" : h > 0.5 ? "#2e3139" : "#34373f");
+          continue;
+        }
         if (t === 2) {
           const shore = terrain(wx, wy - 4) !== 2 || terrain(wx - 4, wy) !== 2 || terrain(wx + 4, wy) !== 2;
           const wave = (Math.floor(wx / 6) + Math.floor(wy / 4)) % 9 === 0 && h > 0.5;
-          put(i, shore ? "#8fc6f0" : wave ? "#7ab4ec" : WATER[Math.floor(h * 3)]);
+          put(i, shore ? G.foam : wave ? G.wave : G.water[Math.floor(h * 3)]);
         } else {
           const nearWater = terrain(wx, wy + 4) === 2 || terrain(wx, wy - 4) === 2 || terrain(wx + 4, wy) === 2 || terrain(wx - 4, wy) === 2;
-          if (nearWater) { put(i, h > 0.5 ? "#c9b07a" : "#bba26e"); continue; }
-          const pal = t === 1 ? DIRT : GRASS;
+          if (nearWater) { put(i, G.shore[h > 0.5 ? 0 : 1]); continue; }
+          const pal = t === 1 ? G.dirt : G.grass;
           // borde irregular entre hierba y tierra
           const edge = terrain(wx + 3, wy) !== t || terrain(wx, wy + 3) !== t;
-          if (edge && t === 0) { put(i, h > 0.4 ? "#3a6e30" : "#4a8a3a"); continue; }
-          if (edge && t === 1) { put(i, h > 0.5 ? "#6a5232" : "#7d5f3a"); continue; }
+          if (edge && t === 0) { put(i, h > 0.4 ? G.grassEdge : G.grass[0]); continue; }
+          if (edge && t === 1) { put(i, h > 0.5 ? G.dirtEdge : G.dirt[1]); continue; }
           let col = pal[Math.floor(h * 4.6)] || pal[0];
-          if (t === 0 && h > 0.996) col = ["#ffffff", "#ff9fd0", "#ffe066"][Math.floor(hash(wy, wx) * 3)];
+          if (t === 0 && h > 0.996) col = G.flowers[Math.floor(hash(wy, wx) * 3)];
           if (t === 1 && h > 0.975) col = "#a08a6a";
           put(i, col);
         }
@@ -326,15 +380,13 @@ const Game = (() => {
 
   const OCELL = 150;
   const obstacles = new Map();
-  const OB_KINDS = [
-    { kind: "arbol", r: 15, w: 5 },
-    { kind: "pino", r: 13, w: 3 },
-    { kind: "roca", r: 18, w: 3 },
-    { kind: "rocaGrande", r: 28, w: 1 },
-    { kind: "tronco", r: 0, w: 1.4, line: 24 },
-    { kind: "arbusto", r: 0, w: 2 },
-    { kind: "hierba", r: 0, w: 5 }
-  ];
+  // Radio con el que chocan (0 = no chocan); line = tronco tumbado; oy = pies en la imagen
+  const OB_DEF = {
+    arbol: { r: 15, oy: 112 }, pino: { r: 13, oy: 112 }, roca: { r: 18, oy: 50 }, rocaGrande: { r: 28, oy: 50 },
+    tronco: { r: 0, line: 24, oy: 32 }, arbusto: { r: 0, oy: 36 }, hierba: { r: 0, oy: 0 },
+    tumba: { r: 13, oy: 54 }, cruz: { r: 6, oy: 56 }, arbolMuerto: { r: 9, oy: 112 }, palmera: { r: 8, oy: 112 },
+    sombrilla: { r: 3, oy: 70 }, farola: { r: 5, oy: 92 }, contenedor: { r: 20, oy: 46 }, coche: { r: 0, line: 22, oy: 50 }, banco: { r: 0, line: 18, oy: 36 }
+  };
   const obstacleImg = {};
 
   function obstacleAt(cx, cy) {
@@ -345,11 +397,13 @@ const Game = (() => {
     // zona libre alrededor del inicio
     const ox0 = cx * OCELL + 75;
     const oy0 = cy * OCELL + 75;
-    if (r < 0.42 && Math.hypot(cx * OCELL, cy * OCELL) > 260 && terrain(ox0, oy0) !== 2) {
-      const total = OB_KINDS.reduce((s, k) => s + k.w, 0);
+    if (r < 0.42 && Math.hypot(cx * OCELL, cy * OCELL) > 260 && terrain(ox0, oy0) !== 2 && terrain(ox0, oy0) !== 3) {
+      const kinds = Object.entries(map.obstacles);
+      const total = kinds.reduce((s, [, w]) => s + w, 0);
       let pickR = hash(cy + 91, cx - 33) * total;
-      let def = OB_KINDS[0];
-      for (const k of OB_KINDS) { pickR -= k.w; if (pickR <= 0) { def = k; break; } }
+      let kind = kinds[0][0];
+      for (const [k, w] of kinds) { pickR -= w; if (pickR <= 0) { kind = k; break; } }
+      const def = { kind, ...OB_DEF[kind] };
       const variant = Math.floor(hash(cx - 5, cy + 5) * 3);
       ob = {
         tufts: def.kind === "hierba" ? Array.from({ length: 4 + Math.floor(hash(cx * 9, cy * 9) * 6) }, (_, i) => [Math.round((hash(cx + i, cy - i) - 0.5) * 60), Math.round((hash(cy + i * 3, cx) - 0.5) * 36)]) : null,
@@ -417,8 +471,10 @@ const Game = (() => {
     if (mode === "host") st.events.push({ k: "snd", n: name });
   }
 
+  const options = { numbers: true, shake: true };
+
   function shake(n) {
-    cam.shake = Math.max(cam.shake, n);
+    if (options.shake) cam.shake = Math.max(cam.shake, n);
   }
 
   /* =======================================================
@@ -429,15 +485,16 @@ const Game = (() => {
     const d = TS.ENEMIES[type];
     const minutes = st.t / 3600;
     const n = st.players.length;
-    const hpMul = d.prop ? 1 : d.boss ? 1 + 0.6 * (n - 1) : (1 + minutes * 0.22) * (1 + 0.3 * (n - 1));
+    const hpMul = (d.prop ? 1 : st.mod ? st.mod.enemyHp : 1) * (d.prop ? 1 : 1) * 1;
+    const hpBase = d.prop ? 1 : d.boss ? 1 + 0.6 * (n - 1) : (1 + minutes * 0.22) * (1 + 0.3 * (n - 1));
     const e = {
       id: st.nextId++,
       type,
       x,
       y,
-      hp: d.hp * hpMul,
-      maxHp: d.hp * hpMul,
-      speed: d.speed * U * rand(0.92, 1.08),
+      hp: d.hp * hpMul * hpBase,
+      maxHp: d.hp * hpMul * hpBase,
+      speed: d.speed * U * rand(0.92, 1.08) * (d.prop ? 1 : st.mod ? st.mod.enemySpeed : 1),
       dmg: d.dmg * (1 + minutes * 0.07),
       r: d.r * U,
       ai: d.ai,
@@ -462,7 +519,7 @@ const Game = (() => {
     st.enemies.push(e);
     if (e.boss) {
       st.boss = e;
-      emit("boss", { name: d.name, id: type });
+      emit("boss", { name: L(d.name), id: type });
       sound("boss");
       Sfx.startMusic("boss");
     }
@@ -494,11 +551,14 @@ const Game = (() => {
     return w;
   }
 
-  function weightedPick(mix) {
-    const entries = Object.entries(mix);
+  function weightedPick(base) {
+    // cada mapa cambia qué enemigos salen más
+    const mix = { ...base };
+    for (const [id, k] of Object.entries(map.mix || {})) if (id in mix || st.t > 60 * 60) mix[id] = (mix[id] || 1) * k;
+    const entries = Object.entries(mix).filter(([, w]) => w > 0);
     let total = 0;
     for (const [, w] of entries) total += w;
-    let r = Math.random() * total;
+    let r = R() * total;
     for (const [id, w] of entries) {
       r -= w;
       if (r < 0) return id;
@@ -513,7 +573,7 @@ const Game = (() => {
 
     // jefes
     const nextBoss = TS.BOSSES[st.bossIdx];
-    if (nextBoss && sec >= nextBoss.at) {
+    if (nextBoss && sec >= nextBoss.at * st.mod.bossTime) {
       st.bossIdx++;
       spawnAround(nextBoss.id, pick(alive), spawnRadius() * 0.8);
     }
@@ -527,7 +587,7 @@ const Game = (() => {
         const a = (i / horde.count) * TAU;
         spawnEnemy(horde.id, target.x + Math.cos(a) * r, target.y + Math.sin(a) * r);
       }
-      emit("toast", { text: "¡Que vienen!", kind: "horde" });
+      emit("toast", { text: L("¡Que vienen!"), kind: "horde" });
     }
 
     // objetos que se rompen repartidos por el mapa
@@ -546,10 +606,10 @@ const Game = (() => {
     }
 
     const wave = currentWave();
-    st.spawnT -= 1 + 0.4 * (st.players.length - 1);
+    st.spawnT -= (1 + 0.4 * (st.players.length - 1)) * st.mod.spawn;
     if (st.spawnT <= 0) {
       st.spawnT = wave.every;
-      const cap = wave.alive * (1 + 0.35 * (st.players.length - 1));
+      const cap = wave.alive * (1 + 0.35 * (st.players.length - 1)) * Math.sqrt(st.mod.spawn);
       const batch = 1 + Math.floor(sec / 100);
       const fighters = st.enemies.reduce((n, e) => n + (e.prop ? 0 : 1), 0);
       for (let i = 0; i < batch && fighters + i < cap; i++) spawnAround(weightedPick(wave.mix), pick(alive));
@@ -729,7 +789,7 @@ const Game = (() => {
             // abanico de shurikens
             const a = Math.atan2(uy, ux);
             for (let i = -3; i <= 3; i++) enemyShot(e, a + i * 0.22, 2.4, 9, { kind: "star" });
-            if (Math.random() < 0.35 && target) {
+            if (R() < 0.35 && target) {
               // se teletransporta detrás del jugador
               fx({ k: "puff", x: e.x, y: e.y - 10, color: "#3b1f5c", life: 20 });
               e.x = target.x - ux * 70 * U;
@@ -741,7 +801,7 @@ const Game = (() => {
         if (!e.cloned && hpPct < 0.5) {
           e.cloned = true;
           for (let i = 0; i < 4; i++) spawnAround("ninja", e, 30);
-          emit("toast", { text: "¡El Maestro Ninja llama a su clan!", kind: "boss" });
+          emit("toast", { text: L("¡El Maestro Ninja llama a su clan!"), kind: "boss" });
         }
         break;
       case "boss_king":
@@ -751,7 +811,7 @@ const Game = (() => {
           const r = 60;
           for (let i = 0; i < 10; i++) {
             const a = (i / 10) * TAU;
-            spawnEnemy(Math.random() < 0.3 ? "corredor" : "zombi", e.x + Math.cos(a) * r, e.y + Math.sin(a) * r);
+            spawnEnemy(R() < 0.3 ? "corredor" : "zombi", e.x + Math.cos(a) * r, e.y + Math.sin(a) * r);
           }
           fx({ k: "ring", x: e.x, y: e.y, r: 70, color: "#7cff6b", life: 30 });
           sound("boss", 1);
@@ -802,7 +862,7 @@ const Game = (() => {
   function hitEnemy(e, dmg, pl, { kx = 0, ky = 0, kb = 0, projectile = false, slow = 0, slowFor = 0, crit = false } = {}) {
     if (e.dead || e.phased) return false;
     const d = TS.ENEMIES[e.type];
-    if (projectile && d.dodge && e.dodgeCd <= 0 && Math.random() < d.dodge) {
+    if (projectile && d.dodge && e.dodgeCd <= 0 && R() < d.dodge) {
       // el ninja esquiva
       e.dodgeCd = 120;
       fx({ k: "puff", x: e.x, y: e.y - 10, color: "#7d5ab0", life: 18 });
@@ -810,7 +870,7 @@ const Game = (() => {
       e.x += Math.cos(a) * 26;
       e.y += Math.sin(a) * 26;
       sound("dodge", 0.08);
-      fx({ k: "text", x: e.x, y: e.y - 26, text: "¡Esquivado!", color: "#d8b4ff", life: 40 });
+      fx({ k: "text", x: e.x, y: e.y - 26, text: L("¡Esquivado!"), color: "#d8b4ff", life: 40 });
       return false;
     }
     const might = pl ? pl.stats.might : 1;
@@ -824,7 +884,7 @@ const Game = (() => {
       e.ky += (ky / l) * k;
     }
     if (slow) { e.slow = Math.max(e.slow, slowFor); e.slowAmt = Math.max(e.slow > 0 ? e.slowAmt : 0, slow); }
-    if (!e.prop && (Math.random() < 0.22 || amount > 30 || e.boss)) fx({ k: "num", x: e.x + rand(-4, 4), y: e.y - 18, v: amount, big: crit || amount > 40, life: 36 });
+    if (!e.prop && (R() < 0.22 || amount > 30 || e.boss)) fx({ k: "num", x: e.x + rand(-4, 4), y: e.y - 18, v: amount, big: crit || amount > 40, life: 36 });
     sound("hit", 0.04);
     if (e.hp <= 0) killEnemy(e);
     return true;
@@ -837,8 +897,9 @@ const Game = (() => {
     if (e.prop) {
       sound("hit");
       fx({ k: "shards", x: e.x, y: e.y - 10, color: { barril: "#8a5a2b", caja: "#c9a27c", jarron: "#c97a4a", brasero: "#ffb03b" }[e.type], life: 22 });
-      const r = Math.random();
-      const kind = r < 0.3 ? "bocadillo" : r < 0.42 ? "iman" : r < 0.75 ? "moneda" : "gema";
+      const r = R();
+      st.propsBroken++;
+      const kind = r < 0.03 ? "cofre" : r < 0.3 ? "bocadillo" : r < 0.42 ? "iman" : r < 0.75 ? "moneda" : "gema";
       if (kind === "gema") st.gems.push({ x: e.x, y: e.y, v: 10 + Math.floor(st.t / 3600) * 5, t: 0, pull: false });
       else if (kind === "moneda") for (let i = 0; i < 3; i++) st.pickups.push({ x: e.x + rand(-8, 8), y: e.y + rand(-6, 6), kind: "moneda", t: 0 });
       else st.pickups.push({ x: e.x, y: e.y, kind, t: 0 });
@@ -852,7 +913,7 @@ const Game = (() => {
     st.gems.push({ x: e.x, y: e.y, v, t: 0, pull: false });
     if (st.gems.length > 420) mergeGems();
     // otros premios
-    const r = Math.random();
+    const r = R();
     if (r < 0.025) st.pickups.push({ x: e.x + 4, y: e.y, kind: "moneda", t: 0 });
     else if (r < 0.031) st.pickups.push({ x: e.x, y: e.y, kind: "bocadillo", t: 0 });
     else if (r < 0.0325) st.pickups.push({ x: e.x, y: e.y, kind: "iman", t: 0 });
@@ -866,7 +927,7 @@ const Game = (() => {
       shake(10);
       sound("chest");
       Sfx.startMusic("run");
-      emit("bossDown", { name: d.name });
+      emit("bossDown", { name: L(d.name) });
       if (e.type === "rey") {
         st.victory = true;
         st.endT = 150;
@@ -902,7 +963,7 @@ const Game = (() => {
         p.hp = Math.round(p.stats.maxHp / 2);
         p.iframes = 150;
         fx({ k: "ring", x: p.x, y: p.y, r: 60, color: "#ffd23f", life: 30 });
-        emit("toast", { text: `¡${p.name} ha usado su segunda vida!`, kind: "revive" });
+        emit("toast", { text: LT("secondLife", { name: p.name }), kind: "revive" });
         // empuja a todos los enemigos cercanos
         for (const e of enemiesInRadius(p.x, p.y, 70)) hitEnemy(e, 30, p, { kx: e.x - p.x, ky: e.y - p.y, kb: 8 });
         return;
@@ -928,7 +989,7 @@ const Game = (() => {
           p.hp = Math.round(p.stats.maxHp * 0.4);
           p.iframes = 120;
           fx({ k: "ring", x: p.x, y: p.y, r: 40, color: "#3cc24f", life: 26 });
-          emit("toast", { text: `¡${helper.name} ha levantado a ${p.name}!`, kind: "revive" });
+          emit("toast", { text: LT("revived", { a: helper.name, b: p.name }), kind: "revive" });
         }
       } else p.reviveT = Math.max(0, p.reviveT - 2);
       return;
@@ -1012,7 +1073,23 @@ const Game = (() => {
      ======================================================= */
 
   function levelStats(w) {
-    return TS.WEAPONS[w.id].levels[w.lvl - 1];
+    const L = TS.WEAPONS[w.id].levels[w.lvl - 1];
+    if (!w.evo) return L;
+    // arma evolucionada: mucho más fuerte
+    return {
+      ...L,
+      dmg: L.dmg * 1.7,
+      cd: L.cd ? Math.round(L.cd * 0.72) : L.cd,
+      count: (L.count || 1) + 2,
+      area: (L.area || 1) * 1.3,
+      pierce: L.pierce ? L.pierce + 3 : L.pierce,
+      dur: L.dur ? L.dur * 1.4 : L.dur,
+      speed: L.speed ? L.speed * 1.15 : L.speed
+    };
+  }
+
+  function evolvable(pl) {
+    return pl.weapons.find((w) => !w.evo && w.lvl >= 6 && TS.EVOLUTIONS[w.id] && pl.passives[TS.EVOLUTIONS[w.id].passive]);
   }
 
   function dirTo(p, e) {
@@ -1109,7 +1186,7 @@ const Game = (() => {
         const sweeps = Math.min(4, (L.count || 1) + p.stats.amount);
         for (let i = 0; i < sweeps; i++) {
           const ang = base + [0, Math.PI, Math.PI / 2, -Math.PI / 2][i];
-          st.zones.push({ type: "slash", x: cx, y: cy, ang, R, life: 14, t: 0, dirSign: i % 2 ? -1 : 1, owner: p.id });
+          st.zones.push({ type: "slash", x: cx, y: cy, ang, R, life: 14, t: 0, dirSign: i % 2 ? -1 : 1, owner: p.id, gold: !!w.evo });
           for (const e of enemiesInRadius(cx, cy, R)) {
             let da = Math.atan2(e.y - 16 - cy, e.x - cx) - ang;
             da = Math.atan2(Math.sin(da), Math.cos(da));
@@ -1415,7 +1492,7 @@ const Game = (() => {
         g.y += ((best.y - 6 - g.y) / d) * sp;
         if (d < 8) {
           g.taken = true;
-          st.xp += g.v * best.stats.growth;
+          st.xp += g.v * best.stats.growth * st.mod.xp;
           sound("gem", 0.03);
         }
       }
@@ -1453,7 +1530,7 @@ const Game = (() => {
   function takePickup(p, it) {
     switch (it.kind) {
       case "moneda":
-        st.coins += 1;
+        st.coins += st.mod.coins;
         sound("coin", 0.05);
         break;
       case "bocadillo":
@@ -1464,13 +1541,23 @@ const Game = (() => {
       case "iman":
         for (const g of st.gems) g.pull = true;
         sound("chest");
-        emit("toast", { text: "¡Imán! Todas las gemas vienen a ti", kind: "pick" });
+        emit("toast", { text: L("¡Imán! Todas las gemas vienen a ti"), kind: "pick" });
         break;
       case "cofre": {
         sound("chest");
         st.coins += 40;
         const got = [];
         for (const pl of st.players) {
+          const evo = evolvable(pl);
+          if (evo) {
+            evo.evo = true;
+            st.evolutions++;
+            const e = TS.EVOLUTIONS[evo.id];
+            got.push(LT("chestEvo", { player: pl.name, from: L(TS.WEAPONS[evo.id].name), to: L(e.name) }));
+            fx({ k: "ring", x: pl.x, y: pl.y, r: 90, color: "#ffd23f", life: 40 });
+            emit("evolve", { name: e.name, desc: e.desc, player: pl.name });
+            continue;
+          }
           const opt = pick(buildOptions(pl, 6).filter((o) => o.kind !== "heal" && o.kind !== "coins"));
           if (opt) { applyChoice(pl, opt); got.push(`${pl.name}: ${opt.title}`); }
         }
@@ -1494,7 +1581,7 @@ const Game = (() => {
     const out = [];
     while (out.length < n && pool.length) {
       let total = pool.reduce((s, o) => s + o.weight, 0);
-      let r = Math.random() * total;
+      let r = R() * total;
       let idx = 0;
       for (; idx < pool.length; idx++) { r -= pool[idx].weight; if (r <= 0) break; }
       out.push(pool.splice(Math.min(idx, pool.length - 1), 1)[0]);
@@ -1504,23 +1591,23 @@ const Game = (() => {
   }
 
   function describe(pl, o) {
-    if (o.kind === "heal") return { ...o, title: "Bocadillo", desc: "Recupera 40 de vida", icon: "bocadillo" };
-    if (o.kind === "coins") return { ...o, title: "Bolsa de monedas", desc: "+25 monedas", icon: "moneda" };
+    if (o.kind === "heal") return { ...o, title: L("Bocadillo"), desc: L("Recupera 40 de vida"), icon: "bocadillo" };
+    if (o.kind === "coins") return { ...o, title: L("Bolsa de monedas"), desc: L("+25 monedas"), icon: "moneda" };
     if (o.kind === "passive") {
       const d = TS.PASSIVES[o.id];
-      return { ...o, title: d.name, desc: d.desc, icon: o.id, isNew: o.lvl === 1 };
+      return { ...o, title: L(d.name), desc: L(d.desc), icon: o.id, isNew: o.lvl === 1 };
     }
     const d = TS.WEAPONS[o.id];
-    if (o.lvl === 1) return { ...o, title: d.name, desc: d.desc, icon: o.id, isNew: true };
+    if (o.lvl === 1) return { ...o, title: L(d.name), desc: L(d.desc), icon: o.id, isNew: true };
     const a = d.levels[o.lvl - 2];
     const b = d.levels[o.lvl - 1];
     const parts = [];
-    if (b.dmg !== a.dmg) parts.push(`Daño ${a.dmg} → ${b.dmg}`);
-    if (b.count && b.count !== a.count) parts.push(`+${b.count - a.count} ${o.id === "rayo" ? "saltos" : "más"}`);
-    if (b.area && b.area !== a.area) parts.push(`+${Math.round((b.area / a.area - 1) * 100)} % de área`);
-    if (b.pierce && b.pierce !== a.pierce) parts.push("atraviesa más");
-    if (b.cd && b.cd < a.cd) parts.push("más rápido");
-    return { ...o, title: `${d.name} · nivel ${o.lvl}`, desc: parts.join(" · "), icon: o.id };
+    if (b.dmg !== a.dmg) parts.push(LT("dmg", { a: a.dmg, b: b.dmg }));
+    if (b.count && b.count !== a.count) parts.push(LT(o.id === "rayo" ? "jumps" : "more", { n: b.count - a.count }));
+    if (b.area && b.area !== a.area) parts.push(LT("areaUp", { n: Math.round((b.area / a.area - 1) * 100) }));
+    if (b.pierce && b.pierce !== a.pierce) parts.push(LT("pierceUp"));
+    if (b.cd && b.cd < a.cd) parts.push(LT("faster"));
+    return { ...o, title: LT("levelOf", { name: L(d.name), lvl: o.lvl }), desc: parts.join(" · "), icon: o.id };
   }
 
   function applyChoice(pl, o) {
@@ -1610,7 +1697,7 @@ const Game = (() => {
     const seconds = Math.floor(st.t / 60);
     const greed = st.players[localId].stats.greed;
     const coins = Math.round((st.coins + st.kills / 8 + seconds / 6 + st.bossesKilled * 60 + (victory ? 300 : 0)) * greed);
-    emit("end", { victory, seconds, kills: st.kills, level: st.level, coins, bosses: st.bossesKilled });
+    emit("end", { victory, seconds, kills: st.kills, level: st.level, coins, bosses: st.bossesKilled, evolutions: st.evolutions, props: st.propsBroken, charId: st.players[localId].charId, map: st.mapId, daily: st.daily, coop: st.players.length > 1 });
   }
 
   function readInput() {
@@ -1652,9 +1739,8 @@ const Game = (() => {
         if (n === 5) acc = 0;
       } else {
         emit("guestInput", local);
-        st.fx.forEach((f) => f.t++);
+        guestSmooth();
       }
-      for (const f of st.fx) if (mode !== "guest") f.t += 0; // el tiempo de los efectos avanza al dibujar
       render(dt);
       hudTimer += dt;
       if (hudTimer > 100) {
@@ -1681,9 +1767,10 @@ const Game = (() => {
       seconds: Math.floor(st.t / 60),
       kills: st.kills,
       coins: st.coins,
-      weapons: p.weapons.map((w) => ({ id: w.id, lvl: w.lvl })),
+      weapons: p.weapons.map((w) => ({ id: w.id, lvl: w.lvl, evo: !!w.evo })),
+      canEvolve: !st.guest && !!evolvable(p),
       passives: Object.entries(p.passives).map(([id, lvl]) => ({ id, lvl })),
-      boss: st.boss ? { name: TS.ENEMIES[st.boss.type].name, pct: st.boss.hp / st.boss.maxHp } : null,
+      boss: st.boss && TS.ENEMIES[st.boss.type] ? { name: L(TS.ENEMIES[st.boss.type].name), pct: st.boss.hp / st.boss.maxHp } : null,
       down: p.down,
       name: p.name,
       players: st.players.map((o) => ({ name: o.name, hp: o.hp, maxHp: o.stats.maxHp, down: o.down, charId: o.charId }))
@@ -1705,7 +1792,8 @@ const Game = (() => {
     canvas.style.height = `${h}px`;
     // tamaño de cada píxel del juego: se ve más o menos lo mismo en todas las pantallas
     // el personaje ocupa más o menos una décima parte de la pantalla
-    const k = Math.max(1, Math.round((Math.min(canvas.width, canvas.height) * 0.11) / 60));
+    // (en el móvil, algo más, para que se vea bien con el dedo encima)
+    const k = Math.max(1, Math.round((Math.min(canvas.width, canvas.height) * (Math.min(w, h) < 600 ? 0.16 : 0.11)) / 60));
     view = { w: canvas.width, h: canvas.height, k, dpr };
     ctx.imageSmoothingEnabled = false;
   }
@@ -1847,12 +1935,13 @@ const Game = (() => {
       for (const [dx, dy] of ob.tufts) ctx.drawImage(img, Math.round(ob.x + dx - img.width / 2), Math.round(ob.y + dy - img.height + 4));
       return;
     }
-    const oy = ob.kind === "arbol" || ob.kind === "pino" ? 112 : ob.kind === "tronco" ? 32 : ob.kind === "arbusto" ? 36 : 50;
+    const oy = OB_DEF[ob.kind].oy;
     const x = Math.round(ob.x - img.width / 2);
     const y = Math.round(ob.y - oy);
-    shadow(ob.x, ob.y, ob.kind === "rocaGrande" ? 34 : ob.kind === "tronco" ? 30 : 20);
+    shadow(ob.x, ob.y, ob.kind === "rocaGrande" || ob.kind === "coche" ? 34 : ob.kind === "tronco" || ob.kind === "contenedor" ? 30 : ob.kind === "cruz" || ob.kind === "farola" ? 10 : 20);
     // si el jugador queda detrás de la copa, se ve a través
-    const behind = me && (ob.kind === "arbol" || ob.kind === "pino") && me.y < ob.y && me.y > ob.y - 110 && Math.abs(me.x - ob.x) < 44;
+    const tall = oy > 80;
+    const behind = me && tall && me.y < ob.y && me.y > ob.y - oy && Math.abs(me.x - ob.x) < img.width * 0.4;
     if (behind) ctx.globalAlpha = 0.5;
     ctx.drawImage(img, x, y);
     ctx.globalAlpha = 1;
@@ -1946,7 +2035,9 @@ const Game = (() => {
         ctx.translate(z.x, z.y);
         ctx.scale(1, 0.75);
         for (let i = 0; i < 3; i++) {
-          ctx.strokeStyle = i === 0 ? `rgba(255,255,255,${alpha})` : i === 1 ? `rgba(200,235,255,${alpha * 0.7})` : `rgba(120,190,255,${alpha * 0.4})`;
+          ctx.strokeStyle = z.gold
+            ? (i === 0 ? `rgba(255,250,220,${alpha})` : i === 1 ? `rgba(255,214,90,${alpha * 0.8})` : `rgba(255,160,40,${alpha * 0.5})`)
+            : (i === 0 ? `rgba(255,255,255,${alpha})` : i === 1 ? `rgba(200,235,255,${alpha * 0.7})` : `rgba(120,190,255,${alpha * 0.4})`);
           ctx.lineWidth = [3, 5, 8][i];
           ctx.beginPath();
           const a0 = Math.min(startA, endA);
@@ -2062,6 +2153,7 @@ const Game = (() => {
     const k = f.t / f.life;
     switch (f.k) {
       case "num": {
+        if (!options.numbers) break;
         const y = f.y - k * 14;
         ctx.font = `bold ${f.big ? 17 : 13}px monospace`;
         ctx.textAlign = "center";
@@ -2285,13 +2377,24 @@ const Game = (() => {
     for (const p of st.players) drawDrones(p);
     for (const s of st.eshots) drawEnemyShot(s);
     for (const f of st.fx) {
-      if (mode !== "guest") f.t++;
+      f.t++;
       drawFx(f);
     }
     st.fx = st.fx.filter((f) => f.t < f.life);
 
-    // flecha hacia el jefe si está fuera de la pantalla
+    // noche: oscuro con luz alrededor del jugador
     ctx.setTransform(1, 0, 0, 1, 0, 0);
+    if (map.dark) {
+      const px = (me.x - left) * k;
+      const py = (me.y - 20 - top) * k;
+      const grad = ctx.createRadialGradient(px, py, 70 * k, px, py, Math.max(view.w, view.h) * 0.6);
+      grad.addColorStop(0, "rgba(8,6,28,0)");
+      grad.addColorStop(1, `rgba(8,6,28,${map.dark + 0.35})`);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, view.w, view.h);
+    }
+
+    // flecha hacia el jefe si está fuera de la pantalla
     if (st.boss) {
       const bx = (st.boss.x - left) * k;
       const by = (st.boss.y - top) * k;
@@ -2336,7 +2439,7 @@ const Game = (() => {
     canvas.addEventListener("pointerdown", (e) => {
       if (e.pointerType === "mouse") return;
       input.joy = { active: true, id: e.pointerId, ox: e.clientX, oy: e.clientY, dx: 0, dy: 0 };
-      canvas.setPointerCapture(e.pointerId);
+      try { canvas.setPointerCapture(e.pointerId); } catch { /* puntero ya suelto */ }
     });
     canvas.addEventListener("pointermove", (e) => {
       const j = input.joy;
@@ -2360,6 +2463,147 @@ const Game = (() => {
     resize();
     window.addEventListener("resize", resize);
     bindInput();
+  }
+
+  // Vista previa de un mapa (para elegirlo): un trozo del terreno con sus objetos
+  function mapPreview(id, w = 320, h = 180) {
+    const keep = mapId;
+    setMap(id);
+    const c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    const g = c.getContext("2d");
+    g.imageSmoothingEnabled = false;
+    const ox = 900;
+    const oy = 600;
+    for (let cx = Math.floor(ox / CHUNK); cx <= Math.floor((ox + w * 2) / CHUNK); cx++) {
+      for (let cy = Math.floor(oy / CHUNK); cy <= Math.floor((oy + h * 2) / CHUNK); cy++) {
+        g.drawImage(chunkCanvas(cx, cy), (cx * CHUNK - ox) / 2, (cy * CHUNK - oy) / 2, CHUNK / 2, CHUNK / 2);
+      }
+    }
+    const list = [];
+    obstaclesNear(ox + w, oy + h, Math.max(w, h) + 100, (ob) => list.push(ob));
+    list.sort((a, b) => a.y - b.y);
+    for (const ob of list) {
+      if (ob.kind === "hierba") continue;
+      const img = obstacleImage(ob);
+      g.drawImage(img, Math.round((ob.x - ox) / 2 - img.width / 4), Math.round((ob.y - oy - OB_DEF[ob.kind].oy) / 2), img.width / 2, img.height / 2);
+    }
+    if (TS.MAPS[id].dark) { g.fillStyle = `rgba(8,6,28,${TS.MAPS[id].dark * 0.8})`; g.fillRect(0, 0, w, h); }
+    setMap(keep);
+    return c;
+  }
+
+  /* =======================================================
+     MODO ONLINE: fotos del estado para los invitados
+     El anfitrión simula y manda snapshot() unas 15 veces por segundo;
+     los invitados las reciben con applySnapshot() y solo dibujan.
+     ======================================================= */
+
+  const DIRS = ["down", "downSide", "side", "upSide", "up"];
+  const ENEMY_IDS = Object.keys(TS.ENEMIES);
+  const r1 = (v) => Math.round(v * 10) / 10;
+
+  function snapshot(viewers) {
+    // solo lo que está cerca de algún jugador
+    const near2 = (x, y) => viewers.some((p) => (p.x - x) ** 2 + (p.y - y) ** 2 < 1100 * 1100);
+    const players = st.players.map((p) => [
+      r1(p.x), r1(p.y), DIRS.indexOf(p.dir), p.face, p.moving ? 1 : 0, p.walkT, p.atk ? p.atk.t : 0, p.atk ? p.atk.total : 0,
+      Math.round(p.hp), p.stats.maxHp, p.down ? 1 : 0, p.reviveT, p.iframes, p.flash,
+      p.weapons.map((w) => [w.id, w.lvl, w.evo ? 1 : 0, (w.drones || []).map((d) => [r1(d.x || 0), r1(d.y || 0)])]),
+      Object.entries(p.passives), r1(p.stats.area)
+    ]);
+    const enemies = [];
+    for (const e of st.enemies) {
+      if (!near2(e.x, e.y)) continue;
+      enemies.push([e.id, ENEMY_IDS.indexOf(e.type), r1(e.x), r1(e.y), DIRS.indexOf(e.dir || "side"), e.face, Math.hypot(e.vx, e.vy) > 0.1 ? 1 : 0, e.t & 1023, e.flash, (e.phased ? 1 : 0) | (e.state === 1 ? 2 : 0) | (e.state === 2 ? 4 : 0), e.atk]);
+    }
+    const shots = st.shots.filter((x) => near2(x.x, x.y) && !(x.delay > 0)).map((x) => [x.type, r1(x.x), r1(x.y), r1(x.ang || 0), r1(x.r), x.life]);
+    const eshots = st.eshots.filter((x) => near2(x.x, x.y)).map((x) => [r1(x.x), r1(x.y), x.kind]);
+    const zones = st.zones.filter((z) => z.t >= 0).map((z) => {
+      const out = { ...z };
+      delete out.hit; delete out.hitT; delete out.owner; delete out.dmg;
+      for (const k of Object.keys(out)) if (typeof out[k] === "number") out[k] = r1(out[k]);
+      return out;
+    });
+    const gems = st.gems.filter((g) => near2(g.x, g.y)).slice(0, 500).map((g) => [r1(g.x), r1(g.y), g.v]);
+    const pickups = st.pickups.filter((it) => near2(it.x, it.y)).map((it) => [r1(it.x), r1(it.y), it.kind]);
+    const events = st.events.splice(0, st.events.length).slice(-120);
+    return {
+      t: st.t, lv: st.level, xp: Math.round(st.xp), xn: st.xpNext, k: st.kills, c: st.coins,
+      b: st.boss ? [st.boss.id, st.boss.hp / st.boss.maxHp] : null,
+      p: players, e: enemies, s: shots, es: eshots, z: zones, g: gems, pk: pickups, ev: events
+    };
+  }
+
+  // Invitado: prepara un estado vacío para ir rellenando con las fotos
+  function startGuest(info) {
+    stopDemo();
+    mode = "guest";
+    localId = info.localId;
+    setMap(info.map || "bosque");
+    seed = 0;
+    st = {
+      guest: true, mapId, t: 0, level: 1, xp: 0, xpNext: 10, kills: 0, coins: 0, boss: null, over: false,
+      players: info.players.map((pl, i) => ({ id: i, name: pl.name, charId: pl.charId, x: 0, y: 0, dir: "down", face: 1, moving: false, walkT: 0, atk: null, hp: 100, stats: { maxHp: 100, area: 1, magnet: 0 }, weapons: [], passives: {}, down: false, reviveT: 0, iframes: 0, flash: 0, tx: 0, ty: 0 })),
+      enemies: [], shots: [], eshots: [], zones: [], gems: [], pickups: [], fx: [], events: [], mod: { coins: 1, xp: 1 }
+    };
+    for (const pl of info.players) Sprites.get(`char:${pl.charId}`);
+    Sfx.startMusic("run");
+    loop();
+  }
+
+  const enemyMap = new Map();
+
+  function applySnapshot(snap) {
+    if (!st || !st.guest) return;
+    st.t = snap.t; st.level = snap.lv; st.xp = snap.xp; st.xpNext = snap.xn; st.kills = snap.k; st.coins = snap.c;
+    snap.p.forEach((a, i) => {
+      const p = st.players[i];
+      if (!p) return;
+      if (!p.seen) { p.x = a[0]; p.y = a[1]; p.seen = true; }
+      p.tx = a[0]; p.ty = a[1]; p.dir = DIRS[a[2]] || "down"; p.face = a[3]; p.moving = !!a[4]; p.walkT = a[5];
+      p.atk = a[6] > 0 ? { t: a[6], total: a[7] } : null;
+      p.hp = a[8]; p.stats.maxHp = a[9]; p.down = !!a[10]; p.reviveT = a[11]; p.iframes = a[12]; p.flash = a[13];
+      p.weapons = a[14].map(([id, lvl, evo, drones]) => ({ id, lvl, evo: !!evo, drones: drones.map(([x, y]) => ({ x, y })) }));
+      p.passives = Object.fromEntries(a[15]);
+      p.stats.area = a[16];
+    });
+    const seen = new Set();
+    const list = [];
+    for (const a of snap.e) {
+      const [id, ti, x, y, di, face, moving, t, flash, flags, atk] = a;
+      let e = enemyMap.get(id);
+      if (!e) {
+        const type = ENEMY_IDS[ti];
+        const d = TS.ENEMIES[type];
+        e = { id, type, x, y, tx: x, ty: y, r: d.r * U, boss: !!d.boss, ai: d.ai, prop: !!d.prop, vx: 0, vy: 0, state: 0 };
+        enemyMap.set(id, e);
+      }
+      e.tx = x; e.ty = y; e.dir = DIRS[di] || "side"; e.face = face; e.vx = moving ? 1 : 0; e.vy = 0; e.t = t; e.flash = flash;
+      e.phased = !!(flags & 1); e.state = flags & 2 ? 1 : flags & 4 ? 2 : 0; e.atk = atk;
+      seen.add(id);
+      list.push(e);
+    }
+    for (const id of enemyMap.keys()) if (!seen.has(id)) enemyMap.delete(id);
+    st.enemies = list;
+    st.boss = snap.b ? { ...(enemyMap.get(snap.b[0]) || {}), type: (enemyMap.get(snap.b[0]) || {}).type || "rey", hp: snap.b[1], maxHp: 1 } : null;
+    st.shots = snap.s.map(([type, x, y, ang, r, life]) => ({ type, x, y, ang, r, life }));
+    st.eshots = snap.es.map(([x, y, kind]) => ({ x, y, kind }));
+    st.zones = snap.z;
+    st.gems = snap.g.map(([x, y, v]) => ({ x, y, v, t: 0 }));
+    st.pickups = snap.pk.map(([x, y, kind]) => ({ x, y, kind, t: 0 }));
+    for (const ev of snap.ev) {
+      if (ev.k === "snd") Sfx.play(ev.n);
+      else { ev.t = 0; st.fx.push(ev); }
+    }
+  }
+
+  // Entre foto y foto, los invitados mueven todo suavemente
+  function guestSmooth() {
+    for (const p of st.players) { p.x += (p.tx - p.x) * 0.35; p.y += (p.ty - p.y) * 0.35; }
+    for (const e of st.enemies) { e.x += (e.tx - e.x) * 0.35; e.y += (e.ty - e.y) * 0.35; }
+    for (const z of st.zones) z.t = (z.t || 0) + 0.25;
   }
 
   /* =======================================================
@@ -2405,10 +2649,10 @@ const Game = (() => {
       if (a.hero) {
         if (a.atk) { a.atk.t--; if (a.atk.t <= 0) a.atk = null; }
         if (!a.moving || Math.hypot(a.tx - a.x, a.ty - a.y) < 8) {
-          if (Math.random() < 0.01) {
+          if (R() < 0.01) {
             // pasean por los lados (el centro lo tapa el menú)
             const halfW = view.w / view.k / 2;
-            const side = Math.random() < 0.5 ? -1 : 1;
+            const side = R() < 0.5 ? -1 : 1;
             a.tx = demo.camX + side * rand(Math.min(halfW * 0.45, 260), halfW - 30);
             a.ty = demo.camY + rand(-view.h / view.k / 2 + 60, view.h / view.k / 2 - 20);
             a.moving = true;
@@ -2424,7 +2668,7 @@ const Game = (() => {
           setDir(a, dx, dy);
         }
         // ataca a ratos hacia el enemigo más cercano
-        if (!a.atk && Math.random() < 0.012) {
+        if (!a.atk && R() < 0.012) {
           const foe = demo.actors.filter((o) => !o.hero).sort((p, q) => dist2(p, a) - dist2(q, a))[0];
           if (foe) {
             const dx = foe.x - a.x;
@@ -2448,7 +2692,7 @@ const Game = (() => {
           const [dir, face] = dirOf(dx, dy);
           a.dir = dir;
           a.face = face;
-          if (l < 60 && Math.random() < 0.01) a.flash = 6;
+          if (l < 60 && R() < 0.01) a.flash = 6;
         }
         // si se queda fuera de la vista, vuelve por un lado
         if (a.x < demo.camX - 700) { a.x = demo.camX + 700; a.y = demo.camY + rand(-300, 300); }
@@ -2492,6 +2736,15 @@ const Game = (() => {
     on,
     startDemo,
     stopDemo,
+    options,
+    setMap,
+    snapshot,
+    startGuest,
+    applySnapshot,
+    setInput(id, inp) { if (st && st.players[id]) st.players[id].input = inp; },
+    dropPlayer(id) { if (st && st.players[id] && !st.players[id].down) { st.players[id].hp = 0; st.players[id].down = true; } },
+    get mapId() { return mapId; },
+    mapPreview,
     start,
     stop,
     choose,

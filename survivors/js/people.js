@@ -1105,6 +1105,73 @@ const People = (() => {
       S.ell([14, 4, 0], [1.2, 4.2, 4.2], mat(ramp("#c9a27c"), G.acc));
       S.ell([-3, 9, 1], [2.4, 1.2, 2], leaf("#4a9a40"));
       dims = { w: 80, h: 40, ox: 40, oy: 32 };
+    } else if (kind === "tumba") {
+      const st = ramp(["#8f96a3", "#9a9690", "#828a96"][Math.floor(rnd(5) * 3)]);
+      const m = mat(st, G.body, (h) => ({ r: st, bias: hash(h.lp[0] * 3, h.lp[1] * 3, h.lp[2] * 3) > 0.75 ? -0.25 : 0 }));
+      S.box([0, 11, 0], [[1, 0, 0], [0, 1, 0], [0, 0, 1]], [8, 10, 2.4], m);
+      S.ell([0, 21, 0], [8, 4, 2.4], m, { mask: ([, y]) => y > 0 });
+      S.box([0, 15, 2.5], [[1, 0, 0], [0, 1, 0], [0, 0, 1]], [1, 4.5, 0.3], mat(ramp("#5d6370"), G.acc));
+      S.box([0, 16.5, 2.5], [[1, 0, 0], [0, 1, 0], [0, 0, 1]], [3.4, 1, 0.3], mat(ramp("#5d6370"), G.acc));
+      S.box([0, 0.6, 3], [[1, 0, 0], [0, 1, 0], [0, 0, 1]], [10, 0.8, 4], mat(ramp("#5a4a3a"), G.legR));
+      dims = { w: 50, h: 64, ox: 25, oy: 54 };
+    } else if (kind === "cruz") {
+      const w = mat(ramp("#7a5a3a"), G.body);
+      S.box([0, 12, 0], [[1, 0, 0], [0, 1, 0], [0, 0, 1]], [1.6, 12, 1.6], w);
+      S.box([0, 17, 0], [[1, 0, 0], [0, 1, 0], [0, 0, 1]], [7, 1.6, 1.6], w);
+      S.ell([0, 0.5, 1], [5, 1.2, 3], mat(ramp("#5a4a3a"), G.legR));
+      dims = { w: 40, h: 64, ox: 20, oy: 56 };
+    } else if (kind === "arbolMuerto") {
+      const dead = mat(ramp("#5a4636"), G.body, (h) => ({ r: ramp("#5a4636"), bias: Math.floor((Math.atan2(h.lp[0], h.lp[2]) + 4) * 3) % 2 ? -0.15 : 0 }));
+      S.cap([0, 0, 0], [0, 26, 0], 3.6, dead);
+      S.cap([0, 18, 0], [-11, 30, 2], 1.8, dead);
+      S.cap([0, 22, 0], [10, 34, -2], 1.6, dead);
+      S.cap([-11, 30, 2], [-15, 36, 2], 1, dead);
+      S.cap([10, 34, -2], [13, 40, -1], 0.9, dead);
+      S.cap([0, 26, 0], [2, 40, 1], 1.4, dead);
+    } else if (kind === "palmera") {
+      const trunk = mat(ramp("#a8824a"), G.legR, (h) => ({ r: ramp("#a8824a"), bias: Math.floor(h.t * 8) % 2 ? -0.18 : 0 }));
+      S.cap([0, 0, 0], [3, 18, 0], 3, trunk);
+      S.cap([3, 18, 0], [6, 36, 0], 2.6, trunk);
+      const leafM = (base) => mat(ramp(base), G.body, (h) => ({ r: ramp(base), bias: Math.abs(h.lp[2]) > 0.5 ? -0.2 : 0 }));
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2;
+        S.cap([6, 37, 0], [6 + Math.cos(a) * 14, 33, Math.sin(a) * 12], 2.2, leafM(i % 2 ? "#3f9a3a" : "#4aaa44"));
+        S.cap([6 + Math.cos(a) * 14, 33, Math.sin(a) * 12], [6 + Math.cos(a) * 19, 27, Math.sin(a) * 16], 1.4, leafM("#3f9a3a"));
+      }
+      for (const [x, z] of [[4, 2], [7, 2], [6, -1]]) S.ell([x, 34.5, z], [1.5, 1.5, 1.5], mat(ramp("#6b4a2a"), G.acc));
+    } else if (kind === "sombrilla") {
+      S.cap([0, 0, 0], [0, 24, 0], 0.8, mat(ramp("#f4f4f4"), G.legR));
+      const um = mat(ramp("#e63946"), G.body, (h) => ({ r: ramp(Math.floor((Math.atan2(h.lp[0], h.lp[2]) + 4) * 1.9) % 2 ? "#e63946" : "#f4f4f4") }));
+      S.ell([0, 24, 0], [15, 5, 15], um, { mask: ([, y]) => y > -0.1 });
+      dims = { w: 80, h: 80, ox: 40, oy: 70 };
+    } else if (kind === "farola") {
+      const metal = mat(ramp("#3a3f4a"), G.body);
+      S.cap([0, 0, 0], [0, 34, 0], 1.2, metal);
+      S.cap([0, 34, 0], [5, 37, 0], 1, metal);
+      S.ell([5, 36, 0], [2.6, 1.6, 2.6], mat({ hl: "#ffffff", lt: "#fff6c2", base: "#ffe9a3", mid: "#ffd66b", sh: "#e0b040" }, G.acc, () => ({ r: { hl: "#ffffff", lt: "#fff6c2", base: "#ffe9a3", mid: "#ffd66b", sh: "#e0b040" }, bias: 0.3 })));
+      S.ell([0, 1, 0], [3, 1.4, 3], metal);
+      dims = { w: 50, h: 100, ox: 25, oy: 92 };
+    } else if (kind === "contenedor") {
+      const g = ["#2f7a3a", "#3b5a9a", "#9a6a2a"][Math.floor(rnd(7) * 3)];
+      S.box([0, 8, 0], [[1, 0, 0], [0, 1, 0], [0, 0, 1]], [11, 8, 7], mat(ramp(g), G.body, (h) => ({ r: ramp(g), bias: Math.floor((h.lp[0] + 1) * 5) % 2 ? -0.1 : 0 })));
+      S.box([0, 16.5, -0.5], [[1, 0, 0], [0, 1, 0.25], [0, -0.25, 1]], [11.5, 0.8, 7.5], mat(ramp(g), G.acc));
+      dims = { w: 72, h: 56, ox: 36, oy: 46 };
+    } else if (kind === "coche") {
+      const g = ["#c1121f", "#2a63c2", "#e9c46a", "#f4f4f4"][Math.floor(rnd(8) * 4)];
+      const body = mat(ramp(g), G.body);
+      S.box([0, 6, 0], [[1, 0, 0], [0, 1, 0], [0, 0, 1]], [18, 4, 8], body);
+      S.box([-1, 12, 0], [[1, 0, 0], [0, 1, 0], [0, 0, 1]], [10, 3, 7], mat(ramp("#9fd8ff"), G.acc, (h) => (Math.abs(h.lp[0]) > 0.86 || Math.abs(h.lp[2]) > 0.86 ? { r: ramp(g) } : { r: ramp("#9fd8ff") })));
+      for (const [x, z] of [[-11, 8], [11, 8], [-11, -8], [11, -8]]) S.ell([x, 2.6, z], [3, 3, 1.4], mat(ramp("#1a1a22"), G.legR), { axes: [[1, 0, 0], [0, 1, 0], [0, 0, 1]] });
+      S.ell([18, 6, 5], [0.5, 1.2, 1.4], mat(ramp("#fff6c2"), G.acc));
+      S.ell([18, 6, -5], [0.5, 1.2, 1.4], mat(ramp("#fff6c2"), G.acc));
+      dims = { w: 110, h: 60, ox: 55, oy: 50 };
+    } else if (kind === "banco") {
+      const wood = mat(ramp("#9a6a3a"), G.body, (h) => ({ r: ramp("#9a6a3a"), bias: Math.floor((h.lp[2] + 1) * 3) % 2 ? -0.12 : 0 }));
+      const metal = mat(ramp("#3a3f4a"), G.legR);
+      S.box([0, 6, 0], [[1, 0, 0], [0, 1, 0], [0, 0, 1]], [14, 0.8, 4], wood);
+      S.box([0, 11, -3.6], [[1, 0, 0], [0, 1, 0], [0, 0, 1]], [14, 3, 0.6], wood);
+      for (const x of [-12, 12]) { S.box([x, 3, 0], [[1, 0, 0], [0, 1, 0], [0, 0, 1]], [0.8, 3, 3.6], metal); }
+      dims = { w: 80, h: 44, ox: 40, oy: 36 };
     } else if (kind === "arbusto") {
       S.ell([0, 7, 0], [12, 8, 10], leaf("#4a9a40"));
       S.ell([-8, 5, 3], [7, 6, 6], leaf("#3f8a3a"));

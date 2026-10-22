@@ -1405,6 +1405,8 @@ const CHALLENGE_UNITS_EN = {
   "victorias": "wins",
   "victoria": "win",
   "aciertos": "correct answers",
+  "enemigos derrotados": "enemies defeated",
+  "enemigo derrotado": "enemy defeated",
   "acierto": "correct answer"
 };
 

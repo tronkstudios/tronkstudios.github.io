@@ -22,8 +22,12 @@ const Save = (() => {
       freePull: true, // la primera tirada es gratis
       best: { time: 0, kills: 0, level: 0, wins: 0 },
       runs: 0,
-      settings: { music: true, sfx: true },
-      name: ""
+      settings: { music: true, sfx: true, musicVol: 0.7, sfxVol: 0.9, lang: "" },
+      name: "",
+      achievements: {},
+      maps: { bosque: true },
+      stats: { kills: 0, bosses: 0, wins: 0, props: 0, coinsEarned: 0, evolutions: 0, dailies: 0, coop: 0 },
+      savedAt: 0
     };
   }
 
@@ -32,7 +36,7 @@ const Save = (() => {
     try {
       const raw = JSON.parse(localStorage.getItem(KEY) || "null");
       if (raw && typeof raw === "object") {
-        data = { ...data, ...raw, best: { ...data.best, ...(raw.best || {}) }, settings: { ...data.settings, ...(raw.settings || {}) } };
+        data = { ...data, ...raw, best: { ...data.best, ...(raw.best || {}) }, settings: { ...data.settings, ...(raw.settings || {}) }, stats: { ...data.stats, ...(raw.stats || {}) }, maps: { ...data.maps, ...(raw.maps || {}) }, achievements: { ...(raw.achievements || {}) } };
         if (!data.owned || !data.owned[TS.STARTER]) data.owned = { ...(data.owned || {}), [TS.STARTER]: { stars: 1 } };
         if (!data.owned[data.selected]) data.selected = TS.STARTER;
         data.coins = Math.max(0, Math.floor(Number(data.coins) || 0));
@@ -43,12 +47,57 @@ const Save = (() => {
     return data;
   }
 
+  let onChange = null;
+
   function persist() {
+    data.savedAt = Date.now();
     try {
       localStorage.setItem(KEY, JSON.stringify(data));
     } catch {
       // modo privado o almacenamiento bloqueado
     }
+    if (onChange) onChange();
+  }
+
+  // Lo que se guarda en la cuenta (sin los ajustes de este dispositivo)
+  function exportData() {
+    const { settings, ...rest } = get();
+    return rest;
+  }
+
+  /* Junta el progreso de la cuenta con el de este navegador: se queda
+     con todos los personajes, las estrellas, mejoras, logros y récords más
+     altos de los dos, y con las monedas y tiradas del más reciente. */
+  function mergeRemote(remote) {
+    if (!remote || typeof remote !== "object") return;
+    const d = get();
+    const newer = (Number(remote.savedAt) || 0) > (d.savedAt || 0) ? remote : d;
+    const owned = { ...d.owned };
+    for (const [id, o] of Object.entries(remote.owned || {})) {
+      if (!TS.CHARACTERS.some((c) => c.id === id)) continue;
+      owned[id] = { stars: Math.min(TS.GACHA.maxStars, Math.max(owned[id] ? owned[id].stars : 0, Number(o.stars) || 1)) };
+    }
+    const maxObj = (a = {}, b = {}) => {
+      const out = { ...a };
+      for (const [k, v] of Object.entries(b)) if (typeof v === "number") out[k] = Math.max(out[k] || 0, v); else if (v === true) out[k] = true;
+      return out;
+    };
+    data = {
+      ...d,
+      owned,
+      coins: Math.max(0, Math.floor(Number(newer.coins) || 0)),
+      pity: Number(newer.pity) || 0,
+      pulls: Math.max(d.pulls || 0, Number(remote.pulls) || 0),
+      runs: Math.max(d.runs || 0, Number(remote.runs) || 0),
+      freePull: d.freePull && remote.freePull !== false,
+      shop: maxObj(d.shop, remote.shop),
+      best: maxObj(d.best, remote.best),
+      stats: maxObj(d.stats, remote.stats),
+      achievements: maxObj(d.achievements, remote.achievements),
+      maps: maxObj(d.maps, remote.maps),
+      selected: owned[newer.selected] ? newer.selected : d.selected
+    };
+    persist();
   }
 
   const get = () => data || load();
@@ -153,8 +202,17 @@ const Save = (() => {
     d.best.level = Math.max(d.best.level, result.level);
     if (result.victory) d.best.wins += 1;
     d.coins += result.coins;
+    const s = d.stats;
+    s.kills += result.kills;
+    s.bosses += result.bosses || 0;
+    s.wins += result.victory ? 1 : 0;
+    s.props += result.props || 0;
+    s.coinsEarned += result.coins;
+    s.evolutions += result.evolutions || 0;
+    if (result.daily) s.dailies += 1;
+    if (result.coop) s.coop += 1;
     persist();
   }
 
-  return { load, get, persist, addCoins, shopLevel, shopCost, buy, shopStats, pull, recordRun };
+  return { load, get, exportData, mergeRemote, setOnChange: (fn) => (onChange = fn), persist, addCoins, shopLevel, shopCost, buy, shopStats, pull, recordRun };
 })();
