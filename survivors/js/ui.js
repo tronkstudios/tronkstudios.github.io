@@ -898,8 +898,9 @@
   /* ---------- arranque ---------- */
   applySettings();
   translatePage();
-  setTimeout(() => {
+  setTimeout(async () => {
     Sprites.build();
+    await Sprites.loadArt(); // personajes dibujados en PixelLab (js/art.js)
     Game.init($("game"));
     fillIcons();
     Account.init();

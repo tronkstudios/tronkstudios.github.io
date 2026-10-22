@@ -412,11 +412,61 @@ const Sprites = (() => {
     for (const [id, make] of Object.entries(DECOR)) cache[`decor:${id}`] = make();
   }
 
+  /* ---------- Personajes dibujados (PixelLab, ver js/art.js) ---------- */
+  const artImages = {};
+
+  // Carga las hojas de sprites; si una falla, ese personaje usa el dibujo de siempre
+  function loadArt() {
+    return Promise.all(Object.entries(TS.ART || {}).map(([id, a]) => new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => { artImages[id] = img; delete cache[`char:${id}`]; delete portraits[id]; resolve(); };
+      img.onerror = () => resolve();
+      img.src = `img/chars/${id}.png?v=${a.v || 1}`;
+    })));
+  }
+
+  // Las 5 vistas de la hoja, en el mismo formato que people.js (pies en OX, OY)
+  const ART_VIEWS = ["down", "downSide", "side", "upSide", "up"];
+  const LUNGE = { down: [0, 1], downSide: [1, 1], side: [1, 0], upSide: [1, -1], up: [0, -1] };
+
+  function artSet(id) {
+    const a = TS.ART[id];
+    const img = artImages[id];
+    const ox = Math.round(People.OX - a.w / 2);
+    const oy = People.OY - a.foot;
+    const cell = (col, row, dx = 0, dy = 0, legs = 0) => {
+      const c = canvas(People.FW, People.FH);
+      const g = c.getContext("2d");
+      g.drawImage(img, col * a.w, row * a.h, a.w, a.h, ox + dx, oy + dy, a.w, a.h);
+      if (legs) {
+        // paso de mentira: las piernas se mueven un píxel hacia un lado
+        const cut = Math.round(oy + dy + a.foot * 0.8);
+        const strip = g.getImageData(0, cut, c.width, c.height - cut);
+        g.clearRect(0, cut, c.width, c.height - cut);
+        g.putImageData(strip, legs, 0 + cut);
+      }
+      return c;
+    };
+    const set = {};
+    ART_VIEWS.forEach((view, row) => {
+      const n = (a.walk && a.walk[view]) || 0;
+      const idle = cell(0, row);
+      const walk = n ? Array.from({ length: n }, (_, i) => cell(i + 1, row)) : [cell(0, row, 0, 0, 1), cell(0, row, 0, -1), cell(0, row, 0, 0, -1), cell(0, row, 0, -1)];
+      const [lx, ly] = LUNGE[view];
+      const attack = [1, 2, 1].map((k) => cell(0, row, lx * k, ly * k));
+      set[view] = { idle, walk, attack };
+      set[`${view}Flash`] = { idle: silhouette(idle), walk: walk.map((f) => silhouette(f)), attack: attack.map((f) => silhouette(f)) };
+    });
+    return set;
+  }
+
   // Personas: se dibujan la primera vez que se piden (people.js)
   function get(key) {
     if (cache[key]) return cache[key];
     const [kind, id] = key.split(":");
-    if (kind === "char") {
+    if (kind === "char" && artImages[id]) {
+      cache[key] = artSet(id);
+    } else if (kind === "char") {
       const ch = TS.CHARACTERS.find((c) => c.id === id);
       if (ch) cache[key] = People.personSet(People.characterOptions(ch));
     } else if (kind === "enemy" && People.ENEMIES[id]) {
@@ -432,7 +482,7 @@ const Sprites = (() => {
   function portraitCanvas(id) {
     if (!portraits[id]) {
       const ch = TS.CHARACTERS.find((c) => c.id === id);
-      portraits[id] = People.personFrame(People.characterOptions(ch), 0, "idle", 0);
+      portraits[id] = artImages[id] ? get(`char:${id}`).down.idle : People.personFrame(People.characterOptions(ch), 0, "idle", 0);
     }
     return portraits[id];
   }
@@ -447,5 +497,5 @@ const Sprites = (() => {
     return s ? scaled(s, k).toDataURL() : "";
   }
 
-  return { build, get, portrait, portraitCanvas, silhouettePortrait, iconUrl, scaled, silhouette, ramp, mix, DECOR_IDS: Object.keys(DECOR) };
+  return { build, loadArt, get, portrait, portraitCanvas, silhouettePortrait, iconUrl, scaled, silhouette, ramp, mix, DECOR_IDS: Object.keys(DECOR) };
 })();

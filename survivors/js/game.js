@@ -2131,7 +2131,7 @@ const Game = (() => {
       const k = 1 - atk.t / atk.total;
       return s.attack[Math.max(0, Math.min(2, Math.floor(k * 3)))];
     }
-    if (moving) return s.walk[Math.floor(walkT / 7) % 4];
+    if (moving) return s.walk[Math.floor(walkT / 7) % s.walk.length];
     return s.idle;
   }
 
