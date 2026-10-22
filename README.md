@@ -175,9 +175,14 @@ lista y, si el navegador no tiene WebGL, simplemente no aparece.
 
 ## Tronker con IA (gratis)
 
-El chat de Tronker responde preguntas escritas con **Workers AI de Cloudflare**,
-gratis dentro del uso diario incluido y sin ninguna clave. Basta con el bloque
-`[ai]` de `wrangler.toml` y `AI_PROVIDER = "workers-ai"`.
+El chat de Tronker responde con **Groq** (`AI_PROVIDER = "groq"`, modelo en
+`GROQ_MODEL`) y **busca en internet con Tavily** cuando le preguntan algo actual
+(noticias, resultados, precios...). Las dos son gratis con cuenta:
+- Claves: `npx.cmd wrangler secret put GROQ_API_KEY` y
+  `npx.cmd wrangler secret put TAVILY_API_KEY`. Sin la de Tavily responde sin buscar.
+- Si Groq falla, tarda o se acaba su límite gratis, responde **Workers AI de
+  Cloudflare** (bloque `[ai]` de `wrangler.toml` y `AI_MODEL`), sin clave.
+- `/health` dice si la búsqueda está activa (`webSearch`).
 - Lo que sabe Tronker está en `TRONK_KNOWLEDGE` (`index.js`). Cuando cambie la
   web, actualízalo y vuelve a desplegar el Worker.
 - Si se acaba el uso gratis del día o la IA falla, Tronker sigue entendiendo
