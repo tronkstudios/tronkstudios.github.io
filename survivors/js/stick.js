@@ -343,9 +343,10 @@ const Stick = (() => {
         break;
       case "hacha":
         ctx.strokeStyle = wood; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(0, back); ctx.lineTo(0, tip + 4); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(2, tip - 20); ctx.lineTo(-14, tip - 26); ctx.quadraticCurveTo(-30, tip - 10, -14, tip + 8); ctx.lineTo(2, tip + 2); ctx.closePath();
+        // la hoja hacia delante (el filo es lo que corta)
+        ctx.beginPath(); ctx.moveTo(-2, tip - 20); ctx.lineTo(14, tip - 26); ctx.quadraticCurveTo(30, tip - 10, 14, tip + 8); ctx.lineTo(-2, tip + 2); ctx.closePath();
         ctx.fillStyle = steel; ctx.fill(); ctx.strokeStyle = steelDk; ctx.lineWidth = 1.5; ctx.stroke();
-        ctx.fillStyle = "#5b6b80"; ctx.fillRect(1, tip - 16, 7, 14);
+        ctx.fillStyle = "#5b6b80"; ctx.fillRect(-8, tip - 16, 7, 14);
         break;
       case "tridente":
         ctx.strokeStyle = "#2f8c8c"; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(0, back); ctx.lineTo(0, tip); ctx.stroke();
@@ -585,5 +586,8 @@ const Stick = (() => {
     return out;
   }
 
-  return { set, portrait, characterOptions, ENEMIES, RES };
+  // El esqueleto, para el motor 3D (render3d.js)
+  const rig = { pose, joints, LAT, WEAPON, styleOf: (o) => (WEAPON[o.weapon] || WEAPON.none)[2] };
+
+  return { set, portrait, characterOptions, ENEMIES, RES, rig };
 })();
