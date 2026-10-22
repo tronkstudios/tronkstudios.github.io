@@ -2118,6 +2118,12 @@ const Game = (() => {
 
   // Dibuja una imagen con los pies en (x, y), girada si mira a la izquierda
   function drawSprite(img, x, y, footY, flip, scale = 1) {
+    // stickmen: vienen a más resolución y se dibujan suaves
+    if (img.res) {
+      footY = img.foot;
+      scale /= img.res;
+      ctx.imageSmoothingEnabled = true;
+    }
     const w = img.width * scale;
     const h = img.height * scale;
     const dx = Math.round(x - w / 2);
@@ -2129,6 +2135,7 @@ const Game = (() => {
       ctx.drawImage(img, 0, 0, w, h);
       ctx.restore();
     } else ctx.drawImage(img, dx, dy, w, h);
+    ctx.imageSmoothingEnabled = false;
   }
 
   function personImage(set, dir, flash, moving, walkT, atk) {

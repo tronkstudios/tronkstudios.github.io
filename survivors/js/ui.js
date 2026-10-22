@@ -62,26 +62,33 @@
     Game.startDemo(TS.CHARACTERS.map((c) => c.id));
   }
 
-  // El personaje elegido da vueltas sobre la plataforma
-  const SPIN = [["down", false], ["downSide", false], ["side", false], ["upSide", false], ["up", false], ["upSide", true], ["side", true], ["downSide", true]];
   let spinTimer = 0;
   let spinStep = 0;
+  const spinCache = {};
+  // El personaje elegido da vueltas sobre la plataforma
+  const SPIN = [["down", false], ["downSide", false], ["side", false], ["upSide", false], ["up", false], ["upSide", true], ["side", true], ["downSide", true]];
   function spinHero() {
     const set = Sprites.get(`char:${save.selected}`);
     const [view, flip] = SPIN[spinStep % SPIN.length];
-    const img = Sprites.scaled(set[view].idle, 4);
-    if (flip) {
-      const c = document.createElement("canvas");
-      c.width = img.width;
-      c.height = img.height;
-      const g = c.getContext("2d");
-      g.translate(c.width, 0);
-      g.scale(-1, 1);
-      g.drawImage(img, 0, 0);
-      $("stage-img").src = c.toDataURL();
-    } else $("stage-img").src = img.toDataURL();
+    const key = `${save.selected}:${view}:${flip}`;
+    if (!spinCache[key]) {
+      const img = Sprites.scaled(Stick.portrait(set[view].idle), 4);
+      if (flip) {
+        const c = document.createElement("canvas");
+        c.width = img.width;
+        c.height = img.height;
+        const g = c.getContext("2d");
+        g.translate(c.width, 0);
+        g.scale(-1, 1);
+        g.drawImage(img, 0, 0);
+        spinCache[key] = c.toDataURL();
+      } else spinCache[key] = img.toDataURL();
+    }
+    $("stage-img").src = spinCache[key];
     spinStep++;
   }
+
+
 
   function renderAccount() {
     const p = $("menu-account");
@@ -416,9 +423,7 @@
     const box = $("char-detail");
     box.textContent = "";
     const big = el("div", "big");
-    const art = TS.ART && TS.ART[id];
-    const single = art && (art.rows ? art.rows.up === art.rows.down : art.single); // una sola vista
-    for (const view of have && !single ? ["down", "side"] : ["down"]) {
+    for (const view of ["down"]) {
       const img = document.createElement("img");
       img.src = have ? Sprites.scaled(Sprites.get(`char:${id}`)[view].idle, 3).toDataURL() : Sprites.silhouettePortrait(id, 3);
       img.alt = "";
@@ -902,7 +907,6 @@
   translatePage();
   setTimeout(async () => {
     Sprites.build();
-    await Sprites.loadArt(); // personajes dibujados en PixelLab (js/art.js)
     Game.init($("game"));
     fillIcons();
     Account.init();

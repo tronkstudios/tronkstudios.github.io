@@ -81,7 +81,7 @@ img[data-icon], .pix { image-rendering: pixelated; }
 .menu-stage { position: relative; display: grid; justify-items: center; gap: 10px; }
 .menu-coins { position: absolute; top: 0; right: 0; }
 .stage-hero { position: relative; display: grid; justify-items: center; }
-.stage-hero img { position: relative; z-index: 1; width: 216px; height: 256px; image-rendering: pixelated; filter: drop-shadow(0 6px 0 rgba(0, 0, 0, 0.25)); animation: hero-bob 1.6s ease-in-out infinite; }
+.stage-hero img { position: relative; z-index: 1; width: 216px; height: 256px; image-rendering: auto; filter: drop-shadow(0 6px 0 rgba(0, 0, 0, 0.25)); animation: hero-bob 1.6s ease-in-out infinite; }
 .stage-floor {
   width: 260px;
   height: 70px;
@@ -252,7 +252,7 @@ img[data-icon], .pix { image-rendering: pixelated; }
   box-shadow: 0 0 0 2px var(--rarity, var(--line)), inset 0 -4px 0 rgba(0, 0, 0, 0.3);
 }
 
-.char-card img { width: 64px; height: 76px; image-rendering: pixelated; }
+.char-card img { width: 64px; height: 76px; image-rendering: auto; }
 .char-card.is-locked { opacity: 0.6; }
 .char-card.is-selected { background: #33285e; box-shadow: 0 0 0 3px var(--gold), inset 0 -4px 0 rgba(0, 0, 0, 0.3); }
 .char-card .stars { color: var(--gold); font-size: 10px; letter-spacing: 1px; min-height: 12px; }
@@ -267,7 +267,7 @@ img[data-icon], .pix { image-rendering: pixelated; }
 }
 
 .char-detail .big { display: flex; justify-content: center; gap: 4px; background: radial-gradient(circle, rgba(255, 255, 255, 0.08), transparent 70%); border-radius: 10px; }
-.char-detail .big img { width: 108px; height: 128px; image-rendering: pixelated; }
+.char-detail .big img { width: 108px; height: 128px; image-rendering: auto; }
 .char-detail h3 { margin: 0; font-size: 20px; }
 .char-detail .rarity { font-weight: 700; font-size: 13px; }
 .char-detail p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
@@ -319,7 +319,7 @@ img[data-icon], .pix { image-rendering: pixelated; }
   animation: reveal 0.45s ease-out forwards;
 }
 
-.reveal-card img { width: 81px; height: 96px; image-rendering: pixelated; }
+.reveal-card img { width: 81px; height: 96px; image-rendering: auto; }
 .reveal-card b { font-size: 14px; }
 .reveal-card .tag { font-weight: 700; color: var(--rarity); }
 .reveal-card.is-new .tag::after { content: " · ¡NUEVO!"; color: #fff; }
@@ -464,7 +464,7 @@ img[data-icon], .pix { image-rendering: pixelated; }
 .online-input { font: inherit; font-size: 28px; letter-spacing: 6px; text-align: center; text-transform: uppercase; width: 100%; padding: 10px; border-radius: 10px; border: 0; background: #0d0920; color: var(--text); box-shadow: 0 0 0 2px var(--line); }
 .online-players { display: grid; gap: 6px; }
 .online-player { display: flex; align-items: center; gap: 10px; background: var(--panel-2); border-radius: 10px; padding: 6px 10px; }
-.online-player img { width: 34px; height: 40px; image-rendering: pixelated; }
+.online-player img { width: 34px; height: 40px; image-rendering: auto; }
 .online-note { color: var(--muted); font-size: 13px; margin: 0; }
 
 @media (max-width: 760px) {
@@ -494,7 +494,7 @@ img[data-icon], .pix { image-rendering: pixelated; }
 
 /* ---------- reto diario ---------- */
 .daily-card { display: grid; grid-template-columns: 96px 1fr; gap: 12px; align-items: center; background: var(--panel-2); border-radius: 12px; padding: 10px; }
-.daily-card img { width: 96px; height: 114px; image-rendering: pixelated; }
+.daily-card img { width: 96px; height: 114px; image-rendering: auto; }
 .daily-card ul { margin: 4px 0 0; padding-left: 18px; color: var(--muted); font-size: 13px; }
 .daily-card b { display: block; font-size: 16px; }
 .daily-card small { display: block; margin-top: 4px; color: var(--muted); }
