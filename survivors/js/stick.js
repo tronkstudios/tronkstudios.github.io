@@ -585,8 +585,5 @@ const Stick = (() => {
     return out;
   }
 
-  // El esqueleto, para el motor 3D (render3d.js)
-  const rig = { pose, joints, LAT, WEAPON, styleOf: (o) => (WEAPON[o.weapon] || WEAPON.none)[2] };
-
-  return { set, portrait, characterOptions, ENEMIES, RES, rig };
+  return { set, portrait, characterOptions, ENEMIES, RES };
 })();

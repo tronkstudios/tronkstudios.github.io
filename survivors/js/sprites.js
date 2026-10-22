@@ -166,7 +166,6 @@ const Sprites = (() => {
     const s = canvas(c.width, c.height);
     s.res = c.res;
     s.foot = c.foot;
-    s.art = c.art;
     const g = s.getContext("2d");
     g.drawImage(c, 0, 0);
     g.globalCompositeOperation = "source-in";
@@ -177,8 +176,7 @@ const Sprites = (() => {
 
   function scaled(c, k) {
     // los stickmen vienen dibujados a más resolución (res): se dejan al mismo tamaño
-    // los dibujos de art.js se dejan al doble para que se vean nítidos en los menús
-    const r = (c.res || 1) / (c.art ? 2 : 1);
+    const r = c.res || 1;
     const s = canvas(Math.round((c.width / r) * k), Math.round((c.height / r) * k));
     const g = s.getContext("2d");
     g.imageSmoothingEnabled = r > 1;
@@ -418,52 +416,11 @@ const Sprites = (() => {
     for (const [id, make] of Object.entries(DECOR)) cache[`decor:${id}`] = make();
   }
 
-  /* ---------- Personajes dibujados (los diseños de js/art.js) ---------- */
-  const artImages = {};
-
-  // Carga los dibujos; si uno falla, ese personaje usa el stickman
-  function loadArt() {
-    return Promise.all(Object.entries(TS.ART || {}).map(([id, a]) => new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => { artImages[id] = img; delete cache[`char:${id}`]; delete portraits[id]; resolve(); };
-      img.onerror = () => resolve();
-      img.src = `img/chars/${id}.png?v=${a.v || 1}`;
-    })));
-  }
-
-  // El dibujo tal cual en todas las vistas (a su resolución: «res» píxeles por píxel del juego)
-  function artSet(id) {
-    const a = TS.ART[id];
-    const img = artImages[id];
-    const frame = (dy = 0, sx = 1, sy = 1) => {
-      const c = canvas(a.w, a.h);
-      c.res = a.res;
-      c.foot = a.foot;
-      c.art = true;
-      const g = c.getContext("2d");
-      g.translate(a.w / 2, a.foot);
-      g.scale(sx, sy);
-      g.drawImage(img, -a.w / 2, -a.foot + dy * a.res);
-      return c;
-    };
-    const idle = frame();
-    const walk = [frame(0, 1.02, 0.98), frame(-1), frame(0, 1.02, 0.98), frame(-1)];
-    const attack = [frame(0, 1.05, 0.96), frame(-1, 0.97, 1.05), frame(0, 1.02, 0.99)];
-    const view = { idle, walk, attack };
-    const flash = { idle: silhouette(idle), walk: walk.map((f) => silhouette(f)), attack: attack.map((f) => silhouette(f)) };
-    const set = {};
-    for (const v of ["down", "downSide", "side", "upSide", "up"]) { set[v] = view; set[`${v}Flash`] = flash; }
-    return set;
-  }
-  const artImage = (id) => artImages[id] || null;
-
-  // Personas: se dibujan la primera vez que se piden
+  // Personas: se dibujan la primera vez que se piden (people.js)
   function get(key) {
     if (cache[key]) return cache[key];
     const [kind, id] = key.split(":");
-    if (kind === "char" && artImages[id]) {
-      cache[key] = artSet(id);
-    } else if (kind === "char") {
+    if (kind === "char") {
       // los personajes son stickmen como en Tronk Fight (stick.js)
       const ch = TS.CHARACTERS.find((c) => c.id === id);
       if (ch) cache[key] = Stick.set(Stick.characterOptions(ch));
@@ -482,8 +439,7 @@ const Sprites = (() => {
   function portraitCanvas(id) {
     if (!portraits[id]) {
       const ch = TS.CHARACTERS.find((c) => c.id === id);
-      if (!ch) portraits[id] = null;
-      else portraits[id] = artImages[id] ? get(`char:${id}`).down.idle : Stick.portrait(get(`char:${id}`).down.idle);
+      portraits[id] = ch ? Stick.portrait(get(`char:${id}`).down.idle) : null;
     }
     return portraits[id];
   }
@@ -498,5 +454,5 @@ const Sprites = (() => {
     return s ? scaled(s, k).toDataURL() : "";
   }
 
-  return { build, loadArt, artImage, get, portrait, portraitCanvas, silhouettePortrait, iconUrl, scaled, silhouette, ramp, mix, DECOR_IDS: Object.keys(DECOR) };
+  return { build, get, portrait, portraitCanvas, silhouettePortrait, iconUrl, scaled, silhouette, ramp, mix, DECOR_IDS: Object.keys(DECOR) };
 })();
