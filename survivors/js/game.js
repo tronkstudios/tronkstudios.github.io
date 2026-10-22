@@ -2135,7 +2135,8 @@ const Game = (() => {
     const s = set[flash ? `${dir}Flash` : dir];
     if (atk && atk.t > 0) {
       const k = 1 - atk.t / atk.total;
-      return s.attack[Math.max(0, Math.min(2, Math.floor(k * 3)))];
+      const n = s.attack.length;
+      return s.attack[Math.max(0, Math.min(n - 1, Math.floor(k * n)))];
     }
     if (moving) return s.walk[Math.floor(walkT / 7) % s.walk.length];
     return s.idle;

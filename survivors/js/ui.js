@@ -416,7 +416,8 @@
     const box = $("char-detail");
     box.textContent = "";
     const big = el("div", "big");
-    const single = TS.ART && TS.ART[id] && TS.ART[id].single; // una sola postura
+    const art = TS.ART && TS.ART[id];
+    const single = art && (art.rows ? art.rows.up === art.rows.down : art.single); // una sola vista
     for (const view of have && !single ? ["down", "side"] : ["down"]) {
       const img = document.createElement("img");
       img.src = have ? Sprites.scaled(Sprites.get(`char:${id}`)[view].idle, 3).toDataURL() : Sprites.silhouettePortrait(id, 3);

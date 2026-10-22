@@ -449,12 +449,14 @@ const Sprites = (() => {
     };
     const set = {};
     ART_VIEWS.forEach((view, r) => {
-      const row = a.single ? 0 : r; // una sola postura: la misma en todas las vistas
-      const n = (a.walk && a.walk[view]) || 0;
+      // qué fila de la hoja usa cada vista (una sola postura: siempre la 0)
+      const row = a.rows ? a.rows[view] : a.single ? 0 : r;
+      const n = a.walkCols ? a.walkCols[1] : (a.walk && a.walk[view]) || 0;
+      const w0 = a.walkCols ? a.walkCols[0] : 1;
       const idle = cell(0, row);
-      const walk = n ? Array.from({ length: n }, (_, i) => cell(i + 1, row)) : [cell(0, row, 0, 0, 1), cell(0, row, 0, -1), cell(0, row, 0, 0, -1), cell(0, row, 0, -1)];
+      const walk = n ? Array.from({ length: n }, (_, i) => cell(w0 + i, row)) : [cell(0, row, 0, 0, 1), cell(0, row, 0, -1), cell(0, row, 0, 0, -1), cell(0, row, 0, -1)];
       const [lx, ly] = LUNGE[view];
-      const attack = [1, 2, 1].map((k) => cell(0, row, lx * k, ly * k));
+      const attack = a.attackCols ? Array.from({ length: a.attackCols[1] }, (_, i) => cell(a.attackCols[0] + i, row)) : [1, 2, 1].map((k) => cell(0, row, lx * k, ly * k));
       set[view] = { idle, walk, attack };
       set[`${view}Flash`] = { idle: silhouette(idle), walk: walk.map((f) => silhouette(f)), attack: attack.map((f) => silhouette(f)) };
     });
