@@ -24,8 +24,10 @@ el código no ha cambiado, solo se ha repartido.
 Reglas que hay que respetar:
 
 1. `core.js` va primero, porque crea las variables que usan todos los demás.
-2. `app.js` va último, porque es el que **arranca** todo (`initializeProjects()`,
-   `initializeStickDrillGame()`...), y para entonces ya están cargadas todas las funciones.
+2. `app.js` va último, porque es el que **arranca** todo (`initializeProjects()`...),
+   y para entonces ya están cargadas todas las funciones. Desde el ADR 0003,
+   los minijuegos no se arrancan aquí: los carga y arranca `js/games/loader.js`
+   al abrirlos.
 3. El código de nivel superior de un archivo solo puede llamar a funciones
    de ese archivo o de los anteriores.
 

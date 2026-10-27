@@ -9,6 +9,35 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.40 · Web más rápida: imágenes, vídeo y estilos por partes
+
+#### Añadido
+- Demos grabadas de Tronk Fight y Antitronks en la sección Minijuegos
+  («Así se juega»), en vídeo propio de menos de 300 KB.
+- Mediciones de Lighthouse en `docs/lighthouse/` y la decisión explicada en
+  `docs/adr/0003-estilos-y-minijuegos-por-partes.md`.
+
+#### Cambiado
+- Las capturas de los juegos pasan a WebP (de casi 1 MB a 20–120 KB) y las
+  tarjetas usan miniaturas. Todas las imágenes indican cómo cargarse y su
+  tamaño, para que la página no se mueva al cargar.
+- Los minijuegos (código, ventana y estilos) se descargan al abrirlos, no al
+  entrar en la web. Sus ventanas están en `partials/`.
+- `styles.css` se divide en 8 archivos por tema y los estilos de los
+  minijuegos van aparte.
+- El diccionario de inglés solo se descarga si la web va en inglés.
+- La mascota 3D carga Three.js cuando el visitante interactúa con la página.
+- El logo de la cabecera es un archivo (antes iba dentro del HTML).
+- Lighthouse de la portada en móvil: rendimiento de 31 a 96 y accesibilidad
+  de 96 a 100.
+
+#### Arreglado
+- Contraste del botón de Soporte, del número de versión del pie, de los
+  botones de las páginas de cada juego y del menú de Tronk Survivors.
+- Las tarjetas que se pulsan son botones accesibles (antes eran `<article>`
+  con `role="button"`, que no está permitido).
+- En Tronk Survivors ya se puede hacer zoom en la página.
+
 ### 6.39 · Tronk Survivors en 3D con stickmen
 
 #### Cambiado
