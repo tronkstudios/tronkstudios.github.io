@@ -1,0 +1,121 @@
+<!-- TronkStudios · partials/stick-drill.html
+     Ventana del minijuego. js/games/loader.js la añade a la página la
+     primera vez que se abre el juego (antes estaba dentro de index.html). -->
+  <!-- =====================================================
+       MINIJUEGO STICK DRILL
+       ===================================================== -->
+
+  <div
+    id="stickdrill-modal"
+    class="antitronks-modal hidden"
+    aria-hidden="true"
+  >
+
+    <div class="antitronks-backdrop"></div>
+
+    <div
+      class="antitronks-window stickdrill-window"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="stickdrill-title"
+    >
+
+      <header class="antitronks-header">
+        <h2 id="stickdrill-title">STICK DRILL</h2>
+
+        <button
+          class="antitronks-sound game-sound-toggle"
+          type="button"
+          aria-label="Silenciar"
+          aria-pressed="false"
+        ><svg class="icon" aria-hidden="true"><use href="#i-volume"></use></svg></button>
+
+        <button
+          id="stickdrill-close"
+          class="antitronks-close"
+          type="button"
+          aria-label="Cerrar Stick Drill"
+        ><svg class="icon close-icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
+      </header>
+
+      <!--
+        Contenedor del juego + joysticks táctiles.
+        En ordenador es "invisible" (display: contents) y los joysticks
+        están ocultos; en móvil/tablet coloca los joysticks fuera del campo.
+      -->
+      <div class="stickdrill-body">
+
+      <div
+        class="stickdrill-pad stickdrill-pad-p1"
+        data-player="1"
+        aria-hidden="true"
+      >
+        <span class="stickdrill-pad-label">J1</span>
+        <span class="stickdrill-knob"></span>
+      </div>
+
+      <div class="antitronks-game stickdrill-game" id="stickdrill-game">
+        <canvas id="stickdrill-canvas" class="stickdrill-canvas"></canvas>
+
+        <div class="antitronks-hud stickdrill-hud" aria-hidden="true">
+          <div class="antitronks-score stickdrill-p1" id="stickdrill-p1">J1: VIVO</div>
+          <div class="antitronks-record stickdrill-time" id="stickdrill-time">TIEMPO: 0.0 s</div>
+          <div class="antitronks-record stickdrill-best" id="stickdrill-record">RÉCORD: 0.0 s</div>
+          <div class="antitronks-lives stickdrill-p2" id="stickdrill-p2">BOT: VIVO</div>
+
+          <div class="antitronks-hit-flash" id="stickdrill-hit-flash"></div>
+
+          <div class="antitronks-message" id="stickdrill-message">
+            <span id="stickdrill-message-text"></span>
+          </div>
+
+          <div class="antitronks-overlay" id="stickdrill-overlay">
+            <div class="antitronks-overlay-box">
+              <h3 id="stickdrill-overlay-title">STICK DRILL</h3>
+              <p id="stickdrill-overlay-text">
+                Esquiva el taladro que rebota por las paredes. El que caiga primero pierde.
+              </p>
+              <div class="stickdrill-modes">
+                <button
+                  id="stickdrill-bot"
+                  class="antitronks-start-button"
+                  type="button"
+                >
+                  <svg class="icon" aria-hidden="true"><use href="#i-bot"></use></svg> CONTRA EL BOT
+                </button>
+                <button
+                  id="stickdrill-2p"
+                  class="antitronks-start-button stickdrill-2p-button"
+                  type="button"
+                >
+                  <svg class="icon" aria-hidden="true"><use href="#i-users"></use></svg> 2 JUGADORES
+                </button>
+              </div>
+              <p class="stickdrill-keys stickdrill-keys-desktop">
+                <span class="stickdrill-key-blue">J1: W A S D</span>
+                ·
+                <span class="stickdrill-key-red">J2: flechas</span>
+              </p>
+              <p class="stickdrill-keys stickdrill-keys-touch">
+                <span class="stickdrill-key-blue">J1: joystick izquierdo</span>
+                ·
+                <span class="stickdrill-key-red">J2: joystick derecho</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="stickdrill-pad stickdrill-pad-p2"
+        data-player="2"
+        aria-hidden="true"
+      >
+        <span class="stickdrill-pad-label">J2</span>
+        <span class="stickdrill-knob"></span>
+      </div>
+
+      </div>
+
+    </div>
+  </div>

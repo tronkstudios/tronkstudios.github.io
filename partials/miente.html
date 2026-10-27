@@ -1,0 +1,79 @@
+<!-- TronkStudios · partials/miente.html
+     Ventana del minijuego. js/games/loader.js la añade a la página la
+     primera vez que se abre el juego (antes estaba dentro de index.html). -->
+  <!-- =====================================================
+       MINIJUEGO EL JUEGO MIENTE (js/games/miente.js)
+       ===================================================== -->
+
+  <div
+    id="miente-modal"
+    class="antitronks-modal hidden"
+    aria-hidden="true"
+  >
+
+    <div class="antitronks-backdrop"></div>
+
+    <div
+      class="antitronks-window miente-window"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="miente-title"
+    >
+
+      <header class="antitronks-header">
+        <h2 id="miente-title">EL JUEGO MIENTE</h2>
+
+        <button
+          class="antitronks-sound game-sound-toggle"
+          type="button"
+          aria-label="Silenciar"
+          aria-pressed="false"
+        ><svg class="icon" aria-hidden="true"><use href="#i-volume"></use></svg></button>
+
+        <button
+          id="miente-close"
+          class="antitronks-close"
+          type="button"
+          aria-label="Cerrar El Juego Miente"
+        ><svg class="icon close-icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
+      </header>
+
+      <div class="antitronks-game miente-game" id="miente-game">
+        <div class="miente-board">
+          <p class="miente-rule" id="miente-rule" aria-live="polite">OBEDECE A LA PALABRA</p>
+          <p class="miente-word" id="miente-word" aria-live="polite">ROJO</p>
+          <div class="miente-timer" aria-hidden="true"><span id="miente-timer-bar"></span></div>
+          <div class="miente-buttons" id="miente-buttons"></div>
+        </div>
+
+        <div class="antitronks-hud miente-hud" aria-hidden="true">
+          <div class="antitronks-score" id="miente-score">ACIERTOS: 0</div>
+          <div class="antitronks-record" id="miente-record">RÉCORD: 0</div>
+          <div class="antitronks-lives" id="miente-lives">VIDAS: 3</div>
+
+          <div class="antitronks-hit-flash" id="miente-hit-flash"></div>
+
+          <div class="antitronks-message" id="miente-message">
+            <span id="miente-message-text"></span>
+          </div>
+        </div>
+
+        <div class="antitronks-overlay" id="miente-overlay">
+          <div class="antitronks-overlay-box">
+            <h3 id="miente-overlay-title">EL JUEGO MIENTE</h3>
+            <p id="miente-overlay-text">
+              Obedece a la regla… aunque el juego intente engañarte.
+            </p>
+            <button
+              id="miente-start"
+              class="antitronks-start-button"
+              type="button"
+            >
+              JUGAR
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>

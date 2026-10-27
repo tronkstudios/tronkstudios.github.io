@@ -149,7 +149,7 @@ function createChallengeCard(challenge) {
   const percent = exactPercent(challenge);
   const ended = !done && new Date(challenge.ends_at) < new Date();
 
-  const card = document.createElement("article");
+  const card = document.createElement("div");
   card.className = done ? "challenge-card is-done" : ended ? "challenge-card is-ended" : "challenge-card";
 
   const head = document.createElement("div");

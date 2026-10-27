@@ -1,0 +1,74 @@
+<!-- TronkStudios · partials/protect-mogos.html
+     Ventana del minijuego. js/games/loader.js la añade a la página la
+     primera vez que se abre el juego (antes estaba dentro de index.html). -->
+  <!-- =====================================================
+       MINIJUEGO PROTECT MOGOS
+       ===================================================== -->
+
+  <div
+    id="antininja-modal"
+    class="antitronks-modal hidden"
+    aria-hidden="true"
+  >
+
+    <div class="antitronks-backdrop"></div>
+
+    <div
+      class="antitronks-window antininja-window"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="antininja-title"
+    >
+
+      <header class="antitronks-header">
+        <h2 id="antininja-title">PROTECT MOGOS</h2>
+
+        <button
+          class="antitronks-sound game-sound-toggle"
+          type="button"
+          aria-label="Silenciar"
+          aria-pressed="false"
+        ><svg class="icon" aria-hidden="true"><use href="#i-volume"></use></svg></button>
+
+        <button
+          id="antininja-close"
+          class="antitronks-close"
+          type="button"
+          aria-label="Cerrar Protect Mogos"
+        ><svg class="icon close-icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
+      </header>
+
+      <div class="antitronks-game" id="antininja-game">
+        <canvas id="antininja-canvas" class="antininja-canvas"></canvas>
+
+        <div class="antitronks-hud antininja-hud" aria-hidden="true">
+          <div class="antitronks-score" id="antininja-score">PUNTOS: 0</div>
+          <div class="antitronks-record" id="antininja-record">RÉCORD: 0</div>
+          <div class="antitronks-lives" id="antininja-lives">VIDAS: 3</div>
+
+          <div class="antitronks-hit-flash" id="antininja-hit-flash"></div>
+
+          <div class="antitronks-message" id="antininja-message">
+            <span id="antininja-message-text"></span>
+          </div>
+
+          <div class="antitronks-overlay" id="antininja-overlay">
+            <div class="antitronks-overlay-box">
+              <h3 id="antininja-overlay-title">PROTECT MOGOS</h3>
+              <p id="antininja-overlay-text">
+                Haz clic en los ninjas antes de que lleguen al castillo del rey.
+              </p>
+              <button
+                id="antininja-start"
+                class="antitronks-start-button"
+                type="button"
+              >
+                JUGAR
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
