@@ -311,64 +311,70 @@ function updateFullscreenButtons() {
 }
 
 function initializeGameFullscreen() {
-  const modals = document.querySelectorAll(".antitronks-modal");
+  document.querySelectorAll(".antitronks-modal").forEach(setupGameModal);
 
-  modals.forEach((modal) => {
-    // Al hacer clic y arrastrar en un juego, el navegador no debe arrastrar
-    // la imagen ni seleccionar texto (pasaba en Safari y Firefox)
-    ["dragstart", "selectstart"].forEach((name) => {
-      modal.addEventListener(name, (event) => event.preventDefault());
-    });
-
-    const header = modal.querySelector(".antitronks-header");
-    const close = header?.querySelector(".antitronks-close");
-
-    if (canFullscreen() && header && close) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "antitronks-sound game-fullscreen-toggle";
-      button.addEventListener("click", () => {
-        if (fullscreenElement() === modal) {
-          exitFullscreen();
-        } else {
-          enterFullscreen(modal);
-        }
-      });
-      header.insertBefore(button, close);
-    }
-
-    // Al abrirse (se quita «hidden») en móvil, pantalla completa;
-    // al cerrarse, se sale.
-    let wasOpen = !modal.classList.contains("hidden");
-
-    new MutationObserver(() => {
-      const open = !modal.classList.contains("hidden");
-
-      if (open === wasOpen) {
-        return;
-      }
-
-      wasOpen = open;
-
-      if (open) {
-        document.body.classList.add("game-focus");
-
-        if (isTouchDevice() && canFullscreen()) {
-          enterFullscreen(modal);
-        }
-      } else {
-        document.body.classList.remove("game-focus");
-
-        if (fullscreenElement() === modal) {
-          exitFullscreen();
-        }
-      }
-    }).observe(modal, { attributes: true, attributeFilter: ["class"] });
+  // Los minijuegos se cargan al abrirlos (js/games/loader.js)
+  document.addEventListener("tronk:game-added", (event) => {
+    event.detail.root.querySelectorAll(".antitronks-modal").forEach(setupGameModal);
+    updateFullscreenButtons();
   });
 
   document.addEventListener("fullscreenchange", updateFullscreenButtons);
   document.addEventListener("webkitfullscreenchange", updateFullscreenButtons);
   updateFullscreenButtons();
+}
+
+function setupGameModal(modal) {
+  // Al hacer clic y arrastrar en un juego, el navegador no debe arrastrar
+  // la imagen ni seleccionar texto (pasaba en Safari y Firefox)
+  ["dragstart", "selectstart"].forEach((name) => {
+    modal.addEventListener(name, (event) => event.preventDefault());
+  });
+
+  const header = modal.querySelector(".antitronks-header");
+  const close = header?.querySelector(".antitronks-close");
+
+  if (canFullscreen() && header && close) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "antitronks-sound game-fullscreen-toggle";
+    button.addEventListener("click", () => {
+      if (fullscreenElement() === modal) {
+        exitFullscreen();
+      } else {
+        enterFullscreen(modal);
+      }
+    });
+    header.insertBefore(button, close);
+  }
+
+  // Al abrirse (se quita «hidden») en móvil, pantalla completa;
+  // al cerrarse, se sale.
+  let wasOpen = !modal.classList.contains("hidden");
+
+  new MutationObserver(() => {
+    const open = !modal.classList.contains("hidden");
+
+    if (open === wasOpen) {
+      return;
+    }
+
+    wasOpen = open;
+
+    if (open) {
+      document.body.classList.add("game-focus");
+
+      if (isTouchDevice() && canFullscreen()) {
+        enterFullscreen(modal);
+      }
+    } else {
+      document.body.classList.remove("game-focus");
+
+      if (fullscreenElement() === modal) {
+        exitFullscreen();
+      }
+    }
+  }).observe(modal, { attributes: true, attributeFilter: ["class"] });
 }
 
 /* =========================================================

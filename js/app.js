@@ -164,13 +164,7 @@ updateAccountUI();
 
 handleAuthRedirect();
 
-initializeAntitronksGame();
-
-initializeAntininjaGame();
-
-initializeStickDrillGame();
-
-initializeMienteGame();
+// Los minijuegos se arrancan al abrirlos (js/games/loader.js)
 
 console.log(
   "TronkStudios: inicialización completada."

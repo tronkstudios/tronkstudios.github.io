@@ -21,8 +21,18 @@ ideas, y escribir al soporte (Tronker o formulario de correo).
 
 ```
 index.html                 Página única (secciones con <section>)
-css/styles.css             Estilos con tokens (variables CSS) y modo claro/oscuro
-css/tronk-fight.css        Estilos de Tronk Fight (todo con prefijo tf- para no chocar)
+partials/                  Ventanas de los minijuegos (se añaden al abrir cada juego)
+css/                       Estilos por partes, en este orden (ver ADR 0003):
+  base.css                 Tokens (variables CSS), modo claro/oscuro, cabecera y botones
+  secciones.css            Tarjetas de juegos y minijuegos, tráileres y «Sobre nosotros»
+  soporte.css              Menú de soporte, chat de Tronker y formulario
+  portada.css              Portada, ficha del juego, comunidad y diario
+  plataforma.css           Perfiles, clasificación, iconos, ideas y panel del equipo
+  contenido.css            Logo de la portada, ajustes para todas las pantallas, YouTube y Roblox
+  extras.css               Fondos animados, avisos, atajos, mascota y comentarios
+  funciones.css            Modo jefe, logros, galería, calendario, podio y demos grabadas
+  minijuegos.css           Ventanas de los minijuegos (solo al abrir uno)
+  tronk-fight.css          Estilos de Tronk Fight (prefijo tf-; solo al abrir el juego)
 js/
   core.js                  Configuración de Supabase y elementos de la página
   theme.js                 Modo claro / oscuro guardado en el navegador
@@ -36,11 +46,14 @@ js/
   journey.js               «Cómo lo hicimos»: línea temporal paso a paso
   apis.js                  Últimos vídeos de YouTube y datos en directo de Roblox (vía el Worker)
   pwa.js                   App instalable: registra sw.js, botón «Instalar app» y aviso sin conexión
-  i18n.js                  Versión en inglés: diccionario y traductor de la página
+  i18n.js                  Versión en inglés: traductor de la página
+  i18n-en.js               Diccionario de inglés (solo se descarga si la web va en inglés)
 sw.js                      Service worker: guarda la web para usarla sin internet
 manifest.webmanifest       Datos de la app instalable (nombre, iconos, colores)
   news.js                  Diario de desarrollo: filtros y «Ver entradas anteriores»
   hero.js                  Fondo de partículas de la portada
+  games/loader.js          Carga cada minijuego (ventana, estilos y código) al abrirlo
+  games/results.js         Resultados, rachas y «Retar a un amigo»
   games/audio.js           Música y efectos generados con Web Audio
   games/antitronks.js      Minijuego Antitronks
   games/protect-mogos.js   Minijuego Protect Mogos
@@ -48,17 +61,19 @@ manifest.webmanifest       Datos de la app instalable (nombre, iconos, colores)
   games/tronk-fight.js     Minijuego Tronk Fight (juego de lucha completo)
   app.js                   Arranque, menú móvil y navegación
   support.js               Menú de soporte, chat de Tronker y formulario
-img/juegos/                Imágenes de las tarjetas
+img/juegos/                Capturas de los juegos en WebP (mini/: miniaturas de las tarjetas)
+video/                     Demos grabadas de los minijuegos (MP4 + póster WebP)
 img/avatars/               Avatares dibujados para los perfiles (SVG)
 index.js                   Backend de soporte (Cloudflare Worker)
 docs/adr/                  Decisiones de arquitectura
+docs/lighthouse/           Mediciones de Lighthouse (antes y después)
 docs/prompts/              Órdenes clave que le dimos a la IA
 CHANGELOG.md               Historia de la web por versiones
 ```
 
 ## Decisiones de arquitectura
 
-Las dos más importantes están explicadas en `docs/adr/`:
+Las más importantes están explicadas en `docs/adr/`:
 
 1. [ADR 0001 · Backend de soporte en un Cloudflare Worker](docs/adr/0001-backend-soporte-worker.md):
    por qué las claves secretas no están en la web y cómo viaja un mensaje
@@ -66,6 +81,9 @@ Las dos más importantes están explicadas en `docs/adr/`:
 2. [ADR 0002 · Scripts clásicos divididos por responsabilidad](docs/adr/0002-scripts-clasicos-por-modulos.md):
    por qué partimos el antiguo `script.js` de 8.000 líneas en 11 archivos
    y por qué no usamos `type="module"` todavía.
+3. [ADR 0003 · Estilos por partes y minijuegos que se cargan al abrirlos](docs/adr/0003-estilos-y-minijuegos-por-partes.md):
+   cómo pasamos de 31 a 96 en el rendimiento de Lighthouse en móvil
+   (mediciones en [`docs/lighthouse/`](docs/lighthouse/README.md)).
 
 ## Recorrido del dato en el formulario de contacto
 

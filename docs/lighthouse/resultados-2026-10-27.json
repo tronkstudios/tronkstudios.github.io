@@ -1,0 +1,224 @@
+{
+  "fecha": "2026-10-27",
+  "herramienta": "Lighthouse 12.8.2",
+  "servidor": "local con gzip y caché de 10 minutos, como GitHub Pages",
+  "nota": "Buenas prácticas sale 96 en la portada solo porque en el entorno de pruebas no hay conexión con Supabase (errores de red en la consola).",
+  "resultados": [
+    {
+      "pagina": "Portada (antes de los cambios)",
+      "ruta": "/",
+      "modo": "móvil",
+      "puntuaciones": {
+        "performance": 31,
+        "accessibility": 96,
+        "best-practices": 96,
+        "seo": 100
+      },
+      "metricas": {
+        "FCP": "3.9 s",
+        "LCP": "7.2 s",
+        "TBT": "40,890 ms",
+        "CLS": "0",
+        "SpeedIndex": "8.5 s"
+      }
+    },
+    {
+      "pagina": "Portada (antes de los cambios)",
+      "ruta": "/",
+      "modo": "escritorio",
+      "puntuaciones": {
+        "performance": 78,
+        "accessibility": 96,
+        "best-practices": 96,
+        "seo": 100
+      },
+      "metricas": {
+        "FCP": "0.6 s",
+        "LCP": "2.5 s",
+        "TBT": "230 ms",
+        "CLS": "0.022",
+        "SpeedIndex": "1.2 s"
+      }
+    },
+    {
+      "pagina": "Portada",
+      "ruta": "/",
+      "modo": "móvil",
+      "puntuaciones": {
+        "performance": 96,
+        "accessibility": 100,
+        "best-practices": 96,
+        "seo": 100
+      },
+      "metricas": {
+        "FCP": "1.5 s",
+        "LCP": "2.5 s",
+        "TBT": "90 ms",
+        "CLS": "0.02",
+        "SpeedIndex": "1.6 s"
+      }
+    },
+    {
+      "pagina": "Portada",
+      "ruta": "/",
+      "modo": "escritorio",
+      "puntuaciones": {
+        "performance": 100,
+        "accessibility": 100,
+        "best-practices": 96,
+        "seo": 100
+      },
+      "metricas": {
+        "FCP": "0.4 s",
+        "LCP": "0.6 s",
+        "TBT": "0 ms",
+        "CLS": "0.022",
+        "SpeedIndex": "0.6 s"
+      }
+    },
+    {
+      "pagina": "Portada en inglés",
+      "ruta": "/",
+      "modo": "móvil",
+      "puntuaciones": {
+        "performance": 93,
+        "accessibility": 100,
+        "best-practices": 96,
+        "seo": 100
+      },
+      "metricas": {
+        "FCP": "1.7 s",
+        "LCP": "3.1 s",
+        "TBT": "60 ms",
+        "CLS": "0.022",
+        "SpeedIndex": "1.9 s"
+      }
+    },
+    {
+      "pagina": "Portada en inglés",
+      "ruta": "/",
+      "modo": "escritorio",
+      "puntuaciones": {
+        "performance": 99,
+        "accessibility": 100,
+        "best-practices": 96,
+        "seo": 100
+      },
+      "metricas": {
+        "FCP": "0.4 s",
+        "LCP": "0.9 s",
+        "TBT": "0 ms",
+        "CLS": "0",
+        "SpeedIndex": "0.6 s"
+      }
+    },
+    {
+      "pagina": "Página de Antitronks",
+      "ruta": "/juegos/antitronks/",
+      "modo": "móvil",
+      "puntuaciones": {
+        "performance": 100,
+        "accessibility": 100,
+        "best-practices": 100,
+        "seo": 100
+      },
+      "metricas": {
+        "FCP": "0.8 s",
+        "LCP": "1.5 s",
+        "TBT": "0 ms",
+        "CLS": "0",
+        "SpeedIndex": "0.8 s"
+      }
+    },
+    {
+      "pagina": "Página de Antitronks",
+      "ruta": "/juegos/antitronks/",
+      "modo": "escritorio",
+      "puntuaciones": {
+        "performance": 100,
+        "accessibility": 100,
+        "best-practices": 100,
+        "seo": 100
+      },
+      "metricas": {
+        "FCP": "0.2 s",
+        "LCP": "0.4 s",
+        "TBT": "0 ms",
+        "CLS": "0",
+        "SpeedIndex": "0.2 s"
+      }
+    },
+    {
+      "pagina": "Página de Tronk Survivors",
+      "ruta": "/juegos/tronk-survivors/",
+      "modo": "móvil",
+      "puntuaciones": {
+        "performance": 99,
+        "accessibility": 100,
+        "best-practices": 100,
+        "seo": 100
+      },
+      "metricas": {
+        "FCP": "0.8 s",
+        "LCP": "2.0 s",
+        "TBT": "0 ms",
+        "CLS": "0",
+        "SpeedIndex": "0.8 s"
+      }
+    },
+    {
+      "pagina": "Página de Tronk Survivors",
+      "ruta": "/juegos/tronk-survivors/",
+      "modo": "escritorio",
+      "puntuaciones": {
+        "performance": 100,
+        "accessibility": 100,
+        "best-practices": 100,
+        "seo": 100
+      },
+      "metricas": {
+        "FCP": "0.2 s",
+        "LCP": "0.5 s",
+        "TBT": "0 ms",
+        "CLS": "0",
+        "SpeedIndex": "0.2 s"
+      }
+    },
+    {
+      "pagina": "Juego Tronk Survivors",
+      "ruta": "/survivors/",
+      "modo": "móvil",
+      "puntuaciones": {
+        "performance": 56,
+        "accessibility": 100,
+        "best-practices": 89,
+        "seo": 100
+      },
+      "metricas": {
+        "FCP": "0.8 s",
+        "LCP": "3.0 s",
+        "TBT": "16,510 ms",
+        "CLS": "0",
+        "SpeedIndex": "8.7 s"
+      }
+    },
+    {
+      "pagina": "Juego Tronk Survivors",
+      "ruta": "/survivors/",
+      "modo": "escritorio",
+      "puntuaciones": {
+        "performance": 63,
+        "accessibility": 100,
+        "best-practices": 93,
+        "seo": 100
+      },
+      "metricas": {
+        "FCP": "0.2 s",
+        "LCP": "0.7 s",
+        "TBT": "2,060 ms",
+        "CLS": "0",
+        "SpeedIndex": "3.0 s"
+      }
+    }
+  ]
+}

@@ -8,7 +8,9 @@
   --text: #10151d;
   --muted: #5b6678;
   --border: #d9e0ea;
-  --accent: #1f78ff;
+  /* Contraste de al menos 4.5:1 con el fondo y con el texto blanco */
+  --accent: #1466e0;
+  --accent-button: #1466e0;
   --accent-ink: #ffffff;
   --shadow: 0 10px 30px rgba(16, 21, 29, 0.08);
   color-scheme: light;
@@ -22,6 +24,7 @@
     --text: #eef3fb;
     --muted: #9aa6ba;
     --border: #25324c;
+    --accent: #5c9dff;
     --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
     color-scheme: dark;
   }
@@ -123,7 +126,7 @@ h1 {
   display: inline-block;
   padding: 0.9rem 1.6rem;
   border-radius: 14px;
-  background: var(--accent);
+  background: var(--accent-button);
   color: var(--accent-ink);
   font-weight: 900;
   font-size: 1.1rem;

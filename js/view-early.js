@@ -7,6 +7,35 @@
    - Los enlaces antiguos a #galeria (avisos, notificaciones push...)
      llevan a esa página. */
 
+/* En inglés, el diccionario (js/i18n-en.js) se empieza a bajar ya y la
+   página espera oculta a estar traducida, para no verla un momento en
+   español. Mismo criterio de idioma que js/i18n.js. */
+(() => {
+  let lang = "";
+
+  try {
+    lang = localStorage.getItem("tronk-lang") || "";
+  } catch {
+    // Sin localStorage se usa el idioma del navegador
+  }
+
+  if (lang !== "es" && lang !== "en") {
+    lang = (navigator.language || "es").toLowerCase().startsWith("es") ? "es" : "en";
+  }
+
+  if (lang === "en") {
+    const root = document.documentElement;
+    root.classList.add("i18n-wait");
+    const preload = document.createElement("link");
+    preload.rel = "preload";
+    preload.as = "script";
+    preload.href = "js/i18n-en.js?v=1";
+    document.head.appendChild(preload);
+    // Por si algo falla, la página nunca se queda oculta
+    setTimeout(() => root.classList.remove("i18n-wait"), 4000);
+  }
+})();
+
 (() => {
   const params = new URLSearchParams(location.search);
 

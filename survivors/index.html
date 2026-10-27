@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Tronk Survivors · Juego de sobrevivir a hordas gratis | TronkStudios</title>
   <meta name="description" content="Tronk Survivors: sobrevive a hordas de zombis, Antitronks y ninjas con 16 personajes en pixel art. Consigue personajes en el cofre, mejora tus armas y juega con tus amigos. Gratis en el navegador, en 3D, para ordenador." />
   <meta name="robots" content="index, follow, max-image-preview:large" />
@@ -15,13 +15,13 @@
   <meta property="og:title" content="Tronk Survivors · Sobrevive a las hordas" />
   <meta property="og:description" content="16 personajes en pixel art, zombis, Antitronks, ninjas y 4 jefes. Gratis en el navegador." />
   <meta property="og:url" content="https://tronkstudios.github.io/survivors/" />
-  <meta property="og:image" content="https://tronkstudios.github.io/img/juegos/tronk-survivors.png" />
+  <meta property="og:image" content="https://tronkstudios.github.io/img/juegos/tronk-survivors.webp" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta
     http-equiv="Content-Security-Policy"
     content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://qjjnqhbtovjcbwgcwhgl.supabase.co wss://qjjnqhbtovjcbwgcwhgl.supabase.co https://tronkstudios-support.tronkstudios7.workers.dev; object-src 'none'; base-uri 'self'; form-action 'self'"
   />
-  <link rel="stylesheet" href="survivors.css?v=3" />
+  <link rel="stylesheet" href="survivors.css?v=4" />
 </head>
 <body>
   <canvas id="game" aria-label="Tronk Survivors"></canvas>
@@ -41,14 +41,14 @@
         <h1 class="logo">TRONK<br /><span>SURVIVORS</span></h1>
         <div class="menu-chips"><span>16 personajes</span><span>16 armas</span><span>7 jefes</span><span>Online</span></div>
         <div class="menu-buttons">
-          <button class="btn btn-big" data-go="maps"><img data-icon="tajo" alt="" /> Jugar</button>
-          <button class="btn btn-daily" data-go="daily"><img data-icon="reloj" alt="" /> Reto diario <span id="menu-daily" class="badge" hidden>¡Nuevo!</span></button>
-          <button class="btn" data-go="online"><img data-icon="clon" alt="" /> Jugar con amigos</button>
-          <button class="btn" data-go="chars"><img data-icon="corazon" alt="" /> Personajes</button>
-          <button class="btn btn-gold" data-go="gacha"><img data-icon="cofre" alt="" /> Cofre Tronk <span id="menu-free" class="badge" hidden>¡Gratis!</span></button>
+          <button class="btn btn-big" data-go="maps"><img data-icon="tajo" alt="" loading="lazy" decoding="async" /> Jugar</button>
+          <button class="btn btn-daily" data-go="daily"><img data-icon="reloj" alt="" loading="lazy" decoding="async" /> Reto diario <span id="menu-daily" class="badge" hidden>¡Nuevo!</span></button>
+          <button class="btn" data-go="online"><img data-icon="clon" alt="" loading="lazy" decoding="async" /> Jugar con amigos</button>
+          <button class="btn" data-go="chars"><img data-icon="corazon" alt="" loading="lazy" decoding="async" /> Personajes</button>
+          <button class="btn btn-gold" data-go="gacha"><img data-icon="cofre" alt="" loading="lazy" decoding="async" /> Cofre Tronk <span id="menu-free" class="badge" hidden>¡Gratis!</span></button>
           <div class="menu-row">
-            <button class="btn" data-go="shop"><img data-icon="musculo" alt="" /> Mejoras</button>
-            <button class="btn" data-go="achievements"><img data-icon="trebol" alt="" /> Misiones <span id="menu-ach" class="badge" hidden>!</span></button>
+            <button class="btn" data-go="shop"><img data-icon="musculo" alt="" loading="lazy" decoding="async" /> Mejoras</button>
+            <button class="btn" data-go="achievements"><img data-icon="trebol" alt="" loading="lazy" decoding="async" /> Misiones <span id="menu-ach" class="badge" hidden>!</span></button>
           </div>
         </div>
         <p class="menu-account" id="menu-account"></p>
@@ -60,16 +60,16 @@
       </div>
 
       <div class="menu-stage" aria-live="polite">
-        <div class="coins-pill menu-coins"><img data-icon="moneda" alt="" /> <span id="menu-coins">0</span></div>
+        <div class="coins-pill menu-coins"><img data-icon="moneda" alt="" loading="lazy" decoding="async" /> <span id="menu-coins">0</span></div>
         <div class="stage-hero">
-          <img id="stage-img" alt="" />
+          <img id="stage-img" alt="" loading="eager" fetchpriority="high" decoding="async" />
           <div class="stage-floor"></div>
         </div>
         <div class="stage-info">
           <span class="stage-rarity" id="stage-rarity"></span>
           <b class="stage-name" id="stage-name"></b>
           <span class="stage-stars" id="stage-stars"></span>
-          <span class="stage-weapon"><img id="stage-weapon-icon" alt="" /> <span id="stage-weapon"></span></span>
+          <span class="stage-weapon"><img id="stage-weapon-icon" alt="" loading="lazy" decoding="async" /> <span id="stage-weapon"></span></span>
           <button class="btn btn-small" data-go="chars">Cambiar personaje</button>
         </div>
       </div>
@@ -98,15 +98,15 @@
       <header class="panel-head">
         <button class="btn btn-small" data-go="menu">← Volver</button>
         <h2>Cofre Tronk</h2>
-        <div class="coins-pill"><img data-icon="moneda" alt="" /> <span class="js-coins">0</span></div>
+        <div class="coins-pill"><img data-icon="moneda" alt="" loading="lazy" decoding="async" /> <span class="js-coins">0</span></div>
       </header>
       <div class="gacha-stage">
         <div class="gacha-chest" id="gacha-chest"></div>
         <p class="gacha-note">Se paga con las monedas que ganas jugando. Nada de dinero real.</p>
       </div>
       <div class="gacha-buttons">
-        <button class="btn btn-gold btn-big" id="pull-1">Abrir 1 · <img data-icon="moneda" alt="" /> <span id="cost-1">150</span></button>
-        <button class="btn btn-gold btn-big" id="pull-10">Abrir 10 · <img data-icon="moneda" alt="" /> <span id="cost-10">1350</span></button>
+        <button class="btn btn-gold btn-big" id="pull-1">Abrir 1 · <img data-icon="moneda" alt="" loading="lazy" decoding="async" /> <span id="cost-1">150</span></button>
+        <button class="btn btn-gold btn-big" id="pull-10">Abrir 10 · <img data-icon="moneda" alt="" loading="lazy" decoding="async" /> <span id="cost-10">1350</span></button>
       </div>
       <p class="gacha-pity" id="gacha-pity"></p>
       <details class="gacha-rates">
@@ -127,7 +127,7 @@
       <header class="panel-head">
         <button class="btn btn-small" data-go="menu">← Volver</button>
         <h2>Mejoras</h2>
-        <div class="coins-pill"><img data-icon="moneda" alt="" /> <span class="js-coins">0</span></div>
+        <div class="coins-pill"><img data-icon="moneda" alt="" loading="lazy" decoding="async" /> <span class="js-coins">0</span></div>
       </header>
       <p class="panel-sub">Se quedan para siempre en todas las partidas.</p>
       <div class="shop-list" id="shop-list"></div>

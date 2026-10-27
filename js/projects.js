@@ -31,7 +31,7 @@ const PROJECTS = {
   "z-tronks": {
     section: "desarrollo",
     title: "Z Tronks",
-    image: "img/juegos/z-tronks.png",
+    image: "img/juegos/z-tronks.webp",
     category: "Roblox",
     genre: "Acción · Supervivencia · Cooperativo",
     platforms: ["Roblox"],
@@ -56,7 +56,7 @@ const PROJECTS = {
   "the-sundered-sky": {
     section: "desarrollo",
     title: "The Sundered Sky",
-    image: "img/juegos/the-sundered-sky.png",
+    image: "img/juegos/the-sundered-sky.webp",
     category: "Juego",
     genre: "RPG · Aventura · Fantasía",
     platforms: ["PC"],
@@ -454,6 +454,10 @@ const PROJECT_MEDIA_BUCKET = "project-media";
 
 // Las imágenes subidas desde el panel van a Storage; las de img/ se quedan
 function projectMediaUrl(path) {
+  // Las capturas de img/juegos/ son WebP (las filas antiguas aún dicen .png)
+  if (path && /^img\/juegos\/[a-z0-9-]+\.png$/.test(path)) {
+    return path.replace(/\.png$/, ".webp");
+  }
   if (!path || /^(https?:|data:|img\/)/.test(path)) {
     return path || "";
   }
@@ -488,7 +492,7 @@ function projectFromRow(row, previous) {
 }
 
 function projectCardElement(id, project) {
-  const card = document.createElement("article");
+  const card = document.createElement("div");
   card.className = "card dev-card project-card";
   card.dataset.project = id;
   card.tabIndex = 0;
@@ -498,7 +502,8 @@ function projectCardElement(id, project) {
   const media = document.createElement("div");
   media.className = "dev-card-media";
   const image = document.createElement("img");
-  image.src = project.image || "img/icons/icon-512.png";
+  // En la tarjeta va la miniatura (img/juegos/mini/); la grande, en la ficha
+  image.src = (project.image || "img/icons/icon-512.png").replace(/^img\/juegos\/([a-z0-9-]+\.webp)$/, "img/juegos/mini/$1");
   image.alt = project.imageAlt || project.title;
   image.loading = "lazy";
   image.dataset.fallbackLabel = project.title;

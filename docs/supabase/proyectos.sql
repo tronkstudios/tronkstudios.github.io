@@ -112,14 +112,14 @@ values
 Cada jugador podrá elegir entre distintas clases, como Gunner, Warrior, Rogue y Medic, cada una con sus propias armas, habilidades y estilos de combate. A medida que avances, podrás desbloquear nuevas habilidades, conseguir mejor equipamiento y enfrentarte a enemigos cada vez más peligrosos.
 
 Forma un equipo con tus amigos, sobrevive al apocalipsis y conviértete en uno de los supervivientes más poderosos de Z Tronks.',
-   'img/juegos/z-tronks.png', 'Z Tronks - juego de zombis para Roblox', '', 1),
+   'img/juegos/z-tronks.webp', 'Z Tronks - juego de zombis para Roblox', '', 1),
   ('the-sundered-sky', 'The Sundered Sky', 'desarrollo', 'Juego', 'RPG · Aventura · Fantasía', array['PC'], 'development', 1, '',
    'The Sundered Sky es un RPG de fantasía y aventuras en un mundo hecho de cubos. Hace siglos, un gran cataclismo conocido como la Ruptura partió el antiguo continente en pedazos, y hoy sus restos flotan como islas sobre un inmenso mar de nubes.
 
 Junto a tus amigos viajarás en un barco volador por un archipiélago que se genera al azar en cada partida. Explora biomas muy distintos, descubre criaturas nunca vistas, visita ciudades de razas y facciones con sus propias ideas, y adéntrate en mazmorras llenas de tesoros. Elige tu clase, consigue armas y armaduras, fabrica equipo, doma mascotas y mejora tu barco para llegar cada vez más lejos.
 
 Cada pueblo habla su propia lengua. Aprende sus palabras poco a poco para leer libros antiguos, desvelar los secretos de la Ruptura y enfrentarte a jefes legendarios. Un mundo de aventuras para todas las edades, pensado para disfrutarlo en compañía.',
-   'img/juegos/the-sundered-sky.png', 'The Sundered Sky - RPG de aventuras en islas flotantes hechas de cubos', '', 2)
+   'img/juegos/the-sundered-sky.webp', 'The Sundered Sky - RPG de aventuras en islas flotantes hechas de cubos', '', 2)
 on conflict (id) do nothing;
 
 /* =========================================================

@@ -356,9 +356,15 @@ function updateGameMode() {
   resize();
 }
 
+function watchGame(modal) {
+  new MutationObserver(updateGameMode).observe(modal, { attributes: true, attributeFilter: ["class"] });
+}
+
 function watchGames() {
-  document.querySelectorAll(".antitronks-modal").forEach((modal) => {
-    new MutationObserver(updateGameMode).observe(modal, { attributes: true, attributeFilter: ["class"] });
+  document.querySelectorAll(".antitronks-modal").forEach(watchGame);
+  // Los minijuegos se cargan al abrirlos (js/games/loader.js)
+  document.addEventListener("tronk:game-added", (event) => {
+    event.detail.root.querySelectorAll(".antitronks-modal").forEach(watchGame);
   });
 
   document.addEventListener("fullscreenchange", updateGameMode);
@@ -1351,13 +1357,20 @@ function start() {
   watchGames();
   watchAreas();
 
-  const go = () => init3d();
-
-  if ("requestIdleCallback" in window) {
-    requestIdleCallback(go, { timeout: 500 });
-  } else {
-    setTimeout(go, 200);
-  }
+  // Three.js pesa mucho: mientras tanto se ve la imagen del robot y el 3D se
+  // carga cuando el visitante hace algo (o a los 12 s), así la página sale antes
+  let started = false;
+  const events = ["pointerdown", "pointermove", "keydown", "touchstart", "wheel", "scroll"];
+  const go = () => {
+    if (started) return;
+    started = true;
+    events.forEach((name) => window.removeEventListener(name, go));
+    clearTimeout(timer);
+    if ("requestIdleCallback" in window) requestIdleCallback(() => init3d(), { timeout: 800 });
+    else setTimeout(init3d, 200);
+  };
+  events.forEach((name) => window.addEventListener(name, go, { passive: true }));
+  const timer = setTimeout(go, 12000);
 }
 
 // Los módulos se ejecutan cuando el HTML ya está leído: el robot sale ya
