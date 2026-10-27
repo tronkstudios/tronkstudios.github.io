@@ -9,6 +9,17 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.41 · Un vídeo para cada minijuego
+
+#### Añadido
+- Cada tarjeta de Minijuegos tiene un desplegable «Ver vídeo» con una partida
+  grabada de ese juego (Antitronks, Protect Mogos, Stick Drill, Tronk Fight,
+  El Juego Miente y Tronk Survivors). El vídeo solo se descarga al abrir el
+  desplegable, empieza solo y se para al cerrarlo.
+
+#### Cambiado
+- Los vídeos de «Así se juega» pasan a las tarjetas de cada juego.
+
 ### 6.40 · Web más rápida: imágenes, vídeo y estilos por partes
 
 #### Añadido

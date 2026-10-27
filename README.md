@@ -62,7 +62,7 @@ manifest.webmanifest       Datos de la app instalable (nombre, iconos, colores)
   app.js                   Arranque, menú móvil y navegación
   support.js               Menú de soporte, chat de Tronker y formulario
 img/juegos/                Capturas de los juegos en WebP (mini/: miniaturas de las tarjetas)
-video/                     Demos grabadas de los minijuegos (MP4 + póster WebP)
+video/                     Una partida grabada de cada minijuego (MP4 + póster WebP), en el desplegable «Ver vídeo» de su tarjeta
 img/avatars/               Avatares dibujados para los perfiles (SVG)
 index.js                   Backend de soporte (Cloudflare Worker)
 docs/adr/                  Decisiones de arquitectura

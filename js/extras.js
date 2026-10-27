@@ -310,6 +310,29 @@ function updateFullscreenButtons() {
   document.body.classList.toggle("game-fullscreen", Boolean(current));
 }
 
+/* =========================================================
+   VÍDEOS DE LOS MINIJUEGOS (desplegable «Ver vídeo» de cada tarjeta)
+   Se ponen en marcha al abrir el desplegable y se paran al cerrarlo.
+   ========================================================= */
+
+function initializeMinigameDemos() {
+  document.querySelectorAll(".minigame-demo").forEach((demo) => {
+    const video = demo.querySelector("video");
+
+    demo.addEventListener("toggle", () => {
+      if (!video) {
+        return;
+      }
+
+      if (demo.open) {
+        video.play().catch(() => {});
+      } else {
+        video.pause();
+      }
+    });
+  });
+}
+
 function initializeGameFullscreen() {
   document.querySelectorAll(".antitronks-modal").forEach(setupGameModal);
 
@@ -549,6 +572,7 @@ function initializeSectionBackgrounds() {
 function initializeExtras() {
   initializeUISounds();
   initializeGameFullscreen();
+  initializeMinigameDemos();
   initializeShortcuts();
   initializeJoin();
   initializeSectionBackgrounds();

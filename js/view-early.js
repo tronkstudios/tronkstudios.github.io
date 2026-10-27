@@ -29,7 +29,7 @@
     const preload = document.createElement("link");
     preload.rel = "preload";
     preload.as = "script";
-    preload.href = "js/i18n-en.js?v=1";
+    preload.href = "js/i18n-en.js?v=2";
     document.head.appendChild(preload);
     // Por si algo falla, la página nunca se queda oculta
     setTimeout(() => root.classList.remove("i18n-wait"), 4000);
