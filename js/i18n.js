@@ -240,7 +240,7 @@ if (LANG === "en") {
   // El diccionario (js/i18n-en.js) traduce la página en cuanto llega; mientras,
   // la página está oculta (clase i18n-wait, que pone js/view-early.js)
   const dictionary = document.createElement("script");
-  dictionary.src = "js/i18n-en.js?v=1";
+  dictionary.src = "js/i18n-en.js?v=2";
   dictionary.onerror = () => initializeI18n();
   document.body.appendChild(dictionary);
 } else {

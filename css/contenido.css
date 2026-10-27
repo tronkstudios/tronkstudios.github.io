@@ -238,6 +238,21 @@ button.card-trailer-title {
     gap: 0;
   }
 
+  #minijuegos .minigame-open {
+    position: relative;
+    gap: 0;
+    border-radius: 0;
+  }
+
+  #minijuegos .minigame-demo {
+    padding: 0.45rem;
+  }
+
+  #minijuegos .minigame-demo summary {
+    font-size: 0.78rem;
+    padding: 0.25rem 0.6rem;
+  }
+
   #minijuegos .minigame-card .dev-card-media {
     aspect-ratio: 4 / 3;
     border: 0;
@@ -260,7 +275,7 @@ button.card-trailer-title {
   }
 
   /* Botón de «jugar» en el centro de la imagen */
-  #minijuegos .minigame-card::after {
+  #minijuegos .minigame-open::after {
     content: "";
     position: absolute;
     top: 38%;

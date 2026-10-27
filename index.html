@@ -106,15 +106,15 @@
   <!-- Estilos por partes, en este orden (ver docs/adr/0003). Los de los
        minijuegos (css/minijuegos.css) se cargan al abrir un juego. -->
   <link rel="stylesheet" href="css/base.css?v=2" />
-  <link rel="stylesheet" href="css/secciones.css?v=2" />
+  <link rel="stylesheet" href="css/secciones.css?v=3" />
   <link rel="stylesheet" href="css/soporte.css?v=1" />
   <link rel="stylesheet" href="css/portada.css?v=1" />
   <link rel="stylesheet" href="css/plataforma.css?v=1" />
-  <link rel="stylesheet" href="css/contenido.css?v=2" />
+  <link rel="stylesheet" href="css/contenido.css?v=3" />
   <link rel="stylesheet" href="css/extras.css?v=1" />
-  <link rel="stylesheet" href="css/funciones.css?v=1" />
+  <link rel="stylesheet" href="css/funciones.css?v=2" />
   <!-- ?vista=galeria: la Galería de fans como página propia (sin parpadeo) -->
-  <script src="js/view-early.js?v=7"></script>
+  <script src="js/view-early.js?v=8"></script>
 
 
   <!-- defer: no frena el primer dibujo y se ejecuta antes que js/core.js -->
@@ -151,7 +151,7 @@
   <script src="js/apis.js?v=3" defer></script>
   <script src="js/push.js?v=1" defer></script>
   <script src="js/pwa.js?v=1" defer></script>
-  <script src="js/extras.js?v=9" defer></script>
+  <script src="js/extras.js?v=10" defer></script>
   <script src="js/secrets.js?v=1" defer></script>
   <script src="js/boss.js?v=2" defer></script>
   <script src="js/app.js?v=35" defer></script>
@@ -738,139 +738,186 @@
 
         <div class="cards-grid">
 
-          <div
-            class="card dev-card minigame-card"
-            data-minigame="antitronks"
-            tabindex="0"
-            role="button"
-            aria-label="Abrir Antitronks"
-          >
+          <article class="card dev-card minigame-card">
+            <div
+              class="minigame-open"
+              data-minigame="antitronks"
+              tabindex="0"
+              role="button"
+              aria-label="Abrir Antitronks"
+            >
 
-            <div class="dev-card-media">
-              <img
-                src="img/juegos/mini/antitronks.webp"
-                alt="Antitronks - minijuego de disparos"
-                loading="lazy"
-                data-fallback-label="Antitronks" decoding="async" width="640" height="360" />
+              <div class="dev-card-media">
+                <img
+                  src="img/juegos/mini/antitronks.webp"
+                  alt="Antitronks - minijuego de disparos"
+                  loading="lazy"
+                  data-fallback-label="Antitronks" decoding="async" width="640" height="360" />
+              </div>
+
+              <h3>Antitronks</h3>
+
             </div>
 
-            <h3>Antitronks</h3>
-
-          </div>
-
-          <div
-            class="card dev-card minigame-card"
-            data-minigame="antininja"
-            tabindex="0"
-            role="button"
-            aria-label="Abrir Protect Mogos"
-          >
-
-            <div class="dev-card-media">
-              <img
-                src="img/juegos/mini/protect-mogos.webp"
-                alt="Protect Mogos - minijuego de ninjas"
-                loading="lazy"
-                data-fallback-label="Protect Mogos" decoding="async" width="640" height="360" />
-            </div>
-
-            <h3>Protect Mogos</h3>
-
-          </div>
-
-          <div
-            class="card dev-card minigame-card"
-            data-minigame="stickdrill"
-            tabindex="0"
-            role="button"
-            aria-label="Abrir Stick Drill"
-          >
-
-            <div class="dev-card-media">
-              <img
-                src="img/juegos/mini/stick-drill.webp"
-                alt="Stick Drill - minijuego de esquivar el taladro"
-                loading="lazy"
-                data-fallback-label="Stick Drill" decoding="async" width="640" height="360" />
-            </div>
-
-            <h3>Stick Drill</h3>
-
-          </div>
-
-          <div
-            class="card dev-card minigame-card"
-            data-minigame="tronkfight"
-            tabindex="0"
-            role="button"
-            aria-label="Abrir Tronk Fight"
-          >
-
-            <div class="dev-card-media">
-              <img
-                src="img/juegos/mini/tronk-fight.webp"
-                alt="Tronk Fight - duelo de stickmans"
-                loading="lazy"
-                data-fallback-label="Tronk Fight" decoding="async" width="640" height="360" />
-            </div>
-
-            <h3>Tronk Fight</h3>
-
-          </div>
-
-          <div
-            class="card dev-card minigame-card"
-            data-minigame="miente"
-            tabindex="0"
-            role="button"
-            aria-label="Abrir El Juego Miente"
-          >
-
-            <div class="dev-card-media">
-              <img
-                src="img/juegos/mini/el-juego-miente.webp"
-                data-src-en="img/juegos/mini/the-game-lies.webp"
-                alt="El Juego Miente - minijuego de reacción con colores"
-                loading="lazy"
-                data-fallback-label="El Juego Miente" decoding="async" width="640" height="360" />
-            </div>
-
-            <h3>El Juego Miente</h3>
-
-          </div>
-
-          <a class="card dev-card minigame-card minigame-link" href="survivors/" aria-label="Jugar a Tronk Survivors">
-            <div class="dev-card-media">
-              <span class="minigame-new">¡Nuevo!</span>
-              <img
-                src="img/juegos/mini/tronk-survivors.webp"
-                alt="Tronk Survivors - sobrevive a hordas de zombis con los Tronks"
-                loading="lazy"
-                data-fallback-label="Tronk Survivors" decoding="async" width="640" height="360" />
-            </div>
-
-            <h3>Tronk Survivors</h3>
-          </a>
-
-        </div>
-
-        <!-- Demos grabadas de los minijuegos (video/, grabadas jugando en la web) -->
-        <div class="demos">
-          <h3><svg class="icon" aria-hidden="true"><use href="#i-play"></use></svg> Así se juega</h3>
-          <div class="demos-list">
-            <figure class="demo">
-              <video controls muted playsinline loop preload="none" poster="video/demo-tronkfight.webp" width="540" height="960" aria-label="Demo grabada de Tronk Fight">
-                <source src="video/demo-tronkfight.mp4" type="video/mp4" />
+            <!-- Vídeo del juego: solo se carga al abrir el desplegable -->
+            <details class="minigame-demo">
+              <summary>Ver vídeo</summary>
+              <video controls muted playsinline loop preload="none" poster="video/antitronks.webp" width="640" height="360" aria-label="Vídeo de Antitronks">
+                <source src="video/antitronks.mp4" type="video/mp4" />
               </video>
-              <figcaption>Tronk Fight: un duelo de stickmen</figcaption>
-            </figure>
-            <figure class="demo">
-              <video controls muted playsinline loop preload="none" poster="video/demo-antitronks.webp" width="540" height="960" aria-label="Demo grabada de Antitronks">
-                <source src="video/demo-antitronks.mp4" type="video/mp4" />
+            </details>
+
+          </article>
+
+          <article class="card dev-card minigame-card">
+            <div
+              class="minigame-open"
+              data-minigame="antininja"
+              tabindex="0"
+              role="button"
+              aria-label="Abrir Protect Mogos"
+            >
+
+              <div class="dev-card-media">
+                <img
+                  src="img/juegos/mini/protect-mogos.webp"
+                  alt="Protect Mogos - minijuego de ninjas"
+                  loading="lazy"
+                  data-fallback-label="Protect Mogos" decoding="async" width="640" height="360" />
+              </div>
+
+              <h3>Protect Mogos</h3>
+
+            </div>
+
+            <!-- Vídeo del juego: solo se carga al abrir el desplegable -->
+            <details class="minigame-demo">
+              <summary>Ver vídeo</summary>
+              <video controls muted playsinline loop preload="none" poster="video/protect-mogos.webp" width="640" height="360" aria-label="Vídeo de Protect Mogos">
+                <source src="video/protect-mogos.mp4" type="video/mp4" />
               </video>
-              <figcaption>Antitronks: dispara a los Antitronks, no a los civiles</figcaption>
-            </figure>
-          </div>
+            </details>
+
+          </article>
+
+          <article class="card dev-card minigame-card">
+            <div
+              class="minigame-open"
+              data-minigame="stickdrill"
+              tabindex="0"
+              role="button"
+              aria-label="Abrir Stick Drill"
+            >
+
+              <div class="dev-card-media">
+                <img
+                  src="img/juegos/mini/stick-drill.webp"
+                  alt="Stick Drill - minijuego de esquivar el taladro"
+                  loading="lazy"
+                  data-fallback-label="Stick Drill" decoding="async" width="640" height="360" />
+              </div>
+
+              <h3>Stick Drill</h3>
+
+            </div>
+
+            <!-- Vídeo del juego: solo se carga al abrir el desplegable -->
+            <details class="minigame-demo">
+              <summary>Ver vídeo</summary>
+              <video controls muted playsinline loop preload="none" poster="video/stick-drill.webp" width="640" height="360" aria-label="Vídeo de Stick Drill">
+                <source src="video/stick-drill.mp4" type="video/mp4" />
+              </video>
+            </details>
+
+          </article>
+
+          <article class="card dev-card minigame-card">
+            <div
+              class="minigame-open"
+              data-minigame="tronkfight"
+              tabindex="0"
+              role="button"
+              aria-label="Abrir Tronk Fight"
+            >
+
+              <div class="dev-card-media">
+                <img
+                  src="img/juegos/mini/tronk-fight.webp"
+                  alt="Tronk Fight - duelo de stickmans"
+                  loading="lazy"
+                  data-fallback-label="Tronk Fight" decoding="async" width="640" height="360" />
+              </div>
+
+              <h3>Tronk Fight</h3>
+
+            </div>
+
+            <!-- Vídeo del juego: solo se carga al abrir el desplegable -->
+            <details class="minigame-demo">
+              <summary>Ver vídeo</summary>
+              <video controls muted playsinline loop preload="none" poster="video/tronk-fight.webp" width="640" height="360" aria-label="Vídeo de Tronk Fight">
+                <source src="video/tronk-fight.mp4" type="video/mp4" />
+              </video>
+            </details>
+
+          </article>
+
+          <article class="card dev-card minigame-card">
+            <div
+              class="minigame-open"
+              data-minigame="miente"
+              tabindex="0"
+              role="button"
+              aria-label="Abrir El Juego Miente"
+            >
+
+              <div class="dev-card-media">
+                <img
+                  src="img/juegos/mini/el-juego-miente.webp"
+                  data-src-en="img/juegos/mini/the-game-lies.webp"
+                  alt="El Juego Miente - minijuego de reacción con colores"
+                  loading="lazy"
+                  data-fallback-label="El Juego Miente" decoding="async" width="640" height="360" />
+              </div>
+
+              <h3>El Juego Miente</h3>
+
+            </div>
+
+            <!-- Vídeo del juego: solo se carga al abrir el desplegable -->
+            <details class="minigame-demo">
+              <summary>Ver vídeo</summary>
+              <video controls muted playsinline loop preload="none" poster="video/el-juego-miente.webp" width="640" height="360" aria-label="Vídeo de El Juego Miente">
+                <source src="video/el-juego-miente.mp4" type="video/mp4" />
+              </video>
+            </details>
+
+          </article>
+
+          <article class="card dev-card minigame-card">
+            <a class="minigame-open minigame-link" href="survivors/" aria-label="Jugar a Tronk Survivors">
+              <div class="dev-card-media">
+                <span class="minigame-new">¡Nuevo!</span>
+                <img
+                  src="img/juegos/mini/tronk-survivors.webp"
+                  alt="Tronk Survivors - sobrevive a hordas de zombis con los Tronks"
+                  loading="lazy"
+                  data-fallback-label="Tronk Survivors" decoding="async" width="640" height="360" />
+              </div>
+
+              <h3>Tronk Survivors</h3>
+            </a>
+
+            <!-- Vídeo del juego: solo se carga al abrir el desplegable -->
+            <details class="minigame-demo">
+              <summary>Ver vídeo</summary>
+              <video controls muted playsinline loop preload="none" poster="video/tronk-survivors.webp" width="640" height="360" aria-label="Vídeo de Tronk Survivors">
+                <source src="video/tronk-survivors.mp4" type="video/mp4" />
+              </video>
+            </details>
+
+          </article>
+
         </div>
 
         <!-- Clasificación (js/profiles.js) -->
@@ -2870,6 +2917,6 @@
 
   <!-- Versión en inglés. Va aquí, sin defer, para traducir antes de
        que se vea la página (ver js/i18n.js). -->
-  <script src="js/i18n.js?v=28"></script>
+  <script src="js/i18n.js?v=29"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 /* TronkStudios · css/funciones.css
-   Modo jefe, logros secretos, historial, galería de fans, calendario, notificaciones push, podio y demos grabadas.
+   Modo jefe, logros secretos, historial, galería de fans, calendario, notificaciones push, y podio.
    Es una parte de los estilos de la portada: index.html carga todas en
    orden (ver docs/adr/0003-estilos-y-minijuegos-por-partes.md). */
 
@@ -1406,11 +1406,3 @@ html.view-gallery .main-nav .nav-back {
     transition: none;
   }
 }
-
-/* ---------- Demos grabadas de los minijuegos ---------- */
-.demos { margin-top: 32px; }
-.demos h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; }
-.demos-list { display: flex; flex-wrap: wrap; gap: 18px; }
-.demo { margin: 0; width: min(270px, 100%); }
-.demo video { display: block; width: 100%; height: auto; aspect-ratio: 9 / 16; border-radius: 16px; background: #0d0920; box-shadow: var(--shadow, 0 8px 24px rgba(0, 0, 0, 0.25)); }
-.demo figcaption { margin-top: 8px; font-size: 0.9rem; color: var(--muted, inherit); }
