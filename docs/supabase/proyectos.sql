@@ -113,7 +113,7 @@ Cada jugador podrá elegir entre distintas clases, como Gunner, Warrior, Rogue y
 
 Forma un equipo con tus amigos, sobrevive al apocalipsis y conviértete en uno de los supervivientes más poderosos de Z Tronks.',
    'img/juegos/z-tronks.webp', 'Z Tronks - juego de zombis para Roblox', '', 1),
-  ('the-sundered-sky', 'The Sundered Sky', 'desarrollo', 'Juego', 'RPG · Aventura · Fantasía', array['PC'], 'development', 1, '',
+  ('the-sundered-sky', 'The Sundered Sky', 'desarrollo', 'Juego', 'RPG · Aventura · Fantasía', array['PC'], 'development', 1, 'LMzv7BHrr_s',
    'The Sundered Sky es un RPG de fantasía y aventuras en un mundo hecho de cubos. Hace siglos, un gran cataclismo conocido como la Ruptura partió el antiguo continente en pedazos, y hoy sus restos flotan como islas sobre un inmenso mar de nubes.
 
 Junto a tus amigos viajarás en un barco volador por un archipiélago que se genera al azar en cada partida. Explora biomas muy distintos, descubre criaturas nunca vistas, visita ciudades de razas y facciones con sus propias ideas, y adéntrate en mazmorras llenas de tesoros. Elige tu clase, consigue armas y armaduras, fabrica equipo, doma mascotas y mejora tu barco para llegar cada vez más lejos.

@@ -62,7 +62,7 @@ const PROJECTS = {
     platforms: ["PC"],
     status: "development",
     people: 1,
-    trailer: "",
+    trailer: "LMzv7BHrr_s",
     // null = todavía no tiene fecha de lanzamiento
     release: null,
     stores: [],
