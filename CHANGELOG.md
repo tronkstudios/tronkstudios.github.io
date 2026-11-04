@@ -9,6 +9,11 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.42 · Tráiler de The Sundered Sky
+
+#### Añadido
+- El nuevo tráiler de The Sundered Sky en su tarjeta y en su ficha.
+
 ### 6.41 · Un vídeo para cada minijuego
 
 #### Añadido
