@@ -33,6 +33,23 @@ const Save = (() => {
     };
   }
 
+  const integer = (value, fallback = 0) => Number.isFinite(Number(value)) ? Math.max(0, Math.floor(Number(value))) : fallback;
+  function normalize(d) {
+    const owned = {};
+    for (const ch of TS.CHARACTERS) if (d.owned && d.owned[ch.id]) {
+      owned[ch.id] = { stars: Math.max(1, Math.min(TS.GACHA.maxStars, integer(d.owned[ch.id].stars, 1))) };
+    }
+    if (!owned[TS.STARTER]) owned[TS.STARTER] = { stars: 1 };
+    d.owned = owned;
+    if (!owned[d.selected]) d.selected = TS.STARTER;
+    d.shop = Object.fromEntries(TS.SHOP.map(item => [item.id, Math.min(item.max, integer(d.shop && d.shop[item.id]))]));
+    for (const key of ["coins", "pity", "pulls", "runs", "savedAt"]) d[key] = integer(d[key]);
+    for (const section of ["best", "stats"]) {
+      for (const key of Object.keys(fresh()[section])) d[section][key] = integer(d[section][key]);
+    }
+    return d;
+  }
+
   function load() {
     data = fresh();
     try {
@@ -46,7 +63,7 @@ const Save = (() => {
     } catch {
       // sin almacenamiento: se juega igual, pero no se guarda
     }
-    return data;
+    return normalize(data);
   }
 
   let onChange = null;
@@ -77,14 +94,14 @@ const Save = (() => {
     const owned = { ...d.owned };
     for (const [id, o] of Object.entries(remote.owned || {})) {
       if (!TS.CHARACTERS.some((c) => c.id === id)) continue;
-      owned[id] = { stars: Math.min(TS.GACHA.maxStars, Math.max(owned[id] ? owned[id].stars : 0, Number(o.stars) || 1)) };
+      owned[id] = { stars: Math.min(TS.GACHA.maxStars, Math.max(owned[id] ? owned[id].stars : 0, Number(o && o.stars) || 1)) };
     }
     const maxObj = (a = {}, b = {}) => {
       const out = { ...a };
-      for (const [k, v] of Object.entries(b)) if (typeof v === "number") out[k] = Math.max(out[k] || 0, v); else if (v === true) out[k] = true;
+      for (const [k, v] of Object.entries(b || {})) if (typeof v === "number") out[k] = Math.max(out[k] || 0, v); else if (v === true) out[k] = true;
       return out;
     };
-    data = {
+    Object.assign(d, {
       ...d,
       owned,
       coins: Math.max(0, Math.floor(Number(newer.coins) || 0)),
@@ -100,7 +117,8 @@ const Save = (() => {
       selected: owned[newer.selected] ? newer.selected : d.selected,
       tutorial: !!(d.tutorial || remote.tutorial),
       weekly: mergeWeekly(d.weekly, remote.weekly)
-    };
+    });
+    normalize(d);
     persist();
   }
 

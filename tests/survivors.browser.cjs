@@ -14,9 +14,16 @@ async function checkSprites(page) {
     for (const [id, frames] of sets) {
       for (const [dir, set] of Object.entries(frames)) {
         if (dir.endsWith('Flash')) continue;
+        const flashSet = frames[`${dir}Flash`];
         for (const [i, canvas] of [set.idle, ...set.walk, ...set.attack].entries()) {
           const { width: w, height: h } = canvas;
+          const flash = [flashSet.idle, ...flashSet.walk, ...flashSet.attack][i];
+          if (flash.width !== w || flash.height !== h || flash.foot !== canvas.foot) clipped.push(`${id}:${dir}:${i}:flash-anchor`);
+          const flashPixels = flash.getContext('2d').getImageData(0, 0, w, h).data;
           const pixels = canvas.getContext('2d').getImageData(0, 0, w, h).data;
+          for (let px = 3; px < pixels.length; px += 4) {
+            if (pixels[px] !== flashPixels[px]) { clipped.push(`${id}:${dir}:${i}:flash-alpha`); break; }
+          }
           let edge = false;
           for (let x = 0; x < w; x++) {
             if (pixels[x * 4 + 3] || pixels[((h - 1) * w + x) * 4 + 3]) edge = true;

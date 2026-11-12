@@ -425,7 +425,7 @@
     const big = el("div", "big");
     for (const view of ["down"]) {
       const img = document.createElement("img");
-      img.src = have ? Sprites.scaled(Sprites.get(`char:${id}`)[view].idle, 3).toDataURL() : Sprites.silhouettePortrait(id, 3);
+      img.src = have ? Sprites.scaled(Stick.portrait(Sprites.get(`char:${id}`)[view].idle), 3).toDataURL() : Sprites.silhouettePortrait(id, 3);
       img.alt = "";
       big.appendChild(img);
     }
@@ -551,14 +551,9 @@
     return { charId: save.selected, stars: own.stars, meta: Save.shopStats(), name: Account.name || charById(save.selected).name };
   }
 
-  /* ---------- solo en ordenador ----------
-     En móviles y tablets sin ratón no se puede jugar: sale un aviso. */
-  const isTouch = window.matchMedia("(pointer: coarse)").matches;
-  const desktopOnly = isTouch && !window.matchMedia("(any-pointer: fine)").matches;
-  if (desktopOnly) $("mobile-block").hidden = false;
+  const isTouch = window.matchMedia("(any-pointer: coarse)").matches;
 
   function enterGame(prepare) {
-    if (desktopOnly) return;
     for (const s of document.querySelectorAll(".screen")) s.classList.remove("is-on");
     for (const id of ["levelup", "pause", "end", "victory"]) $(id).hidden = true;
     current = "game";
@@ -631,7 +626,7 @@
     const tip = $("hud-tip");
     if (!tip.hidden && seconds >= tipUntil) tip.hidden = true;
     if (tipIdx < 0 || tipIdx >= TIPS.length || seconds < TIPS[tipIdx].at) return;
-    tip.textContent = LT(TIPS[tipIdx].text, { key: isTouch ? L("el botón redondo") : L("Espacio") });
+    tip.textContent = LT(isTouch && TIPS[tipIdx].text === "tipMove" ? "tipMoveTouch" : TIPS[tipIdx].text, { key: isTouch ? L("el botón redondo") : L("Espacio") });
     tip.hidden = false;
     tipUntil = seconds + 7;
     tipIdx++;
@@ -709,6 +704,7 @@
   /* ---------- subida de nivel ---------- */
 
   function showLevelUp(d) {
+    Game.setControlsEnabled(false);
     $("levelup-title").textContent = LT("levelTitle", { n: d.level });
     const box = $("levelup-cards");
     box.textContent = "";
@@ -737,6 +733,7 @@
 
   function hideLevelUp() {
     $("levelup").hidden = true;
+    Game.setControlsEnabled($("pause").hidden && $("end").hidden);
   }
 
   Game.on("levelUp", showLevelUp);
@@ -758,6 +755,7 @@
 
   function pause(on) {
     if (current !== "game" || !Game.state || Game.state.over) return;
+    Game.setControlsEnabled(!on);
     if (Game.mode === "solo") Game.setPaused(on);
     $("pause").hidden = !on;
     $("pause-quit").hidden = Game.mode === "guest";
@@ -775,6 +773,7 @@
   /* ---------- final ---------- */
 
   async function showEnd(r) {
+    Game.setControlsEnabled(false);
     if (Game.mode === "guest") r = { ...r, charId: save.selected, coop: true };
     if (r.daily && save.dailyDone !== r.daily) {
       save.dailyDone = r.daily;
@@ -804,6 +803,7 @@
     add("Monedas ganadas", `+${r.coins}`, "coins");
     hideLevelUp();
     $("pause").hidden = true;
+    Game.setControlsEnabled(false);
     setTimeout(() => {
       $("end").hidden = false;
       $("end-again").focus();
@@ -815,12 +815,13 @@
   Game.on("victory", () => {
     if (Game.mode === "guest") return;
     hideLevelUp();
+    Game.setControlsEnabled(false);
     $("pause").hidden = true;
     $("victory").hidden = false;
     $("victory-endless").focus();
   });
   Game.on("endless", () => banner(L("¡MODO INFINITO!"), L("Aguanta todo lo que puedas")));
-  $("victory-endless").addEventListener("click", () => { $("victory").hidden = true; Game.continueEndless(); });
+  $("victory-endless").addEventListener("click", () => { $("victory").hidden = true; Game.setControlsEnabled(true); Game.continueEndless(); });
   $("victory-end").addEventListener("click", () => { $("victory").hidden = true; Game.endWin(); });
 
   function backToMenu() {
@@ -847,7 +848,7 @@
     }
     if (current === "game" && (e.code === "Escape" || e.code === "KeyP")) {
       if (!$("levelup").hidden || !$("end").hidden || !$("victory").hidden) return;
-      pause($("pause").hidden);
+      if (!e.repeat) pause($("pause").hidden);
     }
   });
   document.addEventListener("visibilitychange", () => {

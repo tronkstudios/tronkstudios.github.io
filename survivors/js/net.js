@@ -30,6 +30,7 @@ const TronkNet = (() => {
   const myId = Math.random().toString(36).slice(2, 10);
   let channel = null;
   let room = null; // { code, host: bool }
+  const pendingCandidates = new Map();
   let peers = new Map(); // id → { pc, game, ctrl, setup, index }
   let lobby = []; // jugadores en la sala (el anfitrión primero)
   let container = null;
@@ -38,6 +39,9 @@ const TronkNet = (() => {
   let snapTimer = 0;
   let lastInput = 0;
   let hostId = null;
+  let connecting = false;
+  let endPending = false;
+  let endTimer = 0;
 
   const $el = (tag, cls, text) => {
     const e = document.createElement(tag);
@@ -69,7 +73,9 @@ const TronkNet = (() => {
     const client = Account.client;
     if (!client) throw new Error("sin conexión");
     channel = client.channel(`survivors-${code}`, { config: { broadcast: { self: false } } });
-    channel.on("broadcast", { event: "sig" }, ({ payload }) => onSignal(payload));
+    channel.on("broadcast", { event: "sig" }, ({ payload }) => {
+      onSignal(payload).catch(() => { if (payload && payload.from) dropPeer(payload.from); });
+    });
     await new Promise((resolve, reject) => {
       const t = setTimeout(() => reject(new Error("timeout")), 10000);
       channel.subscribe((s) => {
@@ -80,6 +86,8 @@ const TronkNet = (() => {
   }
 
   async function createRoom() {
+    if (connecting || room) return;
+    connecting = true;
     status = L("Conectando…");
     render();
     try {
@@ -93,12 +101,15 @@ const TronkNet = (() => {
       status = L("No se ha podido conectar. Inténtalo otra vez.");
       leave();
     }
+    connecting = false;
     render();
   }
 
   async function joinRoom(code) {
     code = String(code || "").trim().toUpperCase();
-    if (code.length < 4) return;
+    if (connecting || room) return;
+    if (!/^[A-HJ-NP-Z2-9]{5}$/.test(code)) { status = L("Introduce un código de 5 caracteres."); render(); return; }
+    connecting = true;
     status = L("Conectando…");
     render();
     try {
@@ -113,6 +124,7 @@ const TronkNet = (() => {
       status = L("No se ha podido conectar. Inténtalo otra vez.");
       leave(true);
     }
+    connecting = false;
     render();
   }
 
@@ -120,10 +132,13 @@ const TronkNet = (() => {
 
   function newPeer(id) {
     const pc = new RTCPeerConnection({ iceServers: iceServers || ICE });
-    const peer = { id, pc, game: null, ctrl: null, setup: null };
+    const peer = { id, pc, game: null, ctrl: null, setup: null, candidates: pendingCandidates.get(id) || [], disconnectTimer: 0, lastInput: performance.now() };
+    pendingCandidates.delete(id);
     pc.onicecandidate = (e) => { if (e.candidate) send({ type: "ice", to: id, cand: e.candidate }); };
     pc.onconnectionstatechange = () => {
-      if (["failed", "disconnected", "closed"].includes(pc.connectionState)) dropPeer(id);
+      clearTimeout(peer.disconnectTimer);
+      if (pc.connectionState === "disconnected") peer.disconnectTimer = setTimeout(() => dropPeer(id), 5000);
+      else if (["failed", "closed"].includes(pc.connectionState)) dropPeer(id);
     };
     peers.set(id, peer);
     return peer;
@@ -136,9 +151,11 @@ const TronkNet = (() => {
   }
 
   async function onSignal(m) {
+    if (!m || typeof m !== "object") return;
     if (!room || m.from === myId || (m.to && m.to !== myId)) return;
     if (room.host) {
       if (m.type === "hello") {
+        if (peers.has(m.from)) return;
         if (lobby.length >= MAX || playing) { send({ type: "full", to: m.from }); return; }
         const peer = newPeer(m.from);
         peer.setup = m.setup;
@@ -152,24 +169,41 @@ const TronkNet = (() => {
         render();
       } else if (m.type === "answer") {
         const peer = peers.get(m.from);
-        if (peer) await peer.pc.setRemoteDescription(m.sdp);
+        if (peer) await setRemote(peer, m.sdp);
       } else if (m.type === "ice") {
         const peer = peers.get(m.from);
-        if (peer) try { await peer.pc.addIceCandidate(m.cand); } catch { /* ignorar */ }
+        if (!peer) {
+          const queue = pendingCandidates.get(m.from) || [];
+          if (queue.length < 32) queue.push(m.cand);
+          pendingCandidates.set(m.from, queue);
+        }
+        if (peer) {
+          if (!peer.pc.remoteDescription) peer.candidates.push(m.cand);
+          else try { await peer.pc.addIceCandidate(m.cand); } catch { /* candidato caducado */ }
+        }
       } else if (m.type === "bye") dropPeer(m.from);
     } else {
       if (m.type === "full") { status = L("La sala está llena."); leave(true); render(); return; }
       if (m.type === "offer") {
+        if (hostId || peers.has(m.from)) return;
         hostId = m.from;
         const peer = newPeer(m.from);
         peer.pc.ondatachannel = (e) => wire(peer, e.channel);
-        await peer.pc.setRemoteDescription(m.sdp);
+        await setRemote(peer, m.sdp);
         const answer = await peer.pc.createAnswer();
         await peer.pc.setLocalDescription(answer);
         send({ type: "answer", to: m.from, sdp: peer.pc.localDescription });
       } else if (m.type === "ice") {
         const peer = peers.get(m.from);
-        if (peer) try { await peer.pc.addIceCandidate(m.cand); } catch { /* ignorar */ }
+        if (!peer) {
+          const queue = pendingCandidates.get(m.from) || [];
+          if (queue.length < 32) queue.push(m.cand);
+          pendingCandidates.set(m.from, queue);
+        }
+        if (peer) {
+          if (!peer.pc.remoteDescription) peer.candidates.push(m.cand);
+          else try { await peer.pc.addIceCandidate(m.cand); } catch { /* candidato caducado */ }
+        }
       } else if (m.type === "lobby") {
         lobby = m.lobby;
         render();
@@ -177,9 +211,17 @@ const TronkNet = (() => {
     }
   }
 
+  async function setRemote(peer, sdp) {
+    await peer.pc.setRemoteDescription(sdp);
+    for (const candidate of peer.candidates.splice(0)) {
+      try { await peer.pc.addIceCandidate(candidate); } catch { /* candidato caducado */ }
+    }
+  }
+
   function dropPeer(id) {
     const peer = peers.get(id);
     if (!peer) return;
+    clearTimeout(peer.disconnectTimer);
     peers.delete(id);
     peer.pc.onconnectionstatechange = null;
     try { peer.pc.close(); } catch { /* ya cerrada */ }
@@ -211,9 +253,13 @@ const TronkNet = (() => {
   function onData(peer, label, raw) {
     let m;
     try { m = JSON.parse(raw); } catch { return; }
-    if (!room) return; // llega algo después de salir de la sala
+    if (!room || peers.get(peer.id) !== peer) return; // llega algo después de salir de la sala
     if (room.host) {
-      if (m.type === "in" && peer.index !== undefined) Game.setInput(peer.index, { x: Math.max(-1, Math.min(1, +m.x || 0)), y: Math.max(-1, Math.min(1, +m.y || 0)), ab: m.ab | 0 });
+      if (m.type === "in" && peer.index !== undefined) {
+        peer.lastInput = performance.now();
+        peer.ab = m.ab | 0;
+        Game.setInput(peer.index, { x: Math.max(-1, Math.min(1, +m.x || 0)), y: Math.max(-1, Math.min(1, +m.y || 0)), ab: peer.ab });
+      }
       else if (m.type === "choose" && peer.index !== undefined) Game.choose(peer.index, Math.max(0, Math.min(3, m.i | 0)));
     } else {
       if (m.type === "snap") Game.applySnapshot(m.d);
@@ -227,8 +273,12 @@ const TronkNet = (() => {
     }
   }
 
+  function readyToStart() {
+    return lobby.every(p => p.id === myId || (peers.get(p.id)?.ctrl?.readyState === "open" && peers.get(p.id)?.game?.readyState === "open"));
+  }
+
   function startHost() {
-    if (!room || !room.host) return;
+    if (!room || !room.host || endPending || !readyToStart()) return;
     const order = lobby.filter((p) => p.id === myId || (peers.get(p.id) && peers.get(p.id).ctrl && peers.get(p.id).ctrl.readyState === "open"));
     const setups = order.map((p) => ({ charId: p.charId, stars: p.stars, meta: p.meta, name: p.name }));
     const map = TronkUI.selectedMap ? TronkUI.selectedMap() : "bosque";
@@ -247,6 +297,9 @@ const TronkNet = (() => {
   function sendSnapshots() {
     const st = Game.state;
     if (!st || st.guest || !playing) return;
+    for (const peer of peers.values()) if (peer.index !== undefined && performance.now() - peer.lastInput > 300) {
+      Game.setInput(peer.index, { x: 0, y: 0, ab: peer.ab || 0 });
+    }
     const snap = JSON.stringify({ type: "snap", d: Game.snapshot(st.players) });
     for (const peer of peers.values()) if (peer.game && peer.game.readyState === "open") {
       try { peer.game.send(snap); } catch { /* mensaje perdido */ }
@@ -271,8 +324,12 @@ const TronkNet = (() => {
   Game.on("end", (r) => {
     if (!room || !room.host || !playing) return;
     playing = false;
+    endPending = true;
     clearInterval(snapTimer);
     for (const peer of peers.values()) sendCtrl(peer, { type: "end", result: r });
+    // La pantalla final llama a leave inmediatamente. Mantener el canal
+    // un momento permite entregar el resultado antes de cerrar el PC.
+    endTimer = setTimeout(() => { endPending = false; leave(); render(); }, 2000);
   });
   Game.on("guestInput", (inp) => {
     const now = performance.now();
@@ -289,6 +346,7 @@ const TronkNet = (() => {
   }
 
   function leave(silent) {
+    clearTimeout(endTimer); endPending = false;
     clearInterval(snapTimer);
     if (channel) {
       if (!silent) send({ type: "bye" });
@@ -296,14 +354,17 @@ const TronkNet = (() => {
     }
     channel = null;
     for (const peer of peers.values()) {
+      clearTimeout(peer.disconnectTimer);
       peer.pc.onconnectionstatechange = null;
       try { peer.pc.close(); } catch { /* ya cerrada */ }
     }
     peers = new Map();
+    pendingCandidates.clear();
     room = null;
     hostId = null;
     lobby = [];
     playing = false;
+    connecting = false;
   }
 
   /* ---------- pantalla de la sala ---------- */
@@ -321,12 +382,14 @@ const TronkNet = (() => {
     if (!room) {
       box.appendChild($el("p", "online-note", L("Cada uno juega con su personaje elegido y sus mejoras. Los jugadores se conectan directamente entre ellos.")));
       const create = $el("button", "btn btn-big", L("Crear sala"));
+      create.disabled = connecting;
       create.addEventListener("click", createRoom);
       const input = $el("input", "online-input");
       input.placeholder = L("Código de la sala");
       input.maxLength = 5;
       input.autocomplete = "off";
       const join = $el("button", "btn", L("Unirse"));
+      join.disabled = connecting;
       join.addEventListener("click", () => joinRoom(input.value));
       input.addEventListener("keydown", (e) => { if (e.key === "Enter") joinRoom(input.value); });
       box.append(create, input, join);
@@ -346,6 +409,7 @@ const TronkNet = (() => {
       box.appendChild(list);
       if (room.host) {
         const start = $el("button", "btn btn-big", L("Empezar partida"));
+        start.disabled = endPending || !readyToStart();
         start.addEventListener("click", startHost);
         box.appendChild(start);
       }
@@ -358,7 +422,7 @@ const TronkNet = (() => {
 
   window.addEventListener("beforeunload", () => leave());
 
-  return { render, sendChoice, leave: () => { if (!playing) leave(); }, get active() { return !!room; }, get isHost() { return !!(room && room.host); } };
+  return { render, sendChoice, leave: () => { if (!playing && !endPending) leave(); }, get active() { return !!room; }, get isHost() { return !!(room && room.host); } };
 })();
 
 window.TronkNet = TronkNet;

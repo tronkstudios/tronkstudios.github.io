@@ -41,6 +41,9 @@ const Game = (() => {
   const listeners = {};
   const input = { keys: new Set(), joy: null, x: 0, y: 0, ab: 0 };
   let paused = false;
+  let controlsEnabled = true;
+  let touchPad = null;
+  const touchOnly = () => window.matchMedia("(pointer: coarse)").matches && !window.matchMedia("(any-pointer: fine)").matches;
   let rafId = 0;
   let lastTime = 0;
   let acc = 0;
@@ -148,7 +151,7 @@ const Game = (() => {
 
   function start(setups, opts = {}) {
     stopDemo();
-    input.ab = 0; input.keys.clear(); input.joy = null;
+    input.ab = 0; clearInput(); controlsEnabled = true;
     mode = opts.mode || "solo";
     localId = opts.localId || 0;
     setMap(opts.map || "bosque");
@@ -239,11 +242,15 @@ const Game = (() => {
   /* ---------- rejilla para buscar enemigos cerca ---------- */
   const CELL = 40;
   const grid = new Map();
+  let maxEnemyRadius = 0;
   const key = (cx, cy) => (cx + 50000) * 100000 + (cy + 50000);
 
   function buildGrid() {
     grid.clear();
+    maxEnemyRadius = 0;
     for (const e of st.enemies) {
+      if (e.dead) continue;
+      maxEnemyRadius = Math.max(maxEnemyRadius, e.r);
       const k = key(Math.floor(e.x / CELL), Math.floor(e.y / CELL));
       let cell = grid.get(k);
       if (!cell) grid.set(k, (cell = []));
@@ -278,7 +285,7 @@ const Game = (() => {
 
   function enemiesInRadius(x, y, r) {
     const out = [];
-    near(x, y, r + 24, (e) => {
+    near(x, y, r + maxEnemyRadius, (e) => {
       const rr = r + e.r;
       if ((e.x - x) ** 2 + (e.y - y) ** 2 <= rr * rr) out.push(e);
     });
@@ -979,7 +986,7 @@ const Game = (() => {
   function separate() {
     for (const e of st.enemies) {
       if (e.dead || TS.ENEMIES[e.type].flying) continue;
-      near(e.x, e.y, e.r + 12, (o) => {
+      near(e.x, e.y, e.r + maxEnemyRadius, (o) => {
         if (o === e || o.id < e.id || TS.ENEMIES[o.type].flying) return;
         const dx = o.x - e.x;
         const dy = o.y - e.y;
@@ -1023,7 +1030,10 @@ const Game = (() => {
       e.kx += (kx / l) * k;
       e.ky += (ky / l) * k;
     }
-    if (slow) { e.slow = Math.max(e.slow, slowFor); e.slowAmt = Math.max(e.slow > 0 ? e.slowAmt : 0, slow); }
+    if (slow) {
+      e.slowAmt = Math.max(e.slow > 0 ? e.slowAmt : 0, slow);
+      e.slow = Math.max(e.slow, slowFor);
+    }
     if (!e.prop && (R() < 0.22 || amount > 30 || e.boss)) fx({ k: "num", x: e.x + rand(-4, 4), y: e.y - 18, v: amount, big: crit || amount > 40, life: 36 });
     sound("hit", 0.04);
     if (e.hp <= 0) killEnemy(e);
@@ -1313,7 +1323,7 @@ const Game = (() => {
   function contact() {
     for (const p of st.players) {
       if (p.down) continue;
-      near(p.x, p.y, 30 * U, (e) => {
+      near(p.x, p.y, maxEnemyRadius + 6 * U, (e) => {
         if (e.phased || e.prop) return;
         const rr = e.r + 6 * U;
         if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 < rr * rr) {
@@ -1380,7 +1390,7 @@ const Game = (() => {
     if (w.id === "colonia") {
       w.cd--;
       if (w.cd <= 0) {
-        w.cd = L.cd;
+        w.cd = L.cd * p.stats.cdMul;
         for (const e of enemiesInRadius(cx, cy + 6, 44 * area)) hitEnemy(e, L.dmg, p, { kx: e.x - cx, ky: e.y - cy, kb: 0.6, slow: 0.35, slowFor: 30 });
       }
       return;
@@ -1617,7 +1627,7 @@ const Game = (() => {
     const out = [];
     const cx = Math.cos(ang);
     const cy = Math.sin(ang);
-    near(x + cx * len / 2, y + cy * len / 2, len / 2 + 20, (e) => {
+    near(x + cx * len / 2, y + cy * len / 2, len / 2 + w + maxEnemyRadius + 16, (e) => {
       const ex = e.x - x;
       const ey = e.y - 16 - y;
       const t = ex * cx + ey * cy;
@@ -1662,7 +1672,7 @@ const Game = (() => {
       s.x += s.vx;
       s.y += s.vy;
       s.life--;
-      near(s.x, s.y + 8, s.r + 20, (e) => {
+      near(s.x, s.y + 8, s.r + maxEnemyRadius + 24, (e) => {
         if (s.life <= 0) return;
         const rr = s.r + e.r;
         if ((e.x - s.x) ** 2 + (e.y - 16 - s.y) ** 2 > rr * rr) return;
@@ -1969,7 +1979,7 @@ const Game = (() => {
   }
 
   function finish(victory) {
-    if (st.over) return;
+    if (!st || st.over) return;
     st.over = true;
     Sfx.stopMusic();
     Sfx.play(victory ? "win" : "die");
@@ -1980,6 +1990,7 @@ const Game = (() => {
   }
 
   function readInput() {
+    if (!controlsEnabled) return { x: 0, y: 0, ab: input.ab };
     let x = 0;
     let y = 0;
     const k = input.keys;
@@ -2030,7 +2041,7 @@ const Game = (() => {
         if (n === 5) acc = 0;
       } else {
         emit("guestInput", local);
-        guestSmooth();
+        guestSmooth(dt);
       }
       render(dt);
       hudTimer += dt;
@@ -2044,6 +2055,7 @@ const Game = (() => {
 
   function stop() {
     cancelAnimationFrame(rafId);
+    clearInput(); controlsEnabled = false;
     st = null;
   }
 
@@ -2086,7 +2098,7 @@ const Game = (() => {
     // tamaño de cada píxel del juego: se ve más o menos lo mismo en todas las pantallas
     // el personaje ocupa más o menos una décima parte de la pantalla
     // (en el móvil, algo más, para que se vea bien con el dedo encima)
-    const k = Math.max(1, Math.round((Math.min(canvas.width, canvas.height) * (Math.min(w, h) < 600 ? 0.16 : 0.11)) / 60));
+    const k = Math.max(1, Math.round((Math.min(w, h) * (Math.min(w, h) < 600 ? 0.16 : 0.11)) / 60)) * dpr;
     view = { w: canvas.width, h: canvas.height, k, dpr };
     ctx.imageSmoothingEnabled = false;
   }
@@ -2719,7 +2731,7 @@ const Game = (() => {
     }
 
     // joystick táctil
-    if (input.joy && input.joy.active) {
+    if (input.joy && input.joy.active && !input.joy.pad) {
       const j = input.joy;
       const d = view.dpr;
       ctx.globalAlpha = 0.35;
@@ -2737,33 +2749,54 @@ const Game = (() => {
 
   function bindInput() {
     window.addEventListener("keydown", (e) => {
-      if (!st || st.over || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+      if (!st || st.over || !controlsEnabled || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
       if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(e.code)) e.preventDefault();
       if ((e.code === "Space" || e.code === "KeyE") && !e.repeat) input.ab++;
       input.keys.add(e.code);
     });
     window.addEventListener("keyup", (e) => input.keys.delete(e.code));
-    window.addEventListener("blur", () => { input.keys.clear(); input.joy = null; });
+    window.addEventListener("blur", clearInput);
+    document.addEventListener("visibilitychange", () => { if (document.hidden) clearInput(); });
+    window.addEventListener("resize", clearInput);
 
-    canvas.addEventListener("pointerdown", (e) => {
-      if (e.pointerType === "mouse") return;
-      input.joy = { active: true, id: e.pointerId, ox: e.clientX, oy: e.clientY, dx: 0, dy: 0 };
-      try { canvas.setPointerCapture(e.pointerId); } catch { /* puntero ya suelto */ }
-    });
-    canvas.addEventListener("pointermove", (e) => {
+    touchPad = document.getElementById("touch-pad");
+    const begin = (e) => {
+      if (e.pointerType === "mouse" || !st || st.over || !controlsEnabled || input.joy) return;
+      e.preventDefault();
+      const pad = e.currentTarget === touchPad;
+      const box = pad ? touchPad.getBoundingClientRect() : null;
+      input.joy = { active: true, id: e.pointerId, ox: box ? box.x + box.width / 2 : e.clientX,
+        oy: box ? box.y + box.height / 2 : e.clientY, dx: 0, dy: 0, pad };
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* puntero ya suelto */ }
+      move(e);
+    };
+    const move = (e) => {
       const j = input.joy;
-      if (!j || !j.active || j.id !== e.pointerId) return;
-      let dx = (e.clientX - j.ox) / 40;
-      let dy = (e.clientY - j.oy) / 40;
-      const l = Math.hypot(dx, dy);
-      if (l > 1) { dx /= l; dy /= l; }
-      if (l < 0.15) { dx = 0; dy = 0; }
-      j.dx = dx;
-      j.dy = dy;
-    });
-    const end = (e) => { if (input.joy && input.joy.id === e.pointerId) input.joy = null; };
-    canvas.addEventListener("pointerup", end);
-    canvas.addEventListener("pointercancel", end);
+      if (!j || j.id !== e.pointerId) return;
+      let dx = (e.clientX - j.ox) / 40, dy = (e.clientY - j.oy) / 40;
+      const length = Math.hypot(dx, dy);
+      if (length > 1) { dx /= length; dy /= length; }
+      if (length < 0.15) { dx = 0; dy = 0; }
+      j.dx = dx; j.dy = dy;
+      if (touchPad && j.pad) {
+        touchPad.style.setProperty("--stick-x", `${dx * 32}px`);
+        touchPad.style.setProperty("--stick-y", `${dy * 32}px`);
+      }
+    };
+    const end = (e) => { if (input.joy && input.joy.id === e.pointerId) clearInput(); };
+    for (const target of [canvas, touchPad].filter(Boolean)) {
+      target.addEventListener("pointerdown", begin);
+      target.addEventListener("pointermove", move);
+      for (const event of ["pointerup", "pointercancel", "lostpointercapture"]) target.addEventListener(event, end);
+    }
+  }
+
+  function clearInput() {
+    input.keys.clear(); input.joy = null;
+    if (touchPad) {
+      touchPad.style.setProperty("--stick-x", "0px");
+      touchPad.style.setProperty("--stick-y", "0px");
+    }
   }
 
   function init(el) {
@@ -2773,7 +2806,7 @@ const Game = (() => {
     window.addEventListener("resize", resize);
     bindInput();
     // 3D (render3d.js): si el navegador no puede, se queda el dibujo en 2D
-    if (typeof Render3D !== "undefined" && Render3D.init(canvas, { CHUNK, chunkCanvas, obstaclesNear, mapId: () => mapId })) use3D = true;
+    if (!touchOnly() && typeof Render3D !== "undefined" && Render3D.init(canvas, { CHUNK, chunkCanvas, obstaclesNear, mapId: () => mapId })) use3D = true;
   }
 
   /* =======================================================
@@ -2882,7 +2915,7 @@ const Game = (() => {
         ctx.restore();
       }
     }
-    if (input.joy && input.joy.active) {
+    if (input.joy && input.joy.active && !input.joy.pad) {
       const j = input.joy;
       ctx.globalAlpha = 0.35; ctx.fillStyle = "#ffffff";
       ctx.beginPath(); ctx.arc(j.ox * d, j.oy * d, 46 * d, 0, TAU); ctx.fill();
@@ -2961,6 +2994,7 @@ const Game = (() => {
       t: st.t, lv: st.level, xp: Math.round(st.xp), xn: st.xpNext, k: st.kills, c: st.coins,
       b: st.boss ? [st.boss.id, st.boss.hp / st.boss.maxHp] : null,
       endless: !!st.endless, endlessStart: st.endlessStart || 0,
+      frozen: !!(st.choosing || st.victoryWait || st.over || paused),
       p: players, e: enemies, s: shots, es: eshots, z: zones, g: gems, pk: pickups, ev: events
     };
   }
@@ -2969,7 +3003,7 @@ const Game = (() => {
   function startGuest(info) {
     stopDemo();
     enemyMap.clear();
-    input.ab = 0; input.keys.clear(); input.joy = null;
+    input.ab = 0; clearInput(); controlsEnabled = true;
     mode = "guest";
     localId = info.localId;
     setMap(info.map || "bosque");
@@ -2993,6 +3027,7 @@ const Game = (() => {
     for (const f of st.fx) f.t += elapsed;
     st.fx = st.fx.filter((f) => f.t < f.life);
     st.endless = !!snap.endless; st.endlessStart = snap.endlessStart || 0;
+    st.frozen = !!snap.frozen;
     st.t = snap.t; st.level = snap.lv; st.xp = snap.xp; st.xpNext = snap.xn; st.kills = snap.k; st.coins = snap.c;
     snap.p.forEach((a, i) => {
       const p = st.players[i];
@@ -3038,10 +3073,11 @@ const Game = (() => {
   }
 
   // Entre foto y foto, los invitados mueven todo suavemente
-  function guestSmooth() {
-    for (const p of st.players) { p.x += (p.tx - p.x) * 0.35; p.y += (p.ty - p.y) * 0.35; }
-    for (const e of st.enemies) { e.x += (e.tx - e.x) * 0.35; e.y += (e.ty - e.y) * 0.35; }
-    for (const z of st.zones) z.t = (z.t || 0) + 0.25;
+  function guestSmooth(dt) {
+    const factor = 1 - Math.pow(0.65, dt / STEP);
+    for (const p of st.players) { p.x += (p.tx - p.x) * factor; p.y += (p.ty - p.y) * factor; }
+    for (const e of st.enemies) { e.x += (e.tx - e.x) * factor; e.y += (e.ty - e.y) * factor; }
+    if (!st.frozen) for (const z of st.zones) z.t = Math.min(z.life, (z.t || 0) + dt / STEP);
   }
 
   /* =======================================================
@@ -3179,6 +3215,7 @@ const Game = (() => {
 
   function setPaused(v) {
     paused = v;
+    if (v) clearInput();
   }
 
   return {
@@ -3192,7 +3229,8 @@ const Game = (() => {
     startGuest,
     applySnapshot,
     setInput(id, inp) { if (st && st.players[id]) st.players[id].input = inp; },
-    pressAbility() { input.ab++; },
+    pressAbility() { if (st && !st.over && controlsEnabled) input.ab++; },
+    setControlsEnabled(value) { controlsEnabled = value; if (!value) clearInput(); },
     dropPlayer(id) {
       const p = st && st.players[id];
       if (!p) return;

@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Tronk Survivors · Juego de sobrevivir a hordas gratis | TronkStudios</title>
-  <meta name="description" content="Tronk Survivors: sobrevive a hordas de zombis, Antitronks y ninjas con 16 personajes en pixel art. Consigue personajes en el cofre, mejora tus armas y juega con tus amigos. Gratis en el navegador, en 3D, para ordenador." />
+  <meta name="description" content="Tronk Survivors: sobrevive a hordas de zombis, Antitronks y ninjas con 16 personajes stickman. Consigue personajes en el cofre, mejora tus armas y juega con tus amigos. Gratis en el navegador para ordenador, móvil y tablet." />
   <meta name="robots" content="index, follow, max-image-preview:large" />
   <link rel="canonical" href="https://tronkstudios.github.io/survivors/" />
   <meta name="theme-color" content="#120c24" />
@@ -13,7 +13,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="TronkStudios" />
   <meta property="og:title" content="Tronk Survivors · Sobrevive a las hordas" />
-  <meta property="og:description" content="16 personajes en pixel art, zombis, Antitronks, ninjas y 4 jefes. Gratis en el navegador." />
+  <meta property="og:description" content="16 personajes stickman, zombis, Antitronks, ninjas y 4 jefes. Gratis en el navegador." />
   <meta property="og:url" content="https://tronkstudios.github.io/survivors/" />
   <meta property="og:image" content="https://tronkstudios.github.io/img/juegos/tronk-survivors.webp" />
   <meta name="twitter:card" content="summary_large_image" />
@@ -21,7 +21,7 @@
     http-equiv="Content-Security-Policy"
     content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://qjjnqhbtovjcbwgcwhgl.supabase.co wss://qjjnqhbtovjcbwgcwhgl.supabase.co https://tronkstudios-support.tronkstudios7.workers.dev; object-src 'none'; base-uri 'self'; form-action 'self'"
   />
-  <link rel="stylesheet" href="survivors.css?v=4" />
+  <link rel="stylesheet" href="survivors.css?v=5" />
 </head>
 <body>
   <canvas id="game" aria-label="Tronk Survivors"></canvas>
@@ -239,6 +239,7 @@
       <div class="hud-slots" id="hud-slots"></div>
       <p class="hud-hint">WASD o flechas para moverte · los ataques son automáticos · Espacio: habilidad · Esc pausa</p>
     </div>
+    <div id="touch-pad" class="touch-pad" role="group" aria-label="Mover personaje"><span class="touch-stick"></span><small>Mover</small></div>
     <button class="hud-ab" id="hud-ab" type="button">
       <i class="hud-ab-fill" id="hud-ab-fill"></i>
       <b id="hud-ab-name">Habilidad</b>
@@ -248,16 +249,6 @@
 
   <div id="banner" class="banner" hidden></div>
   <div id="toasts" class="toasts" aria-live="polite"></div>
-
-  <!-- Solo se puede jugar en ordenador -->
-  <div id="mobile-block" class="mobile-block" hidden>
-    <div class="mobile-box">
-      <div class="mobile-icon" aria-hidden="true">🖥️</div>
-      <b>Tronk Survivors solo se puede jugar en ordenador</b>
-      <small>Es un juego en 3D que necesita teclado y un ordenador. Ábrelo desde un ordenador para jugar.</small>
-      <a class="btn btn-big" href="/">← Volver a TronkStudios</a>
-    </div>
-  </div>
 
   <!-- Subida de nivel -->
   <div id="levelup" class="modal" hidden>
@@ -308,15 +299,15 @@
   <script src="js/sprites.js?v=9" defer></script>
   <script src="js/people.js?v=4" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js" defer></script>
-  <script src="js/stick.js?v=11" defer></script>
+  <script src="js/stick.js?v=12" defer></script>
   <script src="js/render3d.js?v=2" defer></script>
   <script src="js/audio.js?v=3" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-  <script src="js/lang.js?v=3" defer></script>
-  <script src="js/save.js?v=4" defer></script>
-  <script src="js/account.js?v=3" defer></script>
-  <script src="js/game.js?v=11" defer></script>
-  <script src="js/net.js?v=4" defer></script>
-  <script src="js/ui.js?v=9" defer></script>
+  <script src="js/lang.js?v=4" defer></script>
+  <script src="js/save.js?v=5" defer></script>
+  <script src="js/account.js?v=4" defer></script>
+  <script src="js/game.js?v=12" defer></script>
+  <script src="js/net.js?v=5" defer></script>
+  <script src="js/ui.js?v=10" defer></script>
 </body>
 </html>

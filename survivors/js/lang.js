@@ -23,6 +23,9 @@ let LANG = (() => {
 const EN = {
   // Menú y pantallas
   "Cargando": "Loading",
+  "Mover": "Move",
+  "Introduce un código de 5 caracteres.": "Enter a 5-character room code.",
+  "Mover personaje": "Move character",
   "Dibujando personajes…": "Drawing characters…",
   "Preparando la partida…": "Getting the run ready…",
   "Jugar": "Play",
@@ -410,8 +413,6 @@ const EN = {
   "Terminar": "Finish",
   "Elegir mapa": "Choose map",
   "Conectando…": "Connecting…",
-  "Tronk Survivors solo se puede jugar en ordenador": "Tronk Survivors can only be played on a computer",
-  "Es un juego en 3D que necesita teclado y un ordenador. Ábrelo desde un ordenador para jugar.": "It's a 3D game that needs a keyboard and a computer. Open it on a computer to play.",
   "← Volver a TronkStudios": "← Back to TronkStudios",
   "No se puede conectar con el servidor ahora mismo.": "Can't reach the server right now.",
   "No se ha podido conectar. Inténtalo otra vez.": "Couldn't connect. Try again.",
@@ -462,6 +463,7 @@ const TEMPLATES = {
   missionDone: ["¡Misión cumplida! {name} (+{n} monedas)", "Mission complete! {name} (+{n} coins)"],
   weekLeft: ["· quedan {n} días", "· {n} days left"],
   levelTitle: ["¡Nivel {n}!", "Level {n}!"],
+  tipMoveTouch: ["Usa el joystick de la izquierda para moverte. Atacas automáticamente; toca el botón de la derecha para la habilidad.", "Use the left stick to move. Attacks are automatic; tap the right button to use your ability."],
   tipMove: ["Muévete con WASD o las flechas (en el móvil, arrastra el dedo). Tu personaje ataca solo.", "Move with WASD or the arrow keys (on mobile, drag your finger). Your character attacks on their own."],
   tipGems: ["Recoge las gemas azules: dan experiencia para subir de nivel y elegir mejoras.", "Pick up the blue gems: they give experience to level up and choose upgrades."],
   tipProps: ["Rompe barriles, cajas y jarrones: sueltan comida, monedas, imanes y a veces cofres.", "Break barrels, crates and vases: they drop food, coins, magnets and sometimes chests."],

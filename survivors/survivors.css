@@ -528,14 +528,6 @@ img[data-icon], .pix { image-rendering: pixelated; }
   .daily-card img { width: 70px; height: 83px; }
 }
 
-/* ---------- solo en ordenador ---------- */
-.mobile-block { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 24px; background: rgba(12, 9, 24, 0.97); color: #fff; }
-.mobile-block[hidden] { display: none; }
-.mobile-box { display: grid; justify-items: center; gap: 12px; max-width: 420px; text-align: center; }
-.mobile-icon { font-size: 54px; }
-.mobile-box b { font-size: 22px; line-height: 1.2; }
-.mobile-box small { color: var(--muted); font-size: 15px; line-height: 1.4; }
-
 @media (max-height: 500px) and (orientation: landscape) {
   .hud-hp, .hud-xp { width: 150px; }
   .hud-center { top: 6px; }
@@ -591,3 +583,65 @@ img[data-icon], .pix { image-rendering: pixelated; }
 .hud-tip { position: absolute; left: 50%; top: 92px; transform: translateX(-50%); max-width: min(520px, 92vw); padding: 10px 16px; border-radius: 12px; background: rgba(18, 12, 36, 0.88); box-shadow: 0 0 0 2px var(--gold); color: #fff; font-size: 14px; text-align: center; animation: tip-in 0.3s ease-out; }
 @keyframes tip-in { from { opacity: 0; transform: translate(-50%, -8px); } }
 @media (max-height: 500px) and (orientation: landscape) { .hud-tip { top: 64px; font-size: 12px; } }
+
+
+/* Controles táctiles: cada dedo conserva su acción. */
+.touch-pad { display: none; }
+@media (any-pointer: coarse) {
+  .touch-pad {
+    position: absolute; display: grid; place-items: center;
+    left: calc(18px + env(safe-area-inset-left));
+    bottom: calc(22px + env(safe-area-inset-bottom));
+    width: 112px; height: 112px; border-radius: 50%;
+    background: rgba(18, 12, 36, .45); border: 2px solid rgba(255,255,255,.4);
+    pointer-events: auto; touch-action: none; overscroll-behavior: none;
+  }
+  .touch-stick { width: 46px; height: 46px; border-radius: 50%; background: rgba(255,255,255,.55); transform: translate(var(--stick-x, 0px), var(--stick-y, 0px)); }
+  .touch-pad small { position: absolute; bottom: 8px; color: #fff; font-size: 10px; pointer-events: none; }
+  .hud-ab { right: calc(18px + env(safe-area-inset-right)); bottom: calc(30px + env(safe-area-inset-bottom)); width: 84px; height: 84px; }
+  .hud-pause { min-width: 44px; min-height: 44px; right: calc(12px + env(safe-area-inset-right)); top: calc(10px + env(safe-area-inset-top)); touch-action: manipulation; }
+  .hud-me { top: calc(12px + env(safe-area-inset-top)); left: calc(12px + env(safe-area-inset-left)); min-width: 0; }
+  .hud-hp, .hud-xp { width: 135px; }
+  .hud-center { top: calc(10px + env(safe-area-inset-top)); left: auto; right: calc(70px + env(safe-area-inset-right)); transform: none; }
+  .hud-time { font-size: 24px; }
+  .hud-sub { max-width: min(48vw, 240px); white-space: normal; font-size: 10px; }
+  .hud-boss { top: calc(98px + env(safe-area-inset-top)); width: min(420px, 90vw); font-size: 12px; }
+  .hud-team { top: calc(130px + env(safe-area-inset-top)); left: 12px; font-size: 10px; max-width: 45vw; }
+  .hud-team b { max-width: 85px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hud-team span { width: 44px; }
+  .hud-tip { top: calc(180px + env(safe-area-inset-top)); font-size: 12px; padding: 8px 12px; }
+  .hud-bottom { bottom: calc(146px + env(safe-area-inset-bottom)); width: calc(100% - 32px); }
+  .hud-slots { flex-wrap: wrap; justify-content: center; gap: 4px; }
+  .hud-slot { width: 27px; height: 31px; border-radius: 6px; }
+  .hud-slot img { width: 22px; height: 22px; }
+  .hud-slot.is-passive { width: 23px; height: 27px; }
+  .hud-slot.is-passive img { width: 18px; height: 18px; }
+  .hud-hint, .up-card kbd { display: none; }
+  .screen, .modal { padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+  .btn, .up-card { min-height: 44px; touch-action: manipulation; }
+  .gacha-reveal { overflow-y: auto; align-content: safe center; }
+  .reveal-cards { flex-shrink: 0; }
+}
+@media (any-pointer: coarse) and (orientation: landscape) {
+  .hud-bottom { bottom: calc(10px + env(safe-area-inset-bottom)); width: min(50vw, 380px); }
+  .hud-boss { top: calc(64px + env(safe-area-inset-top)); width: 40vw; }
+  .hud-team { top: calc(85px + env(safe-area-inset-top)); }
+  .hud-tip { top: calc(100px + env(safe-area-inset-top)); width: min(50vw, 420px); }
+  .hud-sub { max-width: 200px; }
+}
+@media (max-width: 380px) {
+  .screen { padding: 12px; }
+  .panel { padding: 12px; }
+  .panel-head { flex-wrap: wrap; }
+  .up-card { grid-template-columns: 36px minmax(0, 1fr); gap: 8px; padding: 10px; }
+  .up-card img { width: 36px; height: 36px; padding: 4px; }
+  .up-card b { font-size: 14px; }
+  .up-card small { font-size: 12px; }
+}
+.stage-hero img, .char-card img, .char-detail .big img, .reveal-card img, .daily-card img, .online-player img { object-fit: contain; }
+@media (any-pointer: coarse) and (orientation: portrait) {
+  .hud-sub { position: fixed; top: calc(80px + env(safe-area-inset-top)); left: 12px; right: 12px; max-width: none; }
+  .hud-boss { top: calc(114px + env(safe-area-inset-top)); }
+  .hud-team { top: calc(146px + env(safe-area-inset-top)); }
+  .hud-tip { top: calc(204px + env(safe-area-inset-top)); }
+}
