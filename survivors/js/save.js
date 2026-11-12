@@ -170,6 +170,7 @@ const Save = (() => {
 
   // Devuelve null si no hay monedas; si no, la lista de premios
   function pull(times) {
+    if (times !== 1 && times !== 10) return null;
     const d = get();
     const free = times === 1 && d.freePull;
     const cost = free ? 0 : times === 10 ? TS.GACHA.cost10 : TS.GACHA.cost1 * times;
