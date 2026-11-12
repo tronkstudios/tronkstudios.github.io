@@ -139,10 +139,12 @@ const Render3D = (() => {
     pool("inkCyl", cyl, ink, 6000, false);
     pool("inkSph", sph, ink, 3000, false);
     pool("glow", sph, basic(), 2500, false);
+    pool("glowCyl", cyl, basic(), 600, false);
     pool("glowBox", box, basic(), 2500, false);
     pool("ghost", sph, ghost(), 1500, false);
     pool("ghostBox", box, ghost(), 1500, false);
     pool("ghostCone", cone, ghost(), 300, false);
+    pool("invertedCone", cone.clone().rotateZ(Math.PI), ghost(), 300, false);
     pool("ring", torus, basic(), 600, false);
     pool("disc", disc, ghost(), 300, false);
     resize();
@@ -163,7 +165,7 @@ const Render3D = (() => {
   /* ---------- suelo ---------- */
   function ground(cx, cy, radius) {
     if (api.mapId() !== lastMap) {
-      for (const m of chunks.values()) { scene.remove(m); m.material.map.dispose(); m.material.dispose(); }
+      for (const m of chunks.values()) { scene.remove(m); m.geometry.dispose(); m.material.map.dispose(); m.material.dispose(); }
       chunks.clear();
       lastMap = api.mapId();
     }
@@ -327,7 +329,7 @@ const Render3D = (() => {
       case "mullet":
         cap();
         sp([-0.7, -0.55, 0], [0.5, 1.05, 0.8], h);
-        if (o.fringe) for (const z of [-0.4, 0, 0.4]) P.push(["cone", [0.88, 0.32, z], [0.16, -0.45, 0.16], h]);
+        if (o.fringe) for (const z of [-0.4, 0, 0.4]) P.push(["cone", [0.88, 0.32, z], [0.16, 0.45, 0.16], h, Math.PI]);
         break;
       case "spiky":
         cap(0.95);
@@ -357,16 +359,20 @@ const Render3D = (() => {
         P.push(["box", [-1.3, 0.15, 0.2], [0.9, 0.12, 0.12], acc, -0.5]);
         sp([0.35, -0.42, 0], [0.8, 0.6, 1.02], 0x1b1b2f);
         break;
-      case "bob": sp([-0.12, 0.12, 0], [1.14, 1.05, 1.14], h); sp([0.55, 0.75, 0.55], [0.22, 0.22, 0.22], acc, "glow"); break;
+      case "bob": cap(); sp([-0.6, -0.25, 0], [0.65, 1.05, 1.14], h); sp([0.55, 0.75, 0.55], [0.22, 0.22, 0.22], acc, "glow"); break;
       case "fluffy": for (const [x, y, z] of [[0, 0.85, 0], [0.45, 0.7, 0.4], [0.45, 0.7, -0.4], [-0.45, 0.65, 0.45], [-0.45, 0.65, -0.45], [0.75, 0.45, 0]]) sp([x, y, z], [0.5, 0.45, 0.5], h); break;
       case "helmet":
         sp([0, 0, 0], [1.16, 1.16, 1.16], o.hairColor || 0x3d4451);
-        P.push(["glowBox", [0.98, 0.0, 0], [0.22, 0.4, 0.95], acc]);
+        P.push(["glowBox", [1.16, 0.0, 0], [0.22, 0.4, 0.95], acc]);
         break;
-      case "hood": sp([-0.25, 0.08, 0], [1.22, 1.2, 1.22], o.hairColor || 0xe9c46a); break;
+      case "hood":
+        sp([-0.5, 0.08, 0], [0.85, 1.2, 1.22], o.hairColor || 0xe9c46a);
+        sp([0, 0.85, 0], [1.05, 0.45, 1.18], o.hairColor || 0xe9c46a);
+        break;
       case "zombie": for (const [x, z] of [[0, 0], [0.3, 0.3], [-0.3, -0.25]]) P.push(["cyl", [x, 1.15, z], [0.06, 0.5, 0.06], h]); break;
       case "hardhat": sp([0, 0.4, 0], [1.08, 0.7, 1.08], acc); P.push(["cyl", [0.15, 0.3, 0], [1.35, 0.1, 1.25], acc]); break;
       case "balaclava":
+        sp([0, 0, 0], [1.03, 1.03, 1.03], 0x151319);
         P.push(["box", [0.78, 0.1, 0], [0.5, 0.3, 0.95], 0xe8b896]);
         if (o.beret) { P.push(["cyl", [-0.15, 0.85, 0], [1.0, 0.25, 1.0], o.beret]); sp([0.75, 0.85, 0], [0.16, 0.16, 0.16], 0xffd23f); }
         break;
@@ -382,6 +388,7 @@ const Render3D = (() => {
       for (const z of [-0.33, 0.33]) P.push(["box", [0.95, 0.12, z], [0.12, 0.36, 0.42], 0x14112b]);
       P.push(["box", [0.97, 0.15, 0], [0.08, 0.08, 0.3], 0x14112b]);
     }
+    if (["balaclava", "wrapNinja"].includes(o.hair)) for (const z of [-0.3, 0.3]) sp([1.06, 0.12, z], [0.09, 0.1, 0.09], o.eye || 0x14112b, "glow");
     if (!o.noEye && !["balaclava", "wrapNinja", "skull", "hoodShadow", "helmet"].includes(o.hair)) for (const z of [-0.32, 0.32]) sp([0.9, 0.1, z], [0.13, 0.17, 0.13], o.eye || 0x14112b, "glow");
     return P;
   }
@@ -406,14 +413,18 @@ const Render3D = (() => {
       case "mazo":
         b([0, len * 0.4, 0], [3.5, len, 3.5], wood, "cyl");
         b([0, len * 0.9, 0], [16, 16, 16], 0x565a68, "sph");
+        for (let i = 0; i < 6; i++) {
+          const a = i * TAU / 6;
+          b([Math.cos(a) * 19, len * 0.9 + Math.sin(a) * 19, 0], [5, 5, 5], 0x3d3f4a, "octa");
+        }
         break;
       case "lanza":
         b([0, len * 0.18, 0], [2.4, len, 2.4], wood, "cyl");
-        b([0, len * 0.68 + 12, 0], [7, 30, 7], steel, "cone");
+        b([0, len * 0.68 + 15, 0], [7, 30, 7], steel, "cone");
         break;
       case "hacha":
         b([0, len * 0.38, 0], [3, len, 3], wood, "cyl");
-        b([10, len * 0.8, 0], [22, 24, 4], steel); // la hoja hacia delante
+        b([10, len * 0.88 - 9, 0], [22, 30, 4], steel); // la hoja hacia delante
         break;
       case "tridente":
         b([0, len * 0.2, 0], [2.4, len, 2.4], 0x2f8c8c, "cyl");
@@ -424,7 +435,10 @@ const Render3D = (() => {
       case "baston": b([0, len * 0.25, 0], [3, len, 3], wood, "cyl"); b([0, len * 0.76, 0], [7, 7, 7], 0xe9c46a, "glow"); break;
       case "petardo": b([0, 12, 0], [5, 24, 5], 0xd62828, "cyl"); b([0, 30, 0], [5, 5, 5], 0xffd23f, "glow"); break;
       case "perfume": b([0, 12, 0], [9, 11, 9], 0xff7eb6, "sph"); b([0, 0, 0], [4, 6, 4], 0xffd23f); break;
-      case "balon": b([0, 12, 0], [12, 12, 12], 0xffffff, "sph"); break;
+      case "balon":
+        b([0, 12, 0], [12, 12, 12], 0xffffff, "sph");
+        for (const z of [-11.5, 11.5]) b([0, 12, z], [4, 4, 1], 0x14112b);
+        break;
       case "hielo": b([0, 10, 0], [12, 12, 12], 0x9fdcff, "glow"); break;
       case "kunai": b([0, 2, 0], [2, 12, 2], 0x2a2a35); b([0, 18, 0], [5, 22, 5], steel, "cone"); break;
       case "estrella": b([0, 10, 0], [2, 30, 2], 0xe0b84a, "cyl"); b([0, 34, 0], [10, 10, 10], 0xffe066, "glow"); break;
@@ -551,7 +565,7 @@ const Render3D = (() => {
       case "fantasma": {
         const fl = Math.sin(t * 0.1) * 3;
         at(e.phased ? "ghost" : "sph", e.x, (24 + fl) * k, e.y, 9 * k, 10 * k, 8 * k, w || 0xeef4ff);
-        at("ghostCone", e.x, (12 + fl) * k, e.y, 8 * k, -14 * k, 8 * k, 0xeef4ff);
+        at("invertedCone", e.x, (12 + fl) * k, e.y, 8 * k, 14 * k, 8 * k, w || 0xeef4ff);
         for (const dz of [-3, 3]) at("glow", e.x + 3 * k, (26 + fl) * k, e.y + dz * k + 6 * k, 1.5 * k, 2 * k, 1.5 * k, 0x1a1630);
         break;
       }
@@ -705,7 +719,7 @@ const Render3D = (() => {
           const a = P3(z.pts[i]);
           const b = P3(z.pts[i + 1]);
           a[0] += (Math.random() - 0.5) * 6;
-          between("glow", a, b, 1.6, 0xbfe6ff);
+          between("glowCyl", a, b, 1.6, 0xbfe6ff);
         }
         break;
       }
@@ -725,8 +739,8 @@ const Render3D = (() => {
         }
         break;
       case "tornado":
-        at("ghostCone", z.x, 22, z.y, z.r * 1.2, -40, z.r * 1.2, 0xe8e0c8);
-        at("ghostCone", z.x, 30, z.y, z.r * 0.8, -30, z.r * 0.8, 0xffffff);
+        at("invertedCone", z.x, 22, z.y, z.r * 1.2, 40, z.r * 1.2, 0xe8e0c8);
+        at("invertedCone", z.x, 30, z.y, z.r * 0.8, 30, z.r * 0.8, 0xffffff);
         break;
     }
   }

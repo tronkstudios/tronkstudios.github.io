@@ -148,6 +148,7 @@ const Game = (() => {
 
   function start(setups, opts = {}) {
     stopDemo();
+    input.ab = 0; input.keys.clear(); input.joy = null;
     mode = opts.mode || "solo";
     localId = opts.localId || 0;
     setMap(opts.map || "bosque");
@@ -1119,6 +1120,7 @@ const Game = (() => {
   function updatePlayer(p) {
     if (p.flash > 0) p.flash--;
     if (p.iframes > 0) p.iframes--;
+    if (p.disconnected) return;
     if (p.down) {
       // un compañero cerca lo levanta
       const helper = st.players.find((o) => o !== p && !o.down && Math.hypot(o.x - p.x, o.y - p.y) < 22);
@@ -1900,7 +1902,7 @@ const Game = (() => {
 
   function startChoosing() {
     st.choosing = {};
-    for (const pl of st.players) st.choosing[pl.id] = buildOptions(pl, 3);
+    for (const pl of st.players) if (!pl.disconnected) st.choosing[pl.id] = buildOptions(pl, 3);
     emit("levelUp", { options: st.choosing[localId], level: st.level, players: st.players.length });
     if (mode === "host") emit("netChoices", st.choosing);
   }
@@ -1926,6 +1928,8 @@ const Game = (() => {
   function step() {
     if (!st || st.over) return;
     if (st.choosing || paused || st.victoryWait) return;
+    for (const f of st.fx) f.t++;
+    st.fx = st.fx.filter((f) => f.t < f.life);
     st.t++;
     buildGrid();
     for (const p of st.players) updatePlayer(p);
@@ -2627,8 +2631,8 @@ const Game = (() => {
     let sx = 0;
     let sy = 0;
     if (cam.shake > 0) {
-      sx = rand(-cam.shake, cam.shake);
-      sy = rand(-cam.shake, cam.shake);
+      sx = (Math.random() * 2 - 1) * cam.shake;
+      sy = (Math.random() * 2 - 1) * cam.shake;
       cam.shake *= 0.85;
       if (cam.shake < 0.3) cam.shake = 0;
     }
@@ -2683,11 +2687,7 @@ const Game = (() => {
     for (const z of st.zones) drawZoneOver(z);
     for (const p of st.players) drawDrones(p);
     for (const s of st.eshots) drawEnemyShot(s);
-    for (const f of st.fx) {
-      f.t++;
-      drawFx(f);
-    }
-    st.fx = st.fx.filter((f) => f.t < f.life);
+    for (const f of st.fx) drawFx(f);
 
     // noche: oscuro con luz alrededor del jugador
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -2737,12 +2737,13 @@ const Game = (() => {
 
   function bindInput() {
     window.addEventListener("keydown", (e) => {
+      if (!st || st.over || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
       if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(e.code)) e.preventDefault();
       if ((e.code === "Space" || e.code === "KeyE") && !e.repeat) input.ab++;
       input.keys.add(e.code);
     });
     window.addEventListener("keyup", (e) => input.keys.delete(e.code));
-    window.addEventListener("blur", () => input.keys.clear());
+    window.addEventListener("blur", () => { input.keys.clear(); input.joy = null; });
 
     canvas.addEventListener("pointerdown", (e) => {
       if (e.pointerType === "mouse") return;
@@ -2825,7 +2826,6 @@ const Game = (() => {
       const dr = p.weapons.find((w) => w.id === "dron");
       if (dr) for (const q of dr.drones || []) if (q.x !== undefined) drones.push({ x: q.x, y: q.y + 50, h: 50 + Math.sin(st.t * 0.2) });
     }
-    for (const f of st.fx) f.t++;
     Render3D.draw({
       cx: cam.x, cy: cam.y, wH, shake: shakeNow, dark: map.dark || 0, t: st.t,
       actors, gems: st.gems, pickups: st.pickups, shots: st.shots.filter((x) => !(x.delay > 0)), eshots: st.eshots,
@@ -2851,7 +2851,6 @@ const Game = (() => {
       ctx.fillText(txt, x, y);
     }
     ctx.globalAlpha = 1;
-    st.fx = st.fx.filter((f) => f.t < f.life);
     for (const p of st.players) {
       const [x, y] = P(p.x, p.y, 0);
       const pct = clamp(p.hp / p.stats.maxHp, 0, 1);
@@ -2939,7 +2938,8 @@ const Game = (() => {
       r1(p.x), r1(p.y), DIRS.indexOf(p.dir), p.face, p.moving ? 1 : 0, p.walkT, p.atk ? p.atk.t : 0, p.atk ? p.atk.total : 0,
       Math.round(p.hp), p.stats.maxHp, p.down ? 1 : 0, p.reviveT, p.iframes, p.flash,
       p.weapons.map((w) => [w.id, w.lvl, w.evo ? 1 : 0, (w.drones || []).map((d) => [r1(d.x || 0), r1(d.y || 0)])]),
-      Object.entries(p.passives), r1(p.stats.area), Math.round((1 - p.abCd / abilityMax(p)) * 100) / 100
+      Object.entries(p.passives), r1(p.stats.area), Math.round((1 - p.abCd / abilityMax(p)) * 100) / 100,
+      p.moveX, p.moveY, p.atk ? p.atk.ax : null, p.atk ? p.atk.ay : null
     ]);
     const enemies = [];
     for (const e of st.enemies) {
@@ -2960,6 +2960,7 @@ const Game = (() => {
     return {
       t: st.t, lv: st.level, xp: Math.round(st.xp), xn: st.xpNext, k: st.kills, c: st.coins,
       b: st.boss ? [st.boss.id, st.boss.hp / st.boss.maxHp] : null,
+      endless: !!st.endless, endlessStart: st.endlessStart || 0,
       p: players, e: enemies, s: shots, es: eshots, z: zones, g: gems, pk: pickups, ev: events
     };
   }
@@ -2967,6 +2968,8 @@ const Game = (() => {
   // Invitado: prepara un estado vacío para ir rellenando con las fotos
   function startGuest(info) {
     stopDemo();
+    enemyMap.clear();
+    input.ab = 0; input.keys.clear(); input.joy = null;
     mode = "guest";
     localId = info.localId;
     setMap(info.map || "bosque");
@@ -2985,13 +2988,19 @@ const Game = (() => {
 
   function applySnapshot(snap) {
     if (!st || !st.guest) return;
+    if (snap.t < st.t) return; // el canal de juego no garantiza el orden
+    const elapsed = snap.t - st.t;
+    for (const f of st.fx) f.t += elapsed;
+    st.fx = st.fx.filter((f) => f.t < f.life);
+    st.endless = !!snap.endless; st.endlessStart = snap.endlessStart || 0;
     st.t = snap.t; st.level = snap.lv; st.xp = snap.xp; st.xpNext = snap.xn; st.kills = snap.k; st.coins = snap.c;
     snap.p.forEach((a, i) => {
       const p = st.players[i];
       if (!p) return;
       if (!p.seen) { p.x = a[0]; p.y = a[1]; p.seen = true; }
       p.tx = a[0]; p.ty = a[1]; p.dir = DIRS[a[2]] || "down"; p.face = a[3]; p.moving = !!a[4]; p.walkT = a[5];
-      p.atk = a[6] > 0 ? { t: a[6], total: a[7] } : null;
+      p.atk = a[6] > 0 ? { t: a[6], total: a[7], ...(a[20] != null && a[21] != null ? { ax: a[20], ay: a[21] } : {}) } : null;
+      p.moveX = a[18]; p.moveY = a[19];
       p.hp = a[8]; p.stats.maxHp = a[9]; p.down = !!a[10]; p.reviveT = a[11]; p.iframes = a[12]; p.flash = a[13];
       p.weapons = a[14].map(([id, lvl, evo, drones]) => ({ id, lvl, evo: !!evo, drones: drones.map(([x, y]) => ({ x, y })) }));
       p.passives = Object.fromEntries(a[15]);
@@ -3052,7 +3061,7 @@ const Game = (() => {
     });
     for (let i = 0; i < 10; i++) {
       const type = pick(["zombi", "zombi", "corredor", "antitronk", "ninja", "esqueleto", "murcielago", "slime"]);
-      actors.push({ type, x: rand(-R * 1.4, R * 1.4), y: rand(-R, R), t: Math.floor(rand(0, 200)), flash: 0, vx: 0, vy: 0, dir: "side", face: 1, atk: 0, slow: 0 });
+      actors.push({ type, r: TS.ENEMIES[type].r * U, ai: TS.ENEMIES[type].ai, x: rand(-R * 1.4, R * 1.4), y: rand(-R, R), t: Math.floor(rand(0, 200)), flash: 0, vx: 0, vy: 0, dir: "side", face: 1, atk: 0, slow: 0 });
     }
     demo = { t: 0, actors, camX: 0, camY: 0 };
     const frame = () => {
@@ -3184,7 +3193,14 @@ const Game = (() => {
     applySnapshot,
     setInput(id, inp) { if (st && st.players[id]) st.players[id].input = inp; },
     pressAbility() { input.ab++; },
-    dropPlayer(id) { if (st && st.players[id] && !st.players[id].down) { st.players[id].hp = 0; st.players[id].down = true; } },
+    dropPlayer(id) {
+      const p = st && st.players[id];
+      if (!p) return;
+      p.disconnected = true; p.hp = 0; p.down = true; p.input = { x: 0, y: 0, ab: p.abSeen };
+      // Resolver también su elección para que el resto pueda continuar.
+      if (st.choosing && st.choosing[id]) choose(id, 0);
+      p.hp = 0;
+    },
     get mapId() { return mapId; },
     mapPreview,
     start,

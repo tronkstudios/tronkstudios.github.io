@@ -180,8 +180,9 @@ const TronkNet = (() => {
   function dropPeer(id) {
     const peer = peers.get(id);
     if (!peer) return;
-    try { peer.pc.close(); } catch { /* ya cerrada */ }
     peers.delete(id);
+    peer.pc.onconnectionstatechange = null;
+    try { peer.pc.close(); } catch { /* ya cerrada */ }
     if (room && room.host) {
       lobby = lobby.filter((p) => p.id !== id);
       if (playing && peer.index !== undefined) Game.dropPlayer(peer.index);
@@ -189,8 +190,9 @@ const TronkNet = (() => {
       render();
     } else if (id === hostId) {
       if (playing) TronkUI.toast(L("Se ha perdido la conexión con el anfitrión."));
+      const wasPlaying = playing;
       leave(true);
-      if (playing) { playing = false; TronkUI.backToMenu(); }
+      if (wasPlaying) TronkUI.backToMenu();
       render();
     }
   }
@@ -219,7 +221,7 @@ const TronkNet = (() => {
       else if (m.type === "choices") TronkUI.showLevelUp({ options: m.options, level: m.level });
       else if (m.type === "chosenWait") TronkUI.waitOthers();
       else if (m.type === "resume") TronkUI.hideLevelUp();
-      else if (m.type === "end") { playing = false; TronkUI.showEnd(m.result); }
+      else if (m.type === "end") { playing = false; if (Game.state) Game.state.over = true; TronkUI.showEnd(m.result); }
       else if (m.type === "toast") TronkUI.toast(m.text);
       else if (m.type === "banner") TronkUI.banner(m.text, m.small);
     }
@@ -293,7 +295,10 @@ const TronkNet = (() => {
       try { channel.unsubscribe(); } catch { /* ya cerrado */ }
     }
     channel = null;
-    for (const peer of peers.values()) try { peer.pc.close(); } catch { /* ya cerrada */ }
+    for (const peer of peers.values()) {
+      peer.pc.onconnectionstatechange = null;
+      try { peer.pc.close(); } catch { /* ya cerrada */ }
+    }
     peers = new Map();
     room = null;
     hostId = null;

@@ -13,10 +13,10 @@
 const Stick = (() => {
   const RES = 3;
   // lienzo amplio para que quepan las armas levantadas; pies en (OX, OY)
-  const FW = 84 * RES;
-  const FH = 96 * RES;
-  const OX = 42 * RES;
-  const OY = 90 * RES;
+  const FW = 128 * RES;
+  const FH = 128 * RES;
+  const OX = 64 * RES;
+  const OY = 100 * RES;
   const SCALE = 0.33 * RES; // unidades de Tronk Fight → píxeles del fotograma
   const LINE = 1.3; // líneas algo más gruesas que en Tronk Fight (aquí se ven más pequeños)
   const INK = "rgba(8,6,20,.9)";
@@ -294,7 +294,13 @@ const Stick = (() => {
       ctx.save(); ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.clip();
       ctx.fillStyle = o.hairColor || "#2a1d1a"; ctx.fillRect(-r, -r, r * 2, r * (facing < -0.8 ? 1.45 : 1.25)); ctx.restore();
     }
-    if (profile) drawHair(ctx, o, r, "front"); else both("front");
+    // Las máscaras y las viseras solo tienen abertura por delante.
+    const covered = ["helmet", "balaclava", "wrapNinja", "hoodShadow", "skull"].includes(o.hair);
+    if (facing < -0.3 && covered) {
+      ctx.fillStyle = o.hair === "skull" ? o.color : o.hair === "balaclava" ? "#151319" : o.hairColor || o.color;
+      ctx.beginPath(); ctx.arc(0, 0, r * 1.03, 0, Math.PI * 2); ctx.fill();
+      if (o.crown) drawHair(ctx, { ...o, hair: null }, r, "front");
+    } else if (profile) drawHair(ctx, o, r, "front"); else both("front");
     if (o.glasses && facing > -0.3) {
       ctx.strokeStyle = "#14112b"; ctx.lineWidth = 2.4; ctx.fillStyle = "rgba(255,255,255,.35)";
       if (profile) {
@@ -419,7 +425,7 @@ const Stick = (() => {
     J.shF = J.shB = J.sh;
     const sy = Math.sin(yaw), cy = Math.cos(yaw);
     const k = o.thick || 1;
-    const lat = (n) => LAT[n] * (n.startsWith("f") || n.endsWith("F") ? 1 : 1) * (o.thick ? 0.7 + 0.3 * o.thick : 1);
+    const lat = (n) => (LAT[n] || 0) * (o.thick ? 0.7 + 0.3 * o.thick : 1);
     // proyección: (delante, arriba, derecha) → pantalla y profundidad
     const P3 = (n, pt = J[n], l = lat(n)) => {
       const f = pt[0], u = -pt[1];
@@ -478,7 +484,6 @@ const Stick = (() => {
     // cabeza
     add(hd[2] + 2, () => {
       ctx.save(); ctx.translate(hd[0], hd[1]);
-      const flip = sy < -0.01;
       ctx.rotate(rad(P.lean) * 0.6 * sy);
       drawHead(ctx, flash ? { ...o, color: "#ffffff", head: "#ffffff" } : o, 17 * (o.headK || 1), yaw);
       ctx.restore();
@@ -521,7 +526,23 @@ const Stick = (() => {
     g.translate(OX, OY);
     g.scale(SCALE * (o.size || 1), SCALE * (o.size || 1));
     drawFigure(g, o, P, flash, yaw);
-    return c;
+    // El margen de seguridad de las armas no necesita ocupar memoria en
+    // cada fotograma. Recorte simétrico: el centro sigue siendo el ancla X.
+    const pixels = g.getImageData(0, 0, FW, FH).data;
+    let left = FW, right = 0, top = FH, bottom = 0;
+    for (let y = 0; y < FH; y++) for (let x = 0; x < FW; x++) {
+      if (!pixels[(y * FW + x) * 4 + 3]) continue;
+      left = Math.min(left, x); right = Math.max(right, x);
+      top = Math.min(top, y); bottom = Math.max(bottom, y);
+    }
+    const half = Math.min(OX, Math.max(OX - left, right - OX) + 2);
+    top = Math.max(0, top - 2);
+    bottom = Math.min(FH, bottom + 3);
+    const out = document.createElement("canvas");
+    out.width = half * 2; out.height = bottom - top;
+    out.res = RES; out.foot = OY - top;
+    out.getContext("2d").drawImage(c, OX - half, top, out.width, out.height, 0, 0, out.width, out.height);
+    return out;
   }
 
   // Juego completo de fotogramas con el formato de people.js: 5 vistas
@@ -582,7 +603,7 @@ const Stick = (() => {
     out.height = h;
     out.res = RES;
     out.foot = h - 4 * RES;
-    out.getContext("2d").drawImage(c, OX - w / 2, OY - out.foot, w, h, 0, 0, w, h);
+    out.getContext("2d").drawImage(c, c.width / 2 - w / 2, c.foot - out.foot, w, h, 0, 0, w, h);
     return out;
   }
 
