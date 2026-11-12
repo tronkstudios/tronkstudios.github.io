@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Tronk Survivors · Juego de sobrevivir a hordas gratis | TronkStudios</title>
-  <meta name="description" content="Tronk Survivors: sobrevive a hordas de zombis, Antitronks y ninjas con 16 personajes stickman. Consigue personajes en el cofre, mejora tus armas y juega con tus amigos. Gratis en el navegador para ordenador, móvil y tablet." />
+  <meta name="description" content="Tronk Survivors: sobrevive a hordas de zombis, Antitronks y ninjas con 19 personajes stickman. Consigue personajes en el cofre, mejora tus armas y juega con tus amigos. Gratis en el navegador para ordenador, móvil y tablet." />
   <meta name="robots" content="index, follow, max-image-preview:large" />
   <link rel="canonical" href="https://tronkstudios.github.io/survivors/" />
   <meta name="theme-color" content="#120c24" />
@@ -13,7 +13,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="TronkStudios" />
   <meta property="og:title" content="Tronk Survivors · Sobrevive a las hordas" />
-  <meta property="og:description" content="16 personajes stickman, zombis, Antitronks, ninjas y 4 jefes. Gratis en el navegador." />
+  <meta property="og:description" content="19 personajes stickman, zombis, Antitronks, ninjas y 7 jefes. Gratis en el navegador." />
   <meta property="og:url" content="https://tronkstudios.github.io/survivors/" />
   <meta property="og:image" content="https://tronkstudios.github.io/img/juegos/tronk-survivors.webp" />
   <meta name="twitter:card" content="summary_large_image" />
@@ -21,7 +21,7 @@
     http-equiv="Content-Security-Policy"
     content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://qjjnqhbtovjcbwgcwhgl.supabase.co wss://qjjnqhbtovjcbwgcwhgl.supabase.co https://tronkstudios-support.tronkstudios7.workers.dev; object-src 'none'; base-uri 'self'; form-action 'self'"
   />
-  <link rel="stylesheet" href="survivors.css?v=5" />
+  <link rel="stylesheet" href="survivors.css?v=6" />
 </head>
 <body>
   <canvas id="game" aria-label="Tronk Survivors"></canvas>
@@ -39,7 +39,7 @@
     <div class="menu-layout">
       <div class="menu-box">
         <h1 class="logo">TRONK<br /><span>SURVIVORS</span></h1>
-        <div class="menu-chips"><span>16 personajes</span><span>16 armas</span><span>7 jefes</span><span>Online</span></div>
+        <div class="menu-chips"><span>19 personajes</span><span>19 armas</span><span>7 jefes</span><span>Online</span></div>
         <div class="menu-buttons">
           <button class="btn btn-big" data-go="maps"><img data-icon="tajo" alt="" loading="lazy" decoding="async" /> Jugar</button>
           <button class="btn btn-daily" data-go="daily"><img data-icon="reloj" alt="" loading="lazy" decoding="async" /> Reto diario <span id="menu-daily" class="badge" hidden>¡Nuevo!</span></button>
@@ -142,8 +142,8 @@
         <h2>Elige el mapa</h2>
       </header>
       <div class="maps-grid" id="maps-grid"></div>
-      <h3 class="daily-title">Modo infinito: los que más aguantan</h3>
-      <p class="online-note">Al ganar una partida puedes seguir jugando sin final.</p>
+      <h3 class="daily-title">Supervivencia: los que más aguantan</h3>
+      <p class="online-note">Los enemigos se fortalecen sin parar. Al minuto 10 llega el jefe final: supera sus fases y aguanta todo lo que puedas.</p>
       <ol class="daily-top" id="endless-top"></ol>
     </div>
   </section>
@@ -228,6 +228,7 @@
     </div>
     <div class="hud-center">
       <div class="hud-time" id="hud-time">0:00</div>
+      <div class="hud-phase" id="hud-phase">Final 10:00</div>
       <div class="hud-sub" id="hud-sub"></div>
     </div>
     <button class="btn btn-small hud-pause" id="hud-pause" type="button" aria-label="Pausa">II</button>
@@ -295,19 +296,19 @@
     </div>
   </div>
 
-  <script src="js/data.js?v=3" defer></script>
-  <script src="js/sprites.js?v=9" defer></script>
+  <script src="js/data.js?v=4" defer></script>
+  <script src="js/sprites.js?v=10" defer></script>
   <script src="js/people.js?v=4" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js" defer></script>
-  <script src="js/stick.js?v=12" defer></script>
-  <script src="js/render3d.js?v=2" defer></script>
+  <script src="js/stick.js?v=13" defer></script>
+  <script src="js/render3d.js?v=3" defer></script>
   <script src="js/audio.js?v=3" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-  <script src="js/lang.js?v=4" defer></script>
+  <script src="js/lang.js?v=5" defer></script>
   <script src="js/save.js?v=5" defer></script>
   <script src="js/account.js?v=4" defer></script>
-  <script src="js/game.js?v=12" defer></script>
-  <script src="js/net.js?v=5" defer></script>
-  <script src="js/ui.js?v=10" defer></script>
+  <script src="js/game.js?v=13" defer></script>
+  <script src="js/net.js?v=6" defer></script>
+  <script src="js/ui.js?v=11" defer></script>
 </body>
 </html>

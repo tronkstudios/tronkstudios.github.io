@@ -119,7 +119,7 @@
     $("menu-daily").hidden = save.dailyDone === dailyConfig().day;
     $("menu-ach").hidden = (save.weekly && save.weekly.seen) === weekKey();
     const b = save.best;
-    $("menu-best").textContent = b.time ? LT("best", { time: fmtTime(b.time), kills: b.kills, level: b.level }) + (b.wins ? LT("wins", { n: b.wins }) : "") : L("Aguanta 10 minutos y derrota al jefe final.");
+    $("menu-best").textContent = b.time ? LT("best", { time: fmtTime(b.time), kills: b.kills, level: b.level }) + (b.wins ? LT("wins", { n: b.wins }) : "") : L("Aguanta hasta el minuto 10 y sobrevive a las fases del jefe final.");
     renderAccount();
   }
 
@@ -640,7 +640,8 @@
     $("hud-level").textContent = `${LANG === "en" ? "Lv." : "Nv."} ${d.level}`;
     $("hud-name").textContent = d.name;
     $("hud-time").textContent = fmtTime(d.seconds);
-    $("hud-sub").textContent = (Game.state && Game.state.endless ? `${L("Modo infinito")} · ` : "") + LT("hudSub", { map: L(TS.MAPS[Game.mapId].name), kills: d.kills, coins: d.coins });
+    $("hud-phase").textContent = d.finalPhase ? `${L("Fase")} ${d.finalRound}` : `${L("Final")} ${fmtTime(d.finalIn)}`;
+    $("hud-sub").textContent = (d.finalPhase ? `${L("Supervivencia final")} · ` : Game.state && Game.state.endless ? `${L("Modo infinito")} · ` : "") + LT("hudSub", { map: L(TS.MAPS[Game.mapId].name), kills: d.kills, coins: d.coins });
     const pct = Math.max(0, d.hp / d.maxHp);
     $("hud-hp-bar").style.width = `${pct * 100}%`;
     $("hud-hp-bar").classList.toggle("is-low", pct < 0.35);
@@ -695,6 +696,7 @@
 
   Game.on("toast", (d) => toast(d.text));
   Game.on("lowFx", () => toast(L("Efectos reducidos para que el juego vaya más fluido.")));
+  Game.on("finalPhase", d => banner(L(d.round === 1 ? "¡JEFE FINAL!" : "¡NUEVA FASE!"), `${L("Fase")} ${d.round} · ${L("Aguanta todo lo que puedas")}`));
   Game.on("boss", (d) => banner(L("¡JEFE!"), d.name));
   Game.on("bossDown", (d) => toast(LT("bossDown", { name: d.name })));
   Game.on("chest", (d) => { toast(L("¡Cofre! +40 monedas")); for (const l of d.lines) toast(l); });
@@ -786,7 +788,7 @@
     checkAchievements(r);
     TronkNet.leave();
     const points = Account.points(r);
-    $("end-title").textContent = r.endless ? L("¡Fin del modo infinito!") : r.victory ? L("¡VICTORIA!") : L("¡Has caído!");
+    $("end-title").textContent = r.finalPhase ? L("Fin de supervivencia") : r.endless ? L("¡Fin del modo infinito!") : r.victory ? L("¡VICTORIA!") : L("¡Has caído!");
     const stats = $("end-stats");
     stats.textContent = "";
     const add = (label, value, cls) => {
@@ -798,7 +800,9 @@
     add("Nivel", r.level);
     add("Enemigos", r.kills);
     add("Jefes", r.bosses);
-    if (r.endless) add("Modo infinito", fmtTime(r.endlessSeconds), "coins");
+    if (r.finalPhase) add("Fases superadas", Math.max(0, r.finalRound - 1));
+    if (r.finalPhase) add("Contra el jefe final", fmtTime(r.endlessSeconds), "coins");
+    else if (r.endless) add("Modo infinito", fmtTime(r.endlessSeconds), "coins");
     add("Puntos", points, "coins");
     add("Monedas ganadas", `+${r.coins}`, "coins");
     hideLevelUp();

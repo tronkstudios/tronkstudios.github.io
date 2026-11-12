@@ -515,3 +515,31 @@ function translatePage(root = document.body) {
     el.setAttribute("aria-label", L(el.__esLabel));
   }
 }
+
+Object.assign(EN, {
+  "19 personajes": "19 characters", "19 armas": "19 weapons", "Consigue los 19 personajes": "Get all 19 characters",
+  "Fase": "Phase", "Final": "Final", "Supervivencia final": "Final survival", "Fin de supervivencia": "Survival over",
+  "Fases superadas": "Phases cleared", "Contra el jefe final": "Against the final boss",
+  "¡JEFE FINAL!": "FINAL BOSS!", "¡NUEVA FASE!": "NEW PHASE!",
+  "Aguanta hasta el minuto 10 y sobrevive a las fases del jefe final.": "Reach minute 10 and survive the final boss's phases.",
+  "Supervivencia: los que más aguantan": "Survival: the longest runs",
+  "Los enemigos se fortalecen sin parar. Al minuto 10 llega el jefe final: supera sus fases y aguanta todo lo que puedas.": "Enemies keep growing stronger. At minute 10 the final boss arrives: clear its phases and survive as long as you can.",
+  "Supera la primera fase de cualquier jefe final": "Clear the first phase of any final boss",
+  "Supera la primera fase del jefe final": "Clear the final boss's first phase",
+  "Supera la primera fase del jefe final con Sunk": "Clear the final boss's first phase with Sunk",
+  "Supera la primera fase de {n} jefe final": "Clear the first phase of {n} final boss",
+  "Discos magnéticos": "Magnetic discs", "Viales de ácido": "Acid vials", "Lanzallamas": "Flamethrower",
+  "Discos que orbitan a tu alrededor y golpean al contacto.": "Discs orbit you and deal contact damage.",
+  "Lanza viales que dejan charcos dañinos y ralentizan a los enemigos.": "Throws vials that leave damaging pools and slow enemies.",
+  "Una ráfaga de fuego en cono hacia el enemigo más cercano.": "A cone of fire aimed at the nearest enemy.",
+  "Ingeniera de chatarra con una antena torcida. Sus discos magnéticos orbitan a su alrededor y cortan todo lo que se acerca.": "A scrap engineer with a crooked antenna. Her magnetic discs orbit her and slice anything that gets close.",
+  "Alquimista del pantano, sombrero de hongo y mochila de frascos. Donde cae un vial queda un charco de ácido.": "A swamp alchemist with a mushroom hat and a bag of vials. Each vial leaves a pool of acid.",
+  "Antigua guardiana de una fundición. Lleva una máscara de hierro, depósitos a la espalda y un lanzallamas de fabricación propia.": "A former foundry guard wearing an iron mask, fuel tanks and a homemade flamethrower.",
+  "+12 % de área": "+12% area", "Recupera 0,35 de vida por segundo": "Regenerates 0.35 health per second", "+1 de armadura, +8 % de daño": "+1 armor, +8% damage",
+  "Corona Magnética": "Magnetic Crown", "Mar de Veneno": "Sea of Venom", "Aliento de la Forja": "Forge Breath",
+  "Más discos, más grandes y más rápidos.": "More discs, bigger and faster.", "Charcos más extensos que duran mucho más.": "Larger pools that last much longer.", "Un abanico de fuego más ancho y potente.": "A wider, stronger fan of fire.",
+  "Polaridad": "Polarity", "Jardín Cáustico": "Caustic Garden", "Sobrecarga": "Overload",
+  "Atrae a los enemigos cercanos y desata una descarga magnética.": "Pulls nearby enemies in and unleashes a magnetic discharge.",
+  "Crea seis charcos de ácido y recupera el 15 % de vida.": "Creates six acid pools and restores 15% health.",
+  "Una corona de llamas quema a todos los de alrededor.": "A crown of flames burns everything around you."
+});

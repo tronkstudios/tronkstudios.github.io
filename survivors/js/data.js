@@ -458,7 +458,7 @@ TS.MAPS = {
     ground: { grass: ["#4a4e58", "#454953", "#50545e", "#41454f", "#4c505a"], grassEdge: "#383c46", dirt: ["#5a5f6a", "#555a65", "#60656f", "#4e535e", "#585d68"], dirtEdge: "#3e434e", water: ["#2a3a5a", "#263552", "#304062"], shore: ["#8a8a92", "#80808a"], foam: "#4a5a7a", wave: "#3a4a6a", flowers: ["#ffe066", "#9aa3b0", "#ffffff"] },
     dirt: 0.55, water: 0.85, dark: 0.45, roads: true,
     obstacles: { farola: 3, contenedor: 2, coche: 2, banco: 2, arbusto: 1 },
-    mix: { antitronk: 3, ninja: 2.5, supremo: 0, brujo: 1 }, finalBoss: "general", unlock: { best: "wins", value: 1, text: "Gana una partida en cualquier mapa" }
+    mix: { antitronk: 3, ninja: 2.5, supremo: 0, brujo: 1 }, finalBoss: "general", unlock: { best: "wins", value: 1, text: "Supera la primera fase de cualquier jefe final" }
   }
 };
 
@@ -482,13 +482,13 @@ TS.ACHIEVEMENTS = [
   { id: "mil", name: "Imparable", desc: "Derrota a 1.000 enemigos en una partida", reward: 200, test: (r) => r.kills >= 1000 },
   { id: "cinco", name: "Superviviente", desc: "Aguanta 5 minutos", reward: 100, test: (r) => r.seconds >= 300 },
   { id: "jefe", name: "Cazajefes", desc: "Derrota a un jefe", reward: 100, test: (r) => r.bosses >= 1 },
-  { id: "victoria", name: "Rey de reyes", desc: "Gana una partida derrotando al jefe final", reward: 500, test: (r) => r.victory },
+  { id: "victoria", name: "Rey de reyes", desc: "Supera la primera fase del jefe final", reward: 500, test: (r) => r.victory },
   { id: "nivel30", name: "Muy preparado", desc: "Llega a nivel 30 en una partida", reward: 200, test: (r) => r.level >= 30 },
   { id: "evolucion", name: "Evolución", desc: "Evoluciona un arma", reward: 150, test: (r, s) => s.stats.evolutions >= 1 },
   { id: "rompe", name: "Manazas", desc: "Rompe 50 objetos en total", reward: 100, test: (r, s) => s.stats.props >= 50 },
-  { id: "sunk", name: "Sin camiseta", desc: "Gana una partida con Sunk", reward: 300, test: (r) => r.victory && r.charId === "sunk" },
+  { id: "sunk", name: "Sin camiseta", desc: "Supera la primera fase del jefe final con Sunk", reward: 300, test: (r) => r.victory && r.charId === "sunk" },
   { id: "coleccion5", name: "Coleccionista", desc: "Consigue 5 personajes", reward: 100, test: (r, s) => Object.keys(s.owned).length >= 5 },
-  { id: "coleccion", name: "Todos los Tronks", desc: "Consigue los 16 personajes", reward: 1000, test: (r, s) => Object.keys(s.owned).length >= TS.CHARACTERS.length },
+  { id: "coleccion", name: "Todos los Tronks", desc: "Consigue los 19 personajes", reward: 1000, test: (r, s) => Object.keys(s.owned).length >= TS.CHARACTERS.length },
   { id: "legendario", name: "¡Legendario!", desc: "Consigue un personaje legendario", reward: 200, test: (r, s) => TS.CHARACTERS.some((c) => c.rarity === "legendario" && s.owned[c.id]) },
   { id: "estrellas", name: "Cinco estrellas", desc: "Sube un personaje a 5 estrellas", reward: 300, test: (r, s) => Object.values(s.owned).some((o) => o.stars >= 5) },
   { id: "diario", name: "Cada día", desc: "Juega un reto diario", reward: 100, test: (r, s) => s.stats.dailies >= 1 },
@@ -529,10 +529,45 @@ TS.MISSIONS = [
   { id: "props", text: "Rompe {n} barriles, cajas o jarrones", stat: "props", kind: "sum", goal: 80, reward: 200 },
   { id: "survive", text: "Aguanta {n} minutos en una partida", stat: "minutes", kind: "best", goal: 7, reward: 300 },
   { id: "level", text: "Llega a nivel {n} en una partida", stat: "level", kind: "best", goal: 25, reward: 250 },
-  { id: "win", text: "Gana {n} partida", stat: "wins", kind: "sum", goal: 1, reward: 400 },
+  { id: "win", text: "Supera la primera fase de {n} jefe final", stat: "wins", kind: "sum", goal: 1, reward: 400 },
   { id: "coop", text: "Juega {n} partidas con amigos", stat: "coop", kind: "sum", goal: 2, reward: 300 },
   { id: "daily", text: "Juega {n} retos diarios", stat: "dailies", kind: "sum", goal: 3, reward: 250 },
   { id: "evolve", text: "Evoluciona {n} armas", stat: "evolutions", kind: "sum", goal: 2, reward: 300 },
   { id: "maps", text: "Juega {n} partidas fuera del bosque", stat: "otherMaps", kind: "sum", goal: 3, reward: 250 },
   { id: "ability", text: "Usa la habilidad especial {n} veces", stat: "abilities", kind: "sum", goal: 40, reward: 200 }
 ];
+
+/* Nuevos supervivientes: identidad, arma y habilidad propias. */
+TS.CHARACTERS.push(
+  { id: "nix", name: "Nix", rarity: "raro", from: "Nuevo", weapon: "discos", skin: "light",
+    hair: "antenna", hairColor: "#264653", acc: "#64f5ff", shirt: "#219ebc", pants: "#193343",
+    perk: { area: 0.12 }, perkText: "+12 % de área",
+    desc: "Ingeniera de chatarra con una antena torcida. Sus discos magnéticos orbitan a su alrededor y cortan todo lo que se acerca." },
+  { id: "savia", name: "Savia", rarity: "epico", from: "Nuevo", weapon: "acido", skin: "light",
+    hair: "mushroom", hairColor: "#7744a6", acc: "#b8f06a", shirt: "#75b843", pants: "#513659",
+    perk: { regen: 0.35 }, perkText: "Recupera 0,35 de vida por segundo",
+    desc: "Alquimista del pantano, sombrero de hongo y mochila de frascos. Donde cae un vial queda un charco de ácido." },
+  { id: "brasa", name: "Brasa", rarity: "legendario", from: "Nuevo", weapon: "llamas", skin: "dark",
+    hair: "forge", hairColor: "#34313d", acc: "#ff812f", shirt: "#bd4b24", pants: "#34313d",
+    perk: { armor: 1, might: 0.08 }, perkText: "+1 de armadura, +8 % de daño",
+    desc: "Antigua guardiana de una fundición. Lleva una máscara de hierro, depósitos a la espalda y un lanzallamas de fabricación propia." }
+);
+Object.assign(TS.WEAPONS, {
+  discos: { name: "Discos magnéticos", desc: "Discos que orbitan a tu alrededor y golpean al contacto.",
+    levels: Array.from({ length: 6 }, (_, i) => ({ dmg: 9 + i * 4, cd: 24, count: 2 + Math.floor(i / 2), area: 1 + i * .08, speed: .045 + i * .004 })) },
+  acido: { name: "Viales de ácido", desc: "Lanza viales que dejan charcos dañinos y ralentizan a los enemigos.",
+    levels: Array.from({ length: 6 }, (_, i) => ({ dmg: 7 + i * 3, cd: 180 - i * 12, count: 1 + Math.floor(i / 3), area: 1 + i * .09, dur: 180 + i * 18 })) },
+  llamas: { name: "Lanzallamas", desc: "Una ráfaga de fuego en cono hacia el enemigo más cercano.",
+    levels: Array.from({ length: 6 }, (_, i) => ({ dmg: 5 + i * 2, cd: 66 - i * 4, count: 1, area: 1 + i * .08, dur: 30 + i * 3 })) }
+});
+Object.assign(TS.EVOLUTIONS, {
+  discos: { passive: "iman", name: "Corona Magnética", desc: "Más discos, más grandes y más rápidos." },
+  acido: { passive: "tirita", name: "Mar de Veneno", desc: "Charcos más extensos que duran mucho más." },
+  llamas: { passive: "escudo", name: "Aliento de la Forja", desc: "Un abanico de fuego más ancho y potente." }
+});
+Object.assign(TS.ABILITIES, {
+  nix: { name: "Polaridad", desc: "Atrae a los enemigos cercanos y desata una descarga magnética.", cd: 23 },
+  savia: { name: "Jardín Cáustico", desc: "Crea seis charcos de ácido y recupera el 15 % de vida.", cd: 28 },
+  brasa: { name: "Sobrecarga", desc: "Una corona de llamas quema a todos los de alrededor.", cd: 24 }
+});
+TS.WATER_SPEED = .58;

@@ -284,6 +284,9 @@ const Sprites = (() => {
   }
 
   const ICONS = {
+    discos: p => { p.ell(7,7,5.5,5.5,"#64f5ff");p.ell(7,7,3,3,"#264653");p.P(6,3,"#fff4d6"); },
+    acido: p => {p.rect(5,1,4,3,"#7744a6");p.ell(7,8,4.5,5,"#b8f06a");p.rect(5,5,2,5,"#efffd7");},
+    llamas: p => {p.rect(3,5,8,5,"#34313d");p.rect(9,4,3,7,"#ff812f");p.rect(11,5,3,5,"#ffd987");},
     tajo: (p) => { p.line(2, 11, 10, 3, "#e6edf5"); p.line(3, 11, 11, 3, "#8a96a8"); p.P(11, 2, "#ffffff"); p.line(1, 9, 4, 12, "#f2c14e"); p.P(1, 12, "#8a5a2b"); },
     virote: (p) => { p.line(1, 11, 10, 2, "#8a5a2b"); p.P(11, 1, "#e6edf5"); p.P(10, 1, "#e6edf5"); p.P(11, 2, "#e6edf5"); p.P(1, 10, "#e63946"); p.P(2, 12, "#e63946"); },
     mazazo: (p) => { p.line(4, 12, 8, 6, "#8a5a2b"); p.rect(4, 1, 8, 5, "#6b7380"); p.rect(4, 1, 8, 1, "#9aa3b0"); },

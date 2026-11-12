@@ -268,6 +268,26 @@ const Stick = (() => {
   /* Cabeza según desde dónde se mire (yaw: 0 de frente, π/2 de lado, π de espaldas).
      De lado es exactamente la de Tronk Fight; de frente el peinado se dibuja
      por los dos lados y se ven los dos ojos; de espaldas, solo pelo. */
+  function specialHead(ctx, o, r, rear, side) {
+    const acc=o.acc || "#ffd23f";
+    ctx.lineWidth=3;ctx.strokeStyle=INK;
+    if (o.hair === "mushroom") {
+      ctx.fillStyle=o.hairColor;ctx.beginPath();ctx.ellipse(0,-r*.6,r*1.55,r*.75,0,Math.PI,Math.PI*2);ctx.lineTo(r*1.55,-r*.45);ctx.lineTo(-r*1.55,-r*.45);ctx.closePath();ctx.fill();ctx.stroke();
+      ctx.fillStyle=acc;for(const x of [-.8,0,.8])blob(ctx,x*r,-r*(x===0?1.12:.9),r*.18);
+    } else {
+      ctx.fillStyle=o.hairColor;ctx.beginPath();ctx.arc(0,0,r*1.08,0,Math.PI*2);ctx.fill();ctx.stroke();
+      if (!rear) {
+        ctx.fillStyle=acc;ctx.fillRect((side ? .15 : -.75)*r,-r*.3,(side ? .8 : 1.5)*r,r*.42);
+        ctx.fillStyle="#fff4d6";blob(ctx,(side ? .65 : 0)*r,-r*.12,r*.12);
+      }
+      if(o.hair === "antenna") {
+        ctx.strokeStyle=acc;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-r*.5,-r*.8);ctx.lineTo(-r*.8,-r*1.8);ctx.stroke();ctx.fillStyle="#ff6570";blob(ctx,-r*.8,-r*1.8,r*.22);
+      } else {
+        ctx.fillStyle="#ff812f";for(const x of [-.55,0,.55])poly(ctx,r,[[x-.17,-.8],[x,-1.7],[x+.17,-.8]]);
+      }
+    }
+  }
+
   // Frente y espalda comparten una silueta, sin duplicar el dibujo de perfil:
   // así no aparecen dos coletas, dos viseras o dos insignias al girar.
   function drawTurnedHead(ctx, o, r, rear) {
@@ -316,8 +336,9 @@ const Stick = (() => {
           cap(hair, o.hair === "taperLong" ? 1.55 : 1.15);
       }
     }
+    if (["antenna","mushroom","forge"].includes(o.hair)) specialHead(ctx,o,r,rear,false);
     if (rear) {
-      if (!covered && !["skull","zombie","hardhat","beanie","capBack"].includes(o.hair)) {
+      if (!covered && !["skull","zombie","hardhat","beanie","capBack","antenna","mushroom","forge"].includes(o.hair)) {
         ctx.save(); ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.clip();
         ctx.fillStyle=hair; ctx.fillRect(-r,-r,2*r,long ? 2*r : 1.5*r); ctx.restore();
       }
@@ -403,6 +424,7 @@ const Stick = (() => {
         ctx.beginPath(); ctx.moveTo(-r * 0.05, -r * 0.2); ctx.lineTo(r * 0.05, -r * 0.2); ctx.stroke();
       }
     }
+    if (["antenna","mushroom","forge"].includes(o.hair)) specialHead(ctx,o,r,facing<-.3,true);
   }
 
   /* Armas: el arma sale de la mano hacia +y (como en Tronk Fight) */
@@ -412,6 +434,15 @@ const Stick = (() => {
     ctx.lineCap = "round"; ctx.lineJoin = "round";
     const wood = "#7a4a26", steel = "#dfe6f0", steelDk = "#5b6b80";
     switch (type) {
+      case "magnet":
+        ctx.strokeStyle="#64f5ff";ctx.lineWidth=6;ctx.beginPath();ctx.arc(0,12,14,0,Math.PI*2);ctx.stroke();
+        ctx.fillStyle="#264653";ctx.fillRect(-5,-4,10,14);break;
+      case "vial":
+        ctx.fillStyle="#b8f06a";ctx.beginPath();ctx.ellipse(0,13,10,14,0,0,Math.PI*2);ctx.fill();
+        ctx.strokeStyle="#e4ffd0";ctx.lineWidth=2;ctx.stroke();ctx.fillStyle="#7744a6";ctx.fillRect(-5,-4,10,8);break;
+      case "flamer":
+        ctx.fillStyle="#34313d";ctx.fillRect(-8,-6,16,38);ctx.fillStyle="#ff812f";ctx.fillRect(-11,20,22,10);
+        ctx.fillStyle="#ffd987";ctx.fillRect(-5,30,10,6);break;
       case "espada":
       case "katana": {
         ctx.fillStyle = "#3a2516"; ctx.fillRect(-3, -10, 6, 16);
@@ -496,6 +527,7 @@ const Stick = (() => {
 
   // Arma de Survivors → cómo se dibuja y cómo se mueve
   const WEAPON = {
+    discos: ["magnet", 0, "cast"], acido: ["vial", 0, "throw"], llamas: ["flamer", 40, "shoot"],
     tajo: ["espada", 74, "slash"], virote: ["ballesta", 46, "shoot"], mazazo: ["mazo", 70, "smash"], estocada: ["lanza", 132, "thrust"],
     hacha: ["hacha", 78, "slash"], rayo: ["tridente", 116, "thrust"], guantes: [null, 0, "punch", "gloves"], punos: [null, 0, "punch", "fists"],
     petardo: ["petardo", 0, "throw"], colonia: ["perfume", 0, "cast"], balon: ["balon", 0, "throw"], copos: ["hielo", 0, "cast"],
@@ -662,7 +694,9 @@ const Stick = (() => {
 
   /* ---------- personajes (de data.js) ---------- */
   function characterOptions(ch) {
-    const o = { color: ch.shirt, hair: ch.hair, hairColor: ch.hairColor, acc: ch.acc, weapon: ch.weapon, glasses: ch.glasses };
+    const o = { role: ch.id, color: ch.shirt, hair: ch.hair, hairColor: ch.hairColor, acc: ch.acc, weapon: ch.weapon, glasses: ch.glasses };
+    if (ch.id === "savia") o.cape = "#513659";
+    if (ch.id === "brasa") o.thick = 1.2;
     if (ch.id === "omogos") Object.assign(o, { hair: "curly", beard: true });
     if (ch.id === "eledemak") Object.assign(o, { fringe: true }); // mullet con flequillo
     if (ch.id === "sunk") Object.assign(o, { color: "#f0c8a0", legs: "#9e9a92", thick: 1.25, torso: 1.35, abs: true });

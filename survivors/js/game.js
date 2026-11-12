@@ -28,7 +28,7 @@ const Game = (() => {
   const charById = (id) => TS.CHARACTERS.find((c) => c.id === id) || TS.CHARACTERS[0];
   const STYLE_OF = {
     tajo: "swing", mazazo: "slam", virote: "aim", estocada: "thrust", rayo: "cast", guantes: "punch", punos: "punch",
-    hacha: "throw", petardo: "throw", balon: "throw", kunai: "throw", copos: "cast", colonia: "cast", meteoro: "cast", dron: "cast", tornado: "cast"
+    hacha: "throw", petardo: "throw", balon: "throw", kunai: "throw", copos: "cast", colonia: "cast", meteoro: "cast", dron: "cast", tornado: "cast", discos: "cast", acido: "throw", llamas: "aim"
   };
 
   let canvas = null;
@@ -189,6 +189,7 @@ const Game = (() => {
       choosing: null,
       over: false,
       victory: false,
+      finalPhase: false, finalRound: 0, finalPulseT: 0,
       endT: 0
     };
     st.xpNext = xpFor(1);
@@ -320,16 +321,14 @@ const Game = (() => {
     return dirtV(x, y) > map.dirt ? 1 : 0;
   }
 
-  // Si algo se mete en el agua, vuelve atrás (resbala por la orilla)
+  // El agua se puede vadear: reduce el desplazamiento, sin devolver a la orilla.
   function blockWater(ent, ox, oy) {
-    if (terrain(ent.x, ent.y) !== 2) return;
-    if (terrain(ent.x, oy) !== 2) ent.y = oy;
-    else if (terrain(ox, ent.y) !== 2) ent.x = ox;
-    else { ent.x = ox; ent.y = oy; }
+    ent.inWater = terrain(ox, oy) === 2 || terrain(ent.x, ent.y) === 2;
+    if (!ent.inWater) return;
+    ent.x = ox + (ent.x - ox) * TS.WATER_SPEED;
+    ent.y = oy + (ent.y - oy) * TS.WATER_SPEED;
   }
 
-  // El suelo se dibuja por trozos de 256 × 256 a la mitad de resolución
-  // (píxeles el doble de grandes, como en PokeSurvivor)
   const CHUNK = 256;
   const chunks = new Map();
 
@@ -513,10 +512,9 @@ const Game = (() => {
 
   function spawnEnemy(type, x, y) {
     const d = TS.ENEMIES[type];
-    const minutes = st.t / 3600;
-    const n = st.players.length;
-    const hpMul = (d.prop ? 1 : st.mod ? st.mod.enemyHp : 1) * (d.prop ? 1 : 1) * 1;
-    const hpBase = d.prop ? 1 : d.boss ? (1 + 0.6 * (n - 1)) * (st.endless ? 1 + 0.5 * st.endlessLoops : 1) : (1 + minutes * 0.22) * (1 + 0.3 * (n - 1));
+    const n = st.players.filter(p => !p.disconnected).length;
+    const hpMul = d.prop ? 1 : st.mod ? st.mod.enemyHp : 1;
+    const hpBase = d.prop ? 1 : 1 + (d.boss ? .6 : .3) * (n - 1);
     const e = {
       id: st.nextId++,
       type,
@@ -525,8 +523,7 @@ const Game = (() => {
       hp: d.hp * hpMul * hpBase,
       maxHp: d.hp * hpMul * hpBase,
       speed: d.speed * U * rand(0.92, 1.08) * (d.prop ? 1 : st.mod ? st.mod.enemySpeed : 1),
-      // los primeros minutos pegan menos, para aprender a moverse
-      dmg: d.dmg * (1 + minutes * 0.07) * (d.boss ? 1 : 0.65 + 0.35 * Math.min(1, minutes / 5)) * (st.mod ? st.mod.enemyDmg : 1),
+      dmg: d.dmg * (st.mod ? st.mod.enemyDmg : 1),
       r: d.r * U,
       ai: d.ai,
       boss: !!d.boss,
@@ -547,6 +544,9 @@ const Game = (() => {
       atk: 0,
       prop: !!d.prop
     };
+    e.baseMaxHp = e.maxHp; e.baseSpeed = e.speed;
+    e.baseDmg = d.dmg * (st.mod ? st.mod.enemyDmg : 1);
+    scaleEnemy(e);
     st.enemies.push(e);
     if (e.boss) {
       st.boss = e;
@@ -555,6 +555,58 @@ const Game = (() => {
       Sfx.startMusic("boss");
     }
     return e;
+  }
+
+  function difficultyAt(t) {
+    const m = Math.max(0, t / 3600);
+    return { hp: 1 + .35 * m + .06 * m * m, bossHp: 1 + .08 * m + .01 * m * m,
+      dmg: 1 + .10 * m + .012 * m * m, speed: 1 + Math.min(.65, .035 * m) };
+  }
+
+  function scaleEnemy(e) {
+    if (e.prop || e.baseMaxHp === undefined) return;
+    const d = difficultyAt(st.t);
+    const rage = e.relentless ? 1 + (e.finalRound - 1) * .22 : 1;
+    const nextHp = e.baseMaxHp * (e.boss ? d.bossHp : d.hp) * rage;
+    e.hp = Math.max(1, e.hp / e.maxHp * nextHp); e.maxHp = nextHp;
+    e.dmg = e.baseDmg * d.dmg * rage;
+    const pursuit = e.relentless ? Math.min(4, 1.25 + (st.t - st.endlessStart) / 18000) : 1;
+    e.speed = e.baseSpeed * d.speed * pursuit;
+  }
+
+  function beginFinalPhase() {
+    st.finalPhase = true; st.finalRound = 1; st.endless = true;
+    st.endlessStart = st.t; st.endlessLoops = 0; st.finalPulseT = st.t + 180;
+    const e = spawnAround(finalBossId(), pick(alivePlayers()), spawnRadius() * .75);
+    e.relentless = true; e.finalRound = 1; scaleEnemy(e);
+    st.finalBoss = e; st.boss = e;
+    emit("finalPhase", { round: 1 });
+  }
+
+  function nextFinalRound(e) {
+    e.finalRound++; st.finalRound = e.finalRound;
+    if (e.finalRound === 2) { st.bossesKilled++; st.kills++; }
+    st.won = true;
+    e.hp = e.maxHp; scaleEnemy(e); e.hp = e.maxHp;
+    e.flash = 24; e.timer = 80; e.state = 0; e.t = 0;
+    e.cloned = false; e.called = false; e.splits = []; e.hops = 0;
+    st.pickups.push({ x: e.x, y: e.y, kind: "cofre", t: 0 });
+    for (const p of alivePlayers()) { p.hp = Math.min(p.stats.maxHp, p.hp + p.stats.maxHp * .15); p.iframes = Math.max(p.iframes, 60); }
+    fx({ k: "ring", x: e.x, y: e.y, r: 100, color: "#ff512f", life: 50 });
+    sound("boss"); emit("finalPhase", { round: e.finalRound });
+  }
+
+  function finalPressure() {
+    const e = st.finalBoss;
+    if (!e || st.t < st.finalPulseT) return;
+    st.finalPulseT = st.t + Math.max(110, 360 - st.finalRound * 20 - Math.floor((st.t - st.endlessStart) / 600));
+    for (const p of alivePlayers()) {
+      fx({ k: "warn", x: p.x, y: p.y, r: 26 * U, life: 60 });
+      st.strikes.push({ x: p.x, y: p.y, t: 60, dmg: e.dmg * .8 });
+    }
+    const n = Math.min(24, 8 + st.finalRound * 2);
+    const offset = st.t * .013;
+    for (let i = 0; i < n; i++) enemyShot(e, offset + i * TAU / n, 1.5, e.dmg * .55, { kind: "orb" });
   }
 
   function finalBossId() {
@@ -606,14 +658,15 @@ const Game = (() => {
     const alive = alivePlayers();
     if (!alive.length) return;
 
-    // jefes
+    if (!st.finalPhase && sec >= TS.RUN_SECONDS) beginFinalPhase();
+    // Los jefes previos siguen su calendario; el final siempre llega al minuto 10.
     const nextBoss = TS.BOSSES[st.bossIdx];
-    if (nextBoss && sec >= nextBoss.at * st.mod.bossTime) {
+    if (!st.finalPhase && nextBoss && nextBoss.id !== "rey" && sec >= nextBoss.at * st.mod.bossTime) {
       st.bossIdx++;
       spawnAround(nextBoss.id === "rey" ? finalBossId() : nextBoss.id, pick(alive), spawnRadius() * 0.8);
     }
     // modo infinito: un jefe cada minuto y medio y una horda cada minuto
-    if (st.endless) {
+    if (st.endless && !st.finalPhase) {
       if (st.t >= st.endlessBossT) {
         st.endlessBossT = st.t + 90 * 60;
         st.endlessLoops++;
@@ -662,11 +715,12 @@ const Game = (() => {
     }
 
     const wave = currentWave();
-    st.spawnT -= (1 + 0.4 * (st.players.length - 1)) * st.mod.spawn;
+    const teamSize = st.players.filter(p => !p.disconnected).length;
+    st.spawnT -= (1 + 0.4 * (teamSize - 1)) * st.mod.spawn;
     if (st.spawnT <= 0) {
       // en el modo infinito salen cada vez más deprisa
       st.spawnT = st.endless ? Math.max(6, wave.every - (st.t - st.endlessStart) / 3600) : wave.every;
-      const cap = wave.alive * (1 + 0.35 * (st.players.length - 1)) * Math.sqrt(st.mod.spawn);
+      const cap = wave.alive * (1 + 0.35 * (teamSize - 1)) * Math.sqrt(st.mod.spawn);
       const batch = 1 + Math.floor(sec / 100);
       const fighters = st.enemies.reduce((n, e) => n + (e.prop ? 0 : 1), 0);
       for (let i = 0; i < batch && fighters + i < cap; i++) spawnAround(weightedPick(wave.mix), pick(alive));
@@ -688,7 +742,7 @@ const Game = (() => {
     const target = nearestPlayer(e.x, e.y);
     let mx = 0;
     let my = 0;
-    let sp = e.speed * (e.slow > 0 ? 1 - e.slowAmt : 1);
+    let sp = e.speed;
 
     if (target) {
       const dx = target.x - e.x;
@@ -766,10 +820,12 @@ const Game = (() => {
           bossAI(e, target, ux, uy, dist);
           mx = e.mx || 0;
           my = e.my || 0;
-          sp = e.sp || sp;
+          sp = e.sp ?? sp;
       }
     }
 
+    const maxSlow = e.relentless ? Math.max(.08, .4 - (st.t - st.endlessStart) / 90000) : 1;
+    if (e.slow > 0) sp *= 1 - Math.min(e.slowAmt, maxSlow);
     const ml = Math.hypot(mx, my);
     if (ml > 0) { mx /= ml; my /= ml; }
     e.vx = mx * sp;
@@ -797,6 +853,7 @@ const Game = (() => {
     e.my = uy;
     e.sp = e.speed;
     const hpPct = e.hp / e.maxHp;
+    const shotDamage = value => value * e.dmg / (TS.ENEMIES[e.type].dmg || 1);
     switch (e.ai) {
       case "boss_stomp":
         if (e.state === 1) {
@@ -824,12 +881,12 @@ const Game = (() => {
           e.atk = 24;
           const n = hpPct < 0.5 ? 20 : 14;
           const off = rand(0, TAU);
-          for (let i = 0; i < n; i++) enemyShot(e, off + (i / n) * TAU, 1.7, 7, { kind: "bullet" });
+          for (let i = 0; i < n; i++) enemyShot(e, off + (i / n) * TAU, 1.7, shotDamage(7), { kind: "bullet" });
           sound("eshot");
         }
         if (e.t % (hpPct < 0.5 ? 55 : 75) === 0 && e.t > 120) {
           const a = Math.atan2(uy, ux);
-          for (const s of [-0.22, 0, 0.22]) enemyShot(e, a + s, 2.1, 7, { kind: "bullet" });
+          for (const s of [-0.22, 0, 0.22]) enemyShot(e, a + s, 2.1, shotDamage(7), { kind: "bullet" });
         }
         break;
       case "boss_ninja":
@@ -845,7 +902,7 @@ const Game = (() => {
             e.timer = hpPct < 0.5 ? 70 : 110;
             // abanico de shurikens
             const a = Math.atan2(uy, ux);
-            for (let i = -3; i <= 3; i++) enemyShot(e, a + i * 0.22, 2.4, 7, { kind: "star" });
+            for (let i = -3; i <= 3; i++) enemyShot(e, a + i * 0.22, 2.4, shotDamage(7), { kind: "star" });
             if (R() < 0.35 && target) {
               // se teletransporta detrás del jugador
               fx({ k: "puff", x: e.x, y: e.y - 10, color: "#3b1f5c", life: 20 });
@@ -875,7 +932,7 @@ const Game = (() => {
         }
         if (e.t % 150 === 0) {
           const off = rand(0, TAU);
-          for (let i = 0; i < 16; i++) enemyShot(e, off + (i / 16) * TAU, 1.6, 9, { kind: "goo" });
+          for (let i = 0; i < 16; i++) enemyShot(e, off + (i / 16) * TAU, 1.6, shotDamage(9), { kind: "goo" });
         }
         if (hpPct < 0.3) e.sp = e.speed * 1.6;
         break;
@@ -884,7 +941,7 @@ const Game = (() => {
         if (e.t % 170 === 0) {
           const off = rand(0, TAU);
           const n = hpPct < 0.5 ? 18 : 12;
-          for (let i = 0; i < n; i++) enemyShot(e, off + (i / n) * TAU, 1.8, 8, { kind: "star" });
+          for (let i = 0; i < n; i++) enemyShot(e, off + (i / n) * TAU, 1.8, shotDamage(8), { kind: "star" });
           e.atk = 24;
           sound("eshot");
         }
@@ -918,7 +975,7 @@ const Game = (() => {
             for (const p of alivePlayers()) if (Math.hypot(p.x - e.x, p.y - e.y) < 70 * U) hurtPlayer(p, e.dmg);
             if (e.hops % 3 === 0) {
               const off = rand(0, TAU);
-              for (let i = 0; i < 12; i++) enemyShot(e, off + (i / 12) * TAU, 1.5, 8, { kind: "goo" });
+              for (let i = 0; i < 12; i++) enemyShot(e, off + (i / 12) * TAU, 1.5, shotDamage(8), { kind: "goo" });
             }
           }
         }
@@ -935,7 +992,7 @@ const Game = (() => {
         if (dist < 160 * U) { e.mx = -ux * 0.7; e.my = -uy * 0.7; } else if (dist < 220 * U) { e.mx = -uy * 0.5; e.my = ux * 0.5; }
         if (e.t % (hpPct < 0.5 ? 8 : 12) === 0) {
           const a = e.t * 0.09;
-          for (const k of [0, Math.PI]) enemyShot(e, a + k, 1.6, 7, { kind: "bullet" });
+          for (const k of [0, Math.PI]) enemyShot(e, a + k, 1.6, shotDamage(7), { kind: "bullet" });
         }
         if (e.timer <= 0) {
           e.timer = hpPct < 0.5 ? 220 : 320;
@@ -957,6 +1014,7 @@ const Game = (() => {
         }
         break;
     }
+    if (e.relentless && e.ai === "boss_general") { e.mx = ux; e.my = uy; }
   }
 
   // Bombardeos del General: avisan con un círculo rojo y luego explotan
@@ -1036,7 +1094,7 @@ const Game = (() => {
     }
     if (!e.prop && (R() < 0.22 || amount > 30 || e.boss)) fx({ k: "num", x: e.x + rand(-4, 4), y: e.y - 18, v: amount, big: crit || amount > 40, life: 36 });
     sound("hit", 0.04);
-    if (e.hp <= 0) killEnemy(e);
+    if (e.hp <= 0) { if (e.relentless) nextFinalRound(e); else killEnemy(e); }
     return true;
   }
 
@@ -1071,12 +1129,12 @@ const Game = (() => {
     if (e.ai === "kamikaze" && !silent) explodeKamikaze({ ...e, dead: false, x: e.x, y: e.y, dmg: e.dmg * 0.6 });
     if (e.boss) {
       st.bossesKilled++;
-      st.boss = null;
+      st.boss = st.finalPhase ? st.finalBoss : null;
       st.pickups.push({ x: e.x, y: e.y, kind: "cofre", t: 0 });
       for (let i = 0; i < 8; i++) st.pickups.push({ x: e.x + rand(-26, 26), y: e.y + rand(-26, 26), kind: "moneda", t: 0 });
       shake(10);
       sound("chest");
-      Sfx.startMusic("run");
+      Sfx.startMusic(st.finalPhase ? "boss" : "run");
       emit("bossDown", { name: L(d.name) });
       if (e.type === finalBossId() && !st.endless) {
         st.victory = true;
@@ -1157,8 +1215,9 @@ const Game = (() => {
       p.x += x * p.stats.speed;
       p.y += y * p.stats.speed;
       blockWater(p, ox, oy);
-      p.moveX = x / (l || 1);
-      p.moveY = y / (l || 1);
+      const directionLength = Math.hypot(x, y) || 1;
+      p.moveX = x / directionLength;
+      p.moveY = y / directionLength;
       p.walkT++;
       collide(p, 7 * U);
     }
@@ -1202,6 +1261,23 @@ const Game = (() => {
     const ring = (n, make) => { const off = rand(0, TAU); for (let i = 0; i < n; i++) make(off + (i / n) * TAU); };
     const near = (n, r) => st.enemies.filter((e) => !e.prop && !e.dead && Math.hypot(e.x - p.x, e.y - p.y) < r).sort((a, b) => dist2(a, p) - dist2(b, p)).slice(0, n);
     switch (p.charId) {
+      case "nix":
+        for (const e of st.enemies) {
+          if (e.dead || e.prop || dist2(e, p) > (160 * area) ** 2) continue;
+          if (!e.boss) { e.x += (p.x - e.x) * .5; e.y += (p.y - e.y) * .5; }
+          hitEnemy(e, 65 * lvl, p, { slow: .4, slowFor: 90 });
+        }
+        fx({ k: "ring", x: cx, y: p.y, r: 160 * area, color: "#64f5ff", life: 40 });
+        sound("zap"); break;
+      case "savia":
+        p.hp = Math.min(p.stats.maxHp, p.hp + p.stats.maxHp * .15);
+        ring(6, a => st.zones.push({ type: "acid", x: cx + Math.cos(a) * 65, y: p.y + Math.sin(a) * 65,
+          r: 30 * area, t: 0, warn: 15, life: 240, dmg: 14 * lvl, owner: p.id }));
+        sound("ice"); break;
+      case "brasa":
+        ring(6, a => st.zones.push({ type: "flame", x: cx, y: cy, ang: a, len: 105 * area,
+          spread: .6, t: 0, life: 42, dmg: 22 * lvl, owner: p.id, fixed: true }));
+        sound("boom"); shake(5); break;
       case "ranjay":
         for (let i = 0; i < 4; i++) st.zones.push({ type: "slash", x: cx, y: cy, ang: (i / 4) * TAU, R: 80 * area, life: 16, t: 0, dirSign: 1, owner: p.id, gold: true });
         for (const e of enemiesInRadius(cx, cy, 80 * area)) hitEnemy(e, 60 * lvl, p, { kx: e.x - cx, ky: e.y - cy, kb: 6, crit: true });
@@ -1257,7 +1333,7 @@ const Game = (() => {
         p.x += ax * len * 0.9;
         p.y += ay * len * 0.9;
         collide(p, 7 * U);
-        if (terrain(p.x, p.y) === 2) { p.x = ox; p.y = oy; }
+        blockWater(p, ox, oy);
         p.iframes = Math.max(p.iframes, 40);
         sound("dodge");
         break;
@@ -1386,6 +1462,24 @@ const Game = (() => {
     const cx = p.x;
     const cy = p.y - 18;
 
+    if (w.id === "discos") {
+      if (!w.orbs) w.orbs = [];
+      while (w.orbs.length < amount) w.orbs.push({ hitT: {} });
+      w.orbs.length = amount;
+      for (let i = 0; i < amount; i++) {
+        const orb = w.orbs[i];
+        const ang = st.t * L.speed + i * TAU / amount;
+        const x = cx + Math.cos(ang) * 42 * area, y = p.y + Math.sin(ang) * 42 * area;
+        if (st.t % 300 === 0) orb.hitT = {};
+        st.zones.push({ type: "disc", x, y, r: 8 * area, ang: st.t * .2, t: 0, life: 2, gold: !!w.evo });
+        for (const e of enemiesInRadius(x, y, 9 * area)) {
+          if ((orb.hitT[e.id] || 0) > st.t) continue;
+          orb.hitT[e.id] = st.t + Math.max(8, L.cd * p.stats.cdMul);
+          hitEnemy(e, L.dmg, p, { kx: e.x - cx, ky: e.y - p.y, kb: .8 });
+        }
+      }
+      return;
+    }
     // armas que actúan siempre
     if (w.id === "colonia") {
       w.cd--;
@@ -1462,6 +1556,26 @@ const Game = (() => {
 
   function fire(p, w, L, area, amount, cx, cy) {
     switch (w.id) {
+      case "acido": {
+        const used = new Set();
+        for (let i = 0; i < amount; i++) {
+          const target = nearestEnemy(cx, cy, 320, used);
+          if (target) used.add(target.id);
+          const a = i * TAU / amount;
+          const x = target ? target.x : cx + Math.cos(a) * 80;
+          const y = target ? target.y : p.y + Math.sin(a) * 80;
+          st.zones.push({ type: "acid", x, y, r: 26 * area, t: 0, warn: 24, life: L.dur + 24, dmg: L.dmg, owner: p.id });
+          if (i === 0) attackAnim(p, w.id, x - cx, y - cy, 20);
+        }
+        sound("shoot"); break;
+      }
+      case "llamas": {
+        const [ax, ay] = dirTo(p, nearestEnemy(cx, cy, 180 * area));
+        attackAnim(p, w.id, ax, ay, L.dur);
+        st.zones.push({ type: "flame", x: cx, y: cy, ang: Math.atan2(ay, ax), len: 85 * area,
+          spread: Math.min(1.05, .42 + (amount - 1) * .10), t: 0, life: L.dur, dmg: L.dmg, owner: p.id });
+        sound("boom", .2); break;
+      }
       case "tajo": { // barrido de espada
         const target = nearestEnemy(cx, cy, 90 * area);
         const [ax, ay] = target ? dirTo(p, target) : [p.face, 0];
@@ -1702,6 +1816,22 @@ const Game = (() => {
       z.t++;
       if (z.t < 0) continue;
       switch (z.type) {
+        case "acid":
+          if (z.t >= z.warn && (z.t - z.warn) % 20 === 0) {
+            for (const e of enemiesInRadius(z.x, z.y, z.r)) hitEnemy(e, z.dmg, st.players[z.owner], { slow: .28, slowFor: 35 });
+          }
+          break;
+        case "flame": {
+          const p = st.players[z.owner];
+          if (!p || p.down) break;
+          if (!z.fixed) { z.x = p.x; z.y = p.y - 18; }
+          if (z.t % 8 === 1) for (const e of enemiesInRadius(z.x, z.y, z.len)) {
+            const dx = e.x - z.x, dy = e.y - 16 - z.y;
+            const da = Math.atan2(Math.sin(Math.atan2(dy, dx) - z.ang), Math.cos(Math.atan2(dy, dx) - z.ang));
+            if (Math.abs(da) <= z.spread + Math.atan2(e.r, Math.hypot(dx, dy))) hitEnemy(e, z.dmg, p);
+          }
+          break;
+        }
         case "wave": {
           if (z.t === 1) {
             sound("wave");
@@ -1941,6 +2071,8 @@ const Game = (() => {
     for (const f of st.fx) f.t++;
     st.fx = st.fx.filter((f) => f.t < f.life);
     st.t++;
+    if (st.t % 60 === 0) for (const e of st.enemies) if (!e.dead) scaleEnemy(e);
+    if (st.finalPhase) finalPressure();
     buildGrid();
     for (const p of st.players) updatePlayer(p);
     spawning();
@@ -1986,7 +2118,7 @@ const Game = (() => {
     const seconds = Math.floor(st.t / 60);
     const greed = st.players[localId].stats.greed;
     const coins = Math.round((st.coins + st.kills / 8 + seconds / 6 + st.bossesKilled * 60 + (victory || st.won ? 300 : 0)) * greed);
-    emit("end", { victory: victory || !!st.won, endless: !!st.endless, endlessSeconds: st.endless ? Math.floor((st.t - st.endlessStart) / 60) : 0, seconds, kills: st.kills, level: st.level, coins, bosses: st.bossesKilled, evolutions: st.evolutions, abilities: st.abilitiesUsed || 0, props: st.propsBroken, charId: st.players[localId].charId, map: st.mapId, daily: st.daily, coop: st.players.length > 1 });
+    emit("end", { victory: victory || !!st.won, finalPhase: !!st.finalPhase, finalRound: st.finalRound || 0, endless: !!st.endless && !!st.won, endlessSeconds: st.endless ? Math.floor((st.t - st.endlessStart) / 60) : 0, seconds, kills: st.kills, level: st.level, coins, bosses: st.bossesKilled, evolutions: st.evolutions, abilities: st.abilitiesUsed || 0, props: st.propsBroken, charId: st.players[localId].charId, map: st.mapId, daily: st.daily, coop: st.players.length > 1 });
   }
 
   function readInput() {
@@ -2069,12 +2201,14 @@ const Game = (() => {
       xpNext: st.xpNext,
       level: st.level,
       seconds: Math.floor(st.t / 60),
+      finalPhase: !!st.finalPhase, finalRound: st.finalRound || 0,
+      finalIn: Math.max(0, TS.RUN_SECONDS - Math.floor(st.t / 60)),
       kills: st.kills,
       coins: st.coins,
       weapons: p.weapons.map((w) => ({ id: w.id, lvl: w.lvl, evo: !!w.evo })),
       canEvolve: !st.guest && !!evolvable(p),
       passives: Object.entries(p.passives).map(([id, lvl]) => ({ id, lvl })),
-      boss: st.boss && TS.ENEMIES[st.boss.type] ? { name: L(TS.ENEMIES[st.boss.type].name), pct: st.boss.hp / st.boss.maxHp } : null,
+      boss: st.boss && TS.ENEMIES[st.boss.type] ? { name: L(TS.ENEMIES[st.boss.type].name) + (st.finalPhase ? ` · ${L("Fase")} ${st.finalRound}` : ""), pct: st.boss.hp / st.boss.maxHp } : null,
       down: p.down,
       name: p.name,
       ability: abDef ? { name: L(abDef.name), pct: st.guest ? p.abPct ?? 1 : 1 - p.abCd / abilityMax(p) } : null,
@@ -2184,6 +2318,10 @@ const Game = (() => {
     const img = personImage(set, p.dir, p.flash > 6, p.moving, p.walkT, p.atk);
     drawSprite(img, p.x, p.y, People.OY, p.face < 0);
     ctx.globalAlpha = 1;
+    if (terrain(p.x,p.y) === 2) {
+      ctx.strokeStyle="#b5e6ff";ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.ellipse(p.x,p.y,11+Math.sin(st.t*.15)*2,3,0,0,TAU);ctx.stroke();
+    }
     // barra de vida debajo
     const pct = clamp(p.hp / p.stats.maxHp, 0, 1);
     ctx.fillStyle = "#14112b";
@@ -2213,9 +2351,11 @@ const Game = (() => {
       }
       return;
     }
+    if(e.relentless){ctx.strokeStyle="#ff512f";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(e.x,e.y,18*(d.scale||1),7*(d.scale||1),0,0,TAU);ctx.stroke();}
     const key = `enemy:${d.sprite || e.type}`;
     const set = Sprites.get(key);
     const scale = d.scale || 1;
+    const relentless = !!e.relentless;
     const flash = e.flash > 3 || (e.ai === "dash" && e.state === 1 && e.t % 6 < 3) || (e.ai === "kamikaze" && e.state === 1 && e.t % 6 < 3);
     if (!d.flying) shadow(e.x, e.y, e.r * 1.1);
     if (e.phased) ctx.globalAlpha = 0.3;
@@ -2316,6 +2456,13 @@ const Game = (() => {
 
   function drawZoneUnder(z) {
     if (z.t < 0) return;
+    if (z.type === "acid") {
+      const ready = z.t >= z.warn;
+      ctx.save(); ctx.globalAlpha = ready ? .45 : .2;
+      ctx.fillStyle = ready ? "#8ce238" : "#caff82";
+      ctx.beginPath(); ctx.ellipse(z.x, z.y, z.r, z.r * .65, 0, 0, TAU); ctx.fill();
+      ctx.globalAlpha = .8; ctx.strokeStyle = "#d2ff8b"; ctx.lineWidth = 2; ctx.stroke(); ctx.restore();
+    }
     if (z.type === "meteor" && z.t < z.warn) {
       const k = z.t / z.warn;
       ctx.fillStyle = `rgba(255,80,40,${0.15 + k * 0.25})`;
@@ -2339,6 +2486,27 @@ const Game = (() => {
   function drawZoneOver(z) {
     if (z.t < 0) return;
     switch (z.type) {
+      case "disc":
+        ctx.save(); ctx.translate(z.x, z.y - 12); ctx.rotate(z.ang);
+        ctx.strokeStyle = z.gold ? "#ffd23f" : "#64f5ff"; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.ellipse(0, 0, z.r, z.r * .55, 0, 0, TAU); ctx.stroke();
+        ctx.strokeStyle = "#e8fbff"; ctx.lineWidth = 1; ctx.stroke(); ctx.restore(); break;
+      case "flame": {
+        ctx.save(); ctx.translate(z.x, z.y); ctx.rotate(z.ang);
+        const gradient = ctx.createLinearGradient(0,0,z.len,0);
+        gradient.addColorStop(0,"rgba(255,240,180,.65)");
+        gradient.addColorStop(.45,"rgba(255,125,35,.42)");
+        gradient.addColorStop(1,"rgba(235,60,25,0)");
+        ctx.fillStyle=gradient;
+        for(let i=0;i<5;i++) {
+          const a=(i/4-.5)*z.spread*1.7+Math.sin(z.t*.5+i)*.06;
+          const len=z.len*(.78+.18*Math.sin(z.t*.7+i));
+          ctx.save();ctx.rotate(a);ctx.beginPath();ctx.moveTo(0,0);
+          ctx.quadraticCurveTo(len*.6,-len*.18,len,0);
+          ctx.quadraticCurveTo(len*.6,len*.18,0,0);ctx.fill();ctx.restore();
+        }
+        ctx.restore();break;
+      }
       case "slash": { // estela del barrido
         const k = z.t / z.life;
         const sweep = 2.7;
@@ -2821,7 +2989,7 @@ const Game = (() => {
     else if (p.moving && p.moveX !== undefined) ang = Math.atan2(p.moveY, p.moveX);
     else ang = p.ang3 ?? Render3D.angleOf(p.dir, p.face);
     p.ang3 = ang;
-    return { kind: "char", id: p.charId, x: p.x, y: p.y, ang, moving: p.moving, walkT: p.walkT, atk: p.atk, flash: p.flash > 6 || (p.iframes > 0 && p.iframes % 6 < 3) };
+    return { kind: "char", id: p.charId, x: p.x, y: p.y, ang, moving: p.moving, walkT: p.walkT, atk: p.atk, inWater: terrain(p.x,p.y) === 2, flash: p.flash > 6 || (p.iframes > 0 && p.iframes % 6 < 3) };
   }
 
   function actorOfEnemy(e) {
@@ -2830,9 +2998,10 @@ const Game = (() => {
     if (d.prop) return { prop: true, type: e.type, x: e.x, y: e.y, t: e.t, flash: e.flash > 0 };
     const sprite = d.sprite || e.type;
     const scale = d.scale || 1;
+    const relentless = !!e.relentless;
     const flash = e.flash > 3 || ((e.ai === "dash" || e.ai === "kamikaze") && e.state === 1 && e.t % 6 < 3);
-    if (["slime", "slimito", "fantasma", "murcielago"].includes(sprite)) return { creature: true, type: sprite, x: e.x, y: e.y, t: e.t, flash, phased: e.phased, scale };
-    return { kind: "enemy", id: sprite, x: e.x, y: e.y, ang: Render3D.angleOf(e.dir || "side", e.face), moving: Math.hypot(e.vx || 0, e.vy || 0) > 0.1, walkT: e.t, atk: e.atk > 0 ? { t: e.atk, total: 18 } : null, flash, scale };
+    if (["slime", "slimito", "fantasma", "murcielago"].includes(sprite)) return { creature: true, type: sprite, x: e.x, y: e.y, t: e.t, flash, phased: e.phased, scale, relentless, ang: Render3D.angleOf(e.dir || "down", e.face) };
+    return { kind: "enemy", relentless, id: sprite, x: e.x, y: e.y, ang: Render3D.angleOf(e.dir || "side", e.face), moving: Math.hypot(e.vx || 0, e.vy || 0) > 0.1, walkT: e.t, atk: e.atk > 0 ? { t: e.atk, total: 18 } : null, flash, scale };
   }
 
   function render3D() {
@@ -2977,7 +3146,7 @@ const Game = (() => {
     const enemies = [];
     for (const e of st.enemies) {
       if (!near2(e.x, e.y)) continue;
-      enemies.push([e.id, ENEMY_IDS.indexOf(e.type), r1(e.x), r1(e.y), DIRS.indexOf(e.dir || "side"), e.face, Math.hypot(e.vx, e.vy) > 0.1 ? 1 : 0, e.t & 1023, e.flash, (e.phased ? 1 : 0) | (e.state === 1 ? 2 : 0) | (e.state === 2 ? 4 : 0), e.atk]);
+      enemies.push([e.id, ENEMY_IDS.indexOf(e.type), r1(e.x), r1(e.y), DIRS.indexOf(e.dir || "side"), e.face, Math.hypot(e.vx, e.vy) > 0.1 ? 1 : 0, e.t & 1023, e.flash, (e.phased ? 1 : 0) | (e.state === 1 ? 2 : 0) | (e.state === 2 ? 4 : 0) | (e.relentless ? 8 : 0), e.atk]);
     }
     const shots = st.shots.filter((x) => near2(x.x, x.y) && !(x.delay > 0)).map((x) => [x.type, r1(x.x), r1(x.y), r1(x.ang || 0), r1(x.r), x.life]);
     const eshots = st.eshots.filter((x) => near2(x.x, x.y)).map((x) => [r1(x.x), r1(x.y), x.kind]);
@@ -2994,6 +3163,7 @@ const Game = (() => {
       t: st.t, lv: st.level, xp: Math.round(st.xp), xn: st.xpNext, k: st.kills, c: st.coins,
       b: st.boss ? [st.boss.id, st.boss.hp / st.boss.maxHp] : null,
       endless: !!st.endless, endlessStart: st.endlessStart || 0,
+      finalPhase: !!st.finalPhase, finalRound: st.finalRound || 0,
       frozen: !!(st.choosing || st.victoryWait || st.over || paused),
       p: players, e: enemies, s: shots, es: eshots, z: zones, g: gems, pk: pickups, ev: events
     };
@@ -3027,7 +3197,7 @@ const Game = (() => {
     for (const f of st.fx) f.t += elapsed;
     st.fx = st.fx.filter((f) => f.t < f.life);
     st.endless = !!snap.endless; st.endlessStart = snap.endlessStart || 0;
-    st.frozen = !!snap.frozen;
+    st.frozen = !!snap.frozen; st.finalPhase = !!snap.finalPhase; st.finalRound = snap.finalRound || 0;
     st.t = snap.t; st.level = snap.lv; st.xp = snap.xp; st.xpNext = snap.xn; st.kills = snap.k; st.coins = snap.c;
     snap.p.forEach((a, i) => {
       const p = st.players[i];
@@ -3054,7 +3224,7 @@ const Game = (() => {
         enemyMap.set(id, e);
       }
       e.tx = x; e.ty = y; e.dir = DIRS[di] || "side"; e.face = face; e.vx = moving ? 1 : 0; e.vy = 0; e.t = t; e.flash = flash;
-      e.phased = !!(flags & 1); e.state = flags & 2 ? 1 : flags & 4 ? 2 : 0; e.atk = atk;
+      e.relentless = !!(flags & 8); e.phased = !!(flags & 1); e.state = flags & 2 ? 1 : flags & 4 ? 2 : 0; e.atk = atk;
       seen.add(id);
       list.push(e);
     }
@@ -3268,6 +3438,8 @@ const Game = (() => {
     get localId() { return localId; },
     get view() { return view; },
     step,
+    difficultyAt,
+    terrain,
     hudData,
     loop,
     finish,

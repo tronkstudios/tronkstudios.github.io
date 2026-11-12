@@ -319,6 +319,9 @@ const TronkNet = (() => {
   Game.on("resume", () => { if (room && room.host) for (const peer of peers.values()) sendCtrl(peer, { type: "resume" }); });
   Game.on("toast", (d) => { if (room && room.host && playing) for (const peer of peers.values()) sendCtrl(peer, { type: "toast", text: d.text }); });
   Game.on("boss", (d) => { if (room && room.host && playing) for (const peer of peers.values()) sendCtrl(peer, { type: "banner", text: L("¡JEFE!"), small: d.name }); });
+  Game.on("finalPhase", d => {
+    if (room && room.host && playing) for (const peer of peers.values()) sendCtrl(peer, {type:"banner",text:L(d.round === 1 ? "¡JEFE FINAL!" : "¡NUEVA FASE!"),small:`${L("Fase")} ${d.round}`});
+  });
   Game.on("victory", () => { if (room && room.host && playing) for (const peer of peers.values()) sendCtrl(peer, { type: "banner", text: L("¡VICTORIA!"), small: L("El anfitrión decide si seguir en modo infinito") }); });
   Game.on("endless", () => { if (room && room.host && playing) for (const peer of peers.values()) sendCtrl(peer, { type: "banner", text: L("¡MODO INFINITO!"), small: L("Aguanta todo lo que puedas") }); });
   Game.on("end", (r) => {

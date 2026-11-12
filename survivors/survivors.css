@@ -645,3 +645,5 @@ img[data-icon], .pix { image-rendering: pixelated; }
   .hud-team { top: calc(146px + env(safe-area-inset-top)); }
   .hud-tip { top: calc(204px + env(safe-area-inset-top)); }
 }
+
+.hud-phase { font-size: 11px; font-weight: 800; color: #ffd08a; text-shadow: 0 1px 2px #000; }
