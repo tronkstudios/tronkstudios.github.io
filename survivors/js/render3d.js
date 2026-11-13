@@ -110,8 +110,8 @@ const Render3D = (() => {
     renderer.outputColorSpace = T.SRGBColorSpace;
     scene = new T.Scene();
     camera = new T.PerspectiveCamera(30, 1, 20, 8000);
-    hemi = new T.HemisphereLight(0xffffff, 0x4a5a40, 1.25);
-    sun = new T.DirectionalLight(0xfff0d8, 2.1);
+    hemi = new T.HemisphereLight(0xd9edff, 0x29453a, 1.1);
+    sun = new T.DirectionalLight(0xffe4b5, 1.8);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
     const sc = sun.shadow.camera;
@@ -216,22 +216,31 @@ const Render3D = (() => {
     const { x, y } = ob;
     const v = hashF(x, y, 1);
     const g = hashF(x, y, 2);
-    const leaf = dark ? 0x2f5a3a : [0x3f8a3a, 0x4a9a40, 0x377a34][Math.floor(v * 3)];
+    const leaf = dark ? 0x2f5148 : [0x3e7157, 0x517e5d, 0x38654e][Math.floor(v * 3)];
     switch (ob.kind) {
       case "arbol":
         between("cyl", [x, 0, y], [x, 46, y], 5.5, 0x6b4426);
+        for(let i=0;i<3;i++) {
+          const a=i*TAU/3+v*3;
+          between("cyl",[x,2,y],[x+Math.cos(a)*13,1,y+Math.sin(a)*13],2.2,0x5e4935);
+          between("cyl",[x,25,y],[x+Math.cos(a)*18,54,y+Math.sin(a)*14],2.8,0x775639);
+        }
         at("lowSph", x, 70, y, 30, 26, 30, leaf, v * 3);
+        at("lowSph", x-6,83,y-8,17,13,18,dark?0x426458:0x6a9168,v*4);
+        at("lowSph", x+20,69,y+3,14,16,16,dark?0x2b493f:0x47735a,v*2);
         at("lowSph", x - 14, 58, y + 6, 20, 18, 20, leaf, v * 5);
         at("lowSph", x + 15, 62, y - 4, 19, 17, 19, leaf, v * 7);
         break;
       case "pino":
         between("cyl", [x, 0, y], [x, 30, y], 4.5, 0x5a3a20);
-        for (let i = 0; i < 3; i++) at("cone", x, 42 + i * 22, y, 26 - i * 6, 38 - i * 4, 26 - i * 6, dark ? 0x23503a : 0x2f6e3a);
+        for (let i = 0; i < 4; i++) at("cone", x, 34 + i * 19, y, 28 - i * 6, 36 - i * 3, 28 - i * 6, dark ? 0x29493f : [0x315a49,0x3b6851,0x47755b,0x568269][i]);
         break;
       case "roca":
       case "rocaGrande": {
         const r = ob.kind === "roca" ? 16 : 26;
         at("lowSph", x, r * 0.45, y, r, r * 0.75, r * 0.85, [0x8a8f99, 0x9aa0a8, 0x7d828c][Math.floor(g * 3)], v * 6);
+        at("lowSph",x-r*.55,r*.2,y+r*.3,r*.45,r*.35,r*.4,0x687b70,v*3);
+        at("lowSph",x+r*.32,r*.7,y-r*.2,r*.52,r*.14,r*.42,dark?0x384f45:0x586e4f,v*2);
         break;
       }
       case "tronco":
@@ -691,6 +700,9 @@ const Render3D = (() => {
           shots, eshots, zones, fx, auras, drones, t } */
   function draw(d) {
     if (!renderer) return;
+    const pixelRatio=d.low?1:Math.min(2,window.devicePixelRatio || 1);
+    if(renderer.getPixelRatio()!==pixelRatio)renderer.setPixelRatio(pixelRatio);
+    if(renderer.shadowMap.enabled===!!d.low)renderer.shadowMap.enabled=!d.low;
     for (const p of Object.values(pools)) p.count = 0;
     const H = d.wH;
     const dist = (H * 0.5) / Math.tan(((camera.fov / 2) * Math.PI) / 180) * 1.02;
@@ -702,8 +714,8 @@ const Render3D = (() => {
     sun.position.set(tx - 380, 900, tz + 320);
     sun.target.position.set(tx, 0, tz);
     const dark = d.dark || 0;
-    hemi.intensity = 1.25 * (1 - dark * 1.2);
-    sun.intensity = 2.1 * (1 - dark * 1.3);
+    hemi.intensity = 1.1 * (1 - dark * 1.2);
+    sun.intensity = 1.8 * (1 - dark * 1.3);
     lamp.intensity = dark ? 2.2 + dark * 2 : 0;
     lamp.position.set(d.cx, 70, d.cy);
     scene.background = new T.Color(dark ? 0x080618 : 0x4a8a3a);
@@ -713,6 +725,7 @@ const Render3D = (() => {
 
     for (const a of d.actors) {
       const k = a.scale || 1;
+      if(a.elite)at("ring",a.x,1.6,a.y,22*k,3,22*k,0xf5cb79);
       if(a.relentless)at("ring",a.x,1.4,a.y,24*k,4,24*k,0xff512f);
       if(a.inWater){const r=10+Math.sin(d.t*.15)*3;at("ring",a.x,.8,a.y,r,2,r,0x9fdcff);}
       if (a.prop) { prop(a, a.flash); continue; }
@@ -740,8 +753,9 @@ const Render3D = (() => {
     // disparos
     for (const s of d.shots) shot(s, d.t);
     for (const s of d.eshots) {
+      if(d.contrast){at("glow",s.x,16,s.y,7,7,7,0x10212b);at("ring",s.x,16,s.y,8,2,8,0xfff1ca);}
       const c = { bullet: 0xffb03b, star: 0xffe066, goo: 0x7cff6b }[s.kind] || 0xc77dff;
-      at("glow", s.x, 16, s.y, 3.5, 3.5, 3.5, c);
+      at("glow", s.x, d.contrast?22:16, s.y+(d.contrast?4:0), 3.5, 3.5, 3.5, c);
     }
     for (const z of d.zones) zone(z, d.t);
     for (const f of d.fx) effect(f);

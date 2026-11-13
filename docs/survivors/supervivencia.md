@@ -84,3 +84,6 @@ Hay iconos, retratos, vistas y armas 2D/3D y traducciones al inglés. Los enemig
 accesorios según su tipo. Murciélagos, fantasmas y mocos tienen geometría y
 caras más detalladas; el Moco Rey lleva corona. Las piezas se dibujan con las
 mismas instancias compartidas para conservar el rendimiento.
+
+El rediseño, los élites y las mejoras de interfaz se detallan en
+[Diseño y calidad de juego](diseno-y-mejoras.md).

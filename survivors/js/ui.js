@@ -69,7 +69,7 @@
   const SPIN = [["down", false], ["downSide", false], ["side", false], ["upSide", false], ["up", false], ["upSide", true], ["side", true], ["downSide", true]];
   function spinHero() {
     const set = Sprites.get(`char:${save.selected}`);
-    const [view, flip] = SPIN[spinStep % SPIN.length];
+    const [view, flip] = Game.options.reducedMotion ? ["downSide",false] : SPIN[spinStep % SPIN.length];
     const key = `${save.selected}:${view}:${flip}`;
     if (!spinCache[key]) {
       const img = Sprites.scaled(Stick.portrait(set[view].idle), 4);
@@ -114,7 +114,7 @@
     spinStep = 0;
     spinHero();
     clearInterval(spinTimer);
-    spinTimer = setInterval(() => (current === "menu" ? spinHero() : clearInterval(spinTimer)), 700);
+    spinTimer = setInterval(() => { if(current !== "menu")clearInterval(spinTimer);else if(!Game.options.reducedMotion)spinHero(); }, 1400);
     $("menu-free").hidden = !save.freePull;
     $("menu-daily").hidden = save.dailyDone === dailyConfig().day;
     $("menu-ach").hidden = (save.weekly && save.weekly.seen) === weekKey();
@@ -356,7 +356,13 @@
     Sfx.setVolume("music", save.settings.musicVol ?? 0.7);
     Sfx.setVolume("sfx", save.settings.sfxVol ?? 0.9);
     Game.options.numbers = save.settings.numbers !== false;
-    Game.options.shake = save.settings.shake !== false;
+    const reduced = save.settings.reducedMotion ?? window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    document.body.classList.toggle("reduce-motion", reduced);
+    Game.options.reducedMotion = reduced;
+    Game.options.contrast = save.settings.contrast === true;
+    Game.options.zoom = [1,1.25,1.5].includes(Number(save.settings.zoom)) ? Number(save.settings.zoom) : 1.25;
+    Game.options.shake = save.settings.shake !== false && !reduced;
+    Game.resize();
     Game.options.fx = save.settings.fx || "auto";
   }
 
@@ -371,6 +377,9 @@
     $("opt-numbers").checked = save.settings.numbers !== false;
     $("opt-shake").checked = save.settings.shake !== false;
     $("opt-fx").value = save.settings.fx || "auto";
+    $("opt-motion").checked = Game.options.reducedMotion;
+    $("opt-contrast").checked = Game.options.contrast;
+    $("opt-zoom").value = Game.options.zoom;
     $("opt-tips").checked = !save.tutorial;
   }
 
@@ -379,6 +388,9 @@
   $("opt-numbers").addEventListener("change", (e) => { save.settings.numbers = e.target.checked; applySettings(); Save.persist(); });
   $("opt-shake").addEventListener("change", (e) => { save.settings.shake = e.target.checked; applySettings(); Save.persist(); });
   $("opt-fx").addEventListener("change", (e) => { save.settings.fx = e.target.value; applySettings(); Save.persist(); });
+  for (const [id,key] of [["opt-motion","reducedMotion"],["opt-contrast","contrast"],["opt-zoom","zoom"]]) {
+    $(id).addEventListener("change",e=>{save.settings[key]=key==="zoom"?Number(e.target.value):e.target.checked;applySettings();Save.persist();});
+  }
   $("opt-tips").addEventListener("change", (e) => { save.tutorial = !e.target.checked; Save.persist(); });
   $("lang-select").addEventListener("change", (e) => {
     setLang(e.target.value);
@@ -458,6 +470,8 @@
       }
       list.append(el("li","",`${L(TS.ABILITIES[ch.id].name)} · ${L("Habilidad activa")}`));
       moves.append(list,el("small","",L("Aprende y mejora tus técnicas al subir de nivel. Solo usas el arma de tu personaje.")));
+      const evo=TS.EVOLUTIONS[ch.weapon];
+      if(evo)moves.append(el("p","evolution-recipe",`${L(evo.name)} = ${L(TS.WEAPONS[ch.weapon].name)} 6 + ${L(TS.PASSIVES[evo.passive].name)} + ${L("Cofre")}`));
       box.append(el("p", "", L(ch.desc)), weapon, moves, el("p", "", LT("perk", { perk: L(ch.perkText) })), btn);
     } else {
       const btn = el("button", "btn btn-gold", L("Ir al cofre"));
@@ -607,7 +621,11 @@
     const items = [...data.weapons.map((w) => ({ ...w, kind: "w" })), ...(data.techniques || []).map(m=>({...m,kind:"t"})), ...data.passives.map((p) => ({ ...p, kind: "p" }))];
     for (const it of items) {
       const slot = el("div", `hud-slot${it.kind === "t" ? " is-technique" : ""}${it.kind === "p" ? " is-passive" : ""}${it.evo ? " is-evo" : ""}`);
-      if (it.kind === "t") slot.dataset.technique = it.id === "burst" ? "I" : "II";
+      if (it.kind === "t") {
+        slot.dataset.technique = it.id === "burst" ? "I" : "II";
+        slot.dataset.move = it.id;
+        slot.append(el("span","tech-cooldown"));
+      }
       const img = document.createElement("img");
       img.src = Sprites.iconUrl(it.icon || it.id, big ? 3 : 2);
       img.alt = "";
@@ -666,8 +684,16 @@
       $("hud-ab-state").textContent = ready ? (isTouch ? L("¡Toca!") : L("Espacio")) : `${Math.round(d.ability.pct * 100)}%`;
       ab.classList.toggle("is-ready", ready);
     }
-    const key = JSON.stringify([d.weapons, d.techniques, d.passives]);
+    const key = JSON.stringify([d.weapons, d.techniques?.map(({ready,...move})=>move), d.passives]);
     if (key !== slotKey) { slotKey = key; renderSlots($("hud-slots"), d); }
+    for(const move of d.techniques || []) {
+      const slot=$("hud-slots").querySelector(`[data-move="${move.id}"]`);
+      if(slot){slot.querySelector(".tech-cooldown").style.height=`${Math.round((1-move.ready)*100)}%`;slot.classList.toggle("is-ready",move.ready>=1);}
+    }
+    $("hud").classList.toggle("is-critical",!d.down && pct<.25);
+    $("hud-status").textContent = d.down ? L("Espera a tu compañero") : d.inWater ? L("Agua · movimiento al 58 %") : d.nextBossIn<=30 && !d.finalPhase ? `${L("Jefe en")} ${d.nextBossIn}s` : "";
+    $("hud-compass").hidden=!d.compass;
+    if(d.compass) $("hud-compass").textContent=`${d.compass.arrow} ${d.compass.label} · ${d.compass.distance}`;
     const boss = $("hud-boss");
     boss.hidden = !d.boss;
     if (d.boss) { $("hud-boss-name").textContent = d.boss.name; $("hud-boss-bar").style.width = `${d.boss.pct * 100}%`; }
@@ -690,6 +716,7 @@
   function toast(text) {
     const t = el("div", "toast", text);
     $("toasts").appendChild(t);
+    while($("toasts").children.length>4)$("toasts").firstElementChild.remove();
     setTimeout(() => t.remove(), 3300);
   }
 
@@ -721,8 +748,11 @@
     const box = $("levelup-cards");
     box.textContent = "";
     $("levelup-wait").hidden = true;
+    const rerolls = d.rerolls ?? Game.state?.players[Game.localId]?.rerolls ?? 0;
+    $("levelup-reroll").textContent=`${L("Cambiar opciones")} · ${rerolls}/3`;
+    $("levelup-reroll").disabled=rerolls<=0;
     d.options.forEach((o, i) => {
-      const card = el("button", "up-card");
+      const card = el("button", `up-card${o.synergy?" is-synergy":""}${o.kind==="technique"?" is-technique":""}`);
       card.type = "button";
       const img = document.createElement("img");
       img.src = Sprites.iconUrl(o.icon, 3);
@@ -730,6 +760,7 @@
       img.className = "pix";
       const text = el("div");
       text.append(el("span", "new", o.isNew ? L("¡NUEVO!") : ""), el("b", "", o.title), el("small", "", o.desc));
+      if(o.synergy)text.append(el("span","synergy-note",L("Necesario para evolucionar")));
       card.append(img, text, el("kbd", "", i + 1));
       card.addEventListener("click", () => pickLevel(i));
       box.appendChild(card);
@@ -739,6 +770,7 @@
   }
 
   function waitOthers() {
+    $("levelup-reroll").disabled=true;
     $("levelup-cards").textContent = "";
     $("levelup-wait").hidden = false;
   }
@@ -749,9 +781,14 @@
   }
 
   Game.on("levelUp", showLevelUp);
+  $("levelup-reroll").addEventListener("click",()=>{
+    if($("levelup-reroll").disabled)return;
+    if(Game.mode==="guest") {$("levelup-reroll").disabled=true;for(const card of $("levelup-cards").children)card.disabled=true;TronkNet.sendReroll();}
+    else Game.reroll(Game.localId);
+  });
 
   function pickLevel(i) {
-    if ($("levelup").hidden || !$("levelup-cards").children.length) return;
+    if ($("levelup").hidden || !$("levelup-cards").children[i] || $("levelup-cards").children[i].disabled) return;
     Sfx.play("pick");
     if (Game.mode === "guest") TronkNet.sendChoice(i);
     else Game.choose(Game.localId, i);
@@ -767,14 +804,31 @@
 
   function pause(on) {
     if (current !== "game" || !Game.state || Game.state.over) return;
-    Game.setControlsEnabled(!on);
+    Game.setControlsEnabled(!on && $("levelup").hidden);
     if (Game.mode === "solo") Game.setPaused(on);
     $("pause").hidden = !on;
     $("pause-quit").hidden = Game.mode === "guest";
-    if (on) renderSlots($("pause-build"), Game.hudData(), true);
+    if (on) {
+      const d=Game.hudData();renderSlots($("pause-build"),d,true);
+      const evo=d.evolution;
+      $("pause-evolution").textContent=evo?evo.evolved?`${L("Evolución")}: ${evo.name} ✓`:
+        `${evo.name}
+${evo.weapon} ${evo.level}/6 · ${evo.passive} ${evo.hasPassive?"✓":evo.blocked?L("Sin espacio para la pasiva"):"—"}
+${L("Recoge un cofre con ambos requisitos")}`:"";
+      $("pause-metrics").textContent="";
+      for(const [label,value] of [["Daño causado",d.combat.dealt],["Daño recibido",d.combat.taken],["Vida recuperada",d.combat.healed],["Élites",d.combat.elites]]){
+        const stat=el("div");stat.append(el("b","",Math.round(value || 0).toLocaleString(LANG)),el("small","",L(label)));$("pause-metrics").append(stat);
+      }
+      $("pause-fullscreen").hidden=!document.fullscreenEnabled;
+      $("pause-resume").focus();
+    } else if(!$("levelup").hidden) $("levelup-cards").querySelector("button")?.focus();
   }
   $("hud-pause").addEventListener("click", () => pause(true));
   $("hud-ab").addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); Game.pressAbility(); });
+  $("pause-fullscreen").addEventListener("click",async()=>{
+    try {if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}
+    catch {toast(L("Pantalla completa no disponible"));}
+  });
   $("pause-resume").addEventListener("click", () => pause(false));
   $("pause-quit").addEventListener("click", () => {
     $("pause").hidden = true;
@@ -810,6 +864,9 @@
     add("Nivel", r.level);
     add("Enemigos", r.kills);
     add("Jefes", r.bosses);
+    const combat=r.combat?.[Game.localId];
+    if(combat){add("Daño causado",Math.round(combat.dealt || 0).toLocaleString(LANG));add("Daño recibido",Math.round(combat.taken || 0).toLocaleString(LANG));add("Vida recuperada",Math.round(combat.healed || 0).toLocaleString(LANG));add("Élites",combat.elites || 0);}
+    if(r.chests)add("Cofres",r.chests);
     if (r.finalPhase) add("Fases superadas", Math.max(0, r.finalRound - 1));
     if (r.finalPhase) add("Contra el jefe final", fmtTime(r.endlessSeconds), "coins");
     else if (r.endless) add("Modo infinito", fmtTime(r.endlessSeconds), "coins");
@@ -856,7 +913,7 @@
 
   /* ---------- teclado ---------- */
   window.addEventListener("keydown", (e) => {
-    if (!$("levelup").hidden && /^Digit[1-4]$/.test(e.code)) {
+    if (!e.repeat && !$("levelup").hidden && /^Digit[1-4]$/.test(e.code)) {
       pickLevel(Number(e.code.slice(5)) - 1);
       return;
     }
@@ -864,6 +921,19 @@
       if (!$("levelup").hidden || !$("end").hidden || !$("victory").hidden) return;
       if (!e.repeat) pause($("pause").hidden);
     }
+  });
+  window.addEventListener("blur",()=>{
+    if(current==="game" && Game.mode==="solo" && $("levelup").hidden)pause(true);
+  });
+  document.addEventListener("keydown",e=>{
+    if(e.key!=="Tab")return;
+    const modal=[...document.querySelectorAll(".modal:not([hidden])")].pop();
+    if(!modal)return;
+    const buttons=[...modal.querySelectorAll("button:not([disabled]),a[href],input,select")].filter(e=>e.getClientRects().length);
+    if(!buttons.length)return;
+    const first=buttons[0],last=buttons.at(-1);
+    if(e.shiftKey && (document.activeElement===first || !modal.contains(document.activeElement))){e.preventDefault();last.focus();}
+    else if(!e.shiftKey && (document.activeElement===last || !modal.contains(document.activeElement))){e.preventDefault();first.focus();}
   });
   document.addEventListener("visibilitychange", () => {
     if (document.hidden && current === "game" && Game.mode === "solo" && $("levelup").hidden) pause(true);

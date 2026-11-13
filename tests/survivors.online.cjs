@@ -112,6 +112,11 @@ const assert = require('node:assert/strict');
     await guest.waitForFunction(()=>Game.state?.guest&&Game.state.t>10);
     await host.evaluate(()=>{Game.state.xp=Game.state.xpNext;Game.step();});
     await guest.waitForSelector('#levelup:not([hidden])');
+    await guest.locator('#levelup-reroll').click();
+    await guest.waitForFunction(()=>document.getElementById('levelup-reroll').textContent.includes('2/3'));
+    assert.equal(await host.evaluate(()=>Game.state.players[1].rerolls),2);
+    assert.equal(await guest.locator('.up-card:enabled').count(),3);
+    assert.ok(await host.evaluate(()=>Game.state.choosing[1]));
     await host.locator('.up-card').first().click();
     // A closed peer while its choice is pending must not freeze the host.
     await guest.evaluate(()=>window.testConnections.forEach(pc=>pc.close()));
@@ -120,6 +125,6 @@ const assert = require('node:assert/strict');
     const tick=await host.evaluate(()=>Game.state.t);
     await host.waitForFunction(t=>Game.state.t>t,tick,{timeout:5000});
     assert.deepEqual(errors,[]);
-    console.log(`Online (${process.env.RTC_TEST_MODE === 'mock' ? 'mock transport' : 'real local RTC'}): room, guest movement, final results, shared level up and disconnect during choice passed`);
+    console.log(`Online (${process.env.RTC_TEST_MODE === 'mock' ? 'mock transport' : 'real local RTC'}): room, guest movement, final results, shared level up, guest reroll and disconnect during choice passed`);
   } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

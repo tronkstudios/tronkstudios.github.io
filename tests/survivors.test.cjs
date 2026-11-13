@@ -291,3 +291,83 @@ test('sword and spear characters produce only attacks from their own weapon fami
     assert.equal(Game.state.shots.length,0,id);
   }
 });
+
+test('rerolls are per-player, bounded and do not advance time or resolve a choice',()=>{
+  const {Game}=engine();Game.start([setup('ranjay'),setup('lia')],{mode:'host',seed:42});
+  const st=Game.state;st.xp=st.xpNext;Game.step();
+  const tick=st.t;let deliveries=0;Game.on('netChoices',m=>{if(m[1])deliveries++;});
+  assert.equal(Game.reroll(99),false);
+  for(let i=0;i<3;i++)assert.equal(Game.reroll(1),true);
+  assert.equal(Game.reroll(1),false);assert.equal(st.players[1].rerolls,0);assert.equal(st.players[0].rerolls,3);
+  assert.equal(deliveries,3);assert.equal(st.t,tick);assert.ok(st.choosing[0] && st.choosing[1]);
+  Game.choose(1,-1);Game.choose(1,99);assert.ok(st.choosing[1]);
+  Game.choose(1,0);assert.equal(Game.reroll(1),false);assert.ok(st.choosing[0]);
+  Game.choose(0,0);assert.equal(st.choosing,null);
+  Game.start([setup('ranjay')]);assert.equal(Game.state.players[0].rerolls,3);
+});
+test('level four native weapons offer their evolution passive before filling inventory',()=>{
+  const {Game,TS}=engine();
+  for(const ch of TS.CHARACTERS){
+    Game.start([setup(ch.id)],{seed:34});const st=Game.state,p=st.players[0];p.weapons[0].lvl=4;
+    st.xp=st.xpNext;Game.step();
+    const support=st.choosing[0].find(o=>o.kind==='passive' && o.id===TS.EVOLUTIONS[ch.weapon].passive);
+    assert.ok(support,ch.id);assert.equal(support.synergy,true);
+    assert.ok(st.choosing[0].filter(o=>o.kind==='weapon').every(o=>o.id===ch.weapon));
+  }
+});
+test('elites start at minute five, scale independently and have a bounded population',()=>{
+  const {Game}=engine();Game.start([setup('ranjay')],{seed:55});const st=Game.state,p=st.players[0];
+  p.stats.armor=100000;p.weapons[0].cd=100000;
+  st.t=300*60-2;Game.step();assert.equal(st.enemies.filter(e=>e.elite).length,0);
+  Game.step();const first=st.enemies.find(e=>e.elite);assert.ok(first);
+  const def=engine().TS.ENEMIES[first.type];assert.equal(first.baseMaxHp,def.hp*3);assert.equal(first.baseDmg,def.dmg*1.35);
+  const hp=first.maxHp;st.t=600*60-1;Game.step();assert.ok(first.maxHp>hp);
+  for(let i=0;i<9;i++){st.t=st.nextElite-1;Game.step();}
+  assert.equal(st.enemies.filter(e=>e.elite && !e.dead).length,4);
+});
+test('elite kills grant five times XP, extra coins and actual damage rather than overkill',()=>{
+  const {Game,TS}=engine();Game.start([setup('lia')],{seed:44});const st=Game.state,p=st.players[0];
+  st.t=300*60-1;Game.step();const elite=st.enemies.find(e=>e.elite);
+  st.enemies=[elite];elite.x=p.x+22;elite.y=p.y;elite.hp=3;elite.speed=0;elite.baseSpeed=0;elite.dmg=0;
+  p.weapons[0].cd=0;p.stats.might=10000;Game.step();
+  assert.equal(p.combat.elites,1);assert.equal(p.combat.dealt,3);assert.equal(st.kills,1);
+  assert.ok(st.gems.some(g=>g.v===TS.ENEMIES[elite.type].xp*5));
+  assert.ok(st.pickups.filter(it=>it.kind==='moneda').length>=5);
+});
+test('healing records only recovered HP and cannot silently revive a downed player',()=>{
+  const {Game}=engine();Game.start([setup('ranjay'),setup('lia')]);const st=Game.state,p=st.players[0];
+  p.hp=93;st.pickups=[{kind:'bocadillo',x:p.x,y:p.y-6,t:0}];Game.step();
+  assert.equal(p.hp,100);assert.equal(p.combat.healed,7);
+  st.pickups=[{kind:'bocadillo',x:p.x,y:p.y-6,t:0}];Game.step();assert.equal(p.combat.healed,7);
+  p.down=true;p.hp=0;st.players[1].x=500;st.players[1].y=500;
+  st.pendingLevels=1;st.choosing={0:[{kind:'heal'}]};Game.choose(0,0);assert.equal(p.down,true);assert.equal(p.hp,0);
+});
+test('compass prioritizes reviving teammates, ignores disconnected players and tracks chests',()=>{
+  const {Game}=engine();Game.start([setup('ranjay'),setup('lia')]);const st=Game.state,p=st.players[0],ally=st.players[1];
+  st.pickups=[{kind:'cofre',x:p.x+170,y:p.y,t:0}];
+  assert.equal(Game.hudData().compass.arrow,'→');assert.equal(Game.hudData().compass.distance,100);
+  ally.down=true;ally.x=p.x;ally.y=p.y-170;
+  assert.equal(Game.hudData().compass.label,'Revivir');assert.equal(Game.hudData().compass.arrow,'↑');
+  ally.disconnected=true;assert.equal(Game.hudData().compass.label,'Cofre');
+  st.pickups=[];assert.equal(Game.hudData().compass,null);
+});
+test('snapshots preserve elite markers, cooldown progress, counters and distant chests',()=>{
+  const {Game}=engine();Game.start([setup('nix'),setup('lia')],{seed:92});const st=Game.state,p=st.players[0];
+  st.t=300*60-1;Game.step();const elite=st.enemies.find(e=>e.elite);elite.x=100;elite.y=0;
+  p.techniques={burst:1};p.techCds={burst:120};p.rerolls=1;p.combat.dealt=321;
+  st.pickups.push({kind:'cofre',x:5000,y:5000,t:0});
+  Game.dropPlayer(1);
+  const before=Game.hudData().techniques[0].ready,snap=Game.snapshot([p]);
+  Game.startGuest({localId:0,players:[setup('nix'),setup('lia')]});Game.applySnapshot(snap);
+  const d=Game.hudData();assert.equal(d.techniques[0].ready,before);assert.equal(d.combat.dealt,321);
+  assert.equal(Game.state.players[0].rerolls,1);assert.ok(Game.state.enemies.some(e=>e.elite));
+  assert.ok(Game.state.pickups.some(it=>it.x===5000));assert.equal(Game.reroll(0),false);
+  assert.equal(Game.state.players[1].disconnected,true);assert.equal(d.compass.label,'Cofre');
+});
+test('chest rewards skip disconnected peers and results include individual combat metrics',()=>{
+  const {Game}=engine();let result;Game.on('end',r=>{result=r;});Game.start([setup('ranjay'),setup('lia')]);
+  const st=Game.state;Game.dropPlayer(1);const ghost=JSON.stringify(st.players[1].weapons);
+  st.pickups=[{kind:'cofre',x:st.players[0].x,y:st.players[0].y-6,t:0}];Game.step();
+  assert.equal(st.chests,1);assert.equal(JSON.stringify(st.players[1].weapons),ghost);
+  Game.finish(false);assert.equal(result.chests,1);assert.equal(result.combat.length,2);assert.equal(result.combat[0].taken,0);
+});

@@ -115,7 +115,8 @@ const Game = (() => {
       stats: null,
       weapons: [],
       passives: {},
-      techniques: {}, techCds: {},
+      techniques: {}, techCds: {}, rerolls: 3,
+      combat: { dealt: 0, taken: 0, healed: 0, elites: 0 },
       iframes: 0,
       down: false,
       reviveT: 0,
@@ -185,7 +186,7 @@ const Game = (() => {
       nextId: 1,
       spawnT: 0,
       bossIdx: 0,
-      hordeIdx: 0,
+      hordeIdx: 0, nextElite: 300 * 60, chests: 0,
       boss: null,
       pendingLevels: 0,
       choosing: null,
@@ -379,14 +380,27 @@ const Game = (() => {
           const edge = terrain(wx + 3, wy) !== t || terrain(wx, wy + 3) !== t;
           if (edge && t === 0) { put(i, h > 0.4 ? G.grassEdge : G.grass[0]); continue; }
           if (edge && t === 1) { put(i, h > 0.5 ? G.dirtEdge : G.dirt[1]); continue; }
-          let col = pal[Math.floor(h * 4.6)] || pal[0];
-          if (t === 0 && h > 0.996) col = G.flowers[Math.floor(hash(wy, wx) * 3)];
-          if (t === 1 && h > 0.975) col = "#a08a6a";
+          const patch = vnoise(wx/48,wy/48)*.75+vnoise(wx/17+11,wy/17-7)*.25;
+          let col = pal[Math.min(pal.length-1,Math.floor(patch*pal.length))];
+          if (h>.996 && t===1) col=G.dirtEdge;
           put(i, col);
         }
       }
     }
     g.putImageData(img, 0, 0);
+    // Pequeños grupos de vegetación y piedras sobre manchas suaves, sin ruido blanco.
+    for(let i=0;i<12;i++) {
+      const px=Math.floor(hash(cx*19+i,cy*17)*N),py=Math.floor(hash(cy*23+i,cx*31)*N);
+      const wx=cx*CHUNK+px*2,wy=cy*CHUNK+py*2;
+      if(terrain(wx,wy)!==0)continue;
+      g.fillStyle=map.ground.grassEdge;g.globalAlpha=.65;
+      g.fillRect(px,py,1,3);g.fillRect(px-2,py+1,1,2);g.fillRect(px+2,py-1,1,3);
+      if(i%4===0 && mapId!=="ciudad") {
+        g.globalAlpha=.9;g.fillStyle=map.ground.flowers[i%3];
+        g.fillRect(px-2,py,2,2);g.fillRect(px+2,py-2,2,2);
+      }
+    }
+    g.globalAlpha=1;
     chunks.set(key, c);
     if (chunks.size > 70) chunks.delete(chunks.keys().next().value);
     return c;
@@ -486,7 +500,7 @@ const Game = (() => {
     if (mode === "host") st.events.push({ k: "snd", n: name });
   }
 
-  const options = { numbers: true, shake: true, fx: "auto" };
+  const options = { numbers: true, shake: true, fx: "auto", reducedMotion: false, contrast: false, zoom: 1.25 };
   // Efectos reducidos: menos partículas y menos resolución (móviles lentos)
   let lowFx = false;
   let autoLow = false;
@@ -505,7 +519,7 @@ const Game = (() => {
   }
 
   function shake(n) {
-    if (options.shake) cam.shake = Math.max(cam.shake, n);
+    if (options.shake && !options.reducedMotion) cam.shake = Math.max(cam.shake, n);
   }
 
   /* =======================================================
@@ -593,7 +607,7 @@ const Game = (() => {
     e.flash = 24; e.timer = 80; e.state = 0; e.t = 0;
     e.cloned = false; e.called = false; e.splits = []; e.hops = 0;
     st.pickups.push({ x: e.x, y: e.y, kind: "cofre", t: 0 });
-    for (const p of alivePlayers()) { p.hp = Math.min(p.stats.maxHp, p.hp + p.stats.maxHp * .15); p.iframes = Math.max(p.iframes, 60); }
+    for (const p of alivePlayers()) { healPlayer(p, p.stats.maxHp * .15); p.iframes = Math.max(p.iframes, 60); }
     fx({ k: "ring", x: e.x, y: e.y, r: 100, color: "#ff512f", life: 50 });
     sound("boss"); emit("finalPhase", { round: e.finalRound });
   }
@@ -686,6 +700,20 @@ const Game = (() => {
           spawnEnemy(h.id, target.x + Math.cos(a) * r, target.y + Math.sin(a) * r);
         }
         emit("toast", { text: L("¡Que vienen!"), kind: "horde" });
+      }
+    }
+    // Élites limitados: presión reconocible, con experiencia y monedas extra.
+    if (st.t >= st.nextElite) {
+      st.nextElite = st.t + 90 * 60;
+      if (st.enemies.filter(e => e.elite && !e.dead).length < 4) {
+        const type = weightedPick(currentWave().mix);
+        const def = TS.ENEMIES[type];
+        if (!def.boss && !def.prop) {
+          const e = spawnAround(type, pick(alive));
+          e.elite = true; e.baseMaxHp *= 3; e.baseDmg *= 1.35; e.baseSpeed *= 1.12;
+          e.r *= 1.18; e.hp = e.maxHp; scaleEnemy(e);
+          emit("toast", { text: L("¡Élite! Busca el halo dorado"), kind: "elite" });
+        }
       }
     }
     // hordas en círculo
@@ -1082,6 +1110,7 @@ const Game = (() => {
     }
     const might = pl ? pl.stats.might : 1;
     const amount = Math.max(1, Math.round(dmg * might * rand(0.9, 1.1) - (d.armor || 0)));
+    if (!e.prop && pl?.combat) { pl.combat.dealt += Math.min(e.hp,amount); e.lastHit = pl.id; }
     e.hp -= amount;
     e.flash = 6;
     if (kb && !e.boss) {
@@ -1118,8 +1147,13 @@ const Game = (() => {
     st.kills++;
     if (!silent) sound("kill", 0.05);
     fx({ k: "puff", x: e.x, y: e.y - 16, color: e.boss ? "#ffd23f" : "#c9d1dc", life: 16, big: e.boss });
+    if (e.elite) {
+      if (e.lastHit !== undefined && st.players[e.lastHit]?.combat) st.players[e.lastHit].combat.elites++;
+      for (let i=0;i<5;i++) st.pickups.push({x:e.x+rand(-12,12),y:e.y+rand(-8,8),kind:"moneda",t:0});
+      fx({k:"text",x:e.x,y:e.y-40,text:L("¡Élite derrotado!"),color:"#f5cb79",life:60});
+    }
     // gema de experiencia
-    const v = d.xp;
+    const v = d.xp * (e.elite ? 5 : 1);
     st.gems.push({ x: e.x, y: e.y, v, t: 0, pull: false });
     if (st.gems.length > 420) mergeGems();
     // otros premios
@@ -1159,9 +1193,19 @@ const Game = (() => {
      JUGADORES
      ======================================================= */
 
+  function healPlayer(p, amount, show = false) {
+    if (p.down) return 0;
+    const healed = Math.max(0, Math.min(amount, p.stats.maxHp-p.hp));
+    p.hp += healed;
+    if (p.combat) p.combat.healed += healed;
+    if (show && healed > 0) fx({k:"text",x:p.x,y:p.y-36,text:`+${Math.round(healed)}`,color:"#8aefc2",life:40});
+    return healed;
+  }
+
   function hurtPlayer(p, dmg) {
     if (p.down || p.iframes > 0) return;
     const amount = Math.max(1, Math.round(dmg - p.stats.armor));
+    if (p.combat) p.combat.taken += Math.min(p.hp,amount);
     p.hp -= amount;
     p.iframes = 36;
     p.flash = 10;
@@ -1230,7 +1274,7 @@ const Game = (() => {
     } else if (p.moving) setDir(p, x, y);
     if (p.atk && p.atk.t <= 0) p.atk = null;
 
-    if (p.stats.regen && st.t % 60 === 0) p.hp = Math.min(p.stats.maxHp, p.hp + p.stats.regen);
+    if (p.stats.regen && st.t % 60 === 0) healPlayer(p, p.stats.regen);
 
     if (p.abCd > 0) p.abCd--;
     if ((p.input.ab || 0) !== p.abSeen) {
@@ -1274,7 +1318,7 @@ const Game = (() => {
         fx({ k: "ring", x: cx, y: p.y, r: 160 * area, color: "#64f5ff", life: 40 });
         sound("zap"); break;
       case "savia":
-        p.hp = Math.min(p.stats.maxHp, p.hp + p.stats.maxHp * .15);
+        healPlayer(p, p.stats.maxHp * .15);
         ring(6, a => st.zones.push({ type: "acid", x: cx + Math.cos(a) * 65, y: p.y + Math.sin(a) * 65,
           r: 30 * area, t: 0, warn: 15, life: 240, dmg: 14 * lvl, owner: p.id }));
         sound("ice"); break;
@@ -1293,10 +1337,10 @@ const Game = (() => {
         sound("boom"); shake(9);
         break;
       case "lia":
-        p.hp = Math.min(p.stats.maxHp, p.hp + p.stats.maxHp * 0.4);
+        healPlayer(p, p.stats.maxHp * 0.4, true);
         p.iframes = 180;
         fx({ k: "ring", x: p.x, y: p.y, r: 70, color: "#ff9fd0", life: 34 });
-        for (const o of st.players) if (o !== p && !o.down && Math.hypot(o.x - p.x, o.y - p.y) < 120) o.hp = Math.min(o.stats.maxHp, o.hp + o.stats.maxHp * 0.25);
+        for (const o of st.players) if (o !== p && !o.down && Math.hypot(o.x - p.x, o.y - p.y) < 120) healPlayer(o, o.stats.maxHp * 0.25, true);
         sound("levelUp");
         break;
       case "toto":
@@ -2066,8 +2110,7 @@ const Game = (() => {
         sound("coin", 0.05);
         break;
       case "bocadillo":
-        p.hp = Math.min(p.stats.maxHp, p.hp + 30);
-        fx({ k: "text", x: p.x, y: p.y - 36, text: "+30", color: "#7fff8a", life: 40 });
+        healPlayer(p, 30, true);
         sound("pick");
         break;
       case "iman":
@@ -2076,10 +2119,12 @@ const Game = (() => {
         emit("toast", { text: L("¡Imán! Todas las gemas vienen a ti"), kind: "pick" });
         break;
       case "cofre": {
+        st.chests = (st.chests || 0) + 1;
         sound("chest");
         st.coins += 40;
         const got = [];
         for (const pl of st.players) {
+          if (pl.disconnected) continue;
           const evo = evolvable(pl);
           if (evo) {
             evo.evo = true;
@@ -2109,10 +2154,11 @@ const Game = (() => {
       const lvl = (pl.techniques || {})[move.id] || 0;
       if (lvl < move.max) pool.push({kind:"technique",id:move.id,lvl:lvl+1,weight:lvl?2:2.6});
     }
+    const evolution = TS.EVOLUTIONS[weapon];
     const owned = Object.keys(pl.passives);
     for (const id of owned) if (pl.passives[id] < TS.PASSIVES[id].max) pool.push({ kind: "passive", id, lvl: pl.passives[id] + 1, weight: 2 });
     if (owned.length < TS.MAX_PASSIVES) {
-      for (const id of Object.keys(TS.PASSIVES)) if (!(id in pl.passives)) pool.push({ kind: "passive", id, lvl: 1, weight: 1 });
+      for (const id of Object.keys(TS.PASSIVES)) if (!(id in pl.passives)) pool.push({ kind: "passive", id, lvl: 1, weight: evolution?.passive === id ? 3 : 1 });
     }
     const out = [];
     while (out.length < n && pool.length) {
@@ -2121,6 +2167,10 @@ const Game = (() => {
       let idx = 0;
       for (; idx < pool.length; idx++) { r -= pool[idx].weight; if (r <= 0) break; }
       out.push(pool.splice(Math.min(idx, pool.length - 1), 1)[0]);
+    }
+    if (native?.lvl >= 4 && !native.evo && evolution && !pl.passives[evolution.passive]) {
+      const support = pool.find(o => o.kind === "passive" && o.id === evolution.passive);
+      if (support && !out.some(o=>o.id===support.id && o.kind===support.kind)) out[Math.max(0,out.length-1)] = support;
     }
     if (!out.length) out.push({ kind: "heal" }, { kind: "coins" });
     return out.map((o) => describe(pl, o));
@@ -2131,11 +2181,11 @@ const Game = (() => {
     if (o.kind === "coins") return { ...o, title: L("Bolsa de monedas"), desc: L("+25 monedas"), icon: "moneda" };
     if (o.kind === "technique") {
       const d = TS.TECHNIQUES[pl.charId].find(m => m.id === o.id);
-      return {...o,title:o.lvl === 1 ? L(d.name) : LT("levelOf",{name:L(d.name),lvl:o.lvl}),desc:`${L("Técnica automática")} · ${L(d.desc)}`,icon:charById(pl.charId).weapon,isNew:o.lvl === 1};
+      return {...o,title:o.lvl === 1 ? L(d.name) : LT("levelOf",{name:L(d.name),lvl:o.lvl}),desc:`${L("Técnica automática")} · ${L(d.desc)} · ${L("Recarga")}: ${(d.cd/60*pl.stats.cdMul).toFixed(1)} s · ${L("Potencia")}: +${20*o.lvl}%`,icon:charById(pl.charId).weapon,isNew:o.lvl === 1};
     }
     if (o.kind === "passive") {
       const d = TS.PASSIVES[o.id];
-      return { ...o, title: L(d.name), desc: L(d.desc), icon: o.id, isNew: o.lvl === 1 };
+      return { ...o, title: L(d.name), desc: L(d.desc), icon: o.id, isNew: o.lvl === 1, synergy: TS.EVOLUTIONS[charById(pl.charId).weapon]?.passive === o.id };
     }
     const d = TS.WEAPONS[o.id];
     if (o.lvl === 1) return { ...o, title: L(d.name), desc: L(d.desc), icon: o.id, isNew: true };
@@ -2167,22 +2217,38 @@ const Game = (() => {
       pl.passives[o.id] = (pl.passives[o.id] || 0) + 1;
       computeStats(pl);
     } else if (o.kind === "heal") {
-      pl.hp = Math.min(pl.stats.maxHp, pl.hp + 40);
+      healPlayer(pl, 40, true);
     } else if (o.kind === "coins") {
       st.coins += 25;
     }
   }
 
+  function reroll(playerId) {
+    if (!st || st.over || mode === "guest" || !st.choosing?.[playerId]) return false;
+    const p = st.players[playerId];
+    if (!p || p.disconnected || !(p.rerolls > 0)) return false;
+    p.rerolls--;
+    const previous = st.choosing[playerId];
+    let choices = buildOptions(p,3);
+    const same = list => JSON.stringify(list.map(o=>[o.kind,o.id,o.lvl]).sort());
+    for (let i=0;i<4 && same(choices)===same(previous);i++) choices=buildOptions(p,3);
+    st.choosing[playerId] = choices;
+    if (playerId===localId) emit("levelUp",{options:choices,level:st.level,rerolls:p.rerolls});
+    if (mode === "host") emit("netChoices",{[playerId]:choices});
+    return true;
+  }
+
   function startChoosing() {
     st.choosing = {};
     for (const pl of st.players) if (!pl.disconnected) st.choosing[pl.id] = buildOptions(pl, 3);
-    emit("levelUp", { options: st.choosing[localId], level: st.level, players: st.players.length });
+    emit("levelUp", { options: st.choosing[localId], level: st.level, players: st.players.length, rerolls: st.players[localId].rerolls });
     if (mode === "host") emit("netChoices", st.choosing);
   }
 
   function choose(playerId, index) {
     if (!st || !st.choosing || !st.choosing[playerId]) return;
-    const opt = st.choosing[playerId][index] || st.choosing[playerId][0];
+    if (!Number.isInteger(index) || !st.choosing[playerId][index]) return;
+    const opt = st.choosing[playerId][index];
     applyChoice(st.players[playerId], opt);
     delete st.choosing[playerId];
     if (playerId === localId) emit("chosen", {});
@@ -2251,7 +2317,7 @@ const Game = (() => {
     const seconds = Math.floor(st.t / 60);
     const greed = st.players[localId].stats.greed;
     const coins = Math.round((st.coins + st.kills / 8 + seconds / 6 + st.bossesKilled * 60 + (victory || st.won ? 300 : 0)) * greed);
-    emit("end", { victory: victory || !!st.won, finalPhase: !!st.finalPhase, finalRound: st.finalRound || 0, endless: !!st.endless && !!st.won, endlessSeconds: st.endless ? Math.floor((st.t - st.endlessStart) / 60) : 0, seconds, kills: st.kills, level: st.level, coins, bosses: st.bossesKilled, evolutions: st.evolutions, abilities: st.abilitiesUsed || 0, props: st.propsBroken, charId: st.players[localId].charId, map: st.mapId, daily: st.daily, coop: st.players.length > 1 });
+    emit("end", { victory: victory || !!st.won, finalPhase: !!st.finalPhase, finalRound: st.finalRound || 0, endless: !!st.endless && !!st.won, endlessSeconds: st.endless ? Math.floor((st.t - st.endlessStart) / 60) : 0, seconds, kills: st.kills, level: st.level, coins, bosses: st.bossesKilled, evolutions: st.evolutions, abilities: st.abilitiesUsed || 0, props: st.propsBroken, combat: st.players.map(p=>({...p.combat})), chests: st.chests || 0, charId: st.players[localId].charId, map: st.mapId, daily: st.daily, coop: st.players.length > 1 });
   }
 
   function readInput() {
@@ -2324,10 +2390,33 @@ const Game = (() => {
     st = null;
   }
 
+  function evolutionInfo(p) {
+    const w=p.weapons.find(w=>w.id===charById(p.charId).weapon);
+    const evo=w && TS.EVOLUTIONS[w.id];
+    if (!evo) return null;
+    return {name:L(evo.name),weapon:L(TS.WEAPONS[w.id].name),level:w.lvl,evolved:!!w.evo,
+      passive:L(TS.PASSIVES[evo.passive].name),hasPassive:!!p.passives[evo.passive],
+      blocked:!p.passives[evo.passive] && Object.keys(p.passives).length>=TS.MAX_PASSIVES};
+  }
+
+  function compassTarget(p) {
+    const fallen=st.players.filter(o=>o.down && !o.disconnected && o.id!==p.id);
+    const chests=st.pickups.filter(it=>it.kind==="cofre" && !it.taken);
+    const candidates=fallen.length?fallen:chests;
+    const target=candidates.reduce((best,it)=>!best || dist2(it,p)<dist2(best,p)?it:best,null);
+    if (!target || p.down) return null;
+    const angle=Math.atan2(target.y-p.y,target.x-p.x);
+    return {label:fallen.length?L("Revivir"):L("Cofre"),arrow:["→","↘","↓","↙","←","↖","↑","↗"][(Math.round(angle/(TAU/8))+8)%8],distance:Math.round(Math.sqrt(dist2(target,p))/U)};
+  }
+
   function hudData() {
     const p = st.players[localId];
     const abDef = TS.ABILITIES[p.charId];
     return {
+      combat: p.combat || {}, chests: st.chests || 0,
+      evolution: evolutionInfo(p), compass: compassTarget(p),
+      inWater: terrain(p.x,p.y)===2,
+      nextBossIn: st.finalPhase ? 0 : Math.ceil(Math.min(TS.RUN_SECONDS,...TS.BOSSES.filter(b=>b.id!=="rey").map(b=>b.at*(st.mod?.bossTime || 1)).filter(at=>at>st.t/60))-st.t/60),
       hp: p.hp,
       maxHp: p.stats.maxHp,
       xp: st.xp,
@@ -2341,9 +2430,9 @@ const Game = (() => {
       weapons: p.weapons.map((w) => ({ id: w.id, lvl: w.lvl, evo: !!w.evo })),
       techniques: Object.entries(p.techniques || {}).map(([id,lvl]) => {
         const move=TS.TECHNIQUES[p.charId].find(m=>m.id===id);
-        return {id,lvl,name:L(move.name),icon:charById(p.charId).weapon};
+        return {id,lvl,name:L(move.name),icon:charById(p.charId).weapon,ready:st.guest ? p.techReady?.[id] ?? 0 : clamp(1-(p.techCds?.[id] || 0)/(move.cd*p.stats.cdMul),0,1)};
       }),
-      canEvolve: !st.guest && !!evolvable(p),
+      canEvolve: !!evolvable(p),
       passives: Object.entries(p.passives).map(([id, lvl]) => ({ id, lvl })),
       boss: st.boss && TS.ENEMIES[st.boss.type] ? { name: L(TS.ENEMIES[st.boss.type].name) + (st.finalPhase ? ` · ${L("Fase")} ${st.finalRound}` : ""), pct: st.boss.hp / st.boss.maxHp } : null,
       down: p.down,
@@ -2370,7 +2459,7 @@ const Game = (() => {
     // el personaje ocupa más o menos una décima parte de la pantalla
     // (en el móvil, algo más, para que se vea bien con el dedo encima)
     const k = Math.max(1, Math.round((Math.min(w, h) * (Math.min(w, h) < 600 ? 0.16 : 0.11)) / 60)) * dpr;
-    view = { w: canvas.width, h: canvas.height, k, dpr };
+    view = { w: canvas.width, h: canvas.height, k: k * options.zoom, dpr };
     ctx.imageSmoothingEnabled = false;
   }
 
@@ -2451,8 +2540,8 @@ const Game = (() => {
       ctx.stroke();
       return;
     }
-    if (p.iframes > 0 && p.iframes % 6 < 3 && !p.flash) ctx.globalAlpha = 0.6;
-    const img = personImage(set, p.dir, p.flash > 6, p.moving, p.walkT, p.atk);
+    if (!options.reducedMotion && p.iframes > 0 && p.iframes % 6 < 3 && !p.flash) ctx.globalAlpha = 0.6;
+    const img = personImage(set, p.dir, !options.reducedMotion && p.flash > 6, p.moving, p.walkT, p.atk);
     drawSprite(img, p.x, p.y, People.OY, p.face < 0);
     ctx.globalAlpha = 1;
     if (terrain(p.x,p.y) === 2) {
@@ -2475,6 +2564,14 @@ const Game = (() => {
     }
   }
 
+  function drawEliteBadge(x,y,pct,ground = true) {
+    if(ground) {ctx.strokeStyle="#f5cb79";ctx.lineWidth=2;
+    ctx.beginPath();ctx.ellipse(x,y,22,8,0,0,TAU);ctx.stroke();}
+    ctx.fillStyle="#f5cb79";ctx.font="bold 12px sans-serif";ctx.textAlign="center";ctx.fillText("◆",x,y-62);
+    ctx.fillStyle="#15252b";ctx.fillRect(x-15,y-55,30,4);
+    ctx.fillStyle="#f5cb79";ctx.fillRect(x-15,y-55,30*clamp(pct || 0,0,1),4);
+  }
+
   function drawEnemy(e) {
     const d = TS.ENEMIES[e.type];
     if (e.prop) {
@@ -2488,12 +2585,13 @@ const Game = (() => {
       }
       return;
     }
+    if(e.elite) drawEliteBadge(e.x,e.y,e.hp/e.maxHp);
     if(e.relentless){ctx.strokeStyle="#ff512f";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(e.x,e.y,18*(d.scale||1),7*(d.scale||1),0,0,TAU);ctx.stroke();}
     const key = `enemy:${d.sprite || e.type}`;
     const set = Sprites.get(key);
-    const scale = d.scale || 1;
+    const scale = (d.scale || 1) * (e.elite ? 1.18 : 1);
     const relentless = !!e.relentless;
-    const flash = e.flash > 3 || (e.ai === "dash" && e.state === 1 && e.t % 6 < 3) || (e.ai === "kamikaze" && e.state === 1 && e.t % 6 < 3);
+    const flash = !options.reducedMotion && (e.flash > 3 || (e.ai === "dash" && e.state === 1 && e.t % 6 < 3) || (e.ai === "kamikaze" && e.state === 1 && e.t % 6 < 3));
     if (!d.flying) shadow(e.x, e.y, e.r * 1.1);
     if (e.phased) ctx.globalAlpha = 0.3;
     else if (e.type === "fantasma") ctx.globalAlpha = 0.85;
@@ -2920,6 +3018,7 @@ const Game = (() => {
   }
 
   function drawEnemyShotAt(s, x, y) {
+    if(options.contrast){ctx.fillStyle="#081820";ctx.beginPath();ctx.arc(x,y,8,0,TAU);ctx.fill();ctx.strokeStyle="#fff1ca";ctx.lineWidth=1.5;ctx.stroke();}
     if (s.kind === "bullet") {
       ctx.fillStyle = "#14112b"; ctx.fillRect(x - 2, y - 2, 5, 5);
       ctx.fillStyle = "#ffd23f"; ctx.fillRect(x - 1, y - 1, 3, 3);
@@ -2973,6 +3072,7 @@ const Game = (() => {
       ctx.drawImage(img, Math.round(g.x - 14), Math.round(g.y - 18 + Math.sin((g.t + g.x) * 0.08) * 2));
     }
     for (const it of st.pickups) {
+      if (it.x < left-50 || it.x > left+wW+50 || it.y < top-50 || it.y > top+wH+50)continue;
       const img = x2(`icon:${it.kind}`);
       const bob = Math.round(Math.sin(it.t * 0.1) * 2);
       if (it.kind === "cofre") {
@@ -3126,7 +3226,7 @@ const Game = (() => {
     else if (p.moving && p.moveX !== undefined) ang = Math.atan2(p.moveY, p.moveX);
     else ang = p.ang3 ?? Render3D.angleOf(p.dir, p.face);
     p.ang3 = ang;
-    return { kind: "char", id: p.charId, x: p.x, y: p.y, ang, moving: p.moving, walkT: p.walkT, atk: p.atk, inWater: terrain(p.x,p.y) === 2, flash: p.flash > 6 || (p.iframes > 0 && p.iframes % 6 < 3) };
+    return { kind: "char", id: p.charId, x: p.x, y: p.y, ang, moving: p.moving, walkT: p.walkT, atk: p.atk, inWater: terrain(p.x,p.y) === 2, flash: !options.reducedMotion && (p.flash > 6 || (p.iframes > 0 && p.iframes % 6 < 3)) };
   }
 
   function actorOfEnemy(e) {
@@ -3134,11 +3234,11 @@ const Game = (() => {
     if (!d) return null;
     if (d.prop) return { prop: true, type: e.type, x: e.x, y: e.y, t: e.t, flash: e.flash > 0 };
     const sprite = d.sprite || e.type;
-    const scale = d.scale || 1;
+    const scale = (d.scale || 1) * (e.elite ? 1.18 : 1);
     const relentless = !!e.relentless;
-    const flash = e.flash > 3 || ((e.ai === "dash" || e.ai === "kamikaze") && e.state === 1 && e.t % 6 < 3);
-    if (["slime", "slimito", "fantasma", "murcielago"].includes(sprite)) return { creature: true, type: sprite, x: e.x, y: e.y, t: e.t, flash, phased: e.phased, scale, relentless, ang: Render3D.angleOf(e.dir || "down", e.face) };
-    return { kind: "enemy", relentless, id: sprite, x: e.x, y: e.y, ang: Render3D.angleOf(e.dir || "side", e.face), moving: Math.hypot(e.vx || 0, e.vy || 0) > 0.1, walkT: e.t, atk: e.atk > 0 ? { t: e.atk, total: 18 } : null, flash, scale };
+    const flash = !options.reducedMotion && (e.flash > 3 || ((e.ai === "dash" || e.ai === "kamikaze") && e.state === 1 && e.t % 6 < 3));
+    if (["slime", "slimito", "fantasma", "murcielago"].includes(sprite)) return { creature: true, type: sprite, x: e.x, y: e.y, t: e.t, flash, phased: e.phased, scale, relentless, elite:!!e.elite, ang: Render3D.angleOf(e.dir || "down", e.face) };
+    return { kind: "enemy", relentless, elite:!!e.elite, id: sprite, x: e.x, y: e.y, ang: Render3D.angleOf(e.dir || "side", e.face), moving: Math.hypot(e.vx || 0, e.vy || 0) > 0.1, walkT: e.t, atk: e.atk > 0 ? { t: e.atk, total: 18 } : null, flash, scale };
   }
 
   function render3D() {
@@ -3165,10 +3265,11 @@ const Game = (() => {
       const dr = p.weapons.find((w) => w.id === "dron");
       if (dr) for (const q of dr.drones || []) if (q.x !== undefined) drones.push({ x: q.x, y: q.y + 50, h: 50 + Math.sin(st.t * 0.2) });
     }
+    const visible = item => (item.x-cam.x)**2+(item.y-cam.y)**2<R2*1.5;
     Render3D.draw({
       cx: cam.x, cy: cam.y, wH, shake: shakeNow, dark: map.dark || 0, t: st.t,
-      actors, gems: st.gems, pickups: st.pickups, shots: st.shots.filter((x) => !(x.delay > 0)), eshots: st.eshots,
-      zones: st.zones, fx: st.fx, auras, drones
+      actors, gems: st.gems.filter(visible), pickups: st.pickups.filter(visible), shots: st.shots.filter((x) => !(x.delay > 0) && visible(x)), eshots: st.eshots.filter(visible),
+      zones: st.zones, fx: st.fx, auras, drones, contrast: options.contrast, low: lowFx
     });
     // capa 2D: números, nombres, barras de vida, flecha del jefe y joystick
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -3190,6 +3291,9 @@ const Game = (() => {
       ctx.fillText(txt, x, y);
     }
     ctx.globalAlpha = 1;
+    for (const e of st.enemies) if(e.elite) {
+      const [x,y]=P(e.x,e.y,0);ctx.save();ctx.translate(x,y);ctx.scale(d,d);drawEliteBadge(0,0,e.hp/e.maxHp,false);ctx.restore();
+    }
     for (const p of st.players) {
       const [x, y] = P(p.x, p.y, 0);
       const pct = clamp(p.hp / p.stats.maxHp, 0, 1);
@@ -3278,12 +3382,15 @@ const Game = (() => {
       Math.round(p.hp), p.stats.maxHp, p.down ? 1 : 0, p.reviveT, p.iframes, p.flash,
       p.weapons.map((w) => [w.id, w.lvl, w.evo ? 1 : 0, (w.drones || []).map((d) => [r1(d.x || 0), r1(d.y || 0)])]),
       Object.entries(p.passives), r1(p.stats.area), Math.round((1 - p.abCd / abilityMax(p)) * 100) / 100,
-      p.moveX, p.moveY, p.atk ? p.atk.ax : null, p.atk ? p.atk.ay : null, Object.entries(p.techniques || {})
+      p.moveX, p.moveY, p.atk ? p.atk.ax : null, p.atk ? p.atk.ay : null, Object.entries(p.techniques || {}), {
+        rerolls:p.rerolls, combat:p.combat, disconnected:!!p.disconnected,
+        ready:Object.fromEntries((TS.TECHNIQUES[p.charId] || []).map(m=>[m.id,clamp(1-(p.techCds?.[m.id] || 0)/(m.cd*p.stats.cdMul),0,1)]))
+      }
     ]);
     const enemies = [];
     for (const e of st.enemies) {
       if (!near2(e.x, e.y)) continue;
-      enemies.push([e.id, ENEMY_IDS.indexOf(e.type), r1(e.x), r1(e.y), DIRS.indexOf(e.dir || "side"), e.face, Math.hypot(e.vx, e.vy) > 0.1 ? 1 : 0, e.t & 1023, e.flash, (e.phased ? 1 : 0) | (e.state === 1 ? 2 : 0) | (e.state === 2 ? 4 : 0) | (e.relentless ? 8 : 0), e.atk]);
+      enemies.push([e.id, ENEMY_IDS.indexOf(e.type), r1(e.x), r1(e.y), DIRS.indexOf(e.dir || "side"), e.face, Math.hypot(e.vx, e.vy) > 0.1 ? 1 : 0, e.t & 1023, e.flash, (e.phased ? 1 : 0) | (e.state === 1 ? 2 : 0) | (e.state === 2 ? 4 : 0) | (e.relentless ? 8 : 0) | (e.elite ? 16 : 0), e.atk, e.elite ? Math.round(e.hp/e.maxHp*100)/100 : 0]);
     }
     const shots = st.shots.filter((x) => near2(x.x, x.y) && !(x.delay > 0)).map((x) => [x.type, r1(x.x), r1(x.y), r1(x.ang || 0), r1(x.r), x.life]);
     const eshots = st.eshots.filter((x) => near2(x.x, x.y)).map((x) => [r1(x.x), r1(x.y), x.kind]);
@@ -3294,13 +3401,14 @@ const Game = (() => {
       return out;
     });
     const gems = st.gems.filter((g) => near2(g.x, g.y)).slice(0, 500).map((g) => [r1(g.x), r1(g.y), g.v]);
-    const pickups = st.pickups.filter((it) => near2(it.x, it.y)).map((it) => [r1(it.x), r1(it.y), it.kind]);
+    const pickups = st.pickups.filter((it) => it.kind === "cofre" || near2(it.x, it.y)).map((it) => [r1(it.x), r1(it.y), it.kind]);
     const events = st.events.splice(0, st.events.length).slice(-120);
     return {
       t: st.t, lv: st.level, xp: Math.round(st.xp), xn: st.xpNext, k: st.kills, c: st.coins,
       b: st.boss ? [st.boss.id, st.boss.hp / st.boss.maxHp] : null,
       endless: !!st.endless, endlessStart: st.endlessStart || 0,
       finalPhase: !!st.finalPhase, finalRound: st.finalRound || 0,
+      chests: st.chests || 0, bossTime: st.mod?.bossTime || 1,
       frozen: !!(st.choosing || st.victoryWait || st.over || paused),
       p: players, e: enemies, s: shots, es: eshots, z: zones, g: gems, pk: pickups, ev: events
     };
@@ -3335,6 +3443,7 @@ const Game = (() => {
     st.fx = st.fx.filter((f) => f.t < f.life);
     st.endless = !!snap.endless; st.endlessStart = snap.endlessStart || 0;
     st.frozen = !!snap.frozen; st.finalPhase = !!snap.finalPhase; st.finalRound = snap.finalRound || 0;
+    st.chests=snap.chests || 0; st.mod={bossTime:snap.bossTime || 1};
     st.t = snap.t; st.level = snap.lv; st.xp = snap.xp; st.xpNext = snap.xn; st.kills = snap.k; st.coins = snap.c;
     snap.p.forEach((a, i) => {
       const p = st.players[i];
@@ -3344,6 +3453,7 @@ const Game = (() => {
       p.atk = a[6] > 0 ? { t: a[6], total: a[7], ...(a[20] != null && a[21] != null ? { ax: a[20], ay: a[21] } : {}) } : null;
       p.moveX = a[18]; p.moveY = a[19];
       p.techniques = Object.fromEntries(a[22] || []);
+      p.disconnected=!!a[23]?.disconnected; p.rerolls=a[23]?.rerolls ?? 0; p.combat=a[23]?.combat || {}; p.techReady=a[23]?.ready || {};
       p.hp = a[8]; p.stats.maxHp = a[9]; p.down = !!a[10]; p.reviveT = a[11]; p.iframes = a[12]; p.flash = a[13];
       p.weapons = a[14].filter(([id]) => id === charById(p.charId).weapon).map(([id, lvl, evo, drones]) => ({ id, lvl, evo: !!evo, drones: drones.map(([x, y]) => ({ x, y })) }));
       p.passives = Object.fromEntries(a[15]);
@@ -3362,6 +3472,7 @@ const Game = (() => {
         enemyMap.set(id, e);
       }
       e.tx = x; e.ty = y; e.dir = DIRS[di] || "side"; e.face = face; e.vx = moving ? 1 : 0; e.vy = 0; e.t = t; e.flash = flash;
+      e.elite=!!(flags & 16); if(e.elite){e.hp=a[11];e.maxHp=1;}
       e.relentless = !!(flags & 8); e.phased = !!(flags & 1); e.state = flags & 2 ? 1 : flags & 4 ? 2 : 0; e.atk = atk;
       seen.add(id);
       list.push(e);
@@ -3528,6 +3639,8 @@ const Game = (() => {
 
   return {
     init,
+    resize,
+    reroll,
     on,
     startDemo,
     stopDemo,

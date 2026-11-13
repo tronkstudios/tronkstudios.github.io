@@ -549,3 +549,22 @@ Object.assign(EN, {
   "Aprende y mejora tus técnicas al subir de nivel. Solo usas el arma de tu personaje.":"Learn and upgrade techniques as you level up. You only use your character's weapon."
 });
 for (const moves of Object.values(TS.TECHNIQUES)) for (const move of moves) { EN[move.name]=move.nameEn; EN[move.desc]=move.descEn; }
+
+Object.assign(EN, {
+  "SUPERVIVENCIA · COOPERATIVO":"SURVIVAL · CO-OP",
+  "Domina tu arma. Resiste la horda.":"Master your weapon. Hold back the horde.",
+  "TU SUPERVIVIENTE":"YOUR SURVIVOR", "MEJORA TU EQUIPO":"UPGRADE YOUR BUILD",
+  "Tronk Survivors · 25 minutos hasta el jefe final":"Tronk Survivors · 25 minutes until the final boss",
+  "Reducir movimiento y destellos":"Reduce motion and flashes",
+  "Proyectiles de alto contraste":"High contrast enemy projectiles",
+  "Distancia de cámara":"Camera distance", "Amplia":"Wide", "Equilibrada":"Balanced", "Cercana":"Close",
+  "Cambiar opciones":"Reroll choices", "Necesario para evolucionar":"Needed for evolution",
+  "Recarga":"Cooldown", "Potencia":"Power", "Evolución":"Evolution",
+  "Sin espacio para la pasiva":"No room for this passive", "Recoge un cofre con ambos requisitos":"Meet both requirements, then pick up a chest",
+  "Daño causado":"Damage dealt", "Daño recibido":"Damage taken", "Vida recuperada":"Health restored",
+  "Élites":"Elites", "Cofres":"Chests", "Cofre":"Chest", "Revivir":"Revive",
+  "Espera a tu compañero":"Wait for a teammate", "Agua · movimiento al 58 %":"Water · movement at 58%",
+  "Jefe en":"Boss in", "¡Élite! Busca el halo dorado":"Elite! Look for the golden halo",
+  "¡Élite derrotado!":"Elite defeated!", "Pantalla completa":"Fullscreen",
+  "Pantalla completa no disponible":"Fullscreen unavailable"
+});

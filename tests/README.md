@@ -6,7 +6,7 @@ Las pruebas de simulación no requieren dependencias:
 node --test tests/survivors.test.cjs
 ```
 
-Las 24 pruebas cubren el cofre, pausa de efectos, desconexiones durante elecciones,
+Las 32 pruebas cubren el cofre, pausa de efectos, desconexiones durante elecciones,
 instantáneas online, 19 personajes con su arma y técnicas propias, jefes finales de los cuatro
 mapas y fases finales sucesivas, colisiones con enemigos grandes, ralentizaciones, recargas,
 fusión de progreso remoto, datos guardados incompletos y tickets de partidas que
@@ -16,6 +16,10 @@ daño de las tres armas nuevas, bloqueo de armas ajenas, técnicas y sincronizac
 escalada repartida en 25 minutos y una prueba de supervivencia con equipo muy fuerte. Los escenarios de combate usan armadura y armas
 reforzadas para verificar las rutas de ejecución; no evalúan el equilibrio.
 
+Las pruebas nuevas también cubren élites, sus límites y recompensas, presupuesto de
+cambio de opciones por jugador, curación real, métricas sin daño sobrante, pasiva
+de evolución, brújula, cofres de compañeros desconectados y sincronización.
+
 Las comprobaciones de navegador requieren Playwright y Chromium. Desde la raíz:
 
 ```sh
@@ -24,6 +28,7 @@ python3 -m http.server 8000
 node tests/survivors.browser.cjs
 node tests/survivors.mobile.cjs
 node tests/survivors.features.cjs
+node tests/survivors.polish.cjs
 node tests/survivors.online.cjs
 # Probar el protocolo de juego con transporte simulado:
 RTC_TEST_MODE=mock node tests/survivors.online.cjs
@@ -39,12 +44,16 @@ Chromium no tiene su CA instalada; no modifica la configuración del juego.
   normales; comprueba que sus destellos conservan las dimensiones, pies y alfa.
 - **Contenido nuevo:** los 19 personajes, sus dos técnicas y habilidad en 2D/3D,
   efectos de sus armas, HUD final al minuto 25 y vista cercana de enemigos 3D.
+- **Diseño y usabilidad:** menú, HUD con élites y brújula, recargas de técnicas,
+  guía de evolución, métricas, cambios de opciones, foco de teclado dentro de
+  modales, pausa al perder el foco y persistencia de cámara/accesibilidad;
+  ordenador con 3D, fallback 2D y móvil.
 - **Móvil emulado:** entrar desde el menú, joystick, varios dedos, habilidad
   mientras te mueves, soltar el joystick, pausa, elección de mejora, rotación,
   distribución con arma propia, dos técnicas y seis pasivas y reinicio. Se usa 2D por defecto
   en dispositivos que solo tienen puntero táctil para reducir la carga gráfica.
 - **Online:** sala, movimiento del invitado, entrega y guardado del resultado,
-  segunda partida y desconexión con una elección pendiente. Supabase, cuenta
+  segunda partida, cambio de opciones del invitado y desconexión con una elección pendiente. Supabase, cuenta
   y TURN se sustituyen por un punto de encuentro local. En modo normal usa
   WebRTC real; si Chromium no genera candidatos ICE, informa de que omite la
   prueba de transporte. En modo `mock` verifica las rutas del protocolo mediante

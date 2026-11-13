@@ -434,7 +434,7 @@ TS.EVOLUTIONS = {
 TS.MAPS = {
   bosque: {
     name: "Bosque de los Tronks", desc: "Árboles, lagos y zombis. Para empezar.",
-    ground: { grass: ["#4a8a3a", "#43803a", "#52933f", "#3e7a35", "#4d8e3c"], grassEdge: "#3a6e30", dirt: ["#8a6a42", "#7d5f3a", "#94744a", "#6f5432", "#856540"], dirtEdge: "#6a5232", water: ["#3b7ac8", "#3672bd", "#4282d0"], shore: ["#c9b07a", "#bba26e"], foam: "#8fc6f0", wave: "#7ab4ec", flowers: ["#ffffff", "#ff9fd0", "#ffe066"] },
+    ground: { grass: ["#3b6950", "#3e6c52", "#477759", "#39654d", "#416f54"], grassEdge: "#2e5743", dirt: ["#897454", "#826e50", "#927d5c", "#7b674a", "#8b7655"], dirtEdge: "#6e5c46", water: ["#346f86", "#326b82", "#39788e"], shore: ["#bba77a", "#ae9d74"], foam: "#a5d4cb", wave: "#66aaa9", flowers: ["#ffffff", "#ff9fd0", "#ffe066"] },
     dirt: 0.67, water: 0.73,
     obstacles: { arbol: 5, pino: 3, roca: 3, rocaGrande: 1, tronco: 1.4, arbusto: 2, hierba: 5 },
     mix: {}, unlock: null, finalBoss: "rey"

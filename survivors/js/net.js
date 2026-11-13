@@ -260,11 +260,12 @@ const TronkNet = (() => {
         peer.ab = m.ab | 0;
         Game.setInput(peer.index, { x: Math.max(-1, Math.min(1, +m.x || 0)), y: Math.max(-1, Math.min(1, +m.y || 0)), ab: peer.ab });
       }
+      else if (m.type === "reroll" && peer.index !== undefined) Game.reroll(peer.index);
       else if (m.type === "choose" && peer.index !== undefined) Game.choose(peer.index, Math.max(0, Math.min(3, m.i | 0)));
     } else {
       if (m.type === "snap") Game.applySnapshot(m.d);
       else if (m.type === "start") startAsGuest(m);
-      else if (m.type === "choices") TronkUI.showLevelUp({ options: m.options, level: m.level });
+      else if (m.type === "choices") TronkUI.showLevelUp({ options: m.options, level: m.level, rerolls: m.rerolls });
       else if (m.type === "chosenWait") TronkUI.waitOthers();
       else if (m.type === "resume") TronkUI.hideLevelUp();
       else if (m.type === "end") { playing = false; if (Game.state) Game.state.over = true; TronkUI.showEnd(m.result); }
@@ -314,7 +315,7 @@ const TronkNet = (() => {
   // Del juego del anfitrión a los invitados
   Game.on("netChoices", (choosing) => {
     if (!room || !room.host) return;
-    for (const peer of peers.values()) if (peer.index !== undefined && choosing[peer.index]) sendCtrl(peer, { type: "choices", options: choosing[peer.index], level: Game.state.level });
+    for (const peer of peers.values()) if (peer.index !== undefined && choosing[peer.index]) sendCtrl(peer, { type: "choices", options: choosing[peer.index], level: Game.state.level, rerolls: Game.state.players[peer.index].rerolls });
   });
   Game.on("resume", () => { if (room && room.host) for (const peer of peers.values()) sendCtrl(peer, { type: "resume" }); });
   Game.on("toast", (d) => { if (room && room.host && playing) for (const peer of peers.values()) sendCtrl(peer, { type: "toast", text: d.text }); });
@@ -425,7 +426,7 @@ const TronkNet = (() => {
 
   window.addEventListener("beforeunload", () => leave());
 
-  return { render, sendChoice, leave: () => { if (!playing && !endPending) leave(); }, get active() { return !!room; }, get isHost() { return !!(room && room.host); } };
+  return { render, sendChoice, sendReroll() {const host=peers.get(hostId);if(host)sendCtrl(host,{type:"reroll"});}, leave: () => { if (!playing && !endPending) leave(); }, get active() { return !!room; }, get isHost() { return !!(room && room.host); } };
 })();
 
 window.TronkNet = TronkNet;
