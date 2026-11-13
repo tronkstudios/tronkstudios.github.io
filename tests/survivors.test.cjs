@@ -329,10 +329,10 @@ test('elite kills grant five times XP, extra coins and actual damage rather than
   const {Game,TS}=engine();Game.start([setup('lia')],{seed:44});const st=Game.state,p=st.players[0];
   st.t=300*60-1;Game.step();const elite=st.enemies.find(e=>e.elite);
   st.enemies=[elite];elite.x=p.x+22;elite.y=p.y;elite.hp=3;elite.speed=0;elite.baseSpeed=0;elite.dmg=0;
-  p.weapons[0].cd=0;p.stats.might=10000;Game.step();
+  st.xpNext=1e9;p.weapons[0].cd=0;p.stats.might=10000;Game.step();
   assert.equal(p.combat.elites,1);assert.equal(p.combat.dealt,3);assert.equal(st.kills,1);
-  assert.ok(st.gems.some(g=>g.v===TS.ENEMIES[elite.type].xp*5));
-  assert.ok(st.pickups.filter(it=>it.kind==='moneda').length>=5);
+  assert.equal(st.xp/(p.stats.growth*st.mod.xp)+st.gems.reduce((n,g)=>n+g.v,0),TS.ENEMIES[elite.type].xp*5);
+  assert.ok(st.coins+st.pickups.filter(it=>it.kind==='moneda').length>=5);
 });
 test('healing records only recovered HP and cannot silently revive a downed player',()=>{
   const {Game}=engine();Game.start([setup('ranjay'),setup('lia')]);const st=Game.state,p=st.players[0];
@@ -370,4 +370,40 @@ test('chest rewards skip disconnected peers and results include individual comba
   st.pickups=[{kind:'cofre',x:st.players[0].x,y:st.players[0].y-6,t:0}];Game.step();
   assert.equal(st.chests,1);assert.equal(JSON.stringify(st.players[1].weapons),ghost);
   Game.finish(false);assert.equal(result.chests,1);assert.equal(result.combat.length,2);assert.equal(result.combat[0].taken,0);
+});
+
+test('ground pickups collect at player feet from every approach and trigger only once',()=>{
+  const {Game}=engine();
+  for(const kind of ['moneda','bocadillo','iman','cofre'])for(const [dx,dy] of [[25,0],[-25,0],[0,25],[0,-25]]){
+    Game.start([setup('ranjay')],{seed:24});const st=Game.state,p=st.players[0];p.hp=50;
+    st.pickups=[{kind,x:p.x+dx,y:p.y+dy,t:0}];
+    Game.step();assert.equal(st.pickups.length,0,`${kind}: ${dx},${dy}`);
+    if(kind==='cofre')assert.equal(st.chests,1);
+    if(kind==='bocadillo')assert.equal(p.hp,80);
+    const coins=st.coins;Game.step();assert.equal(st.coins,coins);
+  }
+});
+test('objects within attraction range are rescued from positions too far for the old collection radius',()=>{
+  const {Game}=engine();
+  for(const kind of ['bocadillo','iman','cofre']){
+    Game.start([setup('ranjay')]);const st=Game.state,p=st.players[0];p.hp=50;
+    st.pickups=[{kind,x:p.x+50,y:p.y,t:0}];
+    for(let i=0;i<8;i++)Game.step();
+    assert.equal(st.pickups.length,0,kind);
+    if(kind==='cofre')assert.equal(st.chests,1);
+  }
+});
+test('a shared object goes to the nearest living player and is never pulled twice',()=>{
+  const {Game}=engine();Game.start([setup('ranjay'),setup('lia')]);const st=Game.state,[a,b]=st.players;
+  a.x=0;a.y=0;b.x=50;b.y=0;a.hp=b.hp=30;
+  st.pickups=[{kind:'bocadillo',x:40,y:0,t:0}];Game.step();
+  assert.equal(a.hp,30);assert.equal(b.hp,60);assert.equal(st.pickups.length,0);
+  st.pickups=[{kind:'moneda',x:25,y:0,t:0}];Game.step();assert.equal(st.coins,1);
+  Game.dropPlayer(1);a.hp=30;st.pickups=[{kind:'bocadillo',x:15,y:0,t:0}];Game.step();
+  assert.equal(a.hp,60);assert.equal(b.hp,0);
+});
+test('gem attraction cannot overshoot the player and keeps all experience',()=>{
+  const {Game}=engine();Game.start([setup('ranjay')]);const st=Game.state,p=st.players[0];st.xpNext=1e9;
+  st.gems=[{x:p.x+1,y:p.y,v:7,t:10000,pull:true},{x:p.x,y:p.y-18,v:3,t:0,pull:false}];
+  Game.step();assert.equal(st.gems.length,0);assert.equal(st.xp,10);
 });

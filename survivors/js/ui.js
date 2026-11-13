@@ -12,6 +12,7 @@
   const save = Save.load();
   let current = "loading";
   let selectedView = save.selected;
+  let pulling = false;
   let lastRun = null; // cómo empezó la última partida (para «Otra vez»)
 
   const charById = (id) => TS.CHARACTERS.find((c) => c.id === id);
@@ -24,6 +25,7 @@
   };
 
   function show(id) {
+    if (current === "gacha" && pulling && id !== "gacha") return;
     for (const s of document.querySelectorAll(".screen")) s.classList.toggle("is-on", s.id === id);
     current = id;
     const renders = { menu: renderMenu, chars: renderChars, gacha: renderGacha, shop: renderShop, maps: renderMaps, daily: renderDaily, achievements: renderAchievements, settings: renderSettings };
@@ -406,15 +408,19 @@
     const grid = $("chars-grid");
     grid.textContent = "";
     $("chars-count").textContent = `${Object.keys(save.owned).length} / ${TS.CHARACTERS.length}`;
-    for (const ch of TS.CHARACTERS) {
+    const characters = [...TS.CHARACTERS].sort((a,b)=>TS.RARITY_ORDER.indexOf(a.rarity)-TS.RARITY_ORDER.indexOf(b.rarity));
+    for (const ch of characters) {
       const have = save.owned[ch.id];
       const card = el("button", `char-card${have ? "" : " is-locked"}${ch.id === save.selected ? " is-selected" : ""}`);
       card.type = "button";
+      card.dataset.charId = ch.id;
+      card.dataset.rarity = ch.rarity;
+      card.setAttribute("aria-label",`${have?ch.name:L("Personaje sin conseguir")} · ${L(TS.RARITIES[ch.rarity].name)}`);
       card.style.setProperty("--rarity", TS.RARITIES[ch.rarity].color);
       const img = document.createElement("img");
       img.src = have ? Sprites.portrait(ch.id, 2) : Sprites.silhouettePortrait(ch.id, 2);
       img.alt = "";
-      card.append(img, el("span", "", have ? ch.name : "???"), el("span", "stars", have ? stars(have.stars) : ""));
+      card.append(img, el("span", "", have ? ch.name : "???"), el("small", "char-rarity", L(TS.RARITIES[ch.rarity].name)), el("span", "stars", have ? stars(have.stars) : ""));
       card.addEventListener("click", () => {
         selectedView = ch.id;
         Sfx.play("click");
@@ -489,8 +495,8 @@
     $("gacha-chest").style.backgroundImage = `url(${Sprites.iconUrl("cofre", 12)})`;
     $("cost-1").textContent = save.freePull ? LT("free") : TS.GACHA.cost1;
     $("cost-10").textContent = TS.GACHA.cost10;
-    $("pull-1").disabled = !save.freePull && save.coins < TS.GACHA.cost1;
-    $("pull-10").disabled = save.coins < TS.GACHA.cost10;
+    $("pull-1").disabled = pulling || (!save.freePull && save.coins < TS.GACHA.cost1);
+    $("pull-10").disabled = pulling || save.coins < TS.GACHA.cost10;
     $("gacha-pity").textContent = LT("pity", { n: TS.GACHA.pity - save.pity });
     const ul = $("gacha-rates");
     ul.textContent = "";
@@ -504,8 +510,11 @@
   }
 
   function pull(times) {
+    if (pulling || !$("gacha-reveal").hidden) return;
     const results = Save.pull(times);
     if (!results) return;
+    pulling = true;
+    $("pull-1").disabled = true; $("pull-10").disabled = true;
     syncCoins();
     const chest = $("gacha-chest");
     chest.classList.add("is-shaking");
@@ -527,9 +536,10 @@
         cards.appendChild(card);
       });
       $("gacha-reveal").hidden = false;
-      $("reveal-ok").focus();
+      $("gacha-reveal").scrollTop = 0;
+      $("reveal-ok").focus({preventScroll:true});
       checkAchievements(null);
-    }, 900);
+    }, Game.options.reducedMotion ? 0 : 900);
   }
 
   /* =======================================================
@@ -736,7 +746,8 @@
   Game.on("finalPhase", d => banner(L(d.round === 1 ? "¡JEFE FINAL!" : "¡NUEVA FASE!"), `${L("Fase")} ${d.round} · ${L("Aguanta todo lo que puedas")}`));
   Game.on("boss", (d) => banner(L("¡JEFE!"), d.name));
   Game.on("bossDown", (d) => toast(LT("bossDown", { name: d.name })));
-  Game.on("chest", (d) => { toast(L("¡Cofre! +40 monedas")); for (const l of d.lines) toast(l); });
+  function showChest(d) { toast(L("¡Cofre! +40 monedas")); for (const line of d.lines) toast(line); }
+  Game.on("chest", showChest);
   Game.on("evolve", (d) => banner(L(d.name), L(d.desc)));
   Game.on("down", (d) => { if (d.id === Game.localId && Game.state.players.length > 1) toast(L("¡Has caído! Un compañero puede levantarte si se queda a tu lado.")); });
 
@@ -927,7 +938,7 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
   });
   document.addEventListener("keydown",e=>{
     if(e.key!=="Tab")return;
-    const modal=[...document.querySelectorAll(".modal:not([hidden])")].pop();
+    const modal=[...document.querySelectorAll(".modal:not([hidden]), .gacha-reveal:not([hidden])")].pop();
     if(!modal)return;
     const buttons=[...modal.querySelectorAll("button:not([disabled]),a[href],input,select")].filter(e=>e.getClientRects().length);
     if(!buttons.length)return;
@@ -951,7 +962,9 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
   $("pull-10").addEventListener("click", () => pull(10));
   $("reveal-ok").addEventListener("click", () => {
     $("gacha-reveal").hidden = true;
+    pulling = false;
     renderGacha();
+    $("pull-1").focus();
   });
   $("daily-play").addEventListener("click", playDaily);
   // el sonido del navegador solo arranca tras tocar algo
@@ -988,5 +1001,5 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     next();
   }, 20);
 
-  window.TronkUI = { show, toast, banner, play, playGuest, localSetup, showLevelUp, waitOthers, hideLevelUp, showEnd, backToMenu, selectedMap: () => save.settings.map || "bosque" };
+  window.TronkUI = { show, toast, banner, play, playGuest, localSetup, showLevelUp, waitOthers, hideLevelUp, showEnd, showChest, backToMenu, selectedMap: () => save.settings.map || "bosque" };
 })();

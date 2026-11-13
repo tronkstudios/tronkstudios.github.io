@@ -6,7 +6,7 @@ Las pruebas de simulación no requieren dependencias:
 node --test tests/survivors.test.cjs
 ```
 
-Las 32 pruebas cubren el cofre, pausa de efectos, desconexiones durante elecciones,
+Las 36 pruebas cubren el cofre, pausa de efectos, desconexiones durante elecciones,
 instantáneas online, 19 personajes con su arma y técnicas propias, jefes finales de los cuatro
 mapas y fases finales sucesivas, colisiones con enemigos grandes, ralentizaciones, recargas,
 fusión de progreso remoto, datos guardados incompletos y tickets de partidas que
@@ -29,6 +29,7 @@ node tests/survivors.browser.cjs
 node tests/survivors.mobile.cjs
 node tests/survivors.features.cjs
 node tests/survivors.polish.cjs
+node tests/survivors.rewards.cjs
 node tests/survivors.online.cjs
 # Probar el protocolo de juego con transporte simulado:
 RTC_TEST_MODE=mock node tests/survivors.online.cjs
@@ -48,6 +49,10 @@ Chromium no tiene su CA instalada; no modifica la configuración del juego.
   guía de evolución, métricas, cambios de opciones, foco de teclado dentro de
   modales, pausa al perder el foco y persistencia de cámara/accesibilidad;
   ordenador con 3D, fallback 2D y móvil.
+- **Cofres y objetos:** apertura real de 1 y 10 premios con animaciones y
+  movimiento reducido, en ordenador 3D y móvil 2D; nombres e imágenes visibles,
+  pulsación doble sin gasto duplicado, orden por rareza sin alterar el reto diario,
+  recogida desde cuatro direcciones y aviso de recompensa para invitados online.
 - **Móvil emulado:** entrar desde el menú, joystick, varios dedos, habilidad
   mientras te mueves, soltar el joystick, pausa, elección de mejora, rotación,
   distribución con arma propia, dos técnicas y seis pasivas y reinicio. Se usa 2D por defecto

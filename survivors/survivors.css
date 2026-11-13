@@ -295,7 +295,8 @@ img[data-icon], .pix { image-rendering: pixelated; }
   background: rgba(8, 5, 18, 0.92);
   display: grid;
   place-items: center;
-  align-content: center;
+  align-content: safe center;
+  overflow-y: auto;
   gap: 18px;
   z-index: 30;
   padding: 16px;
@@ -316,16 +317,16 @@ img[data-icon], .pix { image-rendering: pixelated; }
   gap: 2px;
   text-align: center;
   font-size: 12px;
-  opacity: 0;
-  transform: scale(0.4) rotateY(90deg);
-  animation: reveal 0.45s ease-out forwards;
+  opacity: 1;
+  transform: none;
+  animation: reveal 0.45s ease-out both;
 }
 
 .reveal-card img { width: 81px; height: 96px; image-rendering: auto; }
 .reveal-card b { font-size: 14px; }
 .reveal-card .tag { font-weight: 700; color: var(--rarity); }
 .reveal-card.is-new .tag::after { content: " · ¡NUEVO!"; color: #fff; }
-@keyframes reveal { to { opacity: 1; transform: none; } }
+@keyframes reveal { from { opacity: 0; transform: scale(0.4) rotateY(90deg); } to { opacity: 1; transform: none; } }
 
 /* ---------- tienda ---------- */
 
@@ -830,3 +831,7 @@ img[data-icon], .pix { image-rendering: pixelated; }
   .menu-chips span { padding: 3px 7px; }
   .menu-version { display: none; }
 }
+
+.char-rarity { color: var(--rarity); font-size: 10px; font-weight: 650; }
+
+.gacha-reveal h2 { margin: 0; color: var(--gold); font-size: 24px; }

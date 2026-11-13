@@ -269,6 +269,7 @@ const TronkNet = (() => {
       else if (m.type === "chosenWait") TronkUI.waitOthers();
       else if (m.type === "resume") TronkUI.hideLevelUp();
       else if (m.type === "end") { playing = false; if (Game.state) Game.state.over = true; TronkUI.showEnd(m.result); }
+      else if (m.type === "chest") TronkUI.showChest({lines:m.lines});
       else if (m.type === "toast") TronkUI.toast(m.text);
       else if (m.type === "banner") TronkUI.banner(m.text, m.small);
     }
@@ -319,6 +320,7 @@ const TronkNet = (() => {
   });
   Game.on("resume", () => { if (room && room.host) for (const peer of peers.values()) sendCtrl(peer, { type: "resume" }); });
   Game.on("toast", (d) => { if (room && room.host && playing) for (const peer of peers.values()) sendCtrl(peer, { type: "toast", text: d.text }); });
+  Game.on("chest", d => {if(room && room.host && playing)for(const peer of peers.values())sendCtrl(peer,{type:"chest",lines:d.lines});});
   Game.on("boss", (d) => { if (room && room.host && playing) for (const peer of peers.values()) sendCtrl(peer, { type: "banner", text: L("¡JEFE!"), small: d.name }); });
   Game.on("finalPhase", d => {
     if (room && room.host && playing) for (const peer of peers.values()) sendCtrl(peer, {type:"banner",text:L(d.round === 1 ? "¡JEFE FINAL!" : "¡NUEVA FASE!"),small:`${L("Fase")} ${d.round}`});

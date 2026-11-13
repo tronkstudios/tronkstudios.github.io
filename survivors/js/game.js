@@ -2051,25 +2051,29 @@ const Game = (() => {
 
   function updatePickups() {
     const alive = alivePlayers();
+    // Los objetos están anclados al suelo: usar los pies en ambos renderizadores.
+    // Elegir un único receptor evita tirones opuestos en cooperativo.
+    const nearest = (item) => alive.reduce((best, p) => !best || dist2(item, p) < dist2(item, best) ? p : best, null);
+    const moveTowards = (item, p, speed) => {
+      const d = Math.hypot(p.x - item.x, p.y - item.y);
+      if (!d) return;
+      const step = Math.min(d, speed);
+      item.x += (p.x - item.x) / d * step;
+      item.y += (p.y - item.y) / d * step;
+    };
     for (const g of st.gems) {
       g.t++;
-      let best = null;
-      let bd = Infinity;
-      for (const p of alive) {
-        const d = (p.x - g.x) ** 2 + (p.y - 6 - g.y) ** 2;
-        if (d < bd) { bd = d; best = p; }
-      }
-      if (!best) continue;
-      if (g.pull || bd < best.stats.magnet ** 2) {
+      const p = nearest(g);
+      if (!p) continue;
+      const radius = 12 * U;
+      if (g.pull || dist2(g, p) <= p.stats.magnet ** 2 || dist2(g, p) <= radius ** 2) {
         g.pull = true;
-        const d = Math.sqrt(bd) || 1;
-        const sp = Math.min(9, 2 + g.t * 0.02 + (g.pullT = (g.pullT || 0) + 0.25));
-        g.x += ((best.x - g.x) / d) * sp;
-        g.y += ((best.y - 6 - g.y) / d) * sp;
-        if (d < 8) {
+        g.pullT = (g.pullT || 0) + .25;
+        moveTowards(g, p, Math.min(9, 2 + g.t * .02 + g.pullT));
+        if (dist2(g, p) <= radius ** 2) {
           g.taken = true;
-          st.xp += g.v * best.stats.growth * st.mod.xp;
-          sound("gem", 0.03);
+          st.xp += g.v * p.stats.growth * st.mod.xp;
+          sound("gem", .03);
         }
       }
     }
@@ -2077,17 +2081,14 @@ const Game = (() => {
 
     for (const it of st.pickups) {
       it.t++;
-      for (const p of alive) {
-        const d = Math.hypot(p.x - it.x, p.y - 6 - it.y);
-        const reach = it.kind === "moneda" ? p.stats.magnet * 0.7 : 14;
-        if (d < reach && it.kind === "moneda" && d > 8) {
-          it.x += ((p.x - it.x) / d) * 3.5;
-          it.y += ((p.y - 6 - it.y) / d) * 3.5;
-        }
-        if (d < 10 && !it.taken) {
-          it.taken = true;
-          takePickup(p, it);
-        }
+      const p = nearest(it);
+      if (!p) continue;
+      const radius = (it.kind === "cofre" ? 21 : it.kind === "moneda" ? 12 : 17) * U;
+      const reach = it.kind === "moneda" ? Math.max(radius, p.stats.magnet * .7) : radius + 18 * U;
+      if (dist2(it, p) <= reach ** 2) moveTowards(it, p, 3.5 * U);
+      if (dist2(it, p) <= radius ** 2) {
+        it.taken = true;
+        takePickup(p, it);
       }
     }
     st.pickups = st.pickups.filter((it) => !it.taken);

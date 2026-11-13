@@ -21,7 +21,7 @@
     http-equiv="Content-Security-Policy"
     content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://qjjnqhbtovjcbwgcwhgl.supabase.co wss://qjjnqhbtovjcbwgcwhgl.supabase.co https://tronkstudios-support.tronkstudios7.workers.dev; object-src 'none'; base-uri 'self'; form-action 'self'"
   />
-  <link rel="stylesheet" href="survivors.css?v=8" />
+  <link rel="stylesheet" href="survivors.css?v=9" />
 </head>
 <body>
   <canvas id="game" aria-label="Tronk Survivors"></canvas>
@@ -118,7 +118,8 @@
         <p>Los personajes repetidos suben de estrella (+5 % de daño y vida cada una, hasta 5). Con 5 estrellas, se cambian por monedas.</p>
       </details>
     </div>
-    <div class="gacha-reveal" id="gacha-reveal" hidden>
+    <div class="gacha-reveal" id="gacha-reveal" role="dialog" aria-modal="true" aria-labelledby="reveal-title" hidden>
+      <h2 id="reveal-title">Premios del cofre</h2>
       <div class="reveal-cards" id="reveal-cards"></div>
       <button class="btn btn-big" id="reveal-ok">¡Genial!</button>
     </div>
@@ -317,11 +318,11 @@
   <script src="js/render3d.js?v=5" defer></script>
   <script src="js/audio.js?v=3" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-  <script src="js/lang.js?v=7" defer></script>
+  <script src="js/lang.js?v=8" defer></script>
   <script src="js/save.js?v=5" defer></script>
   <script src="js/account.js?v=4" defer></script>
-  <script src="js/game.js?v=15" defer></script>
-  <script src="js/net.js?v=7" defer></script>
-  <script src="js/ui.js?v=13" defer></script>
+  <script src="js/game.js?v=16" defer></script>
+  <script src="js/net.js?v=8" defer></script>
+  <script src="js/ui.js?v=14" defer></script>
 </body>
 </html>

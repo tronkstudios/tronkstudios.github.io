@@ -568,3 +568,5 @@ Object.assign(EN, {
   "¡Élite derrotado!":"Elite defeated!", "Pantalla completa":"Fullscreen",
   "Pantalla completa no disponible":"Fullscreen unavailable"
 });
+
+EN["Premios del cofre"] = "Chest rewards";
