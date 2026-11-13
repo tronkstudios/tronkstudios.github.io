@@ -14,7 +14,7 @@ en Supabase; amplía el límite a cuatro horas sin retirar las demás validacion
 ## Escalada
 
 `difficultyAt(t)` en `survivors/js/game.js` centraliza los multiplicadores. Para
-`m = minutos de simulación × 10 / 25` (curva repartida en 25 minutos):
+`m = minutos de simulación × 1000 / TS.RUN_SECONDS` (2/3 del minuto real en el recorrido de 25 minutos):
 
 - Vida de enemigos normales: `1 + 0.35m + 0.06m²`.
 - Vida de jefes: `1 + 0.08m + 0.01m²`.
@@ -44,15 +44,15 @@ partidas de jugadores con todos los equipos y niveles de habilidad.
 
 ## Ataques propios
 
-Cada uno de los 19 personajes conserva su arma: ataque automático base, dos
+Cada uno de los 24 personajes conserva su arma: ataque automático base, seis
 técnicas automáticas que se aprenden y mejoran al subir de nivel, y habilidad
-activa. Las técnicas tienen tres niveles y recargas propias. Las mejoras y
+activa. Las técnicas tienen cinco rangos y recargas propias. Las mejoras y
 cofres solo refuerzan el arma del personaje; no conceden armas ajenas. Ranjay
 barre con espada y Yant estoca con lanza. Los efectos de perfume, discos,
 viales, dron y fuego también conservan su familia visual en 2D y 3D.
 
-La ficha del personaje explica los cuatro movimientos. El HUD muestra las dos
-técnicas con distintivos I/II y el nivel aprendido. Se sincronizan con el invitado
+La ficha del personaje explica sus ocho movimientos. El HUD muestra las seis
+técnicas con distintivos I–VI y el nivel aprendido. Se sincronizan con el invitado
 mediante las instantáneas online. El daño del arma propia aumenta además un
 2,5 % por nivel de personaje, con un máximo del 150 % adicional.
 
@@ -87,3 +87,6 @@ mismas instancias compartidas para conservar el rendimiento.
 
 El rediseño, los élites y las mejoras de interfaz se detallan en
 [Diseño y calidad de juego](diseno-y-mejoras.md).
+
+Los requisitos de tiempo/nivel, las brechas, los cinco nuevos personajes y el
+cooperativo se detallan en [Progresión y cooperativo](progresion-y-cooperativo.md).

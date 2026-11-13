@@ -429,6 +429,11 @@ const Render3D = (() => {
     const steel = 0xdfe6f0;
     const wood = 0x7a4a26;
     switch (type) {
+      case "faro":b([0,32,0],[5,100,5],0x426b68,"cyl");b([0,80,0],[18,25,16],0x80e3d0,"glowBox");b([0,94,0],[22,5,20],0xf0cf8e);break;
+      case "arco": b([0,18,0],[3,62,3],0xeee2be);for(let i=0;i<7;i++){const a=-1.3+i*2.6/6;b([Math.cos(a)*30-8,Math.sin(a)*30+18,0],[5,12,5],0x9d7249,"cyl");}break;
+      case "bobina":b([0,0,0],[12,24,12],0x35434b);for(let i=0;i<4;i++)b([0,15+i*7,0],[12,3,12],0xdcb56b,"ring");b([0,42,0],[7,7,7],0x91ecff,"glow");break;
+      case "abanico":for(let i=0;i<6;i++){const a=.15+i*(Math.PI-.3)/5;b([Math.cos(a)*15,Math.sin(a)*15,0],[5,22,2],0xed8baf);}break;
+      case "tambor":b([0,10,0],[20,22,20],0xaa7042,"cyl");b([0,22,0],[21,3,21],0xe9d2a0,"cyl");break;
       case "magnet": b([0,12,0],[14,2,14],0x64f5ff,"ring");b([0,0,0],[7,12,7],0x264653);break;
       case "vial": b([0,12,0],[9,13,9],0xb8f06a,"sph");b([0,-1,0],[5,7,5],0x7744a6);break;
       case "flamer": b([0,10,0],[12,32,12],0x34313d);b([0,28,0],[16,8,16],0xff812f,"cyl");b([0,32,0],[6,3,6],0xffe5a0,"glow");break;
@@ -725,7 +730,7 @@ const Render3D = (() => {
 
     for (const a of d.actors) {
       const k = a.scale || 1;
-      if(a.elite)at("ring",a.x,1.6,a.y,22*k,3,22*k,0xf5cb79);
+      if(a.elite)at("ring",a.x,1.6,a.y,22*k,3,22*k,a.breach?0x80e3d0:0xf5cb79);
       if(a.relentless)at("ring",a.x,1.4,a.y,24*k,4,24*k,0xff512f);
       if(a.inWater){const r=10+Math.sin(d.t*.15)*3;at("ring",a.x,.8,a.y,r,2,r,0x9fdcff);}
       if (a.prop) { prop(a, a.flash); continue; }

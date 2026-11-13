@@ -284,6 +284,11 @@ const Sprites = (() => {
   }
 
   const ICONS = {
+    faro:p=>{p.rect(6,5,2,8,"#426b68");p.rect(3,2,8,6,"#f0cf8e");p.rect(4,3,6,4,"#80e3d0");},
+    arco:p=>{p.ell(4,7,6,6,"#9d7249");p.ell(2,7,5,5,"#10232b");p.rect(7,1,1,12,"#eee2be");},
+    bobina:p=>{p.rect(5,5,4,8,"#35434b");for(let y=4;y<11;y+=2)p.rect(3,y,8,1,"#dcb56b");p.ell(7,3,3,3,"#91ecff");},
+    abanico:p=>{p.ell(7,5,6,5,"#ed8baf");p.rect(6,6,2,7,"#eee2be");},
+    tambor:p=>{p.rect(2,5,10,7,"#aa7042");p.ell(7,5,5,3,"#e9d2a0");},
     discos: p => { p.ell(7,7,5.5,5.5,"#64f5ff");p.ell(7,7,3,3,"#264653");p.P(6,3,"#fff4d6"); },
     acido: p => {p.rect(5,1,4,3,"#7744a6");p.ell(7,8,4.5,5,"#b8f06a");p.rect(5,5,2,5,"#efffd7");},
     llamas: p => {p.rect(3,5,8,5,"#34313d");p.rect(9,4,3,7,"#ff812f");p.rect(11,5,3,5,"#ffd987");},
@@ -442,7 +447,7 @@ const Sprites = (() => {
   function portraitCanvas(id) {
     if (!portraits[id]) {
       const ch = TS.CHARACTERS.find((c) => c.id === id);
-      portraits[id] = ch ? Stick.portrait(get(`char:${id}`).down.idle) : null;
+      portraits[id] = ch ? Stick.illustration(ch) : null;
     }
     return portraits[id];
   }

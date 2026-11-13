@@ -835,3 +835,13 @@ img[data-icon], .pix { image-rendering: pixelated; }
 .char-rarity { color: var(--rarity); font-size: 10px; font-weight: 650; }
 
 .gacha-reveal h2 { margin: 0; color: var(--gold); font-size: 24px; }
+
+.hud-milestone { max-width:min(520px,90vw); color:#f0d39b; font-size:10px; text-align:center; text-shadow:0 1px 3px #000; }
+.hud-team .is-reviving { color:#a3edd5; }
+.hud-team .is-reviving span i { background:#80e3d0; }
+.hud-slots { flex-wrap:wrap; justify-content:center; }
+@media (any-pointer:coarse) { .hud-milestone { font-size:9px; max-width:70vw; } }
+
+.hud-slot.is-technique[data-technique="VI"] { box-shadow:0 0 0 2px #f0cb82; }
+
+.up-card.is-ultimate { border-color:#f0cb82; background:linear-gradient(110deg,#4a4030,#203640); }

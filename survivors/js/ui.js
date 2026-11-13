@@ -70,11 +70,10 @@
   // El personaje elegido da vueltas sobre la plataforma
   const SPIN = [["down", false], ["downSide", false], ["side", false], ["upSide", false], ["up", false], ["upSide", true], ["side", true], ["downSide", true]];
   function spinHero() {
-    const set = Sprites.get(`char:${save.selected}`);
     const [view, flip] = Game.options.reducedMotion ? ["downSide",false] : SPIN[spinStep % SPIN.length];
     const key = `${save.selected}:${view}:${flip}`;
     if (!spinCache[key]) {
-      const img = Sprites.scaled(Stick.portrait(set[view].idle), 4);
+      const img = Sprites.scaled(Stick.illustration(charById(save.selected),view), 4);
       if (flip) {
         const c = document.createElement("canvas");
         c.width = img.width;
@@ -357,6 +356,7 @@
   function applySettings() {
     Sfx.setVolume("music", save.settings.musicVol ?? 0.7);
     Sfx.setVolume("sfx", save.settings.sfxVol ?? 0.9);
+    Game.options.healthBars = ["off","damaged","always"].includes(save.settings.healthBars)?save.settings.healthBars:"damaged";
     Game.options.numbers = save.settings.numbers !== false;
     const reduced = save.settings.reducedMotion ?? window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     document.body.classList.toggle("reduce-motion", reduced);
@@ -379,6 +379,7 @@
     $("opt-numbers").checked = save.settings.numbers !== false;
     $("opt-shake").checked = save.settings.shake !== false;
     $("opt-fx").value = save.settings.fx || "auto";
+    $("opt-bars").value=Game.options.healthBars;
     $("opt-motion").checked = Game.options.reducedMotion;
     $("opt-contrast").checked = Game.options.contrast;
     $("opt-zoom").value = Game.options.zoom;
@@ -393,6 +394,7 @@
   for (const [id,key] of [["opt-motion","reducedMotion"],["opt-contrast","contrast"],["opt-zoom","zoom"]]) {
     $(id).addEventListener("change",e=>{save.settings[key]=key==="zoom"?Number(e.target.value):e.target.checked;applySettings();Save.persist();});
   }
+  $("opt-bars").addEventListener("change",e=>{save.settings.healthBars=e.target.value;applySettings();Save.persist();});
   $("opt-tips").addEventListener("change", (e) => { save.tutorial = !e.target.checked; Save.persist(); });
   $("lang-select").addEventListener("change", (e) => {
     setLang(e.target.value);
@@ -443,7 +445,7 @@
     const big = el("div", "big");
     for (const view of ["down"]) {
       const img = document.createElement("img");
-      img.src = have ? Sprites.scaled(Stick.portrait(Sprites.get(`char:${id}`)[view].idle), 3).toDataURL() : Sprites.silhouettePortrait(id, 3);
+      img.src = have ? Sprites.portrait(id, 3) : Sprites.silhouettePortrait(id, 3);
       img.alt = "";
       big.appendChild(img);
     }
@@ -472,7 +474,7 @@
       const list = el("ul");
       list.append(el("li","",`${L(TS.WEAPONS[ch.weapon].name)} · ${L("Ataque base")}`));
       for(const move of TS.TECHNIQUES[ch.id] || []) {
-        const row=el("li");row.append(el("strong","",L(move.name)),el("small","",L(move.desc)));list.append(row);
+        const row=el("li");row.append(el("strong","",L(move.name)),el("small","",`${L(move.desc)} · ${L("Desbloqueo")}: ${L("Nivel")} ${move.unlock || 1} · ${fmtTime(move.at || 0)} · ${move.max} ${L("rangos")}`));list.append(row);
       }
       list.append(el("li","",`${L(TS.ABILITIES[ch.id].name)} · ${L("Habilidad activa")}`));
       moves.append(list,el("small","",L("Aprende y mejora tus técnicas al subir de nivel. Solo usas el arma de tu personaje.")));
@@ -632,7 +634,7 @@
     for (const it of items) {
       const slot = el("div", `hud-slot${it.kind === "t" ? " is-technique" : ""}${it.kind === "p" ? " is-passive" : ""}${it.evo ? " is-evo" : ""}`);
       if (it.kind === "t") {
-        slot.dataset.technique = it.id === "burst" ? "I" : "II";
+        slot.dataset.technique = ["I","II","III","IV","V","VI"][["burst","ring","pierce","guard","focus","surge"].indexOf(it.id)] || "";
         slot.dataset.move = it.id;
         slot.append(el("span","tech-cooldown"));
       }
@@ -679,6 +681,8 @@
     $("hud-name").textContent = d.name;
     $("hud-time").textContent = fmtTime(d.seconds);
     $("hud-phase").textContent = d.finalPhase ? `${L("Fase")} ${d.finalRound}` : `${L("Final")} ${fmtTime(d.finalIn)}`;
+    if(d.breach)$("hud-phase").textContent+=` · ${L("Brecha")} ${d.breach.total-d.breach.remaining}/${d.breach.total}`;
+    $("hud-milestone").textContent=d.nextTechnique?`${L("Próxima técnica")}: ${L(d.nextTechnique.name)} · ${L("Nivel")} ${d.nextTechnique.unlock} · ${fmtTime(d.nextTechnique.at || 0)}`:`${L("Rangos de técnicas")}: ${d.techniqueRanks}/30`;
     $("hud-sub").textContent = (d.finalPhase ? `${L("Supervivencia final")} · ` : Game.state && Game.state.endless ? `${L("Modo infinito")} · ` : "") + LT("hudSub", { map: L(TS.MAPS[Game.mapId].name), kills: d.kills, coins: d.coins });
     const pct = Math.max(0, d.hp / d.maxHp);
     $("hud-hp-bar").style.width = `${pct * 100}%`;
@@ -701,7 +705,7 @@
       if(slot){slot.querySelector(".tech-cooldown").style.height=`${Math.round((1-move.ready)*100)}%`;slot.classList.toggle("is-ready",move.ready>=1);}
     }
     $("hud").classList.toggle("is-critical",!d.down && pct<.25);
-    $("hud-status").textContent = d.down ? L("Espera a tu compañero") : d.inWater ? L("Agua · movimiento al 58 %") : d.nextBossIn<=30 && !d.finalPhase ? `${L("Jefe en")} ${d.nextBossIn}s` : "";
+    $("hud-status").textContent = d.down ? `${L("Reanimación")} ${Math.round((d.players[Game.localId]?.revivePct || 0)*100)}% · ${L(d.players[Game.localId]?.reviver!=null?"Mantén al compañero cerca":"Un compañero debe acercarse")}` : d.inWater ? L("Agua · movimiento al 58 %") : d.nextBossIn<=30 && !d.finalPhase ? `${L("Jefe en")} ${d.nextBossIn}s` : "";
     $("hud-compass").hidden=!d.compass;
     if(d.compass) $("hud-compass").textContent=`${d.compass.arrow} ${d.compass.label} · ${d.compass.distance}`;
     const boss = $("hud-boss");
@@ -717,7 +721,10 @@
         const fill = el("i");
         fill.style.width = `${Math.max(0, p.hp / p.maxHp) * 100}%`;
         bar.appendChild(fill);
-        row.append(el("b", "", p.down ? LT("fallen", { name: p.name }) : p.name), bar);
+        const label=p.disconnected?`${p.name} · ${L("Desconectado")}`:p.down?`${p.name} · ${L("Reanimación")} ${Math.round(p.revivePct*100)}%`:p.name;
+        if(p.down && !p.disconnected)fill.style.width=`${p.revivePct*100}%`;
+        row.classList.toggle("is-reviving",p.down && p.revivePct>0 && !p.disconnected);
+        row.append(el("b", "", label), bar);
         team.appendChild(row);
       });
     }
@@ -763,7 +770,7 @@
     $("levelup-reroll").textContent=`${L("Cambiar opciones")} · ${rerolls}/3`;
     $("levelup-reroll").disabled=rerolls<=0;
     d.options.forEach((o, i) => {
-      const card = el("button", `up-card${o.synergy?" is-synergy":""}${o.kind==="technique"?" is-technique":""}`);
+      const card = el("button", `up-card${o.kind==="technique"&&o.id==="surge"?" is-ultimate":""}${o.synergy?" is-synergy":""}${o.kind==="technique"?" is-technique":""}`);
       card.type = "button";
       const img = document.createElement("img");
       img.src = Sprites.iconUrl(o.icon, 3);

@@ -75,8 +75,11 @@ simultáneos se limitan a cuatro para no cubrir toda la pantalla.
 
 `tests/survivors.polish.cjs` comprueba el recorrido con 3D, fallback 2D y móvil.
 `tests/survivors.online.cjs` comprueba también un cambio de opciones del invitado.
-La simulación tiene 32 casos. Véase `tests/README.md` para reproducirlos.
+La simulación tiene 42 casos. Véase `tests/README.md` para reproducirlos.
 
 La migración de duración `docs/supabase/survivors-25-minutes.sql` incluida en la
 misma PR sigue siendo necesaria para guardar derrotas que superen los treinta
 minutos. No hay un cambio de esquema adicional por los nuevos élites o métricas.
+
+La ampliación a 24 personajes, seis técnicas por personaje, ilustraciones de menú
+y brechas se documenta en [Progresión y cooperativo](progresion-y-cooperativo.md).
