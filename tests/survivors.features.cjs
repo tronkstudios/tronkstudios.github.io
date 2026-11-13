@@ -18,19 +18,25 @@ const path=require('node:path');
       if(fallback)await page.route('**/three.min.js',r=>r.abort());
       await page.goto(`${process.env.BASE_URL||'http://127.0.0.1:8000'}/survivors/`);
       await page.waitForSelector('#menu.is-on',{timeout:90000});
-      for(const id of ['nix','savia','brasa']) {
+      const heroIds=await page.evaluate(()=>TS.CHARACTERS.map(ch=>ch.id));
+      for(const id of heroIds) {
         await page.evaluate(id=>TronkUI.play([{charId:id}],{}),id);
         await page.waitForFunction(id=>Game.state&&Game.state.players[0].charId===id&&Game.state.t>1,id);
         await page.evaluate(()=>{
-          const p=Game.state.players[0];p.abCd=0;p.weapons[0].cd=0;p.input={x:0,y:0,ab:1};
+          const p=Game.state.players[0];p.abCd=0;p.weapons[0].cd=0;p.weapons[0].lvl=6;p.weapons[0].evo=true;
+          p.techniques={burst:3,ring:3};p.techCds={burst:0,ring:0};p.input={x:0,y:0,ab:1};
+          Game.state.enemies=[{id:999,type:'zombi',x:p.x+80,y:p.y,r:10,hp:100000,maxHp:100000,speed:0,dmg:0,ai:'chase',prop:false,
+            t:0,vx:0,vy:0,kx:0,ky:0,slow:0,slowAmt:0,dodgeCd:0,atk:0}];
           for(let i=0;i<9;i++)Game.step();Game.setPaused(true);
         });
         await page.waitForTimeout(180);
         assert.equal(await page.evaluate(()=>Game.state.abilitiesUsed),1);
-        await shot(`${id}-${fallback?'2d':'3d'}.png`);
+        assert.equal(await page.evaluate(()=>Game.hudData().techniques.length),2);
+        assert.ok(await page.evaluate(()=>Game.state.players[0].techCds.burst>0&&Game.state.players[0].techCds.ring>0));
+        if(['ranjay','yant','nix','savia','brasa'].includes(id))await shot(`${id}-${fallback?'2d':'3d'}.png`);
       }
       await page.evaluate(()=>{
-        Game.start([{charId:'ranjay'}]);Game.state.t=600*60-1;Game.state.bossIdx=3;
+        Game.start([{charId:'ranjay'}]);Game.state.t=TS.RUN_SECONDS*60-1;Game.state.bossIdx=3;
         Game.step();Game.setPaused(true);
       });
       await page.waitForFunction(()=>document.getElementById('hud-boss-name').textContent.includes('Fase 1'),{},{timeout:10000});
@@ -47,7 +53,7 @@ const path=require('node:path');
         await shot('enemies-closeup.png');
       }
       assert.deepEqual(errors,[]);
-      console.log(`${fallback?'2D':'3D'}: new starters, abilities, effects and final encounter HUD passed`);
+      console.log(`${fallback?'2D':'3D'}: 19 personal movesets, abilities, effects and minute-25 HUD passed`);
       await page.close();
     }
   } finally {await browser.close();}

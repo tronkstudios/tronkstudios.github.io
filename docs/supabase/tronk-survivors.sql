@@ -458,7 +458,8 @@ begin
     raise exception 'Partida no válida';
   end if;
 
-  if p_seconds > (case when p_endless then 14400 else 1800 end) then
+  -- El final llega al minuto 25: una derrota sin vaciar su barra puede superar los 30 minutos.
+  if p_seconds > 14400 then
     raise exception 'Partida no válida';
   end if;
 

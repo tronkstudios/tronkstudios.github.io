@@ -65,7 +65,8 @@ const path = require('node:path');
     }
     await page.evaluate(() => {
       const p=Game.state.players[0];
-      p.weapons=Object.keys(TS.WEAPONS).slice(0,6).map(id=>({id,lvl:1,cd:100,drones:[]}));
+      p.weapons=[{id:TS.CHARACTERS.find(ch=>ch.id===p.charId).weapon,lvl:6,cd:100,drones:[]}];
+      p.techniques={burst:3,ring:3};
       p.passives=Object.fromEntries(Object.keys(TS.PASSIVES).slice(0,6).map(id=>[id,1]));
     });
     await page.waitForTimeout(200);
@@ -84,7 +85,8 @@ const path = require('node:path');
     // a boss and a four-player HUD, without running extra combat scenarios.
     await page.evaluate(()=>{
       const p=Game.state.players[0];
-      p.weapons=Object.keys(TS.WEAPONS).slice(0,6).map(id=>({id,lvl:1,cd:100,drones:[]}));
+      p.weapons=[{id:TS.CHARACTERS.find(ch=>ch.id===p.charId).weapon,lvl:6,cd:100,drones:[]}];
+      p.techniques={burst:3,ring:3};
       p.passives=Object.fromEntries(Object.keys(TS.PASSIVES).slice(0,6).map(id=>[id,1]));
       Game.state.players=[p,...[1,2,3].map(id=>({...p,id,name:`Tronker ${id}`}))];
       Game.state.boss={type:'rey',hp:100,maxHp:100,x:0,y:0};

@@ -304,7 +304,7 @@ TS.WEAPONS = {
     ]
   }
 };
-TS.MAX_WEAPONS = 4;
+TS.MAX_WEAPONS = 1;
 TS.MAX_PASSIVES = 4;
 
 /* ---------- OBJETOS PASIVOS (se eligen al subir de nivel) ---------- */
@@ -361,7 +361,7 @@ TS.ENEMIES = {
   supremo: { name: "Antitronk Supremo", hp: 2600, speed: 0.6, dmg: 16, xp: 90, r: 16, ai: "boss_bullets", boss: true, scale: 2, sprite: "supremo" },
   maestro: { name: "Maestro Ninja", hp: 4200, speed: 0.9, dmg: 20, xp: 120, r: 15, ai: "boss_ninja", boss: true, scale: 2, sprite: "maestro" },
   rey: { name: "El Rey Zombi", hp: 9000, speed: 0.55, dmg: 26, xp: 200, r: 22, ai: "boss_king", boss: true, scale: 3, sprite: "rey" },
-  // Jefes finales de cada mapa (salen a los 10 minutos en lugar del Rey Zombi)
+  // Jefes finales de cada mapa (salen a los 25 minutos en lugar del Rey Zombi)
   reyEsqueleto: { name: "El Rey Esqueleto", hp: 9500, speed: 0.6, dmg: 24, xp: 200, r: 20, ai: "boss_bones", boss: true, scale: 3, sprite: "reyEsqueleto" },
   mocoRey: { name: "El Moco Rey", hp: 8500, speed: 0.55, dmg: 26, xp: 200, r: 26, ai: "boss_slime", boss: true, scale: 4, sprite: "slime" },
   general: { name: "El General Antitronk", hp: 9000, speed: 0.6, dmg: 22, xp: 200, r: 18, ai: "boss_general", boss: true, scale: 3, sprite: "general" }
@@ -370,7 +370,7 @@ TS.ENEMIES = {
 /* ---------- OLEADAS ----------
    Según el segundo de la partida: qué enemigos salen (con su peso),
    cada cuántos fotogramas y cuántos a la vez como mucho. */
-TS.RUN_SECONDS = 600; // a los 10 minutos sale el jefe final del mapa
+TS.RUN_SECONDS = 25 * 60; // el jefe final llega a los 25 minutos
 TS.WAVES = [
   { from: 0, every: 52, alive: 32, mix: { zombi: 10, murcielago: 2 } },
   { from: 50, every: 36, alive: 70, mix: { zombi: 7, corredor: 3, murcielago: 3 } },
@@ -386,7 +386,7 @@ TS.BOSSES = [
   { at: 180, id: "gigante" },
   { at: 300, id: "supremo" },
   { at: 450, id: "maestro" },
-  { at: 600, id: "rey" }
+  { at: TS.RUN_SECONDS, id: "rey" }
 ];
 // Hordas: un círculo de enemigos alrededor del jugador
 TS.HORDES = [
@@ -571,3 +571,59 @@ Object.assign(TS.ABILITIES, {
   brasa: { name: "Sobrecarga", desc: "Una corona de llamas quema a todos los de alrededor.", cd: 24 }
 });
 TS.WATER_SPEED = .58;
+
+/* Ataques personales: arma base + dos técnicas aprendibles + habilidad activa. */
+const personalMoves = [
+  ["ranjay","Corte doble","Double Cut","Guardia circular","Circular Guard"],
+  ["bruno","Mecha corta","Short Fuse","Rueda de petardos","Firecracker Wheel"],
+  ["lia","Esencia concentrada","Concentrated Essence","Jardín de aromas","Garden of Scents"],
+  ["toto","Tiro con efecto","Curve Shot","Balones cruzados","Cross Balls"],
+  ["omogos","Virote pesado","Heavy Bolt","Corona de virotes","Bolt Crown"],
+  ["finillos","Golpe demoledor","Demolition Blow","Onda de martillo","Hammer Wave"],
+  ["chambas","Hacha reforzada","Reinforced Axe","Rueda de hachas","Axe Wheel"],
+  ["frosti","Escarcha intensa","Deep Frost","Estrella de hielo","Ice Star"],
+  ["yant","Estocadas encadenadas","Chain Thrusts","Lanza giratoria","Spinning Spear"],
+  ["eledemak","Jab encadenado","Chain Jab","Gancho circular","Circular Hook"],
+  ["kaito","Salva de kunais","Kunai Volley","Cerco de kunais","Kunai Ring"],
+  ["nova","Impacto estelar","Stellar Impact","Constelación","Constellation"],
+  ["sunk","Puño demoledor","Demolition Fist","Onda de nudillos","Knuckle Wave"],
+  ["quizo","Descarga del tridente","Trident Discharge","Corona de rayos","Lightning Crown"],
+  ["zeta","Ráfaga del dron","Drone Burst","Barrido láser","Laser Sweep"],
+  ["duna","Viento concentrado","Focused Wind","Espiral de viento","Wind Spiral"],
+  ["nix","Órbita interior","Inner Orbit","Discos expansivos","Expanding Discs"],
+  ["savia","Vial concentrado","Concentrated Vial","Anillo cáustico","Caustic Ring"],
+  ["brasa","Chorro de forja","Forge Jet","Abanico de brasas","Ember Fan"]
+];
+const ringDescriptions = {
+  tajo: ["Un barrido de espada cubre todos los lados.","A sword sweep covers every side."],
+  petardo: ["Lanza petardos alrededor de ti.","Throws firecrackers around you."],
+  colonia: ["Deja nubes de colonia que dañan y frenan a los enemigos.","Leaves perfume clouds that hurt and slow enemies."],
+  balon: ["Lanza balones en varias direcciones.","Launches balls in several directions."],
+  virote: ["Dispara virotes en todas direcciones.","Fires bolts in every direction."],
+  mazazo: ["Golpea el suelo con el mazo y crea una onda expansiva.","Slams the hammer into the ground to create a shockwave."],
+  hacha: ["Lanza varias hachas que vuelven a ti.","Throws several axes that return to you."],
+  copos: ["Dispara una corona de hielo alrededor de ti.","Fires a crown of ice around you."],
+  estocada: ["Traza un círculo de estocadas con la lanza.","Traces a circle of spear thrusts."],
+  guantes: ["Encadena ganchos de boxeo alrededor de ti.","Chains boxing hooks around you."],
+  kunai: ["Lanza kunais hacia todos los lados.","Throws kunai in every direction."],
+  meteoro: ["Invoca impactos estelares a tu alrededor.","Summons stellar impacts around you."],
+  punos: ["Golpea con los puños y expulsa una onda de choque.","Punches out a shockwave."],
+  rayo: ["Descarga los rayos del tridente sobre varios enemigos.","Discharges the trident's lightning onto several enemies."],
+  dron: ["El dron dispara láseres en varias direcciones.","The drone fires lasers in several directions."],
+  tornado: ["Crea tornados que se alejan en espiral.","Creates tornadoes that spiral outward."],
+  discos: ["Tus discos orbitan hacia fuera para ampliar su alcance.","Your discs orbit outward for greater reach."],
+  acido: ["Lanza viales para formar un anillo de ácido.","Throws vials to form a ring of acid."],
+  llamas: ["Barre varios ángulos con tu lanzallamas.","Sweeps several angles with your flamethrower."]
+};
+TS.TECHNIQUES = Object.fromEntries(personalMoves.map(([id,burst,burstEn,ring,ringEn]) => {
+  const weapon=TS.CHARACTERS.find(ch=>ch.id===id).weapon;
+  const [desc,descEn]=ringDescriptions[weapon];
+  return [id,[
+    {id:"burst",name:burst,nameEn:burstEn,desc:"Refuerza el ataque de tu propia arma.",descEn:"Reinforces your own weapon's attack.",cd:240,max:3},
+    {id:"ring",name:ring,nameEn:ringEn,desc,descEn,cd:420,max:3}
+  ]];
+}));
+// Mantener el mismo recorrido de dificultad, repartido en veinticinco minutos.
+for (const wave of TS.WAVES) wave.from *= TS.RUN_SECONDS / 600;
+for (const horde of TS.HORDES) horde.at *= TS.RUN_SECONDS / 600;
+for (const boss of TS.BOSSES) boss.at = boss.id === "rey" ? TS.RUN_SECONDS : boss.at * TS.RUN_SECONDS / 600;

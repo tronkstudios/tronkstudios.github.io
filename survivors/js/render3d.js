@@ -782,10 +782,11 @@ const Render3D = (() => {
     switch (z.type) {
       case "disc":
         at("ring",z.x,14,z.y,z.r,20,z.r,z.gold?0xffd23f:0x64f5ff);break;
+      case "perfume":
       case "acid":
-        at("disc",z.x,.9,z.y,z.r,1,z.r,z.t<z.warn?0xcaff82:0x8ce238);
-        at("ring",z.x,1.2,z.y,z.r,3,z.r,0xd2ff8b);
-        if(z.t>=z.warn)for(let i=0;i<3;i++){const a=i*TAU/3+z.t*.02;at("ghost",z.x+Math.cos(a)*z.r*.5,4+Math.sin(z.t*.15+i)*2,z.y+Math.sin(a)*z.r*.5,3,3,3,0xb9ef63);}break;
+        at("disc",z.x,.9,z.y,z.r,1,z.r,z.type==="perfume"?0xff8ed1:z.t<z.warn?0xcaff82:0x8ce238);
+        at("ring",z.x,1.2,z.y,z.r,3,z.r,z.type==="perfume"?0xffe1f5:0xd2ff8b);
+        if(z.t>=z.warn)for(let i=0;i<3;i++){const a=i*TAU/3+z.t*.02;at("ghost",z.x+Math.cos(a)*z.r*.5,4+Math.sin(z.t*.15+i)*2,z.y+Math.sin(a)*z.r*.5,3,3,3,z.type==="perfume"?0xffb8e1:0xb9ef63);}break;
       case "flame":
         for(let i=0;i<6;i++) {
           const t=(i+1)/6,a=z.ang+Math.sin(z.t*.8+i)*z.spread*.5,r=5+t*z.len*z.spread*.45;

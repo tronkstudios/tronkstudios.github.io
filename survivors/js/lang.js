@@ -93,7 +93,7 @@ const EN = {
   "¡Has caído! Un compañero puede levantarte si se queda a tu lado.": "You fell! A teammate can revive you by standing next to you.",
   "¡El Maestro Ninja llama a su clan!": "The Ninja Master calls his clan!",
   "¡Esquivado!": "Dodged!",
-  "Aguanta 10 minutos y derrota al jefe final.": "Survive 10 minutes and defeat the final boss.",
+  "Aguanta 25 minutos y derrota al jefe final.": "Survive 25 minutes and defeat the final boss.",
   "Bloqueado": "Locked",
   "Todavía no hay nadie. ¡Sé el primero!": "Nobody yet. Be the first!",
   "Inicia sesión en TronkStudios para salir en la clasificación.": "Log in to TronkStudios to appear on the leaderboard.",
@@ -521,9 +521,9 @@ Object.assign(EN, {
   "Fase": "Phase", "Final": "Final", "Supervivencia final": "Final survival", "Fin de supervivencia": "Survival over",
   "Fases superadas": "Phases cleared", "Contra el jefe final": "Against the final boss",
   "¡JEFE FINAL!": "FINAL BOSS!", "¡NUEVA FASE!": "NEW PHASE!",
-  "Aguanta hasta el minuto 10 y sobrevive a las fases del jefe final.": "Reach minute 10 and survive the final boss's phases.",
+  "Aguanta hasta el minuto 25 y sobrevive a las fases del jefe final.": "Reach minute 25 and survive the final boss's phases.",
   "Supervivencia: los que más aguantan": "Survival: the longest runs",
-  "Los enemigos se fortalecen sin parar. Al minuto 10 llega el jefe final: supera sus fases y aguanta todo lo que puedas.": "Enemies keep growing stronger. At minute 10 the final boss arrives: clear its phases and survive as long as you can.",
+  "Los enemigos se fortalecen sin parar. Al minuto 25 llega el jefe final: supera sus fases y aguanta todo lo que puedas.": "Enemies keep growing stronger. At minute 25 the final boss arrives: clear its phases and survive as long as you can.",
   "Supera la primera fase de cualquier jefe final": "Clear the first phase of any final boss",
   "Supera la primera fase del jefe final": "Clear the final boss's first phase",
   "Supera la primera fase del jefe final con Sunk": "Clear the final boss's first phase with Sunk",
@@ -543,3 +543,9 @@ Object.assign(EN, {
   "Crea seis charcos de ácido y recupera el 15 % de vida.": "Creates six acid pools and restores 15% health.",
   "Una corona de llamas quema a todos los de alrededor.": "A crown of flames burns everything around you."
 });
+
+Object.assign(EN, {
+  "Ataques del personaje":"Character moves", "Ataque base":"Basic attack", "Técnica automática":"Automatic technique", "Habilidad activa":"Active ability",
+  "Aprende y mejora tus técnicas al subir de nivel. Solo usas el arma de tu personaje.":"Learn and upgrade techniques as you level up. You only use your character's weapon."
+});
+for (const moves of Object.values(TS.TECHNIQUES)) for (const move of moves) { EN[move.name]=move.nameEn; EN[move.desc]=move.descEn; }

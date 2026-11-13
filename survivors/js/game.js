@@ -115,6 +115,7 @@ const Game = (() => {
       stats: null,
       weapons: [],
       passives: {},
+      techniques: {}, techCds: {},
       iframes: 0,
       down: false,
       reviveT: 0,
@@ -131,6 +132,7 @@ const Game = (() => {
   }
 
   function addWeapon(pl, id) {
+    if (id !== charById(pl.charId).weapon || pl.weapons.some(w => w.id === id)) return false;
     pl.weapons.push({ id, lvl: 1, cd: 30 + R() * 20, combo: 0, comboT: 0, drones: [] });
   }
 
@@ -558,7 +560,7 @@ const Game = (() => {
   }
 
   function difficultyAt(t) {
-    const m = Math.max(0, t / 3600);
+    const m = Math.max(0, t / 3600) * 600 / TS.RUN_SECONDS;
     return { hp: 1 + .35 * m + .06 * m * m, bossHp: 1 + .08 * m + .01 * m * m,
       dmg: 1 + .10 * m + .012 * m * m, speed: 1 + Math.min(.65, .035 * m) };
   }
@@ -659,7 +661,7 @@ const Game = (() => {
     if (!alive.length) return;
 
     if (!st.finalPhase && sec >= TS.RUN_SECONDS) beginFinalPhase();
-    // Los jefes previos siguen su calendario; el final siempre llega al minuto 10.
+    // Los jefes previos siguen su calendario; el final siempre llega al minuto 25.
     const nextBoss = TS.BOSSES[st.bossIdx];
     if (!st.finalPhase && nextBoss && nextBoss.id !== "rey" && sec >= nextBoss.at * st.mod.bossTime) {
       st.bossIdx++;
@@ -721,7 +723,7 @@ const Game = (() => {
       // en el modo infinito salen cada vez más deprisa
       st.spawnT = st.endless ? Math.max(6, wave.every - (st.t - st.endlessStart) / 3600) : wave.every;
       const cap = wave.alive * (1 + 0.35 * (teamSize - 1)) * Math.sqrt(st.mod.spawn);
-      const batch = 1 + Math.floor(sec / 100);
+      const batch = 1 + Math.floor(sec * 600 / TS.RUN_SECONDS / 100);
       const fighters = st.enemies.reduce((n, e) => n + (e.prop ? 0 : 1), 0);
       for (let i = 0; i < batch && fighters + i < cap; i++) spawnAround(weightedPick(wave.mix), pick(alive));
     }
@@ -1236,7 +1238,9 @@ const Game = (() => {
       if (p.abCd <= 0) useAbility(p);
     }
 
+    p.weapons = p.weapons.filter(w => w.id === charById(p.charId).weapon);
     for (const w of p.weapons) updateWeapon(p, w);
+    updateTechniques(p);
   }
 
   /* ---------- habilidades especiales ---------- */
@@ -1428,7 +1432,9 @@ const Game = (() => {
      ======================================================= */
 
   function levelStats(w) {
-    const L = TS.WEAPONS[w.id].levels[w.lvl - 1];
+    const base = TS.WEAPONS[w.id].levels[w.lvl - 1];
+    const mastery = 1 + Math.min(1.5, Math.max(0, st.level - 1) * .025);
+    const L = { ...base, dmg: base.dmg * mastery };
     if (!w.evo) return L;
     // arma evolucionada: mucho más fuerte
     return {
@@ -1551,6 +1557,108 @@ const Game = (() => {
       // la onda del puñetazo de Sunk sale hacia delante y lo atraviesa todo
       st.shots.push({ type: "onda", x: hx, y: hy, vx: ax * L.speed * U, vy: ay * L.speed * U, ang: Math.atan2(ay, ax), dmg: L.dmg * 0.9, pierce: 99, life: 45, r: 9 * area, hit: new Set(), owner: p.id });
       shake(2);
+    }
+  }
+
+  function updateTechniques(p) {
+    if (!p.techniques) return;
+    if (!p.techCds) p.techCds = {};
+    for (const [id,lvl] of Object.entries(p.techniques)) {
+      const move=(TS.TECHNIQUES[p.charId] || []).find(m=>m.id===id);
+      if (!move) continue;
+      p.techCds[id]=(p.techCds[id] ?? 30)-1;
+      if (p.techCds[id]>0) continue;
+      p.techCds[id]=move.cd*p.stats.cdMul;
+      techniqueAttack(p,id,lvl);
+    }
+  }
+
+  function techniqueAttack(p,id,lvl) {
+    const weapon=charById(p.charId).weapon;
+    const w=p.weapons.find(w=>w.id===weapon);
+    if (!w) return;
+    const base=levelStats(w);
+    const L={...base,dmg:base.dmg*(1+.2*lvl),pierce:(base.pierce || 1)+lvl};
+    const area=(L.area || 1)*p.stats.area*(1+.06*lvl);
+    const cx=p.x,cy=p.y-18;
+    if (id === "burst" && !["colonia","discos","dron"].includes(weapon)) {
+      fire(p,w,L,area,(L.count || 1)+p.stats.amount+lvl,cx,cy);
+      return;
+    }
+    const n=4+lvl*2;
+    const ring=make=>{for(let i=0;i<n;i++)make(i*TAU/n);};
+    const damageCircle=r=>{for(const e of enemiesInRadius(cx,p.y,r))hitEnemy(e,L.dmg,p,{kx:e.x-cx,ky:e.y-p.y,kb:2});};
+    const [ax,ay]=dirTo(p,nearestEnemy(cx,cy,300));
+    attackAnim(p,weapon,ax,ay,22);
+    switch (weapon) {
+      case "tajo":
+        ring(a=>st.zones.push({type:"slash",x:cx,y:cy,ang:a,R:65*area,t:0,life:16,dirSign:1,gold:!!w.evo}));
+        damageCircle(65*area);sound("slash");break;
+      case "mazazo":
+      case "punos":
+        st.zones.push({type:"wave",x:cx,y:p.y,r:0,maxR:90*area,life:24,t:0,hit:new Set(),dmg:L.dmg,owner:p.id});
+        sound(weapon==="mazazo"?"wave":"punch");break;
+      case "guantes":
+        ring(a=>st.zones.push({type:"punch",x:cx+Math.cos(a)*35*area,y:cy+Math.sin(a)*35*area,r:12*area,t:0,life:12,glove:true,big:true}));
+        damageCircle(55*area);sound("punch");break;
+      case "estocada":
+        ring(a=>{
+          st.zones.push({type:"thrust",x:cx,y:cy,ang:a,len:95*area,t:0,life:14});
+          for(const e of enemiesOnLine(cx,cy,a,95*area,8))hitEnemy(e,L.dmg,p,{kx:Math.cos(a),ky:Math.sin(a),kb:2});
+        });sound("slash");break;
+      case "virote": case "kunai": case "copos": case "balon": case "hacha": {
+        const type={virote:"bolt",kunai:"kunai",copos:"ice",balon:"ball",hacha:"axe"}[weapon];
+        ring(a=>st.shots.push({type,x:cx,y:cy,vx:Math.cos(a)*(L.speed || 4)*U,vy:Math.sin(a)*(L.speed || 4)*U,
+          ang:a,dmg:L.dmg,pierce:L.pierce || 4,life:150,r:(type==="axe"?9:5)*area,hit:new Set(),hitT:{},
+          owner:p.id,target:0,out:95*area,travelled:0,back:false}));
+        sound(weapon==="copos"?"ice":weapon==="hacha"?"slash":"shoot");break;
+      }
+      case "petardo":
+        ring(a=>st.zones.push({type:"bomb",x:cx,y:cy,x0:cx,y0:cy,tx:cx+Math.cos(a)*75*area,ty:p.y+Math.sin(a)*75*area,
+          r:28*area,dur:32,life:34,t:0,dmg:L.dmg,owner:p.id}));sound("shoot");break;
+      case "colonia":
+        if(id==="burst") {
+          damageCircle(60*area);
+          fx({k:"ring",x:cx,y:p.y,r:60*area,color:"#ff8ed1",life:35});
+        } else ring(a=>st.zones.push({type:"perfume",x:cx+Math.cos(a)*42*area,y:p.y+Math.sin(a)*42*area,
+          r:22*area,t:0,warn:0,life:150,dmg:L.dmg,owner:p.id}));
+        sound("ice");break;
+      case "meteoro":
+        ring(a=>st.zones.push({type:"meteor",x:cx+Math.cos(a)*70*area,y:p.y+Math.sin(a)*70*area,
+          warn:28,life:45,t:0,r:25*area,dmg:L.dmg,owner:p.id}));break;
+      case "rayo":
+        st.enemies.filter(e=>!e.dead&&!e.prop&&!e.phased&&dist2(e,p)<(250*area)**2).sort((a,b)=>dist2(a,p)-dist2(b,p)).slice(0,n).forEach(e=>{
+          st.zones.push({type:"bolt",pts:[[e.x,e.y-180],[e.x+8,e.y-70],[e.x,e.y-14]],life:14,t:0});
+          hitEnemy(e,L.dmg,p);
+        });sound("zap");break;
+      case "dron": {
+        const dr=w.drones && w.drones[0];
+        const x=dr?.x ?? cx,y=dr?.y ?? cy;
+        const target=nearestEnemy(x,y,300*area);
+        const angle=target?Math.atan2(target.y-16-y,target.x-x):Math.atan2(ay,ax);
+        const shoot=a=>{
+          st.zones.push({type:"laser",x,y,ang:a,len:260*area,life:12,t:0});
+          for(const e of enemiesOnLine(x,y,a,260*area,8))hitEnemy(e,L.dmg,p);
+        };
+        if(id==="burst")shoot(angle);else ring(shoot);
+        sound("laser");break;
+      }
+      case "tornado":
+        for(let i=0;i<Math.min(4,2+lvl);i++) {
+          const a=i*TAU/Math.min(4,2+lvl);
+          st.zones.push({type:"tornado",x:cx,y:p.y,vx:Math.cos(a)*1.5*U,vy:Math.sin(a)*1.5*U,
+            t:0,life:180,r:23*area,dmg:L.dmg,owner:p.id});
+        }sound("dodge");break;
+      case "discos":
+        ring(a=>st.zones.push({type:"disc",orbit:true,expand:id==="ring",a,orbitRadius:(id==="ring"?65:28)*area,
+          x:cx,y:p.y,r:8*area,ang:a,t:0,life:120,dmg:L.dmg,owner:p.id,gold:!!w.evo}));sound("zap");break;
+      case "acido":
+        ring(a=>st.zones.push({type:"acid",x:cx+Math.cos(a)*55*area,y:p.y+Math.sin(a)*55*area,
+          r:22*area,t:0,warn:20,life:(L.dur || 180)+20,dmg:L.dmg,owner:p.id}));sound("shoot");break;
+      case "llamas":
+        for(let i=0;i<Math.min(5,2+lvl);i++)st.zones.push({type:"flame",x:cx,y:cy,ang:Math.atan2(ay,ax)+(i-(Math.min(5,2+lvl)-1)/2)*.35,
+          len:90*area,spread:.32,life:32,t:0,dmg:L.dmg,owner:p.id});
+        sound("boom");break;
     }
   }
 
@@ -1816,9 +1924,18 @@ const Game = (() => {
       z.t++;
       if (z.t < 0) continue;
       switch (z.type) {
+        case "perfume":
         case "acid":
           if (z.t >= z.warn && (z.t - z.warn) % 20 === 0) {
             for (const e of enemiesInRadius(z.x, z.y, z.r)) hitEnemy(e, z.dmg, st.players[z.owner], { slow: .28, slowFor: 35 });
+          }
+          break;
+        case "disc":
+          if (z.orbit) {
+            const p=st.players[z.owner]; if (!p || p.down) break;
+            const a=z.a+z.t*.10, r=z.orbitRadius*(z.expand?Math.min(1,z.t/35):1);
+            z.x=p.x+Math.cos(a)*r;z.y=p.y+Math.sin(a)*r;z.ang=a;
+            if(z.t%12===1)for(const e of enemiesInRadius(z.x,z.y,z.r))hitEnemy(e,z.dmg,p,{kb:.6,kx:e.x-p.x,ky:e.y-p.y});
           }
           break;
         case "flame": {
@@ -1984,9 +2101,13 @@ const Game = (() => {
 
   function buildOptions(pl, n = 3) {
     const pool = [];
-    for (const w of pl.weapons) if (w.lvl < 6) pool.push({ kind: "weapon", id: w.id, lvl: w.lvl + 1, weight: 3 });
-    if (pl.weapons.length < TS.MAX_WEAPONS) {
-      for (const id of Object.keys(TS.WEAPONS)) if (!pl.weapons.some((w) => w.id === id)) pool.push({ kind: "weapon", id, lvl: 1, weight: 1.2 });
+    const weapon = charById(pl.charId).weapon;
+    const native = pl.weapons.find(w => w.id === weapon);
+    if (!native) pool.push({kind:"weapon",id:weapon,lvl:1,weight:3});
+    else if (native.lvl < 6) pool.push({kind:"weapon",id:weapon,lvl:native.lvl+1,weight:3});
+    for (const move of TS.TECHNIQUES[pl.charId] || []) {
+      const lvl = (pl.techniques || {})[move.id] || 0;
+      if (lvl < move.max) pool.push({kind:"technique",id:move.id,lvl:lvl+1,weight:lvl?2:2.6});
     }
     const owned = Object.keys(pl.passives);
     for (const id of owned) if (pl.passives[id] < TS.PASSIVES[id].max) pool.push({ kind: "passive", id, lvl: pl.passives[id] + 1, weight: 2 });
@@ -2008,6 +2129,10 @@ const Game = (() => {
   function describe(pl, o) {
     if (o.kind === "heal") return { ...o, title: L("Bocadillo"), desc: L("Recupera 40 de vida"), icon: "bocadillo" };
     if (o.kind === "coins") return { ...o, title: L("Bolsa de monedas"), desc: L("+25 monedas"), icon: "moneda" };
+    if (o.kind === "technique") {
+      const d = TS.TECHNIQUES[pl.charId].find(m => m.id === o.id);
+      return {...o,title:o.lvl === 1 ? L(d.name) : LT("levelOf",{name:L(d.name),lvl:o.lvl}),desc:`${L("Técnica automática")} · ${L(d.desc)}`,icon:charById(pl.charId).weapon,isNew:o.lvl === 1};
+    }
     if (o.kind === "passive") {
       const d = TS.PASSIVES[o.id];
       return { ...o, title: L(d.name), desc: L(d.desc), icon: o.id, isNew: o.lvl === 1 };
@@ -2027,9 +2152,17 @@ const Game = (() => {
 
   function applyChoice(pl, o) {
     if (o.kind === "weapon") {
+      if (o.id !== charById(pl.charId).weapon) return;
       const w = pl.weapons.find((x) => x.id === o.id);
       if (w) w.lvl = Math.min(6, w.lvl + 1);
       else addWeapon(pl, o.id);
+    } else if (o.kind === "technique") {
+      const d = (TS.TECHNIQUES[pl.charId] || []).find(m => m.id === o.id);
+      if (!d) return;
+      if (!pl.techniques) pl.techniques = {};
+      if (!pl.techCds) pl.techCds = {};
+      pl.techniques[o.id] = Math.min(d.max,(pl.techniques[o.id] || 0)+1);
+      pl.techCds[o.id] = Math.min(pl.techCds[o.id] ?? 30,30);
     } else if (o.kind === "passive") {
       pl.passives[o.id] = (pl.passives[o.id] || 0) + 1;
       computeStats(pl);
@@ -2206,6 +2339,10 @@ const Game = (() => {
       kills: st.kills,
       coins: st.coins,
       weapons: p.weapons.map((w) => ({ id: w.id, lvl: w.lvl, evo: !!w.evo })),
+      techniques: Object.entries(p.techniques || {}).map(([id,lvl]) => {
+        const move=TS.TECHNIQUES[p.charId].find(m=>m.id===id);
+        return {id,lvl,name:L(move.name),icon:charById(p.charId).weapon};
+      }),
       canEvolve: !st.guest && !!evolvable(p),
       passives: Object.entries(p.passives).map(([id, lvl]) => ({ id, lvl })),
       boss: st.boss && TS.ENEMIES[st.boss.type] ? { name: L(TS.ENEMIES[st.boss.type].name) + (st.finalPhase ? ` · ${L("Fase")} ${st.finalRound}` : ""), pct: st.boss.hp / st.boss.maxHp } : null,
@@ -2456,12 +2593,12 @@ const Game = (() => {
 
   function drawZoneUnder(z) {
     if (z.t < 0) return;
-    if (z.type === "acid") {
+    if (["acid", "perfume"].includes(z.type)) {
       const ready = z.t >= z.warn;
       ctx.save(); ctx.globalAlpha = ready ? .45 : .2;
-      ctx.fillStyle = ready ? "#8ce238" : "#caff82";
+      ctx.fillStyle = z.type === "perfume" ? "#ff8ed1" : ready ? "#8ce238" : "#caff82";
       ctx.beginPath(); ctx.ellipse(z.x, z.y, z.r, z.r * .65, 0, 0, TAU); ctx.fill();
-      ctx.globalAlpha = .8; ctx.strokeStyle = "#d2ff8b"; ctx.lineWidth = 2; ctx.stroke(); ctx.restore();
+      ctx.globalAlpha = .8; ctx.strokeStyle = z.type === "perfume" ? "#ffe1f5" : "#d2ff8b"; ctx.lineWidth = 2; ctx.stroke(); ctx.restore();
     }
     if (z.type === "meteor" && z.t < z.warn) {
       const k = z.t / z.warn;
@@ -3141,7 +3278,7 @@ const Game = (() => {
       Math.round(p.hp), p.stats.maxHp, p.down ? 1 : 0, p.reviveT, p.iframes, p.flash,
       p.weapons.map((w) => [w.id, w.lvl, w.evo ? 1 : 0, (w.drones || []).map((d) => [r1(d.x || 0), r1(d.y || 0)])]),
       Object.entries(p.passives), r1(p.stats.area), Math.round((1 - p.abCd / abilityMax(p)) * 100) / 100,
-      p.moveX, p.moveY, p.atk ? p.atk.ax : null, p.atk ? p.atk.ay : null
+      p.moveX, p.moveY, p.atk ? p.atk.ax : null, p.atk ? p.atk.ay : null, Object.entries(p.techniques || {})
     ]);
     const enemies = [];
     for (const e of st.enemies) {
@@ -3206,8 +3343,9 @@ const Game = (() => {
       p.tx = a[0]; p.ty = a[1]; p.dir = DIRS[a[2]] || "down"; p.face = a[3]; p.moving = !!a[4]; p.walkT = a[5];
       p.atk = a[6] > 0 ? { t: a[6], total: a[7], ...(a[20] != null && a[21] != null ? { ax: a[20], ay: a[21] } : {}) } : null;
       p.moveX = a[18]; p.moveY = a[19];
+      p.techniques = Object.fromEntries(a[22] || []);
       p.hp = a[8]; p.stats.maxHp = a[9]; p.down = !!a[10]; p.reviveT = a[11]; p.iframes = a[12]; p.flash = a[13];
-      p.weapons = a[14].map(([id, lvl, evo, drones]) => ({ id, lvl, evo: !!evo, drones: drones.map(([x, y]) => ({ x, y })) }));
+      p.weapons = a[14].filter(([id]) => id === charById(p.charId).weapon).map(([id, lvl, evo, drones]) => ({ id, lvl, evo: !!evo, drones: drones.map(([x, y]) => ({ x, y })) }));
       p.passives = Object.fromEntries(a[15]);
       p.stats.area = a[16];
       p.abPct = a[17];

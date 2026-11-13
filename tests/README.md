@@ -6,13 +6,14 @@ Las pruebas de simulación no requieren dependencias:
 node --test tests/survivors.test.cjs
 ```
 
-Las 19 pruebas cubren el cofre, pausa de efectos, desconexiones durante elecciones,
-instantáneas online, 19 personajes con todas las armas, jefes finales de los cuatro
+Las 24 pruebas cubren el cofre, pausa de efectos, desconexiones durante elecciones,
+instantáneas online, 19 personajes con su arma y técnicas propias, jefes finales de los cuatro
 mapas y fases finales sucesivas, colisiones con enemigos grandes, ralentizaciones, recargas,
 fusión de progreso remoto, datos guardados incompletos y tickets de partidas que
 terminan mientras empieza otra. Añaden agua transitable con ralentización,
 escalada de enemigos vivos, resistencia del jefe a las ralentizaciones,
-daño de las tres armas nuevas y una prueba de supervivencia con equipo muy fuerte. Los escenarios de combate usan armadura y armas
+daño de las tres armas nuevas, bloqueo de armas ajenas, técnicas y sincronización,
+escalada repartida en 25 minutos y una prueba de supervivencia con equipo muy fuerte. Los escenarios de combate usan armadura y armas
 reforzadas para verificar las rutas de ejecución; no evalúan el equilibrio.
 
 Las comprobaciones de navegador requieren Playwright y Chromium. Desde la raíz:
@@ -36,11 +37,11 @@ Chromium no tiene su CA instalada; no modifica la configuración del juego.
   personajes, enemigos y jefes, con WebGL y con Three.js bloqueado para forzar
   2D. Detecta recortes y coordenadas de dibujo no finitas en todos los fotogramas
   normales; comprueba que sus destellos conservan las dimensiones, pies y alfa.
-- **Contenido nuevo:** arranque y habilidad de Nix, Savia y Brasa en 2D/3D,
-  efectos de sus armas, HUD de la fase final y vista cercana de enemigos 3D.
+- **Contenido nuevo:** los 19 personajes, sus dos técnicas y habilidad en 2D/3D,
+  efectos de sus armas, HUD final al minuto 25 y vista cercana de enemigos 3D.
 - **Móvil emulado:** entrar desde el menú, joystick, varios dedos, habilidad
   mientras te mueves, soltar el joystick, pausa, elección de mejora, rotación,
-  distribución con seis armas/seis pasivas y reinicio. Se usa 2D por defecto
+  distribución con arma propia, dos técnicas y seis pasivas y reinicio. Se usa 2D por defecto
   en dispositivos que solo tienen puntero táctil para reducir la carga gráfica.
 - **Online:** sala, movimiento del invitado, entrega y guardado del resultado,
   segunda partida y desconexión con una elección pendiente. Supabase, cuenta

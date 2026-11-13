@@ -119,7 +119,7 @@
     $("menu-daily").hidden = save.dailyDone === dailyConfig().day;
     $("menu-ach").hidden = (save.weekly && save.weekly.seen) === weekKey();
     const b = save.best;
-    $("menu-best").textContent = b.time ? LT("best", { time: fmtTime(b.time), kills: b.kills, level: b.level }) + (b.wins ? LT("wins", { n: b.wins }) : "") : L("Aguanta hasta el minuto 10 y sobrevive a las fases del jefe final.");
+    $("menu-best").textContent = b.time ? LT("best", { time: fmtTime(b.time), kills: b.kills, level: b.level }) + (b.wins ? LT("wins", { n: b.wins }) : "") : L("Aguanta hasta el minuto 25 y sobrevive a las fases del jefe final.");
     renderAccount();
   }
 
@@ -449,7 +449,16 @@
         if (go) show("maps");
         else renderChars();
       });
-      box.append(el("p", "", L(ch.desc)), weapon, el("p", "", LT("perk", { perk: L(ch.perkText) })), btn);
+      const moves = el("div","char-moves");
+      moves.append(el("b","",L("Ataques del personaje")));
+      const list = el("ul");
+      list.append(el("li","",`${L(TS.WEAPONS[ch.weapon].name)} · ${L("Ataque base")}`));
+      for(const move of TS.TECHNIQUES[ch.id] || []) {
+        const row=el("li");row.append(el("strong","",L(move.name)),el("small","",L(move.desc)));list.append(row);
+      }
+      list.append(el("li","",`${L(TS.ABILITIES[ch.id].name)} · ${L("Habilidad activa")}`));
+      moves.append(list,el("small","",L("Aprende y mejora tus técnicas al subir de nivel. Solo usas el arma de tu personaje.")));
+      box.append(el("p", "", L(ch.desc)), weapon, moves, el("p", "", LT("perk", { perk: L(ch.perkText) })), btn);
     } else {
       const btn = el("button", "btn btn-gold", L("Ir al cofre"));
       btn.addEventListener("click", () => show("gacha"));
@@ -595,13 +604,14 @@
 
   function renderSlots(box, data, big) {
     box.textContent = "";
-    const items = [...data.weapons.map((w) => ({ ...w, kind: "w" })), ...data.passives.map((p) => ({ ...p, kind: "p" }))];
+    const items = [...data.weapons.map((w) => ({ ...w, kind: "w" })), ...(data.techniques || []).map(m=>({...m,kind:"t"})), ...data.passives.map((p) => ({ ...p, kind: "p" }))];
     for (const it of items) {
-      const slot = el("div", `hud-slot${it.kind === "p" ? " is-passive" : ""}${it.evo ? " is-evo" : ""}`);
+      const slot = el("div", `hud-slot${it.kind === "t" ? " is-technique" : ""}${it.kind === "p" ? " is-passive" : ""}${it.evo ? " is-evo" : ""}`);
+      if (it.kind === "t") slot.dataset.technique = it.id === "burst" ? "I" : "II";
       const img = document.createElement("img");
-      img.src = Sprites.iconUrl(it.id, big ? 3 : 2);
+      img.src = Sprites.iconUrl(it.icon || it.id, big ? 3 : 2);
       img.alt = "";
-      slot.title = it.evo ? L(TS.EVOLUTIONS[it.id].name) : L((TS.WEAPONS[it.id] || TS.PASSIVES[it.id] || {}).name || "");
+      slot.title = it.kind === "t" ? it.name : it.evo ? L(TS.EVOLUTIONS[it.id].name) : L((TS.WEAPONS[it.id] || TS.PASSIVES[it.id] || {}).name || "");
       slot.append(img, el("i", "", it.evo ? "★" : it.lvl));
       box.appendChild(slot);
     }
@@ -656,7 +666,7 @@
       $("hud-ab-state").textContent = ready ? (isTouch ? L("¡Toca!") : L("Espacio")) : `${Math.round(d.ability.pct * 100)}%`;
       ab.classList.toggle("is-ready", ready);
     }
-    const key = JSON.stringify([d.weapons, d.passives]);
+    const key = JSON.stringify([d.weapons, d.techniques, d.passives]);
     if (key !== slotKey) { slotKey = key; renderSlots($("hud-slots"), d); }
     const boss = $("hud-boss");
     boss.hidden = !d.boss;

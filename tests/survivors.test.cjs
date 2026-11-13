@@ -60,7 +60,8 @@ test('every character and weapon simulates without invalid coordinates', () => {
   for (const ch of TS.CHARACTERS) {
     Game.start([setup(ch.id)],{seed:12345});
     const p=Game.state.players[0]; p.stats.armor=10000; p.stats.regen=100;
-    p.weapons=Object.keys(TS.WEAPONS).map(id=>({id,lvl:6,evo:true,cd:0,combo:0,comboT:0,drones:[]}));
+    p.weapons=[{id:ch.weapon,lvl:6,evo:true,cd:0,combo:0,comboT:0,drones:[]}];
+    p.techniques={burst:3,ring:3};p.techCds={burst:0,ring:0};
     for(let i=0;i<1800;i++) {
       if(Game.state.choosing) for(const id of Object.keys(Game.state.choosing)) Game.choose(+id,0);
       Game.setInput(0,{x:Math.sin(i/100),y:Math.cos(i/100),ab:Math.floor(i/300)}); Game.step();
@@ -70,13 +71,13 @@ test('every character and weapon simulates without invalid coordinates', () => {
     assert.equal(Game.state.over,false,ch.id);
   }
 });
-test('all maps enter a relentless final encounter at ten minutes and continue after a broken health bar', () => {
+test('all maps enter a relentless final encounter at twenty-five minutes and continue after a broken health bar', () => {
   const { Game, TS } = engine();
   let result;Game.on('end',r=>{result=r;});
   for (const [map, def] of Object.entries(TS.MAPS)) {
     Game.start([setup('ranjay')],{seed:54321,map});
     const st=Game.state,p=st.players[0];p.stats.armor=10000;p.stats.might=10000;
-    p.stats.area=10;p.weapons=[{id:'colonia',lvl:6,evo:true,cd:0,combo:0,comboT:0,drones:[]}];
+    p.stats.area=10;p.weapons=[{id:'tajo',lvl:6,evo:true,cd:0,combo:0,comboT:0,drones:[]}];
     st.t=TS.RUN_SECONDS*60-1;st.bossIdx=TS.BOSSES.length-1;st.hordeIdx=TS.HORDES.length;
     Game.step();assert.equal(st.boss.type,def.finalBoss||'rey',map);
     assert.equal(st.finalPhase,true);assert.equal(st.finalRound,1);
@@ -144,15 +145,15 @@ test('finishing an old account request does not erase the ticket for a new run',
 test('enemy strength increases over time, including enemies already alive', () => {
   const {Game}=engine();Game.start([setup('ranjay')],{seed:11});Game.state.players[0].weapons=[];Game.step();
   const e=Game.state.enemies.find(e=>!e.prop);const hp=e.maxHp,speed=e.speed,dmg=e.dmg;
-  e.hp*=.5;Game.state.t=17999;Game.step();
+  e.hp*=.5;Game.state.t=45000-1;Game.step();
   assert.ok(e.maxHp>hp*4);assert.ok(e.speed>speed);assert.ok(e.dmg>dmg);
   assert.ok(Math.abs(e.hp/e.maxHp-.5)<.00001);
   for(const key of ['hp','bossHp','dmg'])assert.ok(Game.difficultyAt(72000)[key]>Game.difficultyAt(36000)[key]);
 });
 test('the final boss never arrives early in a daily boss modifier', () => {
-  const {Game}=engine();Game.start([setup('ranjay')],{mods:['jefes']});
-  Game.state.t=330*60-1;Game.state.bossIdx=3;Game.step();assert.equal(Game.state.finalPhase,false);
-  Game.state.t=600*60-1;Game.step();assert.equal(Game.state.finalPhase,true);
+  const {Game,TS}=engine();Game.start([setup('ranjay')],{mods:['jefes']});
+  Game.state.t=TS.RUN_SECONDS*.55*60-1;Game.state.bossIdx=3;Game.step();assert.equal(Game.state.finalPhase,false);
+  Game.state.t=TS.RUN_SECONDS*60-1;Game.step();assert.equal(Game.state.finalPhase,true);
   Game.state.finalPulseT=Game.state.t+1;Game.step();
   assert.ok(Game.state.strikes.length>0);assert.ok(Game.state.fx.some(f=>f.k==='warn'));
 });
@@ -182,7 +183,8 @@ test('each new hero has a usable starter, evolution, active ability and persiste
 test('a strong stationary build cannot remain immortal against the final encounter', () => {
   const {Game,TS}=engine();Game.start([setup('zeta')],{seed:99});
   const st=Game.state,p=st.players[0];
-  p.weapons=['tajo','dron','rayo','colonia'].map(id=>({id,lvl:6,evo:true,cd:0,combo:0,comboT:0,drones:[]}));
+  p.weapons=[{id:'dron',lvl:6,evo:true,cd:0,combo:0,comboT:0,drones:[]}];
+  p.techniques={burst:3,ring:3};p.techCds={burst:0,ring:0};
   p.passives=Object.fromEntries(Object.entries(TS.PASSIVES).map(([id,d])=>[id,d.max]));
   p.meta={maxHp:1,might:1,armor:3,regen:.5,cooldown:.2,area:.5,amount:2};
   p.stats={...p.stats,maxHp:300,might:2.5,armor:8,regen:2,area:3,cdMul:.45,amount:3,revive:1};p.hp=300;
@@ -217,11 +219,75 @@ test('water slows ground enemies but does not slow flying creatures', () => {
   assert.ok(Math.abs(e.x-point.x-1)<.001);
 });
 test('the late final boss resists permanent slows and its projectiles scale with difficulty', () => {
-  const {Game}=engine();Game.start([setup('frosti')],{seed:11});const st=Game.state;
-  st.players[0].weapons=[];st.t=600*60-1;st.bossIdx=3;Game.step();
+  const {Game,TS}=engine();Game.start([setup('frosti')],{seed:11});const st=Game.state;
+  st.players[0].weapons=[];st.t=TS.RUN_SECONDS*60-1;st.bossIdx=3;Game.step();
   const boss=st.boss;boss.ai='chase';boss.x=200;boss.y=0;boss.slow=999;boss.slowAmt=.99;
-  st.enemies=[boss];st.t=1800*60-1;Game.step();
+  st.enemies=[boss];st.t=(TS.RUN_SECONDS+1200)*60-1;Game.step();
   assert.ok(Math.hypot(boss.vx,boss.vy)>4.675,'late pursuit exceeds even a speed build');
   boss.ai='boss_king';boss.t=149;Game.step();
   assert.ok(st.eshots.some(s=>s.kind==='goo'&&s.dmg>9));
+});
+test('every character learns only its own weapon and two personal techniques, including chest rewards', () => {
+  const {Game,TS}=engine();
+  for(const ch of TS.CHARACTERS) {
+    Game.start([setup(ch.id)],{seed:31});const p=Game.state.players[0];
+    assert.equal(TS.TECHNIQUES[ch.id].length,2);
+    for(let level=0;level<45;level++) {
+      Game.state.xp=Game.state.xpNext;Game.step();
+      const options=Game.state.choosing[0];
+      for(const option of options) {
+        if(option.kind==='weapon')assert.equal(option.id,ch.weapon,ch.id);
+        if(option.kind==='technique')assert.ok(TS.TECHNIQUES[ch.id].some(m=>m.id===option.id),ch.id);
+      }
+      let index=options.findIndex(o=>o.kind==='technique');
+      if(index<0)index=options.findIndex(o=>o.kind==='weapon');
+      Game.choose(0,Math.max(0,index));
+      assert.deepEqual(Array.from(p.weapons,w=>w.id),[ch.weapon]);
+    }
+    assert.equal(p.techniques.burst,3,ch.id);assert.equal(p.techniques.ring,3,ch.id);
+    Game.state.pickups.push({kind:'cofre',x:p.x,y:p.y-6,t:0});Game.step();
+    assert.deepEqual(Array.from(p.weapons,w=>w.id),[ch.weapon],ch.id+' chest');
+  }
+});
+test('foreign weapon rewards are rejected and injected foreign weapons never attack', () => {
+  const {Game}=engine();Game.start([setup('ranjay')]);const p=Game.state.players[0];
+  Game.state.pendingLevels=1;Game.state.choosing={0:[{kind:'weapon',id:'estocada',lvl:1}]};
+  Game.choose(0,0);assert.deepEqual(Array.from(p.weapons,w=>w.id),['tajo']);
+  p.weapons[0].cd=999;p.weapons.push({id:'virote',lvl:6,cd:0,drones:[]});Game.step();
+  assert.deepEqual(Array.from(p.weapons,w=>w.id),['tajo']);assert.equal(Game.state.shots.length,0);
+});
+test('all personal techniques execute with their own weapon and survive the guest snapshot round trip', () => {
+  const {Game,TS}=engine();
+  for(const ch of TS.CHARACTERS) {
+    Game.start([setup(ch.id)],{seed:14});const p=Game.state.players[0];
+    p.weapons[0].lvl=6;p.weapons[0].evo=true;p.weapons[0].cd=999;
+    p.techniques={burst:3,ring:3};p.techCds={burst:0,ring:0};
+    Game.state.enemies=[{id:999,type:'zombi',x:p.x+80,y:p.y,r:10,hp:100000,maxHp:100000,speed:0,dmg:0,ai:'chase',prop:false,
+      t:0,vx:0,vy:0,kx:0,ky:0,slow:0,slowAmt:0,dodgeCd:0,atk:0}];
+    for(let i=0;i<20;i++)Game.step();
+    assert.ok(p.techCds.burst>0&&p.techCds.ring>0,ch.id);
+    for(const zone of Game.state.zones)for(const [key,value] of Object.entries(zone))if(typeof value==='number')assert.ok(Number.isFinite(value),ch.id+':'+key);
+    const snap=Game.snapshot([p]);Game.startGuest({localId:0,players:[setup(ch.id)]});Game.applySnapshot(snap);
+    assert.equal(Game.state.players[0].techniques.burst,3,ch.id);assert.equal(Game.hudData().techniques.length,2);
+  }
+});
+test('the pre-final schedule covers twenty-five minutes without ending the increase in difficulty', () => {
+  const {Game,TS}=engine();assert.equal(TS.RUN_SECONDS,1500);
+  assert.equal(TS.BOSSES.at(-1).at,1500);assert.ok(TS.WAVES.at(-1).from>=1400);
+  assert.ok(TS.HORDES.at(-1).at>1400);
+  for(let minute=1;minute<=25;minute++) {
+    assert.ok(Game.difficultyAt(minute*3600).hp>Game.difficultyAt((minute-1)*3600).hp);
+    assert.ok(Game.difficultyAt(minute*3600).dmg>Game.difficultyAt((minute-1)*3600).dmg);
+  }
+});
+test('sword and spear characters produce only attacks from their own weapon family', () => {
+  const {Game}=engine();
+  for(const [id,type] of [['ranjay','slash'],['yant','thrust']]) {
+    Game.start([setup(id)]);const p=Game.state.players[0];
+    p.weapons[0].cd=0;p.techniques={burst:3,ring:3};p.techCds={burst:0,ring:0};p.abCd=0;
+    Game.setInput(0,{x:0,y:0,ab:1});Game.step();
+    assert.ok(Game.state.zones.length>0,id);
+    assert.ok(Game.state.zones.every(z=>z.type===type),id);
+    assert.equal(Game.state.shots.length,0,id);
+  }
 });
