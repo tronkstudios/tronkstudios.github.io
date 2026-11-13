@@ -81,6 +81,8 @@ const assert = require('node:assert/strict');
       await page.locator('#menu [data-go="online"]').click();return page;
     }
     const host=await player(),guest=await player();
+    await host.evaluate(()=>{const d=Save.get();d.owned.lumen={stars:1};d.selected='lumen';Save.persist();});
+    await guest.evaluate(()=>{const d=Save.get();d.owned.duna={stars:1};d.selected='duna';Save.persist();});
     await host.getByRole('button',{name:'Crear sala',exact:true}).click();
     await host.waitForSelector('.online-code');const code=await host.locator('.online-code').textContent();
     await guest.locator('.online-input').fill(code);
@@ -99,6 +101,14 @@ const assert = require('node:assert/strict');
     await guest.keyboard.down('d');
     await host.waitForFunction(x=>Game.state.players[1].x>x+5,before,{timeout:5000});
     await guest.keyboard.up('d');
+    await host.evaluate(()=>{Game.state.t=120*60-1;Game.step();const p=Game.state.players[1];p.techniques.surge=1;const e=Game.state.enemies.find(e=>e.breach);e.x=p.x+90;e.y=p.y;e.hp=e.maxHp*.45;});
+    await guest.waitForFunction(()=>Game.state.breach?.remaining===4 && Game.hudData().techniques.some(m=>m.id==='surge'));
+    assert.ok(await guest.evaluate(()=>Game.state.enemies.some(e=>e.breach&&e.hp<1)));
+
+    await host.evaluate(()=>{const p=Game.state.players[1];Game.state.pickups=[{kind:'cofre',x:p.x,y:p.y,t:0}];Game.step();});
+    await guest.waitForFunction(()=>[...document.querySelectorAll('.toast')].some(t=>t.textContent.includes('¡Cofre!')));
+    assert.ok(await guest.locator('.toast').count()>=2,'guest sees the reward as well as the coins');
+    assert.equal(await host.evaluate(()=>Game.state.chests),1);
     await host.evaluate(()=>Game.finish(false));
     await guest.waitForSelector('#end:not([hidden])');
     assert.equal(await guest.evaluate(()=>Save.get().runs),1,'guest receives and saves the final result');
@@ -125,6 +135,6 @@ const assert = require('node:assert/strict');
     const tick=await host.evaluate(()=>Game.state.t);
     await host.waitForFunction(t=>Game.state.t>t,tick,{timeout:5000});
     assert.deepEqual(errors,[]);
-    console.log(`Online (${process.env.RTC_TEST_MODE === 'mock' ? 'mock transport' : 'real local RTC'}): room, guest movement, final results, shared level up, guest reroll and disconnect during choice passed`);
+    console.log(`Online (${process.env.RTC_TEST_MODE === 'mock' ? 'mock transport' : 'real local RTC'}): room, guest movement, final results, shared level up, chest reward, guest reroll and disconnect during choice passed`);
   } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

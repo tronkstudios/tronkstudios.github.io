@@ -627,3 +627,77 @@ TS.TECHNIQUES = Object.fromEntries(personalMoves.map(([id,burst,burstEn,ring,rin
 for (const wave of TS.WAVES) wave.from *= TS.RUN_SECONDS / 600;
 for (const horde of TS.HORDES) horde.at *= TS.RUN_SECONDS / 600;
 for (const boss of TS.BOSSES) boss.at = boss.id === "rey" ? TS.RUN_SECONDS : boss.at * TS.RUN_SECONDS / 600;
+
+
+// Lumen: apoyo cooperativo, con un faro que nunca cambia por armas ajenas.
+TS.CHARACTERS.push({id:"lumen",name:"Lumen",rarity:"epico",from:"Nuevo",weapon:"faro",skin:"light",
+  hair:"hood",hairColor:"#e6dfbe",acc:"#80e3d0",shirt:"#398c89",pants:"#243d50",
+  perk:{reviveSpeed:.5},perkText:"Reanima un 50 % más rápido",
+  desc:"Guardiana de los caminos. Su báculo faro emite ondas de luz y ayuda a levantar a los compañeros caídos."});
+TS.WEAPONS.faro={name:"Báculo faro",desc:"Emite un pulso de luz que golpea a los enemigos cercanos.",
+  levels:Array.from({length:6},(_,i)=>({dmg:14+i*5,cd:108-i*8,count:1,area:1+i*.1}))};
+TS.EVOLUTIONS.faro={passive:"tirita",name:"Faro del Alba",desc:"Pulsos de luz más amplios y potentes."};
+TS.ABILITIES.lumen={name:"Luz de auxilio",desc:"Cura un 25 % a los aliados cercanos y adelanta un segundo su reanimación.",cd:32};
+TS.TECHNIQUES.lumen=[
+  {id:"burst",name:"Destello concentrado",nameEn:"Focused Flash",desc:"Refuerza el pulso de tu báculo.",descEn:"Strengthens your staff's pulse.",cd:240,max:3},
+  {id:"ring",name:"Círculo del alba",nameEn:"Dawn Circle",desc:"Expande una onda de luz alrededor de ti.",descEn:"Expands a wave of light around you.",cd:420,max:3}
+];
+
+TS.CHARACTERS.push(
+ {id:"iria",name:"Iria",rarity:"raro",from:"Nuevo",weapon:"arco",skin:"light",hair:"longCurly",hairColor:"#763e30",acc:"#edbd78",shirt:"#668452",pants:"#344340",perk:{amount:1},perkText:"Un proyectil adicional",desc:"Exploradora del bosque. Su arco atraviesa las líneas enemigas y su lluvia de flechas despeja el camino."},
+ {id:"boro",name:"Boro",rarity:"epico",from:"Nuevo",weapon:"bobina",skin:"dark",hair:"visor",hairColor:"#303c4a",acc:"#7ce8ff",shirt:"#cf9452",pants:"#303c4a",perk:{area:.12},perkText:"+12 % de área",desc:"Electricista de las barricadas. Carga una bobina portátil que encadena descargas entre los enemigos."},
+ {id:"vega",name:"Vega",rarity:"legendario",from:"Nuevo",weapon:"abanico",skin:"light",hair:"mane",hairColor:"#24283e",acc:"#ed8baf",shirt:"#b64e76",pants:"#24283e",perk:{speed:.1,cooldown:.05},perkText:"+10 % de velocidad, +5 % de recarga",desc:"Duelista de los tejados. Abre su abanico de acero para lanzar cuchillas y ejecutar barridos precisos."},
+ {id:"tala",name:"Tala",rarity:"raro",from:"Nuevo",weapon:"tambor",skin:"dark",hair:"capBack",hairColor:"#664333",acc:"#efce7a",shirt:"#b26c43",pants:"#374850",perk:{armor:1},perkText:"+1 de armadura",desc:"Percusionista de la resistencia. Su tambor de guerra emite ondas que golpean y apartan a la horda."}
+);
+for(const [id,family,name,desc] of [
+ ["arco","virote","Arco de exploradora","Dispara flechas que atraviesan enemigos."],
+ ["bobina","rayo","Bobina Tesla","Encadena descargas eléctricas entre enemigos."],
+ ["abanico","kunai","Abanico de acero","Lanza cuchillas de acero en abanico."],
+ ["tambor","mazazo","Tambor de guerra","Lanza ondas de percusión alrededor de ti."]
+]) TS.WEAPONS[id]={family,name,desc,levels:TS.WEAPONS[family].levels.map(level=>({...level}))};
+Object.assign(TS.EVOLUTIONS,{
+ arco:{passive:"reloj",name:"Arco del Horizonte",desc:"Una lluvia de flechas más rápida y penetrante."},
+ bobina:{passive:"libro",name:"Tormenta Tesla",desc:"Descargas más potentes que encadenan más enemigos."},
+ abanico:{passive:"clon",name:"Mil Hojas",desc:"Un abanico de cuchillas más amplio y potente."},
+ tambor:{passive:"corazon",name:"Latido de la Resistencia",desc:"Ondas de percusión enormes."}
+});
+Object.assign(TS.ABILITIES,{
+ iria:{name:"Lluvia de flechas",desc:"Dispara una corona de flechas perforantes.",cd:24},
+ boro:{name:"Cortocircuito",desc:"Una descarga daña y ralentiza a los enemigos cercanos.",cd:26},
+ vega:{name:"Danza de acero",desc:"Un barrido de cuchillas despeja el espacio a tu alrededor.",cd:22},
+ tala:{name:"Ritmo de rescate",desc:"Aparta a los enemigos y protege un instante a los aliados cercanos.",cd:30}
+});
+for(const id of ["iria","boro","vega","tala"]){
+ const weapon=TS.CHARACTERS.find(ch=>ch.id===id).weapon;
+ TS.TECHNIQUES[id]=[
+  {id:"burst",name:`Ráfaga de ${TS.WEAPONS[weapon].name.toLowerCase()}`,nameEn:`${TS.WEAPONS[weapon].name} burst`,desc:TS.WEAPONS[weapon].desc,descEn:"Reinforces your own weapon's attack.",cd:240,max:5},
+  {id:"ring",name:`Cerco de ${TS.WEAPONS[weapon].name.toLowerCase()}`,nameEn:`${TS.WEAPONS[weapon].name} circle`,desc:"Ataca alrededor con tu propia arma.",descEn:"Attacks around you with your own weapon.",cd:420,max:5}
+ ];
+}
+const advancedNames={
+ ranjay:["Filo penetrante","Muralla de acero","Golpe certero","Danza de Excalibur"],bruno:["Cadena de petardos","Cerco explosivo","Carga concentrada","Festival de pólvora"],
+ lia:["Esencia penetrante","Barrera perfumada","Extracto puro","Marea de aromas"],toto:["Tiro perforante","Defensa de balones","Chut decisivo","Lluvia de goles"],
+ omogos:["Virote penetrante","Defensa de virotes","Disparo certero","Tormenta de virotes"],finillos:["Impacto profundo","Muro sísmico","Golpe de cantera","Terremoto total"],
+ chambas:["Hacha penetrante","Defensa de hachas","Lanzamiento preciso","Vendaval de hachas"],frosti:["Aguja helada","Muro de escarcha","Cero absoluto","Noche polar"],
+ yant:["Punta penetrante","Guardia de lanzas","Estocada precisa","Danza celestial"],eledemak:["Jab profundo","Guardia cerrada","Gancho decisivo","Asalto del campeón"],
+ kaito:["Kunai penetrante","Guardia ninja","Golpe silencioso","Tormenta ninja"],nova:["Fragmento estelar","Barrera astral","Núcleo de estrella","Cielo en ruinas"],
+ sunk:["Puño penetrante","Guardia del titán","Golpe definitivo","Furia del titán"],quizo:["Arco eléctrico","Barrera de rayos","Rayo concentrado","Juicio de Zeus"],
+ zeta:["Láser perforante","Defensa del dron","Objetivo prioritario","Protocolo enjambre"],duna:["Tornado perforante","Muralla de viento","Ojo del huracán","Tormenta total"],
+ nix:["Discos penetrantes","Muro magnético","Órbita focal","Marea magnética"],savia:["Vial penetrante","Jardín defensivo","Ácido concentrado","Diluvio cáustico"],
+ brasa:["Chorro penetrante","Muro de brasas","Núcleo de forja","Infierno de la forja"],lumen:["Luz penetrante","Muralla del alba","Foco del faro","Amanecer total"],
+ iria:["Flecha penetrante","Cerco de flechas","Ojo de halcón","Horizonte de flechas"],boro:["Carga penetrante","Cerco voltaico","Núcleo Tesla","Apagón total"],
+ vega:["Hoja penetrante","Guardia de seda","Corte preciso","Danza de mil hojas"],tala:["Ritmo profundo","Muro de sonido","Latido concentrado","Estrépito total"]
+};
+for(const ch of TS.CHARACTERS){
+ const list=TS.TECHNIQUES[ch.id];
+ list.forEach(move=>{move.max=5;move.unlock=1;});
+ const specs=[
+  ["pierce",8,300,"Un ataque de tu arma con más alcance y penetración.","A longer-reaching, piercing attack with your weapon."],
+  ["guard",18,540,"Tu arma cubre la zona cercana y frena a los enemigos.","Your weapon covers nearby ground and slows enemies."],
+  ["focus",32,480,"Concentra la potencia de tu propia arma.","Concentrates your own weapon's power."],
+  ["surge",48,900,"Desata una técnica de gran área con tu arma.","Unleashes a large-area technique with your weapon."]
+ ];
+ specs.forEach(([id,unlock,cd,desc,descEn],i)=>list.push({id,unlock,cd,max:5,name:advancedNames[ch.id][i],nameEn:advancedNames[ch.id][i],desc,descEn}));
+}
+
+for(const moves of Object.values(TS.TECHNIQUES))for(const move of moves)move.at=({burst:0,ring:0,pierce:180,guard:420,focus:720,surge:1080})[move.id];

@@ -61,7 +61,7 @@ test('every character and weapon simulates without invalid coordinates', () => {
     Game.start([setup(ch.id)],{seed:12345});
     const p=Game.state.players[0]; p.stats.armor=10000; p.stats.regen=100;
     p.weapons=[{id:ch.weapon,lvl:6,evo:true,cd:0,combo:0,comboT:0,drones:[]}];
-    p.techniques={burst:3,ring:3};p.techCds={burst:0,ring:0};
+    p.techniques=Object.fromEntries(TS.TECHNIQUES[p.charId].map(m=>[m.id,5]));p.techCds=Object.fromEntries(TS.TECHNIQUES[p.charId].map(m=>[m.id,0]));
     for(let i=0;i<1800;i++) {
       if(Game.state.choosing) for(const id of Object.keys(Game.state.choosing)) Game.choose(+id,0);
       Game.setInput(0,{x:Math.sin(i/100),y:Math.cos(i/100),ab:Math.floor(i/300)}); Game.step();
@@ -184,7 +184,7 @@ test('a strong stationary build cannot remain immortal against the final encount
   const {Game,TS}=engine();Game.start([setup('zeta')],{seed:99});
   const st=Game.state,p=st.players[0];
   p.weapons=[{id:'dron',lvl:6,evo:true,cd:0,combo:0,comboT:0,drones:[]}];
-  p.techniques={burst:3,ring:3};p.techCds={burst:0,ring:0};
+  p.techniques=Object.fromEntries(TS.TECHNIQUES[p.charId].map(m=>[m.id,5]));p.techCds=Object.fromEntries(TS.TECHNIQUES[p.charId].map(m=>[m.id,0]));
   p.passives=Object.fromEntries(Object.entries(TS.PASSIVES).map(([id,d])=>[id,d.max]));
   p.meta={maxHp:1,might:1,armor:3,regen:.5,cooldown:.2,area:.5,amount:2};
   p.stats={...p.stats,maxHp:300,might:2.5,armor:8,regen:2,area:3,cdMul:.45,amount:3,revive:1};p.hp=300;
@@ -227,12 +227,13 @@ test('the late final boss resists permanent slows and its projectiles scale with
   boss.ai='boss_king';boss.t=149;Game.step();
   assert.ok(st.eshots.some(s=>s.kind==='goo'&&s.dmg>9));
 });
-test('every character learns only its own weapon and two personal techniques, including chest rewards', () => {
+test('every character learns only its own weapon and six personal techniques, including chest rewards', () => {
   const {Game,TS}=engine();
   for(const ch of TS.CHARACTERS) {
     Game.start([setup(ch.id)],{seed:31});const p=Game.state.players[0];
-    assert.equal(TS.TECHNIQUES[ch.id].length,2);
-    for(let level=0;level<45;level++) {
+    assert.equal(TS.TECHNIQUES[ch.id].length,6);
+    for(let level=0;level<90;level++) {
+      Game.state.t=Math.min(TS.RUN_SECONDS-1,level*25)*60;
       Game.state.xp=Game.state.xpNext;Game.step();
       const options=Game.state.choosing[0];
       for(const option of options) {
@@ -244,7 +245,7 @@ test('every character learns only its own weapon and two personal techniques, in
       Game.choose(0,Math.max(0,index));
       assert.deepEqual(Array.from(p.weapons,w=>w.id),[ch.weapon]);
     }
-    assert.equal(p.techniques.burst,3,ch.id);assert.equal(p.techniques.ring,3,ch.id);
+    for(const move of TS.TECHNIQUES[ch.id])assert.equal(p.techniques[move.id],5,ch.id+move.id);
     Game.state.pickups.push({kind:'cofre',x:p.x,y:p.y-6,t:0});Game.step();
     assert.deepEqual(Array.from(p.weapons,w=>w.id),[ch.weapon],ch.id+' chest');
   }
@@ -261,14 +262,14 @@ test('all personal techniques execute with their own weapon and survive the gues
   for(const ch of TS.CHARACTERS) {
     Game.start([setup(ch.id)],{seed:14});const p=Game.state.players[0];
     p.weapons[0].lvl=6;p.weapons[0].evo=true;p.weapons[0].cd=999;
-    p.techniques={burst:3,ring:3};p.techCds={burst:0,ring:0};
+    p.techniques=Object.fromEntries(TS.TECHNIQUES[p.charId].map(m=>[m.id,5]));p.techCds=Object.fromEntries(TS.TECHNIQUES[p.charId].map(m=>[m.id,0]));
     Game.state.enemies=[{id:999,type:'zombi',x:p.x+80,y:p.y,r:10,hp:100000,maxHp:100000,speed:0,dmg:0,ai:'chase',prop:false,
       t:0,vx:0,vy:0,kx:0,ky:0,slow:0,slowAmt:0,dodgeCd:0,atk:0}];
     for(let i=0;i<20;i++)Game.step();
     assert.ok(p.techCds.burst>0&&p.techCds.ring>0,ch.id);
     for(const zone of Game.state.zones)for(const [key,value] of Object.entries(zone))if(typeof value==='number')assert.ok(Number.isFinite(value),ch.id+':'+key);
     const snap=Game.snapshot([p]);Game.startGuest({localId:0,players:[setup(ch.id)]});Game.applySnapshot(snap);
-    assert.equal(Game.state.players[0].techniques.burst,3,ch.id);assert.equal(Game.hudData().techniques.length,2);
+    assert.equal(Game.state.players[0].techniques.burst,5,ch.id);assert.equal(Game.hudData().techniques.length,6);
   }
 });
 test('the pre-final schedule covers twenty-five minutes without ending the increase in difficulty', () => {
@@ -281,10 +282,10 @@ test('the pre-final schedule covers twenty-five minutes without ending the incre
   }
 });
 test('sword and spear characters produce only attacks from their own weapon family', () => {
-  const {Game}=engine();
+  const {Game,TS}=engine();
   for(const [id,type] of [['ranjay','slash'],['yant','thrust']]) {
     Game.start([setup(id)]);const p=Game.state.players[0];
-    p.weapons[0].cd=0;p.techniques={burst:3,ring:3};p.techCds={burst:0,ring:0};p.abCd=0;
+    p.weapons[0].cd=0;p.techniques=Object.fromEntries(TS.TECHNIQUES[p.charId].map(m=>[m.id,5]));p.techCds=Object.fromEntries(TS.TECHNIQUES[p.charId].map(m=>[m.id,0]));p.abCd=0;
     Game.setInput(0,{x:0,y:0,ab:1});Game.step();
     assert.ok(Game.state.zones.length>0,id);
     assert.ok(Game.state.zones.every(z=>z.type===type),id);
@@ -317,7 +318,7 @@ test('level four native weapons offer their evolution passive before filling inv
 });
 test('elites start at minute five, scale independently and have a bounded population',()=>{
   const {Game}=engine();Game.start([setup('ranjay')],{seed:55});const st=Game.state,p=st.players[0];
-  p.stats.armor=100000;p.weapons[0].cd=100000;
+  p.stats.armor=100000;p.weapons[0].cd=100000;st.nextBreach=Infinity;
   st.t=300*60-2;Game.step();assert.equal(st.enemies.filter(e=>e.elite).length,0);
   Game.step();const first=st.enemies.find(e=>e.elite);assert.ok(first);
   const def=engine().TS.ENEMIES[first.type];assert.equal(first.baseMaxHp,def.hp*3);assert.equal(first.baseDmg,def.dmg*1.35);
@@ -329,10 +330,10 @@ test('elite kills grant five times XP, extra coins and actual damage rather than
   const {Game,TS}=engine();Game.start([setup('lia')],{seed:44});const st=Game.state,p=st.players[0];
   st.t=300*60-1;Game.step();const elite=st.enemies.find(e=>e.elite);
   st.enemies=[elite];elite.x=p.x+22;elite.y=p.y;elite.hp=3;elite.speed=0;elite.baseSpeed=0;elite.dmg=0;
-  p.weapons[0].cd=0;p.stats.might=10000;Game.step();
+  st.xpNext=1e9;p.weapons[0].cd=0;p.stats.might=10000;Game.step();
   assert.equal(p.combat.elites,1);assert.equal(p.combat.dealt,3);assert.equal(st.kills,1);
-  assert.ok(st.gems.some(g=>g.v===TS.ENEMIES[elite.type].xp*5));
-  assert.ok(st.pickups.filter(it=>it.kind==='moneda').length>=5);
+  assert.equal(st.xp/(p.stats.growth*st.mod.xp)+st.gems.reduce((n,g)=>n+g.v,0),TS.ENEMIES[elite.type].xp*5);
+  assert.ok(st.coins+st.pickups.filter(it=>it.kind==='moneda').length>=5);
 });
 test('healing records only recovered HP and cannot silently revive a downed player',()=>{
   const {Game}=engine();Game.start([setup('ranjay'),setup('lia')]);const st=Game.state,p=st.players[0];
@@ -370,4 +371,103 @@ test('chest rewards skip disconnected peers and results include individual comba
   st.pickups=[{kind:'cofre',x:st.players[0].x,y:st.players[0].y-6,t:0}];Game.step();
   assert.equal(st.chests,1);assert.equal(JSON.stringify(st.players[1].weapons),ghost);
   Game.finish(false);assert.equal(result.chests,1);assert.equal(result.combat.length,2);assert.equal(result.combat[0].taken,0);
+});
+
+test('ground pickups collect at player feet from every approach and trigger only once',()=>{
+  const {Game}=engine();
+  for(const kind of ['moneda','bocadillo','iman','cofre'])for(const [dx,dy] of [[25,0],[-25,0],[0,25],[0,-25]]){
+    Game.start([setup('ranjay')],{seed:24});const st=Game.state,p=st.players[0];p.hp=50;
+    st.pickups=[{kind,x:p.x+dx,y:p.y+dy,t:0}];
+    Game.step();assert.equal(st.pickups.length,0,`${kind}: ${dx},${dy}`);
+    if(kind==='cofre')assert.equal(st.chests,1);
+    if(kind==='bocadillo')assert.equal(p.hp,80);
+    const coins=st.coins;Game.step();assert.equal(st.coins,coins);
+  }
+});
+test('objects within attraction range are rescued from positions too far for the old collection radius',()=>{
+  const {Game}=engine();
+  for(const kind of ['bocadillo','iman','cofre']){
+    Game.start([setup('ranjay')]);const st=Game.state,p=st.players[0];p.hp=50;
+    st.pickups=[{kind,x:p.x+50,y:p.y,t:0}];
+    for(let i=0;i<8;i++)Game.step();
+    assert.equal(st.pickups.length,0,kind);
+    if(kind==='cofre')assert.equal(st.chests,1);
+  }
+});
+test('a shared object goes to the nearest living player and is never pulled twice',()=>{
+  const {Game}=engine();Game.start([setup('ranjay'),setup('lia')]);const st=Game.state,[a,b]=st.players;
+  a.x=0;a.y=0;b.x=50;b.y=0;a.hp=b.hp=30;
+  st.pickups=[{kind:'bocadillo',x:40,y:0,t:0}];Game.step();
+  assert.equal(a.hp,30);assert.equal(b.hp,60);assert.equal(st.pickups.length,0);
+  st.pickups=[{kind:'moneda',x:25,y:0,t:0}];Game.step();assert.equal(st.coins,1);
+  Game.dropPlayer(1);a.hp=30;st.pickups=[{kind:'bocadillo',x:15,y:0,t:0}];Game.step();
+  assert.equal(a.hp,60);assert.equal(b.hp,0);
+});
+test('gem attraction cannot overshoot the player and keeps all experience',()=>{
+  const {Game}=engine();Game.start([setup('ranjay')]);const st=Game.state,p=st.players[0];st.xpNext=1e9;
+  st.gems=[{x:p.x+1,y:p.y,v:7,t:10000,pull:true},{x:p.x,y:p.y-18,v:3,t:0,pull:false}];
+  Game.step();assert.equal(st.gems.length,0);assert.equal(st.xp,10);
+});
+
+test('all 24 characters have a native weapon, six staged techniques and an active ability',()=>{
+  const {TS,Game}=engine();assert.equal(TS.CHARACTERS.length,24);
+  for(const ch of TS.CHARACTERS){
+    assert.ok(TS.WEAPONS[ch.weapon] && TS.EVOLUTIONS[ch.weapon] && TS.ABILITIES[ch.id],ch.id);
+    const moves=TS.TECHNIQUES[ch.id];assert.equal(moves.length,6);assert.equal(new Set(moves.map(m=>m.id)).size,6);
+    assert.equal(moves.at(-1).unlock,48);assert.ok(moves.every(m=>m.max===5));
+    Game.start([setup(ch.id)],{seed:48});Game.state.xp=Game.state.xpNext;Game.step();
+    assert.ok(Game.state.choosing[0].filter(o=>o.kind==='technique').every(o=>moves.find(m=>m.id===o.id).unlock<=2));
+  }
+});
+test('Duna keeps unlocking new moves later and gains four distinct tornado patterns',()=>{
+  const {Game}=engine();const patterns={pierce:'straight',guard:'orbit',focus:'stationary',surge:'spiral'};
+  for(const [id,flag] of Object.entries(patterns)){
+    Game.start([setup('duna')],{seed:1});const p=Game.state.players[0];p.weapons[0].cd=999;
+    p.techniques={[id]:4};p.techCds={[id]:0};Game.step();
+    assert.ok(Game.state.zones.length>0,id);assert.ok(Game.state.zones.every(z=>z.type==='tornado'&&z[flag]),id);
+    assert.equal(p.weapons.length,1);assert.equal(p.weapons[0].id,'tornado');
+  }
+  Game.start([setup('duna')]);const st=Game.state,p=st.players[0];p.techniques={burst:5,ring:5,pierce:5,guard:5,focus:5};
+  st.level=47;st.t=1080*60;st.xp=st.xpNext;Game.step();assert.ok(st.choosing[0].some(o=>o.id==='surge'));
+  Game.choose(0,st.choosing[0].findIndex(o=>o.id==='surge'));st.xp=st.xpNext;Game.step();
+  assert.equal(st.choosing[0].some(o=>o.id==='surge'),false,'next rank waits until level 52 and another 75 seconds');
+  Game.start([setup('duna')]);Game.state.level=99;Game.state.t=900*60;Game.state.xp=Game.state.xpNext;Game.step();
+  assert.equal(Game.state.choosing[0].some(o=>o.id==='surge'),false,'the final technique remains locked at minute 15 even with a high level');
+});
+test('breach objective pays a chest and magnet only after its four marked enemies die',()=>{
+  const {Game}=engine();Game.start([setup('lia')],{seed:8});const st=Game.state,p=st.players[0];
+  p.weapons[0].cd=99999;p.stats.might=1e6;p.stats.armor=100000;st.t=120*60-1;Game.step();
+  assert.equal(st.breach.remaining,4);const targets=st.enemies.filter(e=>e.breach);assert.equal(targets.length,4);
+  for(const e of targets){e.x=p.x+20;e.y=p.y;e.baseSpeed=0;e.speed=0;}
+  p.weapons[0].cd=0;Game.step();assert.equal(st.breach,null);
+  assert.equal(st.chests,1,'the nearby chest is collected once');assert.equal(st.pickups.filter(it=>it.kind==='cofre').length,0);
+  assert.ok(st.nextBreach>st.t);const chests=st.chests;Game.step();assert.equal(st.chests,chests);
+});
+test('Lumen heals allies, accelerates a nearby revival and never revives disconnected peers',()=>{
+  const {Game}=engine();Game.start([setup('lumen'),setup('ranjay'),setup('lia')]);const st=Game.state,[p,a,b]=st.players;
+  a.hp=50;p.hp=50;b.down=true;b.hp=0;b.x=20;b.y=0;p.x=0;p.y=0;p.abCd=0;
+  Game.setInput(0,{x:0,y:0,ab:1});Game.step();assert.equal(a.hp,75);assert.equal(p.hp,75);assert.ok(b.reviveT>=60);
+  const progress=b.reviveT;Game.step();assert.equal(b.reviveT-progress,1.5);
+  const d=Game.hudData();assert.ok(d.players[2].revivePct>0);assert.equal(d.players[2].reviver,0);
+  Game.dropPlayer(2);p.abCd=0;Game.setInput(0,{x:0,y:0,ab:2});Game.step();assert.equal(b.down,true);assert.equal(b.hp,0);
+});
+test('enemy health, breach progress and reviver identity round trip in guest snapshots',()=>{
+  const {Game}=engine();Game.start([setup('lumen'),setup('ranjay')],{seed:3});const st=Game.state,p=st.players[0];
+  st.t=120*60-1;Game.step();const e=st.enemies.find(e=>e.breach);e.x=p.x+80;e.y=p.y;e.hp=e.maxHp*.45;
+  const ally=st.players[1];ally.down=true;ally.hp=0;ally.x=p.x;ally.y=p.y;Game.step();
+  const snap=Game.snapshot([p]),id=e.id;Game.startGuest({localId:0,players:[setup('lumen'),setup('ranjay')]});Game.applySnapshot(snap);
+  assert.equal(Game.state.enemies.find(e=>e.id===id).hp,.45);assert.equal(Game.hudData().breach.remaining,4);
+  assert.equal(Game.hudData().players[1].reviver,0);assert.ok(Game.hudData().players[1].revivePct>0);
+});
+
+test('overlapping Duna tornadoes share damage windows while different players still contribute',()=>{
+ const damage=(zones,owners=1)=>{
+  const {Game}=engine();Game.start(Array.from({length:owners},()=>setup('duna')),{seed:42});
+  const st=Game.state;st.players.forEach(p=>p.weapons[0].cd=9999);
+  const p=st.players[0];const e={id:999,type:'zombi',x:p.x+90,y:p.y,r:10,hp:1000,maxHp:1000,speed:0,dmg:0,ai:'chase',t:0,vx:0,vy:0,kx:0,ky:0,slow:0,slowAmt:0,atk:0};
+  st.enemies=[e];st.zones=Array.from({length:zones},(_,i)=>({type:'tornado',x:e.x,y:e.y,vx:0,vy:0,t:13,life:100,r:25,dmg:20,owner:i%owners,stationary:true}));
+  Game.step();return 1000-e.hp;
+ };
+ assert.equal(damage(20),damage(1),'20 overlapping tornadoes do not multiply one player damage by 20');
+ assert.ok(damage(2,2)>damage(1),'cooperative players both deal damage');
 });

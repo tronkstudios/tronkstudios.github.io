@@ -6,8 +6,8 @@ Las pruebas de simulación no requieren dependencias:
 node --test tests/survivors.test.cjs
 ```
 
-Las 32 pruebas cubren el cofre, pausa de efectos, desconexiones durante elecciones,
-instantáneas online, 19 personajes con su arma y técnicas propias, jefes finales de los cuatro
+Las 42 pruebas cubren el cofre, pausa de efectos, desconexiones durante elecciones,
+instantáneas online, 24 personajes con su arma y técnicas propias, jefes finales de los cuatro
 mapas y fases finales sucesivas, colisiones con enemigos grandes, ralentizaciones, recargas,
 fusión de progreso remoto, datos guardados incompletos y tickets de partidas que
 terminan mientras empieza otra. Añaden agua transitable con ralentización,
@@ -29,6 +29,8 @@ node tests/survivors.browser.cjs
 node tests/survivors.mobile.cjs
 node tests/survivors.features.cjs
 node tests/survivors.polish.cjs
+node tests/survivors.expansion.cjs
+node tests/survivors.rewards.cjs
 node tests/survivors.online.cjs
 # Probar el protocolo de juego con transporte simulado:
 RTC_TEST_MODE=mock node tests/survivors.online.cjs
@@ -42,15 +44,24 @@ Chromium no tiene su CA instalada; no modifica la configuración del juego.
   personajes, enemigos y jefes, con WebGL y con Three.js bloqueado para forzar
   2D. Detecta recortes y coordenadas de dibujo no finitas en todos los fotogramas
   normales; comprueba que sus destellos conservan las dimensiones, pies y alfa.
-- **Contenido nuevo:** los 19 personajes, sus dos técnicas y habilidad en 2D/3D,
+- **Contenido nuevo:** los 24 personajes, sus seis técnicas y habilidad en 2D/3D,
   efectos de sus armas, HUD final al minuto 25 y vista cercana de enemigos 3D.
 - **Diseño y usabilidad:** menú, HUD con élites y brújula, recargas de técnicas,
   guía de evolución, métricas, cambios de opciones, foco de teclado dentro de
   modales, pausa al perder el foco y persistencia de cámara/accesibilidad;
   ordenador con 3D, fallback 2D y móvil.
+- **Cofres y objetos:** apertura real de 1 y 10 premios con animaciones y
+  movimiento reducido, en ordenador 3D y móvil 2D; nombres e imágenes visibles,
+  pulsación doble sin gasto duplicado, orden por rareza sin alterar el reto diario,
+  recogida desde cuatro direcciones y aviso de recompensa para invitados online.
+- **Ampliación de combate:** 24 ilustraciones sin recortes, iconos de todas las
+  armas, técnicas I–VI, barras de vida configurables, objetivo de brecha,
+  reanimación cooperativa y traducción de los nuevos ajustes en móvil y escritorio.
+  La simulación comprueba también los requisitos de nivel/tiempo, las recompensas
+  de brechas y que superponer tornados no multiplique el daño de Duna.
 - **Móvil emulado:** entrar desde el menú, joystick, varios dedos, habilidad
   mientras te mueves, soltar el joystick, pausa, elección de mejora, rotación,
-  distribución con arma propia, dos técnicas y seis pasivas y reinicio. Se usa 2D por defecto
+  distribución con arma propia, seis técnicas y seis pasivas y reinicio. Se usa 2D por defecto
   en dispositivos que solo tienen puntero táctil para reducir la carga gráfica.
 - **Online:** sala, movimiento del invitado, entrega y guardado del resultado,
   segunda partida, cambio de opciones del invitado y desconexión con una elección pendiente. Supabase, cuenta

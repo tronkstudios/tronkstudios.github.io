@@ -434,6 +434,23 @@ const Stick = (() => {
     ctx.lineCap = "round"; ctx.lineJoin = "round";
     const wood = "#7a4a26", steel = "#dfe6f0", steelDk = "#5b6b80";
     switch (type) {
+      case "faro":
+        ctx.strokeStyle="#426b68";ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(0,-20);ctx.lineTo(0,75);ctx.stroke();
+        ctx.fillStyle="#f2d18b";ctx.fillRect(-11,65,22,6);ctx.fillRect(-11,94,22,5);
+        ctx.fillStyle="#80e3d0";ctx.fillRect(-8,72,16,20);ctx.strokeStyle="#fff1c9";ctx.lineWidth=2;ctx.strokeRect(-8,72,16,20);break;
+      case "arco":
+        ctx.strokeStyle="#9d7249";ctx.lineWidth=5;ctx.beginPath();ctx.arc(-8,20,36,-1.3,1.3);ctx.stroke();
+        ctx.strokeStyle="#eee2be";ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(2,-15);ctx.lineTo(2,55);ctx.stroke();break;
+      case "bobina":
+        ctx.fillStyle="#35434b";ctx.fillRect(-7,-12,14,28);ctx.strokeStyle="#dcb56b";ctx.lineWidth=3;
+        for(let i=0;i<4;i++){ctx.beginPath();ctx.ellipse(0,15+i*7,12,3,0,0,Math.PI*2);ctx.stroke();}
+        ctx.fillStyle="#91ecff";ctx.beginPath();ctx.arc(0,43,7,0,Math.PI*2);ctx.fill();break;
+      case "abanico":
+        ctx.fillStyle="#eeb4c8";ctx.strokeStyle="#292f4a";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,34,.15,Math.PI-.15);ctx.closePath();ctx.fill();ctx.stroke();
+        for(let i=0;i<6;i++){const a=.15+i*(Math.PI-.3)/5;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Math.cos(a)*34,Math.sin(a)*34);ctx.stroke();}break;
+      case "tambor":
+        ctx.fillStyle="#aa7042";ctx.fillRect(-18,-10,36,28);ctx.fillStyle="#e9d2a0";ctx.beginPath();ctx.ellipse(0,-10,18,7,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#4b3e36";ctx.lineWidth=2;ctx.stroke();
+        ctx.strokeStyle="#e9d2a0";for(let i=-15;i<17;i+=10){ctx.beginPath();ctx.moveTo(i,-5);ctx.lineTo(i+5,18);ctx.stroke();}break;
       case "magnet":
         ctx.strokeStyle="#64f5ff";ctx.lineWidth=6;ctx.beginPath();ctx.arc(0,12,14,0,Math.PI*2);ctx.stroke();
         ctx.fillStyle="#264653";ctx.fillRect(-5,-4,10,14);break;
@@ -527,6 +544,7 @@ const Stick = (() => {
 
   // Arma de Survivors → cómo se dibuja y cómo se mueve
   const WEAPON = {
+    faro:["faro",100,"cast"], arco:["arco",64,"shoot"], bobina:["bobina",40,"cast"], abanico:["abanico",30,"throw"], tambor:["tambor",35,"smash"],
     discos: ["magnet", 0, "cast"], acido: ["vial", 0, "throw"], llamas: ["flamer", 40, "shoot"],
     tajo: ["espada", 74, "slash"], virote: ["ballesta", 46, "shoot"], mazazo: ["mazo", 70, "smash"], estocada: ["lanza", 132, "thrust"],
     hacha: ["hacha", 78, "slash"], rayo: ["tridente", 116, "thrust"], guantes: [null, 0, "punch", "gloves"], punos: [null, 0, "punch", "fists"],
@@ -588,6 +606,13 @@ const Stick = (() => {
     } else {
       add(hip[2] + 0.1, () => {
         bone(ctx, [hip, neck], col, 8 * k * (o.torso || 1));
+        if(o.illustration && !o.abs) {
+          const sw=15*Math.max(.45,Math.abs(cy)),hw=10*Math.max(.45,Math.abs(cy));
+          ctx.fillStyle=col;ctx.strokeStyle=INK;ctx.lineWidth=2.5;
+          ctx.beginPath();ctx.moveTo(sh[0]-sw,sh[1]-4);ctx.lineTo(sh[0]+sw,sh[1]-4);ctx.lineTo(hip[0]+hw,hip[1]+4);ctx.lineTo(hip[0]-hw,hip[1]+4);ctx.closePath();ctx.fill();ctx.stroke();
+          ctx.strokeStyle=shade(o.color,-.3);ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(sh[0],sh[1]+4);ctx.lineTo(hip[0],hip[1]);ctx.stroke();
+          ctx.strokeStyle=o.acc || "#e9cf90";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(hip[0]-hw,hip[1]-3);ctx.lineTo(hip[0]+hw,hip[1]-3);ctx.stroke();
+        }
         if (o.abs && !flash && cy > 0) {
           ctx.strokeStyle = shade(o.color, -0.3); ctx.lineWidth = 1.5;
           for (const t of [0.25, 0.45, 0.65]) { const x = lerp(hip[0], neck[0], t), y = lerp(hip[1], neck[1], t); ctx.beginPath(); ctx.moveTo(x - 4, y); ctx.lineTo(x + 4, y); ctx.stroke(); }
@@ -695,6 +720,7 @@ const Stick = (() => {
   /* ---------- personajes (de data.js) ---------- */
   function characterOptions(ch) {
     const o = { role: ch.id, color: ch.shirt, hair: ch.hair, hairColor: ch.hairColor, acc: ch.acc, weapon: ch.weapon, glasses: ch.glasses };
+    if(ch.id==="lumen") o.cape="#d8d0ac";
     if (ch.id === "savia") o.cape = "#513659";
     if (ch.id === "brasa") o.thick = 1.2;
     if (ch.id === "omogos") Object.assign(o, { hair: "curly", beard: true });
@@ -738,8 +764,23 @@ const Stick = (() => {
     return out;
   }
 
+  // Ilustración de menú: se vuelve a dibujar a alta resolución, con ropa y botas.
+  function illustration(ch, view="down") {
+    const raw=document.createElement("canvas");raw.width=raw.height=960;
+    const g=raw.getContext("2d");g.translate(480,720);g.scale(2.1,2.1);
+    const o={...characterOptions(ch),illustration:true,legs:ch.pants || ch.shirt};
+    drawFigure(g,o,pose((WEAPON[o.weapon] || WEAPON.none)[2],"idle"),false,VIEWS[view] ?? 0);
+    const pixels=g.getImageData(0,0,960,960).data;
+    let x0=960,y0=960,x1=0,y1=0;
+    for(let y=0;y<960;y++)for(let x=0;x<960;x++)if(pixels[(y*960+x)*4+3]){x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y);}
+    const out=document.createElement("canvas");out.width=360;out.height=420;out.res=6;
+    const w=x1-x0+1,h=y1-y0+1,scale=Math.min(336/w,396/h);
+    out.getContext("2d").drawImage(raw,x0,y0,w,h,(360-w*scale)/2,(420-h*scale)/2,w*scale,h*scale);
+    return out;
+  }
+
   // El esqueleto, para el motor 3D (render3d.js)
   const rig = { pose, joints, LAT, WEAPON, styleOf: (o) => (WEAPON[o.weapon] || WEAPON.none)[2] };
 
-  return { set, portrait, characterOptions, ENEMIES, RES, rig };
+  return { set, portrait, illustration, characterOptions, ENEMIES, RES, rig };
 })();

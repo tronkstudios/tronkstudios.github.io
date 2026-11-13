@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Tronk Survivors · Juego de sobrevivir a hordas gratis | TronkStudios</title>
-  <meta name="description" content="Tronk Survivors: sobrevive a hordas de zombis, Antitronks y ninjas con 19 personajes stickman. Consigue personajes en el cofre, mejora tus armas y juega con tus amigos. Gratis en el navegador para ordenador, móvil y tablet." />
+  <meta name="description" content="Tronk Survivors: sobrevive a hordas de zombis, Antitronks y ninjas con 24 personajes stickman. Consigue personajes en el cofre, mejora tus armas y juega con tus amigos. Gratis en el navegador para ordenador, móvil y tablet." />
   <meta name="robots" content="index, follow, max-image-preview:large" />
   <link rel="canonical" href="https://tronkstudios.github.io/survivors/" />
   <meta name="theme-color" content="#120c24" />
@@ -13,7 +13,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="TronkStudios" />
   <meta property="og:title" content="Tronk Survivors · Sobrevive a las hordas" />
-  <meta property="og:description" content="19 personajes stickman, zombis, Antitronks, ninjas y 7 jefes. Gratis en el navegador." />
+  <meta property="og:description" content="24 personajes stickman, zombis, Antitronks, ninjas y 7 jefes. Gratis en el navegador." />
   <meta property="og:url" content="https://tronkstudios.github.io/survivors/" />
   <meta property="og:image" content="https://tronkstudios.github.io/img/juegos/tronk-survivors.webp" />
   <meta name="twitter:card" content="summary_large_image" />
@@ -21,7 +21,7 @@
     http-equiv="Content-Security-Policy"
     content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://qjjnqhbtovjcbwgcwhgl.supabase.co wss://qjjnqhbtovjcbwgcwhgl.supabase.co https://tronkstudios-support.tronkstudios7.workers.dev; object-src 'none'; base-uri 'self'; form-action 'self'"
   />
-  <link rel="stylesheet" href="survivors.css?v=8" />
+  <link rel="stylesheet" href="survivors.css?v=10" />
 </head>
 <body>
   <canvas id="game" aria-label="Tronk Survivors"></canvas>
@@ -41,7 +41,7 @@
         <p class="menu-eyebrow">SUPERVIVENCIA · COOPERATIVO</p>
         <h1 class="logo">TRONK<br /><span>SURVIVORS</span></h1>
         <p class="menu-intro">Domina tu arma. Resiste la horda.</p>
-        <div class="menu-chips"><span>19 personajes</span><span>19 armas</span><span>7 jefes</span><span>Online</span></div>
+        <div class="menu-chips"><span>24 personajes</span><span>24 armas</span><span>7 jefes</span><span>Online</span></div>
         <div class="menu-buttons">
           <button class="btn btn-big" data-go="maps"><img data-icon="tajo" alt="" loading="lazy" decoding="async" /> Jugar</button>
           <button class="btn btn-daily" data-go="daily"><img data-icon="reloj" alt="" loading="lazy" decoding="async" /> Reto diario <span id="menu-daily" class="badge" hidden>¡Nuevo!</span></button>
@@ -118,7 +118,8 @@
         <p>Los personajes repetidos suben de estrella (+5 % de daño y vida cada una, hasta 5). Con 5 estrellas, se cambian por monedas.</p>
       </details>
     </div>
-    <div class="gacha-reveal" id="gacha-reveal" hidden>
+    <div class="gacha-reveal" id="gacha-reveal" role="dialog" aria-modal="true" aria-labelledby="reveal-title" hidden>
+      <h2 id="reveal-title">Premios del cofre</h2>
       <div class="reveal-cards" id="reveal-cards"></div>
       <button class="btn btn-big" id="reveal-ok">¡Genial!</button>
     </div>
@@ -197,6 +198,7 @@
           <option value="en">English</option>
         </select>
       </label>
+      <label class="setting"><span>Barras de vida enemigas</span><select id="opt-bars"><option value="damaged">Al recibir daño</option><option value="always">Siempre</option><option value="off">Ocultas</option></select></label>
       <label class="setting"><span>Números de daño</span><input type="checkbox" id="opt-numbers" /></label>
       <label class="setting"><span>Temblor de pantalla</span><input type="checkbox" id="opt-shake" /></label>
       <label class="setting"><span>Calidad de los efectos</span>
@@ -246,6 +248,7 @@
     <div class="hud-bottom">
       <span class="hud-evo" id="hud-evo" hidden>¡Evolución disponible! Coge un cofre</span>
       <div class="hud-slots" id="hud-slots"></div>
+      <div class="hud-milestone" id="hud-milestone"></div>
       <p class="hud-hint">WASD o flechas para moverte · los ataques son automáticos · Espacio: habilidad · Esc pausa</p>
     </div>
     <div id="touch-pad" class="touch-pad" role="group" aria-label="Mover personaje"><span class="touch-stick"></span><small>Mover</small></div>
@@ -309,19 +312,19 @@
     </div>
   </div>
 
-  <script src="js/data.js?v=6" defer></script>
-  <script src="js/sprites.js?v=10" defer></script>
+  <script src="js/data.js?v=7" defer></script>
+  <script src="js/sprites.js?v=11" defer></script>
   <script src="js/people.js?v=4" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js" defer></script>
-  <script src="js/stick.js?v=13" defer></script>
-  <script src="js/render3d.js?v=5" defer></script>
+  <script src="js/stick.js?v=14" defer></script>
+  <script src="js/render3d.js?v=6" defer></script>
   <script src="js/audio.js?v=3" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-  <script src="js/lang.js?v=7" defer></script>
+  <script src="js/lang.js?v=9" defer></script>
   <script src="js/save.js?v=5" defer></script>
   <script src="js/account.js?v=4" defer></script>
-  <script src="js/game.js?v=15" defer></script>
-  <script src="js/net.js?v=7" defer></script>
-  <script src="js/ui.js?v=13" defer></script>
+  <script src="js/game.js?v=17" defer></script>
+  <script src="js/net.js?v=8" defer></script>
+  <script src="js/ui.js?v=15" defer></script>
 </body>
 </html>

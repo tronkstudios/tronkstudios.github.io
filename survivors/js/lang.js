@@ -568,3 +568,47 @@ Object.assign(EN, {
   "¡Élite derrotado!":"Elite defeated!", "Pantalla completa":"Fullscreen",
   "Pantalla completa no disponible":"Fullscreen unavailable"
 });
+
+EN["Premios del cofre"] = "Chest rewards";
+
+Object.assign(EN,{
+ "24 personajes":"24 characters","24 armas":"24 weapons",
+ "Barras de vida enemigas":"Enemy health bars","Al recibir daño":"When damaged","Siempre":"Always","Ocultas":"Hidden",
+ "Reanimación":"Reviving","Acerca un compañero":"Bring a teammate close","Desconectado":"Disconnected",
+ "Desbloqueo":"Unlock","rangos":"ranks","Brecha":"Breach","Próxima técnica":"Next technique","Rangos de técnicas":"Technique ranks",
+ "¡Brecha! Derrota a los cuatro élites turquesa":"Breach! Defeat the four teal elites",
+ "¡Brecha cerrada! Cofre e imán":"Breach closed! Chest and magnet",
+ "Reanima un 50 % más rápido":"Revives teammates 50% faster",
+ "Báculo faro":"Beacon staff","Faro del Alba":"Dawn Beacon","Luz de auxilio":"Rescue Light",
+ "Arco de exploradora":"Scout bow","Bobina Tesla":"Tesla coil","Abanico de acero":"Steel fan","Tambor de guerra":"War drum",
+ "Arco del Horizonte":"Horizon Bow","Tormenta Tesla":"Tesla Storm","Mil Hojas":"Thousand Blades","Latido de la Resistencia":"Heartbeat of Resistance",
+ "Lluvia de flechas":"Arrow Rain","Cortocircuito":"Short Circuit","Danza de acero":"Steel Dance","Ritmo de rescate":"Rescue Rhythm",
+ "Emite un pulso de luz que golpea a los enemigos cercanos.":"Emits a pulse of light that hits nearby enemies.",
+ "Cura un 25 % a los aliados cercanos y adelanta un segundo su reanimación.":"Heals nearby allies by 25% and advances their revival by one second.",
+ "Ataca alrededor con tu propia arma.":"Attacks around you with your own weapon."
+});
+const moveKindsEn={pierce:"Piercing attack",guard:"Defensive circle",focus:"Focused attack",surge:"Ultimate technique"};
+for(const ch of TS.CHARACTERS)for(const move of TS.TECHNIQUES[ch.id]){
+ if(moveKindsEn[move.id])EN[move.name]=`${ch.name} · ${moveKindsEn[move.id]}`;
+ EN[move.desc]=move.descEn;
+}
+Object.assign(EN,{"Tornado perforante":"Piercing Tornado","Muralla de viento":"Wind Wall","Ojo del huracán":"Eye of the Hurricane","Tormenta total":"Total Storm"});
+
+Object.assign(EN,{
+ "Mantén al compañero cerca":"Keep your teammate close","Un compañero debe acercarse":"A teammate must get close",
+ "Un proyectil adicional":"One extra projectile","+10 % de velocidad, +5 % de recarga":"+10% speed, +5% cooldown reduction",
+ "Guardiana de los caminos. Su báculo faro emite ondas de luz y ayuda a levantar a los compañeros caídos.":"A guardian of the roads. Her beacon staff emits light waves and helps revive fallen teammates.",
+ "Exploradora del bosque. Su arco atraviesa las líneas enemigas y su lluvia de flechas despeja el camino.":"A forest scout. Her bow pierces enemy ranks and her arrow rain clears the way.",
+ "Electricista de las barricadas. Carga una bobina portátil que encadena descargas entre los enemigos.":"A barricade electrician carrying a portable coil that chains discharges between enemies.",
+ "Duelista de los tejados. Abre su abanico de acero para lanzar cuchillas y ejecutar barridos precisos.":"A rooftop duelist. Her steel fan launches blades and delivers precise sweeps.",
+ "Percusionista de la resistencia. Su tambor de guerra emite ondas que golpean y apartan a la horda.":"A resistance percussionist. Her war drum sends out waves that hit and push back the horde.",
+ "Dispara flechas que atraviesan enemigos.":"Fires arrows that pierce enemies.","Encadena descargas eléctricas entre enemigos.":"Chains electrical discharges between enemies.",
+ "Lanza cuchillas de acero en abanico.":"Throws steel blades in a fan.","Lanza ondas de percusión alrededor de ti.":"Sends percussion waves around you.",
+ "Dispara una corona de flechas perforantes.":"Fires a crown of piercing arrows.","Una descarga daña y ralentiza a los enemigos cercanos.":"A discharge damages and slows nearby enemies.",
+ "Un barrido de cuchillas despeja el espacio a tu alrededor.":"A sweep of blades clears the space around you.","Aparta a los enemigos y protege un instante a los aliados cercanos.":"Pushes enemies back and briefly protects nearby allies."
+});
+for(const [id,names] of Object.entries({iria:["Arrow Volley","Arrow Circle"],boro:["Coil Burst","Electric Circle"],vega:["Steel Fan Volley","Blade Circle"],tala:["War Drum Roll","Percussion Circle"]})){
+ TS.TECHNIQUES[id].slice(0,2).forEach((move,i)=>EN[move.name]=names[i]);
+}
+
+EN["Técnica definitiva"]="Ultimate technique";
