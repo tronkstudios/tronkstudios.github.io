@@ -4,10 +4,10 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
-function engine() {
+function engine(raw = null) {
   const context = vm.createContext({ console, performance, Math, Map, Set,
     requestAnimationFrame: () => 1, cancelAnimationFrame() {},
-    localStorage: { getItem: () => null, setItem() {} },
+    localStorage: { getItem: () => raw && JSON.stringify(raw), setItem() {} },
     Sfx: new Proxy({}, { get: () => () => {} }),
     Sprites: { get() {} }, L: s => s, LT: s => s });
   for (const file of ['data', 'save', 'game']) vm.runInContext(fs.readFileSync(path.join(__dirname, `../survivors/js/${file}.js`), 'utf8'), context);
@@ -40,13 +40,14 @@ test('disconnect resolves pending choice and prevents reviving an absent peer', 
 test('guest round trip preserves attack and movement, ignores old packets, clears enemy cache', () => {
   const { Game } = engine(); Game.start([setup('ranjay')]);
   const p = Game.state.players[0]; p.moveX=-0.6; p.moveY=0.8; p.atk={t:8,total:18,ax:-0.3,ay:-0.7};
-  Game.state.t=20; Game.state.endless=true; Game.state.endlessStart=10;
+  Game.state.t=20; Game.state.endless=true; Game.state.endlessStart=10; Game.state.finalPhase=true; Game.state.finalRound=3; Game.setPaused(true);
   const snap = Game.snapshot([p]);
   const info={localId:0,players:[setup('ranjay')]};
   Game.startGuest(info); Game.applySnapshot(snap);
   assert.equal(Game.state.players[0].atk.ax, -0.3);
   assert.equal(Game.state.players[0].moveX, -0.6);
-  assert.equal(Game.state.endless, true);
+  assert.equal(Game.state.endless, true); assert.equal(Game.state.frozen,true);
+  assert.equal(Game.state.finalPhase,true);assert.equal(Game.state.finalRound,3);
   Game.applySnapshot({...snap,t:19,k:999}); assert.equal(Game.state.kills, 0);
   Game.state.fx.push({t:0,life:3}); Game.applySnapshot({...snap,t:24}); assert.equal(Game.state.fx.length,0);
   // A reused enemy ID must acquire the new run's type.
@@ -59,7 +60,8 @@ test('every character and weapon simulates without invalid coordinates', () => {
   for (const ch of TS.CHARACTERS) {
     Game.start([setup(ch.id)],{seed:12345});
     const p=Game.state.players[0]; p.stats.armor=10000; p.stats.regen=100;
-    p.weapons=Object.keys(TS.WEAPONS).map(id=>({id,lvl:6,evo:true,cd:0,combo:0,comboT:0,drones:[]}));
+    p.weapons=[{id:ch.weapon,lvl:6,evo:true,cd:0,combo:0,comboT:0,drones:[]}];
+    p.techniques={burst:3,ring:3};p.techCds={burst:0,ring:0};
     for(let i=0;i<1800;i++) {
       if(Game.state.choosing) for(const id of Object.keys(Game.state.choosing)) Game.choose(+id,0);
       Game.setInput(0,{x:Math.sin(i/100),y:Math.cos(i/100),ab:Math.floor(i/300)}); Game.step();
@@ -69,23 +71,303 @@ test('every character and weapon simulates without invalid coordinates', () => {
     assert.equal(Game.state.over,false,ch.id);
   }
 });
-test('all maps reach their final boss and can continue in endless mode', () => {
+test('all maps enter a relentless final encounter at twenty-five minutes and continue after a broken health bar', () => {
   const { Game, TS } = engine();
+  let result;Game.on('end',r=>{result=r;});
   for (const [map, def] of Object.entries(TS.MAPS)) {
     Game.start([setup('ranjay')],{seed:54321,map});
-    const st=Game.state,p=st.players[0]; p.stats.armor=10000;p.stats.might=1000;
-    p.stats.area=10; p.weapons=[{id:'colonia',lvl:6,evo:true,cd:0,combo:0,comboT:0,drones:[]}];
-    // Exercise the late wave and each final boss without waiting ten real minutes.
+    const st=Game.state,p=st.players[0];p.stats.armor=10000;p.stats.might=10000;
+    p.stats.area=10;p.weapons=[{id:'tajo',lvl:6,evo:true,cd:0,combo:0,comboT:0,drones:[]}];
     st.t=TS.RUN_SECONDS*60-1;st.bossIdx=TS.BOSSES.length-1;st.hordeIdx=TS.HORDES.length;
-    Game.step(); assert.equal(st.boss.type,def.finalBoss||'rey',map);
-    st.boss.x=p.x+10;st.boss.y=p.y+10;
-    for(let i=0;i<900&&!st.victoryWait;i++) {
-      if(st.choosing) for(const id of Object.keys(st.choosing)) Game.choose(+id,0);
-      Game.step();
-    }
-    assert.equal(st.victoryWait,true,map);
-    Game.continueEndless(); assert.equal(st.endless,true,map);
-    st.t=st.endlessBossT-1;Game.step(); assert.equal(st.endlessLoops,1,map);
+    Game.step();assert.equal(st.boss.type,def.finalBoss||'rey',map);
+    assert.equal(st.finalPhase,true);assert.equal(st.finalRound,1);
+    const boss=st.boss,hp=boss.maxHp;
+    boss.x=p.x+10;boss.y=p.y+10;
+    for(let i=0;i<80&&st.finalRound===1;i++)Game.step();
+    assert.ok(st.finalRound>=2,map);assert.equal(boss.dead,undefined);
+    assert.ok(boss.maxHp>hp,map);assert.equal(st.boss,boss);
+    assert.equal(!!st.victoryWait,false,map);assert.equal(st.over,false,map);
     Game.finish(false);assert.equal(st.over,true,map);
+    assert.equal(result.victory,true);assert.equal(result.endless,true);assert.equal(result.finalPhase,true);
   }
+  Game.start([setup('ranjay')]);Game.state.t=TS.RUN_SECONDS*60-1;Game.step();
+  Game.state.players[0].down=true;Game.state.players[0].hp=0;Game.step();
+  assert.equal(result.finalPhase,true);assert.equal(result.victory,false);
+  assert.equal(result.endless,false,'unbeaten final runs retain the account-compatible defeat format');
+});
+
+test('remote progress keeps the object used by the menus and purchases', () => {
+  const { Save } = engine(); const menuSave = Save.load();
+  Save.mergeRemote({savedAt:Date.now()+1000,coins:500,selected:'lia',owned:{lia:{stars:3}},shop:{},best:{},stats:{}});
+  assert.equal(Save.get(),menuSave);
+  assert.equal(menuSave.coins,500);assert.equal(menuSave.selected,'lia');
+  Save.addCoins(10);assert.equal(menuSave.coins,510);
+});
+test('invalid saved characters, stars and shop levels cannot break the menu or combat', () => {
+  const { Save, TS } = engine({selected:'removed',owned:{removed:{stars:900},ranjay:{stars:-3},lia:{stars:80}},shop:null,best:{wins:'bad'},coins:'bad'});
+  const d=Save.load();assert.equal(d.selected,TS.STARTER);assert.equal(d.owned.ranjay.stars,1);
+  assert.equal(d.owned.lia.stars,TS.GACHA.maxStars);assert.equal(d.best.wins,0);
+  assert.equal(d.coins,0);assert.ok(Object.values(Save.shopStats()).every(Number.isFinite));
+  Save.mergeRemote({best:null,stats:null,maps:null,owned:{lia:null},shop:{[TS.SHOP[0].id]:999}});
+  assert.equal(Save.shopLevel(TS.SHOP[0].id),TS.SHOP[0].max);
+});
+test('large enemies are hit when their center lies outside the old broad phase', () => {
+  const { Game }=engine();Game.start([setup('lia')]);const p=Game.state.players[0];
+  p.weapons=[{id:'colonia',lvl:1,cd:0,drones:[]}];
+  const e={id:1,type:'rey',x:80,y:-12,r:44,hp:100,maxHp:100,speed:0,dmg:0,ai:'prop',prop:false,t:0,vx:0,vy:0,kx:0,ky:0,slow:0,slowAmt:0,dodgeCd:0,atk:0};
+  Game.state.enemies=[e];Game.step();assert.ok(e.hp<100);
+});
+test('colonia applies cooldown upgrades and expired slows do not retain their old strength', () => {
+  const { Game }=engine();Game.start([setup('lia')]);const p=Game.state.players[0];
+  p.weapons=[{id:'colonia',lvl:1,cd:0,drones:[]}];p.stats.cdMul=.5;
+  const e={id:1,type:'zombi',x:p.x+5,y:p.y-12,r:10,hp:100,maxHp:100,speed:0,dmg:0,ai:'prop',prop:false,t:0,vx:0,vy:0,kx:0,ky:0,slow:0,slowAmt:.9,dodgeCd:0,atk:0};
+  Game.state.enemies=[e];Game.step();
+  assert.equal(e.slowAmt,.35);assert.ok(p.weapons[0].cd > 0 && p.weapons[0].cd < 40);
+});
+test('finishing an old account request does not erase the ticket for a new run', async () => {
+  const deferred=[],submitted=[];
+  const client={auth:{getSession:async()=>({data:{session:{user:{id:'user'}}}})},
+    from:()=>({select(){return this;},eq(){return this;},maybeSingle:async()=>({data:null})}),
+    rpc:(name,args)=>{
+      if(name==='start_survivors_run') return new Promise(resolve=>deferred.push(resolve));
+      if(name==='submit_survivors_run') submitted.push(args.p_run);
+      return Promise.resolve({data:{points:1}});
+    }};
+  const context=vm.createContext({console,window:{supabase:{createClient:()=>client}},Save:{exportData:()=>({})},setTimeout,clearTimeout});
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'../survivors/js/account.js'),'utf8'),context);
+  const Account=vm.runInContext('Account',context);await Account.init();
+  Account.startRun();const first=Account.submitRun({seconds:1,kills:1});
+  Account.startRun();deferred[0]({data:'old'});await first;
+  deferred[1]({data:'new'});await Account.submitRun({seconds:1,kills:1});
+  assert.deepEqual(submitted,['old','new']);
+});
+
+test('enemy strength increases over time, including enemies already alive', () => {
+  const {Game}=engine();Game.start([setup('ranjay')],{seed:11});Game.state.players[0].weapons=[];Game.step();
+  const e=Game.state.enemies.find(e=>!e.prop);const hp=e.maxHp,speed=e.speed,dmg=e.dmg;
+  e.hp*=.5;Game.state.t=45000-1;Game.step();
+  assert.ok(e.maxHp>hp*4);assert.ok(e.speed>speed);assert.ok(e.dmg>dmg);
+  assert.ok(Math.abs(e.hp/e.maxHp-.5)<.00001);
+  for(const key of ['hp','bossHp','dmg'])assert.ok(Game.difficultyAt(72000)[key]>Game.difficultyAt(36000)[key]);
+});
+test('the final boss never arrives early in a daily boss modifier', () => {
+  const {Game,TS}=engine();Game.start([setup('ranjay')],{mods:['jefes']});
+  Game.state.t=TS.RUN_SECONDS*.55*60-1;Game.state.bossIdx=3;Game.step();assert.equal(Game.state.finalPhase,false);
+  Game.state.t=TS.RUN_SECONDS*60-1;Game.step();assert.equal(Game.state.finalPhase,true);
+  Game.state.finalPulseT=Game.state.t+1;Game.step();
+  assert.ok(Game.state.strikes.length>0);assert.ok(Game.state.fx.some(f=>f.k==='warn'));
+});
+test('water is traversable and slows movement without shortening the aim vector', () => {
+  const {Game,TS}=engine();Game.start([setup('ranjay')]);const p=Game.state.players[0];p.weapons=[];
+  let point;
+  for(let x=500;x<2200&&!point;x+=20)for(let y=500;y<2200;y+=20) {
+    if([0,10,-10].every(dx=>Game.terrain(x+dx,y)===2)){point={x,y};break;}
+  }
+  assert.ok(point);p.x=point.x;p.y=point.y;const speed=p.stats.speed;
+  Game.setInput(0,{x:1,y:0,ab:0});Game.step();
+  assert.ok(Math.abs(p.x-point.x-speed*TS.WATER_SPEED)<.001);
+  assert.equal(p.inWater,true);
+  Game.setInput(0,{x:1,y:1,ab:0});Game.step();assert.ok(Math.abs(Math.hypot(p.moveX,p.moveY)-1)<.0001);
+});
+test('each new hero has a usable starter, evolution, active ability and persistent weapon effect', () => {
+  const {Game,TS}=engine();
+  for(const id of ['nix','savia','brasa']) {
+    const ch=TS.CHARACTERS.find(c=>c.id===id);assert.equal(TS.WEAPONS[ch.weapon].levels.length,6);
+    assert.ok(TS.EVOLUTIONS[ch.weapon]);assert.ok(TS.ABILITIES[id]);
+    Game.start([setup(id)]);const p=Game.state.players[0];p.abCd=0;p.weapons[0].cd=0;
+    Game.setInput(0,{x:0,y:0,ab:1});Game.step();
+    assert.equal(Game.state.abilitiesUsed,1,id);assert.ok(p.abCd>0);
+    assert.ok(Game.state.zones.length>0||Game.state.fx.length>0,id);
+  }
+});
+test('a strong stationary build cannot remain immortal against the final encounter', () => {
+  const {Game,TS}=engine();Game.start([setup('zeta')],{seed:99});
+  const st=Game.state,p=st.players[0];
+  p.weapons=[{id:'dron',lvl:6,evo:true,cd:0,combo:0,comboT:0,drones:[]}];
+  p.techniques={burst:3,ring:3};p.techCds={burst:0,ring:0};
+  p.passives=Object.fromEntries(Object.entries(TS.PASSIVES).map(([id,d])=>[id,d.max]));
+  p.meta={maxHp:1,might:1,armor:3,regen:.5,cooldown:.2,area:.5,amount:2};
+  p.stats={...p.stats,maxHp:300,might:2.5,armor:8,regen:2,area:3,cdMul:.45,amount:3,revive:1};p.hp=300;
+  st.t=TS.RUN_SECONDS*60-1;st.bossIdx=3;st.hordeIdx=TS.HORDES.length;
+  for(let i=0;i<18000&&!st.over;i++) {
+    if(st.choosing)for(const id of Object.keys(st.choosing))Game.choose(+id,0);
+    Game.step();
+  }
+  assert.equal(st.over,true);assert.equal(st.finalPhase,true);
+});
+test('the three new weapons deal damage through their distinct persistent mechanics', () => {
+  const {Game}=engine();
+  for(const id of ['nix','savia','brasa']) {
+    Game.start([setup(id)],{seed:47});const p=Game.state.players[0];p.weapons[0].cd=0;
+    const x=p.x+(id==='nix'?Math.cos(.045)*42*p.stats.area:60);
+    const y=id==='nix'?p.y+Math.sin(.045)*42*p.stats.area:p.y;
+    const e={id:999,type:'zombi',x,y,r:10,hp:1000,maxHp:1000,speed:0,dmg:0,ai:'chase',prop:false,t:0,vx:0,vy:0,kx:0,ky:0,slow:0,slowAmt:0,dodgeCd:0,atk:0};
+    Game.state.enemies=[e];for(let i=0;i<35;i++)Game.step();
+    assert.ok(e.hp<1000,id);if(id==='savia')assert.ok(e.slow>0);
+  }
+});
+test('water slows ground enemies but does not slow flying creatures', () => {
+  const {Game,TS}=engine();Game.start([setup('ranjay')],{seed:11});Game.state.players[0].weapons=[];Game.step();
+  const e=Game.state.enemies[0],p=Game.state.players[0];
+  let point;
+  for(let x=500;x<2200&&!point;x+=20)for(let y=500;y<2200;y+=20)if(Game.terrain(x,y)===2&&Game.terrain(x+10,y)===2){point={x,y};break;}
+  assert.ok(point);
+  Game.state.enemies=[e];Object.assign(e,{x:point.x,y:point.y,speed:1,kx:0,ky:0,slow:0,type:'zombi',ai:'chase'});
+  p.x=point.x+100;p.y=point.y;Game.step();
+  assert.ok(Math.abs(e.x-point.x-TS.WATER_SPEED)<.001);
+  Object.assign(e,{x:point.x,y:point.y,speed:1,kx:0,ky:0,slow:0,type:'murcielago',ai:'chase'});Game.step();
+  assert.ok(Math.abs(e.x-point.x-1)<.001);
+});
+test('the late final boss resists permanent slows and its projectiles scale with difficulty', () => {
+  const {Game,TS}=engine();Game.start([setup('frosti')],{seed:11});const st=Game.state;
+  st.players[0].weapons=[];st.t=TS.RUN_SECONDS*60-1;st.bossIdx=3;Game.step();
+  const boss=st.boss;boss.ai='chase';boss.x=200;boss.y=0;boss.slow=999;boss.slowAmt=.99;
+  st.enemies=[boss];st.t=(TS.RUN_SECONDS+1200)*60-1;Game.step();
+  assert.ok(Math.hypot(boss.vx,boss.vy)>4.675,'late pursuit exceeds even a speed build');
+  boss.ai='boss_king';boss.t=149;Game.step();
+  assert.ok(st.eshots.some(s=>s.kind==='goo'&&s.dmg>9));
+});
+test('every character learns only its own weapon and two personal techniques, including chest rewards', () => {
+  const {Game,TS}=engine();
+  for(const ch of TS.CHARACTERS) {
+    Game.start([setup(ch.id)],{seed:31});const p=Game.state.players[0];
+    assert.equal(TS.TECHNIQUES[ch.id].length,2);
+    for(let level=0;level<45;level++) {
+      Game.state.xp=Game.state.xpNext;Game.step();
+      const options=Game.state.choosing[0];
+      for(const option of options) {
+        if(option.kind==='weapon')assert.equal(option.id,ch.weapon,ch.id);
+        if(option.kind==='technique')assert.ok(TS.TECHNIQUES[ch.id].some(m=>m.id===option.id),ch.id);
+      }
+      let index=options.findIndex(o=>o.kind==='technique');
+      if(index<0)index=options.findIndex(o=>o.kind==='weapon');
+      Game.choose(0,Math.max(0,index));
+      assert.deepEqual(Array.from(p.weapons,w=>w.id),[ch.weapon]);
+    }
+    assert.equal(p.techniques.burst,3,ch.id);assert.equal(p.techniques.ring,3,ch.id);
+    Game.state.pickups.push({kind:'cofre',x:p.x,y:p.y-6,t:0});Game.step();
+    assert.deepEqual(Array.from(p.weapons,w=>w.id),[ch.weapon],ch.id+' chest');
+  }
+});
+test('foreign weapon rewards are rejected and injected foreign weapons never attack', () => {
+  const {Game}=engine();Game.start([setup('ranjay')]);const p=Game.state.players[0];
+  Game.state.pendingLevels=1;Game.state.choosing={0:[{kind:'weapon',id:'estocada',lvl:1}]};
+  Game.choose(0,0);assert.deepEqual(Array.from(p.weapons,w=>w.id),['tajo']);
+  p.weapons[0].cd=999;p.weapons.push({id:'virote',lvl:6,cd:0,drones:[]});Game.step();
+  assert.deepEqual(Array.from(p.weapons,w=>w.id),['tajo']);assert.equal(Game.state.shots.length,0);
+});
+test('all personal techniques execute with their own weapon and survive the guest snapshot round trip', () => {
+  const {Game,TS}=engine();
+  for(const ch of TS.CHARACTERS) {
+    Game.start([setup(ch.id)],{seed:14});const p=Game.state.players[0];
+    p.weapons[0].lvl=6;p.weapons[0].evo=true;p.weapons[0].cd=999;
+    p.techniques={burst:3,ring:3};p.techCds={burst:0,ring:0};
+    Game.state.enemies=[{id:999,type:'zombi',x:p.x+80,y:p.y,r:10,hp:100000,maxHp:100000,speed:0,dmg:0,ai:'chase',prop:false,
+      t:0,vx:0,vy:0,kx:0,ky:0,slow:0,slowAmt:0,dodgeCd:0,atk:0}];
+    for(let i=0;i<20;i++)Game.step();
+    assert.ok(p.techCds.burst>0&&p.techCds.ring>0,ch.id);
+    for(const zone of Game.state.zones)for(const [key,value] of Object.entries(zone))if(typeof value==='number')assert.ok(Number.isFinite(value),ch.id+':'+key);
+    const snap=Game.snapshot([p]);Game.startGuest({localId:0,players:[setup(ch.id)]});Game.applySnapshot(snap);
+    assert.equal(Game.state.players[0].techniques.burst,3,ch.id);assert.equal(Game.hudData().techniques.length,2);
+  }
+});
+test('the pre-final schedule covers twenty-five minutes without ending the increase in difficulty', () => {
+  const {Game,TS}=engine();assert.equal(TS.RUN_SECONDS,1500);
+  assert.equal(TS.BOSSES.at(-1).at,1500);assert.ok(TS.WAVES.at(-1).from>=1400);
+  assert.ok(TS.HORDES.at(-1).at>1400);
+  for(let minute=1;minute<=25;minute++) {
+    assert.ok(Game.difficultyAt(minute*3600).hp>Game.difficultyAt((minute-1)*3600).hp);
+    assert.ok(Game.difficultyAt(minute*3600).dmg>Game.difficultyAt((minute-1)*3600).dmg);
+  }
+});
+test('sword and spear characters produce only attacks from their own weapon family', () => {
+  const {Game}=engine();
+  for(const [id,type] of [['ranjay','slash'],['yant','thrust']]) {
+    Game.start([setup(id)]);const p=Game.state.players[0];
+    p.weapons[0].cd=0;p.techniques={burst:3,ring:3};p.techCds={burst:0,ring:0};p.abCd=0;
+    Game.setInput(0,{x:0,y:0,ab:1});Game.step();
+    assert.ok(Game.state.zones.length>0,id);
+    assert.ok(Game.state.zones.every(z=>z.type===type),id);
+    assert.equal(Game.state.shots.length,0,id);
+  }
+});
+
+test('rerolls are per-player, bounded and do not advance time or resolve a choice',()=>{
+  const {Game}=engine();Game.start([setup('ranjay'),setup('lia')],{mode:'host',seed:42});
+  const st=Game.state;st.xp=st.xpNext;Game.step();
+  const tick=st.t;let deliveries=0;Game.on('netChoices',m=>{if(m[1])deliveries++;});
+  assert.equal(Game.reroll(99),false);
+  for(let i=0;i<3;i++)assert.equal(Game.reroll(1),true);
+  assert.equal(Game.reroll(1),false);assert.equal(st.players[1].rerolls,0);assert.equal(st.players[0].rerolls,3);
+  assert.equal(deliveries,3);assert.equal(st.t,tick);assert.ok(st.choosing[0] && st.choosing[1]);
+  Game.choose(1,-1);Game.choose(1,99);assert.ok(st.choosing[1]);
+  Game.choose(1,0);assert.equal(Game.reroll(1),false);assert.ok(st.choosing[0]);
+  Game.choose(0,0);assert.equal(st.choosing,null);
+  Game.start([setup('ranjay')]);assert.equal(Game.state.players[0].rerolls,3);
+});
+test('level four native weapons offer their evolution passive before filling inventory',()=>{
+  const {Game,TS}=engine();
+  for(const ch of TS.CHARACTERS){
+    Game.start([setup(ch.id)],{seed:34});const st=Game.state,p=st.players[0];p.weapons[0].lvl=4;
+    st.xp=st.xpNext;Game.step();
+    const support=st.choosing[0].find(o=>o.kind==='passive' && o.id===TS.EVOLUTIONS[ch.weapon].passive);
+    assert.ok(support,ch.id);assert.equal(support.synergy,true);
+    assert.ok(st.choosing[0].filter(o=>o.kind==='weapon').every(o=>o.id===ch.weapon));
+  }
+});
+test('elites start at minute five, scale independently and have a bounded population',()=>{
+  const {Game}=engine();Game.start([setup('ranjay')],{seed:55});const st=Game.state,p=st.players[0];
+  p.stats.armor=100000;p.weapons[0].cd=100000;
+  st.t=300*60-2;Game.step();assert.equal(st.enemies.filter(e=>e.elite).length,0);
+  Game.step();const first=st.enemies.find(e=>e.elite);assert.ok(first);
+  const def=engine().TS.ENEMIES[first.type];assert.equal(first.baseMaxHp,def.hp*3);assert.equal(first.baseDmg,def.dmg*1.35);
+  const hp=first.maxHp;st.t=600*60-1;Game.step();assert.ok(first.maxHp>hp);
+  for(let i=0;i<9;i++){st.t=st.nextElite-1;Game.step();}
+  assert.equal(st.enemies.filter(e=>e.elite && !e.dead).length,4);
+});
+test('elite kills grant five times XP, extra coins and actual damage rather than overkill',()=>{
+  const {Game,TS}=engine();Game.start([setup('lia')],{seed:44});const st=Game.state,p=st.players[0];
+  st.t=300*60-1;Game.step();const elite=st.enemies.find(e=>e.elite);
+  st.enemies=[elite];elite.x=p.x+22;elite.y=p.y;elite.hp=3;elite.speed=0;elite.baseSpeed=0;elite.dmg=0;
+  p.weapons[0].cd=0;p.stats.might=10000;Game.step();
+  assert.equal(p.combat.elites,1);assert.equal(p.combat.dealt,3);assert.equal(st.kills,1);
+  assert.ok(st.gems.some(g=>g.v===TS.ENEMIES[elite.type].xp*5));
+  assert.ok(st.pickups.filter(it=>it.kind==='moneda').length>=5);
+});
+test('healing records only recovered HP and cannot silently revive a downed player',()=>{
+  const {Game}=engine();Game.start([setup('ranjay'),setup('lia')]);const st=Game.state,p=st.players[0];
+  p.hp=93;st.pickups=[{kind:'bocadillo',x:p.x,y:p.y-6,t:0}];Game.step();
+  assert.equal(p.hp,100);assert.equal(p.combat.healed,7);
+  st.pickups=[{kind:'bocadillo',x:p.x,y:p.y-6,t:0}];Game.step();assert.equal(p.combat.healed,7);
+  p.down=true;p.hp=0;st.players[1].x=500;st.players[1].y=500;
+  st.pendingLevels=1;st.choosing={0:[{kind:'heal'}]};Game.choose(0,0);assert.equal(p.down,true);assert.equal(p.hp,0);
+});
+test('compass prioritizes reviving teammates, ignores disconnected players and tracks chests',()=>{
+  const {Game}=engine();Game.start([setup('ranjay'),setup('lia')]);const st=Game.state,p=st.players[0],ally=st.players[1];
+  st.pickups=[{kind:'cofre',x:p.x+170,y:p.y,t:0}];
+  assert.equal(Game.hudData().compass.arrow,'→');assert.equal(Game.hudData().compass.distance,100);
+  ally.down=true;ally.x=p.x;ally.y=p.y-170;
+  assert.equal(Game.hudData().compass.label,'Revivir');assert.equal(Game.hudData().compass.arrow,'↑');
+  ally.disconnected=true;assert.equal(Game.hudData().compass.label,'Cofre');
+  st.pickups=[];assert.equal(Game.hudData().compass,null);
+});
+test('snapshots preserve elite markers, cooldown progress, counters and distant chests',()=>{
+  const {Game}=engine();Game.start([setup('nix'),setup('lia')],{seed:92});const st=Game.state,p=st.players[0];
+  st.t=300*60-1;Game.step();const elite=st.enemies.find(e=>e.elite);elite.x=100;elite.y=0;
+  p.techniques={burst:1};p.techCds={burst:120};p.rerolls=1;p.combat.dealt=321;
+  st.pickups.push({kind:'cofre',x:5000,y:5000,t:0});
+  Game.dropPlayer(1);
+  const before=Game.hudData().techniques[0].ready,snap=Game.snapshot([p]);
+  Game.startGuest({localId:0,players:[setup('nix'),setup('lia')]});Game.applySnapshot(snap);
+  const d=Game.hudData();assert.equal(d.techniques[0].ready,before);assert.equal(d.combat.dealt,321);
+  assert.equal(Game.state.players[0].rerolls,1);assert.ok(Game.state.enemies.some(e=>e.elite));
+  assert.ok(Game.state.pickups.some(it=>it.x===5000));assert.equal(Game.reroll(0),false);
+  assert.equal(Game.state.players[1].disconnected,true);assert.equal(d.compass.label,'Cofre');
+});
+test('chest rewards skip disconnected peers and results include individual combat metrics',()=>{
+  const {Game}=engine();let result;Game.on('end',r=>{result=r;});Game.start([setup('ranjay'),setup('lia')]);
+  const st=Game.state;Game.dropPlayer(1);const ghost=JSON.stringify(st.players[1].weapons);
+  st.pickups=[{kind:'cofre',x:st.players[0].x,y:st.players[0].y-6,t:0}];Game.step();
+  assert.equal(st.chests,1);assert.equal(JSON.stringify(st.players[1].weapons),ghost);
+  Game.finish(false);assert.equal(result.chests,1);assert.equal(result.combat.length,2);assert.equal(result.combat[0].taken,0);
 });

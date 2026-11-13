@@ -110,8 +110,8 @@ const Render3D = (() => {
     renderer.outputColorSpace = T.SRGBColorSpace;
     scene = new T.Scene();
     camera = new T.PerspectiveCamera(30, 1, 20, 8000);
-    hemi = new T.HemisphereLight(0xffffff, 0x4a5a40, 1.25);
-    sun = new T.DirectionalLight(0xfff0d8, 2.1);
+    hemi = new T.HemisphereLight(0xd9edff, 0x29453a, 1.1);
+    sun = new T.DirectionalLight(0xffe4b5, 1.8);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
     const sc = sun.shadow.camera;
@@ -130,6 +130,13 @@ const Render3D = (() => {
     const cone = new T.ConeGeometry(1, 1, 12);
     const torus = new T.TorusGeometry(1, 0.06, 4, 48).rotateX(Math.PI / 2);
     const disc = new T.CircleGeometry(1, 32).rotateX(-Math.PI / 2);
+    const wing = new T.Shape();
+    wing.moveTo(0,0);wing.lineTo(10,8);wing.lineTo(24,3);wing.lineTo(18,-4);
+    wing.quadraticCurveTo(12,1,10,-5);wing.quadraticCurveTo(5,0,0,-2);wing.closePath();
+    const wingGeo = new T.ShapeGeometry(wing);
+    const wingMat = () => new T.MeshLambertMaterial({color:0xffffff,side:T.DoubleSide});
+    pool("batWing",wingGeo,wingMat(),1000);
+    pool("batWingLeft",wingGeo.clone().rotateY(Math.PI),wingMat(),1000);
     pool("cyl", cyl, lambert(), 9000);
     pool("sph", sph, lambert(), 9000);
     pool("box", box, lambert(), 5000);
@@ -209,22 +216,31 @@ const Render3D = (() => {
     const { x, y } = ob;
     const v = hashF(x, y, 1);
     const g = hashF(x, y, 2);
-    const leaf = dark ? 0x2f5a3a : [0x3f8a3a, 0x4a9a40, 0x377a34][Math.floor(v * 3)];
+    const leaf = dark ? 0x2f5148 : [0x3e7157, 0x517e5d, 0x38654e][Math.floor(v * 3)];
     switch (ob.kind) {
       case "arbol":
         between("cyl", [x, 0, y], [x, 46, y], 5.5, 0x6b4426);
+        for(let i=0;i<3;i++) {
+          const a=i*TAU/3+v*3;
+          between("cyl",[x,2,y],[x+Math.cos(a)*13,1,y+Math.sin(a)*13],2.2,0x5e4935);
+          between("cyl",[x,25,y],[x+Math.cos(a)*18,54,y+Math.sin(a)*14],2.8,0x775639);
+        }
         at("lowSph", x, 70, y, 30, 26, 30, leaf, v * 3);
+        at("lowSph", x-6,83,y-8,17,13,18,dark?0x426458:0x6a9168,v*4);
+        at("lowSph", x+20,69,y+3,14,16,16,dark?0x2b493f:0x47735a,v*2);
         at("lowSph", x - 14, 58, y + 6, 20, 18, 20, leaf, v * 5);
         at("lowSph", x + 15, 62, y - 4, 19, 17, 19, leaf, v * 7);
         break;
       case "pino":
         between("cyl", [x, 0, y], [x, 30, y], 4.5, 0x5a3a20);
-        for (let i = 0; i < 3; i++) at("cone", x, 42 + i * 22, y, 26 - i * 6, 38 - i * 4, 26 - i * 6, dark ? 0x23503a : 0x2f6e3a);
+        for (let i = 0; i < 4; i++) at("cone", x, 34 + i * 19, y, 28 - i * 6, 36 - i * 3, 28 - i * 6, dark ? 0x29493f : [0x315a49,0x3b6851,0x47755b,0x568269][i]);
         break;
       case "roca":
       case "rocaGrande": {
         const r = ob.kind === "roca" ? 16 : 26;
         at("lowSph", x, r * 0.45, y, r, r * 0.75, r * 0.85, [0x8a8f99, 0x9aa0a8, 0x7d828c][Math.floor(g * 3)], v * 6);
+        at("lowSph",x-r*.55,r*.2,y+r*.3,r*.45,r*.35,r*.4,0x687b70,v*3);
+        at("lowSph",x+r*.32,r*.7,y-r*.2,r*.52,r*.14,r*.42,dark?0x384f45:0x586e4f,v*2);
         break;
       }
       case "tronco":
@@ -299,7 +315,7 @@ const Render3D = (() => {
       if (kind === "char") {
         const ch = TS.CHARACTERS.find((c) => c.id === id);
         OPT[key] = ch ? Stick.characterOptions(ch) : Stick.ENEMIES.zombi;
-      } else OPT[key] = Stick.ENEMIES[id] || Stick.ENEMIES.zombi;
+      } else OPT[key] = { ...(Stick.ENEMIES[id] || Stick.ENEMIES.zombi), role: id };
     }
     return OPT[key];
   }
@@ -320,6 +336,18 @@ const Render3D = (() => {
     const sp = (p, s, c, shape = "sph") => P.push([shape, p, s, c]);
     const cap = (k = 1) => sp([-0.06, 0.32, 0], [1.06 * k, 0.78, 1.06 * k], h);
     switch (o.hair) {
+      case "antenna":
+        sp([0,0,0],[1.08,1.08,1.08],h);
+        P.push(["glowBox",[1.02,.05,0],[.18,.4,1.3],acc]);
+        P.push(["cyl",[-.3,1.5,-.4],[.06,1.2,.06],acc]);
+        sp([-.3,2.1,-.4],[.19,.19,.19],0xff6570,"glow");break;
+      case "mushroom":
+        sp([0,.75,0],[1.6,.65,1.6],h);
+        for(const [x,z] of [[0,0],[-.8,.5],[.8,-.5]])sp([x,1.2,z],[.2,.12,.2],acc);break;
+      case "forge":
+        sp([0,0,0],[1.12,1.12,1.12],h);
+        P.push(["glowBox",[1.1,.04,0],[.22,.4,1.3],acc]);
+        for(const z of [-.5,0,.5])P.push(["cone",[0,1.35,z],[.18,.9,.18],acc]);break;
       case "taper": cap(); break;
       case "taperLong": cap(); sp([0.15, 0.82, 0], [0.82, 0.5, 0.78], h); break;
       case "curly": case "longCurly":
@@ -401,6 +429,9 @@ const Render3D = (() => {
     const steel = 0xdfe6f0;
     const wood = 0x7a4a26;
     switch (type) {
+      case "magnet": b([0,12,0],[14,2,14],0x64f5ff,"ring");b([0,0,0],[7,12,7],0x264653);break;
+      case "vial": b([0,12,0],[9,13,9],0xb8f06a,"sph");b([0,-1,0],[5,7,5],0x7744a6);break;
+      case "flamer": b([0,10,0],[12,32,12],0x34313d);b([0,28,0],[16,8,16],0xff812f,"cyl");b([0,32,0],[6,3,6],0xffe5a0,"glow");break;
       case "espada": case "katana":
         b([0, -2, 0], [5, 14, 5], 0x3a2516);
         b([0, 7, 0], [20, 4, 6], type === "katana" ? 0x2a2a35 : 0xe0b84a);
@@ -486,6 +517,7 @@ const Render3D = (() => {
     if (outline) between("inkCyl", hip, neck, r(8) * (o.torso || 1) + 0.55 * k, 0);
     between("cyl", shB, shF, r(6), col);
     between("cyl", hipB, hipF, r(6), legs);
+    bodyDetails(o, J, W, S, ang, flash);
     if (o.robe) {
       const sh = W(J.sh);
       at("cone", (sh[0] + hip[0]) / 2, sh[1] / 2 + 1, (sh[2] + hip[2]) / 2, 26 * S, sh[1], 26 * S, flash ? 0xffffff : o.robe, -ang);
@@ -538,6 +570,56 @@ const Render3D = (() => {
     }
   }
 
+  // Equipamiento y anatomía distinguen las siluetas sin crear una malla
+  // independiente por enemigo: siguen usando los mismos lotes de instancias.
+  function bodyDetails(o, J, W, S, ang, flash) {
+    const role=o.role || "";
+    const skeleton=["esqueleto","reyEsqueleto"].includes(role);
+    const soldier=["antitronk","supremo","general"].includes(role);
+    const ninja=["ninja","maestro"].includes(role);
+    const ca=Math.cos(ang),sa=Math.sin(ang);
+    const B={o:W(J.hip),X:new T.Vector3(ca*S,0,sa*S),Y:new T.Vector3(0,S,0),Z:new T.Vector3(-sa*S,0,ca*S)};
+    const piece=(shape,p,s,c)=>local(shape,B,p,s,flash?0xffffff:c);
+    if(skeleton) {
+      for(const h of [15,25,35]) for(const side of [-1,1]) piece("box",[2,h,side*7],[5,3,13],0xd7cdb5);
+      piece("box",[0,3,0],[8,7,18],0xece4cf);
+    } else if(!o.robe) {
+      piece("box",[J.neck[0]*.45,25,0],[12,34,20*(o.thick||1)],o.color);
+      piece("box",[0,4,0],[13,6,23*(o.thick||1)],0x282635);
+      piece("box",[7,4,0],[2,4,5],o.acc||0xc7af79);
+    }
+    if(["gordo","rey"].includes(role)) piece("lowSph",[4,17,0],[15,23,18],o.color);
+    if(soldier||role==="casco"||role==="brasa") {
+      const armor=soldier?0x303c34:role==="brasa"?0x4a4245:0xe68a26;
+      piece("box",[4,28,0],[14,30,25],armor);
+      for(const side of [-1,1]) {
+        piece("box",[2,40,side*16],[16,10,12],armor);
+        piece("box",[13,17,side*7],[6,10,9],0x555a43);
+      }
+      if(role==="casco") for(const h of [17,32])piece("glowBox",[12,h,0],[1,3,24],0xffd966);
+      if(role==="brasa") for(const side of [-1,1])piece("cyl",[-13,27,side*9],[7,34,7],0xff812f);
+    }
+    if(ninja) {
+      piece("box",[2,8,0],[15,7,24],o.acc||0xb52c45);
+      const a=W([J.neck[0]-8,J.neck[1]],-10),b=W([J.hip[0]-13,J.hip[1]+18],10);
+      between("cyl",a,b,2*S,flash?0xffffff:0x33313f);
+    }
+    if(["zombi","corredor","gordo","rey"].includes(role)) {
+      piece("box",[9,30,-3],[2,14,10],o.head||0x8db56a);
+      for(const h of [24,30,36])piece("box",[10,h,-3],[1,1,9],0x425237);
+    }
+    if(o.crown) {
+      for(const side of [-1,1])piece("lowSph",[1,41,side*17],[12,10,10],0xc7a04e);
+      piece("glow",[11,31,0],[3,4,3],0xd82c59);
+    }
+    if(role==="savia") for(const side of [-1,1])piece("sph",[7,9,side*13],[5,7,5],0xb8f06a);
+    if(role==="nix")piece("glowBox",[10,29,0],[2,10,12],0x64f5ff);
+    if(!o.robe) for(const [pt,lat] of [[J.fFoot,rig.LAT.fFoot],[J.bFoot,rig.LAT.bFoot]]) {
+      const foot=W(pt,lat);
+      at("box",foot[0]+ca*2*S,foot[1]+2*S,foot[2]+sa*2*S,13*S,6*S,10*S,flash?0xffffff:0x252431,-ang);
+    }
+  }
+
   function poseFor(o, moving, walkT, atk) {
     const style = rig.styleOf(o);
     if (atk && atk.t > 0) {
@@ -552,21 +634,31 @@ const Render3D = (() => {
   function creature(e, k, flash) {
     const t = e.t || 0;
     const w = flash ? 0xffffff : null;
+    const ca=Math.cos(e.ang ?? Math.PI/2),sa=Math.sin(e.ang ?? Math.PI/2);
+    const face=(f,lat,h,size,color)=>at("glow",e.x+(ca*f-sa*lat)*k,h*k,e.y+(sa*f+ca*lat)*k,size*k,size*k,size*k,flash?0xffffff:color);
     switch (e.type) {
       case "slime":
       case "slimito": {
         const s = (e.type === "slime" ? 1 : 0.62) * k;
         const hop = Math.abs(Math.sin(t * 0.12));
         at("sph", e.x, (7 + hop * 6) * s, e.y, 10 * s, (7 + hop * 2) * s, 9 * s, w || (e.type === "slime" ? 0x5fd16b : 0xa6e36b));
-        at("glow", e.x + 5 * s, (10 + hop * 6) * s, e.y + 7 * s, 1.6 * s, 2 * s, 1.6 * s, 0x14112b);
-        at("glow", e.x - 4 * s, (10 + hop * 6) * s, e.y + 7.5 * s, 1.6 * s, 2 * s, 1.6 * s, 0x14112b);
+        const size=e.type==="slime"?1:.62;
+        for(const lat of [-3.5,3.5])face(8*size,lat*size,(10+hop*6)*size,1.5*size,0x14112b);
+        face(9*size,0,(7+hop*6)*size,.9*size,0x254735);
+        at("ghost",e.x-3*s,(12+hop*6)*s,e.y-2*s,3*s,2*s,3*s,0xcaffc7);
+        if(k>=3) {
+          at("cyl",e.x,(15+hop*8)*k,e.y,7*k,2*k,7*k,0xffd23f);
+          for(let i=0;i<5;i++){const a=i*TAU/5;at("cone",e.x+Math.cos(a)*5*k,(18+hop*8)*k,e.y+Math.sin(a)*5*k,1.8*k,6*k,1.8*k,0xffd23f);}
+        }
         break;
       }
       case "fantasma": {
         const fl = Math.sin(t * 0.1) * 3;
         at(e.phased ? "ghost" : "sph", e.x, (24 + fl) * k, e.y, 9 * k, 10 * k, 8 * k, w || 0xeef4ff);
         at("invertedCone", e.x, (12 + fl) * k, e.y, 8 * k, 14 * k, 8 * k, w || 0xeef4ff);
-        for (const dz of [-3, 3]) at("glow", e.x + 3 * k, (26 + fl) * k, e.y + dz * k + 6 * k, 1.5 * k, 2 * k, 1.5 * k, 0x1a1630);
+        for(const lat of [-3,3])face(7,lat,26+fl,1.4,0x1a1630);
+        face(8,0,22+fl,1.1,0x1a1630);
+        for(let i=0;i<5;i++){const a=i*TAU/5;at("ghost",e.x+Math.cos(a)*5*k,(8+fl+Math.sin(t*.12+i)*2)*k,e.y+Math.sin(a)*5*k,3*k,5*k,3*k,0xeef4ff);}
         break;
       }
       case "murcielago": {
@@ -574,12 +666,13 @@ const Render3D = (() => {
         const flap = Math.sin(t * 0.6) * 0.8;
         const y0 = (24 + fl) * k;
         at("sph", e.x, y0, e.y, 4.5 * k, 4.5 * k, 4.5 * k, w || 0x4a3360);
-        for (const sx of [1, -1]) {
-          tmpQ.setFromAxisAngle(new T.Vector3(1, 0, 0), sx * flap);
-          tmpM.compose(tmpV2.set(e.x, y0 + 1, e.y + sx * 8 * k), tmpQ, tmpS.set(9 * k, 0.8, 9 * k));
-          push("box", tmpM, w || 0x6b4a8a);
+        for(const side of [-1,1]) {
+          tmpQ.setFromEuler(new T.Euler(0,Math.PI/2-(e.ang||0),side*flap));
+          tmpM.compose(tmpV2.set(e.x,y0,e.y),tmpQ,tmpS.set(k,k,k));
+          push(side>0?"batWing":"batWingLeft",tmpM,w||0x6b4a8a);
+          at("cone",e.x-sa*side*2.8*k,y0+5*k,e.y+ca*side*2.8*k,1.8*k,6*k,1.8*k,w||0x4a3360);
         }
-        at("glow", e.x + 4 * k, y0 + 1, e.y + 2 * k, 1 * k, 1 * k, 1 * k, 0xff3b3b);
+        for(const lat of [-1.8,1.8])face(4,lat,25+fl,.9,0xff3b3b);
         break;
       }
     }
@@ -607,6 +700,9 @@ const Render3D = (() => {
           shots, eshots, zones, fx, auras, drones, t } */
   function draw(d) {
     if (!renderer) return;
+    const pixelRatio=d.low?1:Math.min(2,window.devicePixelRatio || 1);
+    if(renderer.getPixelRatio()!==pixelRatio)renderer.setPixelRatio(pixelRatio);
+    if(renderer.shadowMap.enabled===!!d.low)renderer.shadowMap.enabled=!d.low;
     for (const p of Object.values(pools)) p.count = 0;
     const H = d.wH;
     const dist = (H * 0.5) / Math.tan(((camera.fov / 2) * Math.PI) / 180) * 1.02;
@@ -618,8 +714,8 @@ const Render3D = (() => {
     sun.position.set(tx - 380, 900, tz + 320);
     sun.target.position.set(tx, 0, tz);
     const dark = d.dark || 0;
-    hemi.intensity = 1.25 * (1 - dark * 1.2);
-    sun.intensity = 2.1 * (1 - dark * 1.3);
+    hemi.intensity = 1.1 * (1 - dark * 1.2);
+    sun.intensity = 1.8 * (1 - dark * 1.3);
     lamp.intensity = dark ? 2.2 + dark * 2 : 0;
     lamp.position.set(d.cx, 70, d.cy);
     scene.background = new T.Color(dark ? 0x080618 : 0x4a8a3a);
@@ -629,6 +725,9 @@ const Render3D = (() => {
 
     for (const a of d.actors) {
       const k = a.scale || 1;
+      if(a.elite)at("ring",a.x,1.6,a.y,22*k,3,22*k,0xf5cb79);
+      if(a.relentless)at("ring",a.x,1.4,a.y,24*k,4,24*k,0xff512f);
+      if(a.inWater){const r=10+Math.sin(d.t*.15)*3;at("ring",a.x,.8,a.y,r,2,r,0x9fdcff);}
       if (a.prop) { prop(a, a.flash); continue; }
       if (a.creature) { creature(a, k, a.flash); continue; }
       const o = optionsFor(a.kind, a.id);
@@ -654,8 +753,9 @@ const Render3D = (() => {
     // disparos
     for (const s of d.shots) shot(s, d.t);
     for (const s of d.eshots) {
+      if(d.contrast){at("glow",s.x,16,s.y,7,7,7,0x10212b);at("ring",s.x,16,s.y,8,2,8,0xfff1ca);}
       const c = { bullet: 0xffb03b, star: 0xffe066, goo: 0x7cff6b }[s.kind] || 0xc77dff;
-      at("glow", s.x, 16, s.y, 3.5, 3.5, 3.5, c);
+      at("glow", s.x, d.contrast?22:16, s.y+(d.contrast?4:0), 3.5, 3.5, 3.5, c);
     }
     for (const z of d.zones) zone(z, d.t);
     for (const f of d.fx) effect(f);
@@ -694,6 +794,19 @@ const Render3D = (() => {
     if (z.t < 0) return;
     const k = z.t / (z.life || 1);
     switch (z.type) {
+      case "disc":
+        at("ring",z.x,14,z.y,z.r,20,z.r,z.gold?0xffd23f:0x64f5ff);break;
+      case "perfume":
+      case "acid":
+        at("disc",z.x,.9,z.y,z.r,1,z.r,z.type==="perfume"?0xff8ed1:z.t<z.warn?0xcaff82:0x8ce238);
+        at("ring",z.x,1.2,z.y,z.r,3,z.r,z.type==="perfume"?0xffe1f5:0xd2ff8b);
+        if(z.t>=z.warn)for(let i=0;i<3;i++){const a=i*TAU/3+z.t*.02;at("ghost",z.x+Math.cos(a)*z.r*.5,4+Math.sin(z.t*.15+i)*2,z.y+Math.sin(a)*z.r*.5,3,3,3,z.type==="perfume"?0xffb8e1:0xb9ef63);}break;
+      case "flame":
+        for(let i=0;i<6;i++) {
+          const t=(i+1)/6,a=z.ang+Math.sin(z.t*.8+i)*z.spread*.5,r=5+t*z.len*z.spread*.45;
+          at("ghost",z.x+Math.cos(a)*z.len*t,15+t*6,z.y+Math.sin(a)*z.len*t,r,r*.8,r,0xff7428);
+          if(i<3)at("glow",z.x+Math.cos(a)*z.len*t,15,z.y+Math.sin(a)*z.len*t,r*.45,r*.45,r*.45,0xffe5a0);
+        }break;
       case "slash": {
         const sweep = 2.7;
         const a0 = z.ang - (sweep / 2) * z.dirSign;

@@ -304,7 +304,7 @@ TS.WEAPONS = {
     ]
   }
 };
-TS.MAX_WEAPONS = 4;
+TS.MAX_WEAPONS = 1;
 TS.MAX_PASSIVES = 4;
 
 /* ---------- OBJETOS PASIVOS (se eligen al subir de nivel) ---------- */
@@ -361,7 +361,7 @@ TS.ENEMIES = {
   supremo: { name: "Antitronk Supremo", hp: 2600, speed: 0.6, dmg: 16, xp: 90, r: 16, ai: "boss_bullets", boss: true, scale: 2, sprite: "supremo" },
   maestro: { name: "Maestro Ninja", hp: 4200, speed: 0.9, dmg: 20, xp: 120, r: 15, ai: "boss_ninja", boss: true, scale: 2, sprite: "maestro" },
   rey: { name: "El Rey Zombi", hp: 9000, speed: 0.55, dmg: 26, xp: 200, r: 22, ai: "boss_king", boss: true, scale: 3, sprite: "rey" },
-  // Jefes finales de cada mapa (salen a los 10 minutos en lugar del Rey Zombi)
+  // Jefes finales de cada mapa (salen a los 25 minutos en lugar del Rey Zombi)
   reyEsqueleto: { name: "El Rey Esqueleto", hp: 9500, speed: 0.6, dmg: 24, xp: 200, r: 20, ai: "boss_bones", boss: true, scale: 3, sprite: "reyEsqueleto" },
   mocoRey: { name: "El Moco Rey", hp: 8500, speed: 0.55, dmg: 26, xp: 200, r: 26, ai: "boss_slime", boss: true, scale: 4, sprite: "slime" },
   general: { name: "El General Antitronk", hp: 9000, speed: 0.6, dmg: 22, xp: 200, r: 18, ai: "boss_general", boss: true, scale: 3, sprite: "general" }
@@ -370,7 +370,7 @@ TS.ENEMIES = {
 /* ---------- OLEADAS ----------
    Según el segundo de la partida: qué enemigos salen (con su peso),
    cada cuántos fotogramas y cuántos a la vez como mucho. */
-TS.RUN_SECONDS = 600; // a los 10 minutos sale el jefe final del mapa
+TS.RUN_SECONDS = 25 * 60; // el jefe final llega a los 25 minutos
 TS.WAVES = [
   { from: 0, every: 52, alive: 32, mix: { zombi: 10, murcielago: 2 } },
   { from: 50, every: 36, alive: 70, mix: { zombi: 7, corredor: 3, murcielago: 3 } },
@@ -386,7 +386,7 @@ TS.BOSSES = [
   { at: 180, id: "gigante" },
   { at: 300, id: "supremo" },
   { at: 450, id: "maestro" },
-  { at: 600, id: "rey" }
+  { at: TS.RUN_SECONDS, id: "rey" }
 ];
 // Hordas: un círculo de enemigos alrededor del jugador
 TS.HORDES = [
@@ -434,7 +434,7 @@ TS.EVOLUTIONS = {
 TS.MAPS = {
   bosque: {
     name: "Bosque de los Tronks", desc: "Árboles, lagos y zombis. Para empezar.",
-    ground: { grass: ["#4a8a3a", "#43803a", "#52933f", "#3e7a35", "#4d8e3c"], grassEdge: "#3a6e30", dirt: ["#8a6a42", "#7d5f3a", "#94744a", "#6f5432", "#856540"], dirtEdge: "#6a5232", water: ["#3b7ac8", "#3672bd", "#4282d0"], shore: ["#c9b07a", "#bba26e"], foam: "#8fc6f0", wave: "#7ab4ec", flowers: ["#ffffff", "#ff9fd0", "#ffe066"] },
+    ground: { grass: ["#3b6950", "#3e6c52", "#477759", "#39654d", "#416f54"], grassEdge: "#2e5743", dirt: ["#897454", "#826e50", "#927d5c", "#7b674a", "#8b7655"], dirtEdge: "#6e5c46", water: ["#346f86", "#326b82", "#39788e"], shore: ["#bba77a", "#ae9d74"], foam: "#a5d4cb", wave: "#66aaa9", flowers: ["#ffffff", "#ff9fd0", "#ffe066"] },
     dirt: 0.67, water: 0.73,
     obstacles: { arbol: 5, pino: 3, roca: 3, rocaGrande: 1, tronco: 1.4, arbusto: 2, hierba: 5 },
     mix: {}, unlock: null, finalBoss: "rey"
@@ -458,7 +458,7 @@ TS.MAPS = {
     ground: { grass: ["#4a4e58", "#454953", "#50545e", "#41454f", "#4c505a"], grassEdge: "#383c46", dirt: ["#5a5f6a", "#555a65", "#60656f", "#4e535e", "#585d68"], dirtEdge: "#3e434e", water: ["#2a3a5a", "#263552", "#304062"], shore: ["#8a8a92", "#80808a"], foam: "#4a5a7a", wave: "#3a4a6a", flowers: ["#ffe066", "#9aa3b0", "#ffffff"] },
     dirt: 0.55, water: 0.85, dark: 0.45, roads: true,
     obstacles: { farola: 3, contenedor: 2, coche: 2, banco: 2, arbusto: 1 },
-    mix: { antitronk: 3, ninja: 2.5, supremo: 0, brujo: 1 }, finalBoss: "general", unlock: { best: "wins", value: 1, text: "Gana una partida en cualquier mapa" }
+    mix: { antitronk: 3, ninja: 2.5, supremo: 0, brujo: 1 }, finalBoss: "general", unlock: { best: "wins", value: 1, text: "Supera la primera fase de cualquier jefe final" }
   }
 };
 
@@ -482,13 +482,13 @@ TS.ACHIEVEMENTS = [
   { id: "mil", name: "Imparable", desc: "Derrota a 1.000 enemigos en una partida", reward: 200, test: (r) => r.kills >= 1000 },
   { id: "cinco", name: "Superviviente", desc: "Aguanta 5 minutos", reward: 100, test: (r) => r.seconds >= 300 },
   { id: "jefe", name: "Cazajefes", desc: "Derrota a un jefe", reward: 100, test: (r) => r.bosses >= 1 },
-  { id: "victoria", name: "Rey de reyes", desc: "Gana una partida derrotando al jefe final", reward: 500, test: (r) => r.victory },
+  { id: "victoria", name: "Rey de reyes", desc: "Supera la primera fase del jefe final", reward: 500, test: (r) => r.victory },
   { id: "nivel30", name: "Muy preparado", desc: "Llega a nivel 30 en una partida", reward: 200, test: (r) => r.level >= 30 },
   { id: "evolucion", name: "Evolución", desc: "Evoluciona un arma", reward: 150, test: (r, s) => s.stats.evolutions >= 1 },
   { id: "rompe", name: "Manazas", desc: "Rompe 50 objetos en total", reward: 100, test: (r, s) => s.stats.props >= 50 },
-  { id: "sunk", name: "Sin camiseta", desc: "Gana una partida con Sunk", reward: 300, test: (r) => r.victory && r.charId === "sunk" },
+  { id: "sunk", name: "Sin camiseta", desc: "Supera la primera fase del jefe final con Sunk", reward: 300, test: (r) => r.victory && r.charId === "sunk" },
   { id: "coleccion5", name: "Coleccionista", desc: "Consigue 5 personajes", reward: 100, test: (r, s) => Object.keys(s.owned).length >= 5 },
-  { id: "coleccion", name: "Todos los Tronks", desc: "Consigue los 16 personajes", reward: 1000, test: (r, s) => Object.keys(s.owned).length >= TS.CHARACTERS.length },
+  { id: "coleccion", name: "Todos los Tronks", desc: "Consigue los 19 personajes", reward: 1000, test: (r, s) => Object.keys(s.owned).length >= TS.CHARACTERS.length },
   { id: "legendario", name: "¡Legendario!", desc: "Consigue un personaje legendario", reward: 200, test: (r, s) => TS.CHARACTERS.some((c) => c.rarity === "legendario" && s.owned[c.id]) },
   { id: "estrellas", name: "Cinco estrellas", desc: "Sube un personaje a 5 estrellas", reward: 300, test: (r, s) => Object.values(s.owned).some((o) => o.stars >= 5) },
   { id: "diario", name: "Cada día", desc: "Juega un reto diario", reward: 100, test: (r, s) => s.stats.dailies >= 1 },
@@ -529,10 +529,101 @@ TS.MISSIONS = [
   { id: "props", text: "Rompe {n} barriles, cajas o jarrones", stat: "props", kind: "sum", goal: 80, reward: 200 },
   { id: "survive", text: "Aguanta {n} minutos en una partida", stat: "minutes", kind: "best", goal: 7, reward: 300 },
   { id: "level", text: "Llega a nivel {n} en una partida", stat: "level", kind: "best", goal: 25, reward: 250 },
-  { id: "win", text: "Gana {n} partida", stat: "wins", kind: "sum", goal: 1, reward: 400 },
+  { id: "win", text: "Supera la primera fase de {n} jefe final", stat: "wins", kind: "sum", goal: 1, reward: 400 },
   { id: "coop", text: "Juega {n} partidas con amigos", stat: "coop", kind: "sum", goal: 2, reward: 300 },
   { id: "daily", text: "Juega {n} retos diarios", stat: "dailies", kind: "sum", goal: 3, reward: 250 },
   { id: "evolve", text: "Evoluciona {n} armas", stat: "evolutions", kind: "sum", goal: 2, reward: 300 },
   { id: "maps", text: "Juega {n} partidas fuera del bosque", stat: "otherMaps", kind: "sum", goal: 3, reward: 250 },
   { id: "ability", text: "Usa la habilidad especial {n} veces", stat: "abilities", kind: "sum", goal: 40, reward: 200 }
 ];
+
+/* Nuevos supervivientes: identidad, arma y habilidad propias. */
+TS.CHARACTERS.push(
+  { id: "nix", name: "Nix", rarity: "raro", from: "Nuevo", weapon: "discos", skin: "light",
+    hair: "antenna", hairColor: "#264653", acc: "#64f5ff", shirt: "#219ebc", pants: "#193343",
+    perk: { area: 0.12 }, perkText: "+12 % de área",
+    desc: "Ingeniera de chatarra con una antena torcida. Sus discos magnéticos orbitan a su alrededor y cortan todo lo que se acerca." },
+  { id: "savia", name: "Savia", rarity: "epico", from: "Nuevo", weapon: "acido", skin: "light",
+    hair: "mushroom", hairColor: "#7744a6", acc: "#b8f06a", shirt: "#75b843", pants: "#513659",
+    perk: { regen: 0.35 }, perkText: "Recupera 0,35 de vida por segundo",
+    desc: "Alquimista del pantano, sombrero de hongo y mochila de frascos. Donde cae un vial queda un charco de ácido." },
+  { id: "brasa", name: "Brasa", rarity: "legendario", from: "Nuevo", weapon: "llamas", skin: "dark",
+    hair: "forge", hairColor: "#34313d", acc: "#ff812f", shirt: "#bd4b24", pants: "#34313d",
+    perk: { armor: 1, might: 0.08 }, perkText: "+1 de armadura, +8 % de daño",
+    desc: "Antigua guardiana de una fundición. Lleva una máscara de hierro, depósitos a la espalda y un lanzallamas de fabricación propia." }
+);
+Object.assign(TS.WEAPONS, {
+  discos: { name: "Discos magnéticos", desc: "Discos que orbitan a tu alrededor y golpean al contacto.",
+    levels: Array.from({ length: 6 }, (_, i) => ({ dmg: 9 + i * 4, cd: 24, count: 2 + Math.floor(i / 2), area: 1 + i * .08, speed: .045 + i * .004 })) },
+  acido: { name: "Viales de ácido", desc: "Lanza viales que dejan charcos dañinos y ralentizan a los enemigos.",
+    levels: Array.from({ length: 6 }, (_, i) => ({ dmg: 7 + i * 3, cd: 180 - i * 12, count: 1 + Math.floor(i / 3), area: 1 + i * .09, dur: 180 + i * 18 })) },
+  llamas: { name: "Lanzallamas", desc: "Una ráfaga de fuego en cono hacia el enemigo más cercano.",
+    levels: Array.from({ length: 6 }, (_, i) => ({ dmg: 5 + i * 2, cd: 66 - i * 4, count: 1, area: 1 + i * .08, dur: 30 + i * 3 })) }
+});
+Object.assign(TS.EVOLUTIONS, {
+  discos: { passive: "iman", name: "Corona Magnética", desc: "Más discos, más grandes y más rápidos." },
+  acido: { passive: "tirita", name: "Mar de Veneno", desc: "Charcos más extensos que duran mucho más." },
+  llamas: { passive: "escudo", name: "Aliento de la Forja", desc: "Un abanico de fuego más ancho y potente." }
+});
+Object.assign(TS.ABILITIES, {
+  nix: { name: "Polaridad", desc: "Atrae a los enemigos cercanos y desata una descarga magnética.", cd: 23 },
+  savia: { name: "Jardín Cáustico", desc: "Crea seis charcos de ácido y recupera el 15 % de vida.", cd: 28 },
+  brasa: { name: "Sobrecarga", desc: "Una corona de llamas quema a todos los de alrededor.", cd: 24 }
+});
+TS.WATER_SPEED = .58;
+
+/* Ataques personales: arma base + dos técnicas aprendibles + habilidad activa. */
+const personalMoves = [
+  ["ranjay","Corte doble","Double Cut","Guardia circular","Circular Guard"],
+  ["bruno","Mecha corta","Short Fuse","Rueda de petardos","Firecracker Wheel"],
+  ["lia","Esencia concentrada","Concentrated Essence","Jardín de aromas","Garden of Scents"],
+  ["toto","Tiro con efecto","Curve Shot","Balones cruzados","Cross Balls"],
+  ["omogos","Virote pesado","Heavy Bolt","Corona de virotes","Bolt Crown"],
+  ["finillos","Golpe demoledor","Demolition Blow","Onda de martillo","Hammer Wave"],
+  ["chambas","Hacha reforzada","Reinforced Axe","Rueda de hachas","Axe Wheel"],
+  ["frosti","Escarcha intensa","Deep Frost","Estrella de hielo","Ice Star"],
+  ["yant","Estocadas encadenadas","Chain Thrusts","Lanza giratoria","Spinning Spear"],
+  ["eledemak","Jab encadenado","Chain Jab","Gancho circular","Circular Hook"],
+  ["kaito","Salva de kunais","Kunai Volley","Cerco de kunais","Kunai Ring"],
+  ["nova","Impacto estelar","Stellar Impact","Constelación","Constellation"],
+  ["sunk","Puño demoledor","Demolition Fist","Onda de nudillos","Knuckle Wave"],
+  ["quizo","Descarga del tridente","Trident Discharge","Corona de rayos","Lightning Crown"],
+  ["zeta","Ráfaga del dron","Drone Burst","Barrido láser","Laser Sweep"],
+  ["duna","Viento concentrado","Focused Wind","Espiral de viento","Wind Spiral"],
+  ["nix","Órbita interior","Inner Orbit","Discos expansivos","Expanding Discs"],
+  ["savia","Vial concentrado","Concentrated Vial","Anillo cáustico","Caustic Ring"],
+  ["brasa","Chorro de forja","Forge Jet","Abanico de brasas","Ember Fan"]
+];
+const ringDescriptions = {
+  tajo: ["Un barrido de espada cubre todos los lados.","A sword sweep covers every side."],
+  petardo: ["Lanza petardos alrededor de ti.","Throws firecrackers around you."],
+  colonia: ["Deja nubes de colonia que dañan y frenan a los enemigos.","Leaves perfume clouds that hurt and slow enemies."],
+  balon: ["Lanza balones en varias direcciones.","Launches balls in several directions."],
+  virote: ["Dispara virotes en todas direcciones.","Fires bolts in every direction."],
+  mazazo: ["Golpea el suelo con el mazo y crea una onda expansiva.","Slams the hammer into the ground to create a shockwave."],
+  hacha: ["Lanza varias hachas que vuelven a ti.","Throws several axes that return to you."],
+  copos: ["Dispara una corona de hielo alrededor de ti.","Fires a crown of ice around you."],
+  estocada: ["Traza un círculo de estocadas con la lanza.","Traces a circle of spear thrusts."],
+  guantes: ["Encadena ganchos de boxeo alrededor de ti.","Chains boxing hooks around you."],
+  kunai: ["Lanza kunais hacia todos los lados.","Throws kunai in every direction."],
+  meteoro: ["Invoca impactos estelares a tu alrededor.","Summons stellar impacts around you."],
+  punos: ["Golpea con los puños y expulsa una onda de choque.","Punches out a shockwave."],
+  rayo: ["Descarga los rayos del tridente sobre varios enemigos.","Discharges the trident's lightning onto several enemies."],
+  dron: ["El dron dispara láseres en varias direcciones.","The drone fires lasers in several directions."],
+  tornado: ["Crea tornados que se alejan en espiral.","Creates tornadoes that spiral outward."],
+  discos: ["Tus discos orbitan hacia fuera para ampliar su alcance.","Your discs orbit outward for greater reach."],
+  acido: ["Lanza viales para formar un anillo de ácido.","Throws vials to form a ring of acid."],
+  llamas: ["Barre varios ángulos con tu lanzallamas.","Sweeps several angles with your flamethrower."]
+};
+TS.TECHNIQUES = Object.fromEntries(personalMoves.map(([id,burst,burstEn,ring,ringEn]) => {
+  const weapon=TS.CHARACTERS.find(ch=>ch.id===id).weapon;
+  const [desc,descEn]=ringDescriptions[weapon];
+  return [id,[
+    {id:"burst",name:burst,nameEn:burstEn,desc:"Refuerza el ataque de tu propia arma.",descEn:"Reinforces your own weapon's attack.",cd:240,max:3},
+    {id:"ring",name:ring,nameEn:ringEn,desc,descEn,cd:420,max:3}
+  ]];
+}));
+// Mantener el mismo recorrido de dificultad, repartido en veinticinco minutos.
+for (const wave of TS.WAVES) wave.from *= TS.RUN_SECONDS / 600;
+for (const horde of TS.HORDES) horde.at *= TS.RUN_SECONDS / 600;
+for (const boss of TS.BOSSES) boss.at = boss.id === "rey" ? TS.RUN_SECONDS : boss.at * TS.RUN_SECONDS / 600;

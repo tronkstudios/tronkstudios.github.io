@@ -85,8 +85,9 @@ const Account = (() => {
 
   async function submitRun(r) {
     if (!user || !runTicket) return null;
-    const ticket = await runTicket;
+    const pendingTicket = runTicket;
     runTicket = null;
+    const ticket = await pendingTicket;
     if (!ticket) return null;
     try {
       const { data, error } = await client.rpc("submit_survivors_run", {

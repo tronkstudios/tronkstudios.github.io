@@ -23,6 +23,9 @@ let LANG = (() => {
 const EN = {
   // Menú y pantallas
   "Cargando": "Loading",
+  "Mover": "Move",
+  "Introduce un código de 5 caracteres.": "Enter a 5-character room code.",
+  "Mover personaje": "Move character",
   "Dibujando personajes…": "Drawing characters…",
   "Preparando la partida…": "Getting the run ready…",
   "Jugar": "Play",
@@ -90,7 +93,7 @@ const EN = {
   "¡Has caído! Un compañero puede levantarte si se queda a tu lado.": "You fell! A teammate can revive you by standing next to you.",
   "¡El Maestro Ninja llama a su clan!": "The Ninja Master calls his clan!",
   "¡Esquivado!": "Dodged!",
-  "Aguanta 10 minutos y derrota al jefe final.": "Survive 10 minutes and defeat the final boss.",
+  "Aguanta 25 minutos y derrota al jefe final.": "Survive 25 minutes and defeat the final boss.",
   "Bloqueado": "Locked",
   "Todavía no hay nadie. ¡Sé el primero!": "Nobody yet. Be the first!",
   "Inicia sesión en TronkStudios para salir en la clasificación.": "Log in to TronkStudios to appear on the leaderboard.",
@@ -410,8 +413,6 @@ const EN = {
   "Terminar": "Finish",
   "Elegir mapa": "Choose map",
   "Conectando…": "Connecting…",
-  "Tronk Survivors solo se puede jugar en ordenador": "Tronk Survivors can only be played on a computer",
-  "Es un juego en 3D que necesita teclado y un ordenador. Ábrelo desde un ordenador para jugar.": "It's a 3D game that needs a keyboard and a computer. Open it on a computer to play.",
   "← Volver a TronkStudios": "← Back to TronkStudios",
   "No se puede conectar con el servidor ahora mismo.": "Can't reach the server right now.",
   "No se ha podido conectar. Inténtalo otra vez.": "Couldn't connect. Try again.",
@@ -462,6 +463,7 @@ const TEMPLATES = {
   missionDone: ["¡Misión cumplida! {name} (+{n} monedas)", "Mission complete! {name} (+{n} coins)"],
   weekLeft: ["· quedan {n} días", "· {n} days left"],
   levelTitle: ["¡Nivel {n}!", "Level {n}!"],
+  tipMoveTouch: ["Usa el joystick de la izquierda para moverte. Atacas automáticamente; toca el botón de la derecha para la habilidad.", "Use the left stick to move. Attacks are automatic; tap the right button to use your ability."],
   tipMove: ["Muévete con WASD o las flechas (en el móvil, arrastra el dedo). Tu personaje ataca solo.", "Move with WASD or the arrow keys (on mobile, drag your finger). Your character attacks on their own."],
   tipGems: ["Recoge las gemas azules: dan experiencia para subir de nivel y elegir mejoras.", "Pick up the blue gems: they give experience to level up and choose upgrades."],
   tipProps: ["Rompe barriles, cajas y jarrones: sueltan comida, monedas, imanes y a veces cofres.", "Break barrels, crates and vases: they drop food, coins, magnets and sometimes chests."],
@@ -513,3 +515,56 @@ function translatePage(root = document.body) {
     el.setAttribute("aria-label", L(el.__esLabel));
   }
 }
+
+Object.assign(EN, {
+  "19 personajes": "19 characters", "19 armas": "19 weapons", "Consigue los 19 personajes": "Get all 19 characters",
+  "Fase": "Phase", "Final": "Final", "Supervivencia final": "Final survival", "Fin de supervivencia": "Survival over",
+  "Fases superadas": "Phases cleared", "Contra el jefe final": "Against the final boss",
+  "¡JEFE FINAL!": "FINAL BOSS!", "¡NUEVA FASE!": "NEW PHASE!",
+  "Aguanta hasta el minuto 25 y sobrevive a las fases del jefe final.": "Reach minute 25 and survive the final boss's phases.",
+  "Supervivencia: los que más aguantan": "Survival: the longest runs",
+  "Los enemigos se fortalecen sin parar. Al minuto 25 llega el jefe final: supera sus fases y aguanta todo lo que puedas.": "Enemies keep growing stronger. At minute 25 the final boss arrives: clear its phases and survive as long as you can.",
+  "Supera la primera fase de cualquier jefe final": "Clear the first phase of any final boss",
+  "Supera la primera fase del jefe final": "Clear the final boss's first phase",
+  "Supera la primera fase del jefe final con Sunk": "Clear the final boss's first phase with Sunk",
+  "Supera la primera fase de {n} jefe final": "Clear the first phase of {n} final boss",
+  "Discos magnéticos": "Magnetic discs", "Viales de ácido": "Acid vials", "Lanzallamas": "Flamethrower",
+  "Discos que orbitan a tu alrededor y golpean al contacto.": "Discs orbit you and deal contact damage.",
+  "Lanza viales que dejan charcos dañinos y ralentizan a los enemigos.": "Throws vials that leave damaging pools and slow enemies.",
+  "Una ráfaga de fuego en cono hacia el enemigo más cercano.": "A cone of fire aimed at the nearest enemy.",
+  "Ingeniera de chatarra con una antena torcida. Sus discos magnéticos orbitan a su alrededor y cortan todo lo que se acerca.": "A scrap engineer with a crooked antenna. Her magnetic discs orbit her and slice anything that gets close.",
+  "Alquimista del pantano, sombrero de hongo y mochila de frascos. Donde cae un vial queda un charco de ácido.": "A swamp alchemist with a mushroom hat and a bag of vials. Each vial leaves a pool of acid.",
+  "Antigua guardiana de una fundición. Lleva una máscara de hierro, depósitos a la espalda y un lanzallamas de fabricación propia.": "A former foundry guard wearing an iron mask, fuel tanks and a homemade flamethrower.",
+  "+12 % de área": "+12% area", "Recupera 0,35 de vida por segundo": "Regenerates 0.35 health per second", "+1 de armadura, +8 % de daño": "+1 armor, +8% damage",
+  "Corona Magnética": "Magnetic Crown", "Mar de Veneno": "Sea of Venom", "Aliento de la Forja": "Forge Breath",
+  "Más discos, más grandes y más rápidos.": "More discs, bigger and faster.", "Charcos más extensos que duran mucho más.": "Larger pools that last much longer.", "Un abanico de fuego más ancho y potente.": "A wider, stronger fan of fire.",
+  "Polaridad": "Polarity", "Jardín Cáustico": "Caustic Garden", "Sobrecarga": "Overload",
+  "Atrae a los enemigos cercanos y desata una descarga magnética.": "Pulls nearby enemies in and unleashes a magnetic discharge.",
+  "Crea seis charcos de ácido y recupera el 15 % de vida.": "Creates six acid pools and restores 15% health.",
+  "Una corona de llamas quema a todos los de alrededor.": "A crown of flames burns everything around you."
+});
+
+Object.assign(EN, {
+  "Ataques del personaje":"Character moves", "Ataque base":"Basic attack", "Técnica automática":"Automatic technique", "Habilidad activa":"Active ability",
+  "Aprende y mejora tus técnicas al subir de nivel. Solo usas el arma de tu personaje.":"Learn and upgrade techniques as you level up. You only use your character's weapon."
+});
+for (const moves of Object.values(TS.TECHNIQUES)) for (const move of moves) { EN[move.name]=move.nameEn; EN[move.desc]=move.descEn; }
+
+Object.assign(EN, {
+  "SUPERVIVENCIA · COOPERATIVO":"SURVIVAL · CO-OP",
+  "Domina tu arma. Resiste la horda.":"Master your weapon. Hold back the horde.",
+  "TU SUPERVIVIENTE":"YOUR SURVIVOR", "MEJORA TU EQUIPO":"UPGRADE YOUR BUILD",
+  "Tronk Survivors · 25 minutos hasta el jefe final":"Tronk Survivors · 25 minutes until the final boss",
+  "Reducir movimiento y destellos":"Reduce motion and flashes",
+  "Proyectiles de alto contraste":"High contrast enemy projectiles",
+  "Distancia de cámara":"Camera distance", "Amplia":"Wide", "Equilibrada":"Balanced", "Cercana":"Close",
+  "Cambiar opciones":"Reroll choices", "Necesario para evolucionar":"Needed for evolution",
+  "Recarga":"Cooldown", "Potencia":"Power", "Evolución":"Evolution",
+  "Sin espacio para la pasiva":"No room for this passive", "Recoge un cofre con ambos requisitos":"Meet both requirements, then pick up a chest",
+  "Daño causado":"Damage dealt", "Daño recibido":"Damage taken", "Vida recuperada":"Health restored",
+  "Élites":"Elites", "Cofres":"Chests", "Cofre":"Chest", "Revivir":"Revive",
+  "Espera a tu compañero":"Wait for a teammate", "Agua · movimiento al 58 %":"Water · movement at 58%",
+  "Jefe en":"Boss in", "¡Élite! Busca el halo dorado":"Elite! Look for the golden halo",
+  "¡Élite derrotado!":"Elite defeated!", "Pantalla completa":"Fullscreen",
+  "Pantalla completa no disponible":"Fullscreen unavailable"
+});

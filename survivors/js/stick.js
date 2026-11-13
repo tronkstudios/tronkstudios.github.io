@@ -11,7 +11,7 @@
    Scripts clásicos (ver docs/adr/0002). */
 
 const Stick = (() => {
-  const RES = 3;
+  const RES = window.matchMedia("(pointer: coarse)").matches ? 2 : 3;
   // lienzo amplio para que quepan las armas levantadas; pies en (OX, OY)
   const FW = 128 * RES;
   const FH = 128 * RES;
@@ -268,7 +268,120 @@ const Stick = (() => {
   /* Cabeza según desde dónde se mire (yaw: 0 de frente, π/2 de lado, π de espaldas).
      De lado es exactamente la de Tronk Fight; de frente el peinado se dibuja
      por los dos lados y se ven los dos ojos; de espaldas, solo pelo. */
+  function specialHead(ctx, o, r, rear, side) {
+    const acc=o.acc || "#ffd23f";
+    ctx.lineWidth=3;ctx.strokeStyle=INK;
+    if (o.hair === "mushroom") {
+      ctx.fillStyle=o.hairColor;ctx.beginPath();ctx.ellipse(0,-r*.6,r*1.55,r*.75,0,Math.PI,Math.PI*2);ctx.lineTo(r*1.55,-r*.45);ctx.lineTo(-r*1.55,-r*.45);ctx.closePath();ctx.fill();ctx.stroke();
+      ctx.fillStyle=acc;for(const x of [-.8,0,.8])blob(ctx,x*r,-r*(x===0?1.12:.9),r*.18);
+    } else {
+      ctx.fillStyle=o.hairColor;ctx.beginPath();ctx.arc(0,0,r*1.08,0,Math.PI*2);ctx.fill();ctx.stroke();
+      if (!rear) {
+        ctx.fillStyle=acc;ctx.fillRect((side ? .15 : -.75)*r,-r*.3,(side ? .8 : 1.5)*r,r*.42);
+        ctx.fillStyle="#fff4d6";blob(ctx,(side ? .65 : 0)*r,-r*.12,r*.12);
+      }
+      if(o.hair === "antenna") {
+        ctx.strokeStyle=acc;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-r*.5,-r*.8);ctx.lineTo(-r*.8,-r*1.8);ctx.stroke();ctx.fillStyle="#ff6570";blob(ctx,-r*.8,-r*1.8,r*.22);
+      } else {
+        ctx.fillStyle="#ff812f";for(const x of [-.55,0,.55])poly(ctx,r,[[x-.17,-.8],[x,-1.7],[x+.17,-.8]]);
+      }
+    }
+  }
+
+  // Frente y espalda comparten una silueta, sin duplicar el dibujo de perfil:
+  // así no aparecen dos coletas, dos viseras o dos insignias al girar.
+  function drawTurnedHead(ctx, o, r, rear) {
+    const hair = o.hairColor || "#2a1d1a";
+    const acc = o.acc || "#ffd23f";
+    const long = ["curly", "longCurly", "mane", "mullet", "bob", "hood"].includes(o.hair);
+    const covered = ["helmet", "balaclava", "wrapNinja", "hoodShadow"].includes(o.hair);
+    const ellipse = (x, y, rx, ry, color) => {
+      ctx.fillStyle = color; ctx.beginPath(); ctx.ellipse(x * r, y * r, rx * r, ry * r, 0, 0, Math.PI * 2); ctx.fill();
+    };
+    const cap = (color, height = 1.12) => {
+      ctx.fillStyle = color; ctx.beginPath();
+      ctx.moveTo(-r, -r * .2); ctx.quadraticCurveTo(-r * 1.15, -r * height, 0, -r * height);
+      ctx.quadraticCurveTo(r * 1.15, -r * height, r, -r * .2);
+      ctx.quadraticCurveTo(0, -r * .6, -r, -r * .2); ctx.fill();
+    };
+    if (long) ellipse(0, .15, 1.13, o.hair === "bob" ? 1.15 : 1.65, hair);
+    if (o.hair === "afro") ellipse(0, -.35, 1.5, 1.4, hair);
+    if (o.hair === "ponytail") {
+      // Una sola coleta: detrás del cráneo de frente, sobre él de espaldas.
+      ellipse(.5, .35, .35, 1.05, hair);
+    }
+    ctx.fillStyle = covered ? (o.hair === "balaclava" ? "#151319" : hair) : o.head || o.color;
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = INK; ctx.lineWidth = 3; ctx.stroke();
+    if (!covered && o.hair !== "skull") {
+      switch (o.hair) {
+        case "spiky":
+          poly(ctx, r, [[-1,-.2],[-1.15,-.9],[-.7,-.75],[-.6,-1.7],[-.2,-1.15],[0,-1.9],[.3,-1.1],[.75,-1.65],[.8,-.75],[1.2,-.9],[1,-.2],[.3,-.55]], hair);
+          break;
+        case "curly": case "longCurly": case "fluffy":
+          for (const [x,y] of [[-.8,-.55],[-.5,-.9],[0,-1],[.5,-.9],[.8,-.55]]) ellipse(x,y,.45,.42,hair);
+          break;
+        case "beanie":
+          cap(acc, 1.5); ctx.fillStyle = shade(acc, -.25); ctx.fillRect(-1.05*r,-.35*r,2.1*r,.35*r); ellipse(0,-1.25,.3,.3,"#f4f8ff");
+          break;
+        case "hardhat":
+          cap(acc, 1.4); ctx.fillStyle = acc; ctx.fillRect(-1.25*r,-.3*r,2.5*r,.22*r);
+          break;
+        case "capBack": cap(acc,1.35); if (rear) { ctx.fillStyle=acc; ctx.fillRect(-.65*r,-.3*r,1.3*r,.35*r); } break;
+        case "zombie":
+          ctx.strokeStyle = hair; ctx.lineWidth = 2.5; ctx.beginPath();
+          for (const x of [-.45,0,.45]) { ctx.moveTo(x*r,-.85*r); ctx.lineTo((x+.15)*r,-1.35*r); } ctx.stroke(); break;
+        case "afro": break;
+        default:
+          cap(hair, o.hair === "taperLong" ? 1.55 : 1.15);
+      }
+    }
+    if (["antenna","mushroom","forge"].includes(o.hair)) specialHead(ctx,o,r,rear,false);
+    if (rear) {
+      if (!covered && !["skull","zombie","hardhat","beanie","capBack","antenna","mushroom","forge"].includes(o.hair)) {
+        ctx.save(); ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.clip();
+        ctx.fillStyle=hair; ctx.fillRect(-r,-r,2*r,long ? 2*r : 1.5*r); ctx.restore();
+      }
+      if (o.hair === "ponytail") { ellipse(0,.15,.4,.8,hair); ellipse(0,-.45,.22,.15,acc); }
+    } else {
+      if (o.hair === "helmet") {
+        ctx.fillStyle = acc; ctx.fillRect(-.82*r,-.35*r,1.64*r,.5*r);
+        ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.fillRect(-.6*r,-.28*r,.5*r,.12*r);
+      } else if (o.hair === "hoodShadow") {
+        ellipse(0,.15,.75,.8,"#14101c");
+        for (const x of [-.3,.3]) ellipse(x,-.1,.12,.13,"#ff2bd6");
+      } else {
+        if (["balaclava","wrapNinja"].includes(o.hair)) {
+          ctx.fillStyle = o.skin || "#f2c3a0"; ctx.fillRect(-.76*r,-.28*r,1.52*r,.3*r);
+        }
+        if (o.hair === "skull") {
+          for (const x of [-.35,.35]) { ellipse(x,-.1,.23,.25,"#1a1020"); ellipse(x,-.1,.08,.08,o.eye || "#ff6b3b"); }
+          ctx.fillStyle="#1a1020";ctx.fillRect(-.45*r,.42*r,.9*r,.12*r);
+        } else if (!o.noEye || ["balaclava","wrapNinja"].includes(o.hair)) {
+          for (const x of [-.34,.34]) ellipse(x,-.12,.12,.14,o.eye || "#14112b");
+        }
+        if (o.hair === "ninja") {
+          ctx.fillStyle=acc; ctx.fillRect(-r,-.6*r,2*r,.25*r);
+          ctx.fillStyle="#1b1b2f"; ctx.beginPath();ctx.arc(0,0,r,.1,Math.PI-.1);ctx.fill();
+        }
+        if (o.beard) {
+          ctx.fillStyle=hair;ctx.beginPath();ctx.arc(0,.25*r,.85*r,0,Math.PI);ctx.fill();
+        }
+      }
+      if (o.fringe) poly(ctx,r,[[.1,-.6],[.5,-.6],[.25,-.05]],hair);
+      if (o.hair === "bob") { ctx.fillStyle=acc;star(ctx,.7*r,-.65*r,.25*r); }
+      if (o.glasses) {
+        ctx.strokeStyle="#14112b";ctx.lineWidth=2.4;
+        for (const x of [-.62,.06]) ctx.strokeRect(x*r,-.36*r,.56*r,.44*r);
+        ctx.beginPath();ctx.moveTo(-.06*r,-.2*r);ctx.lineTo(.06*r,-.2*r);ctx.stroke();
+      }
+    }
+    if (o.beret) { ellipse(-.15,-.95,1,.35,o.beret); if(!rear)ellipse(.45,-.95,.14,.14,"#ffd23f"); }
+    if (o.crown) drawHair(ctx, { ...o, hair: null }, r, "front");
+  }
+
   function drawHead(ctx, o, r, yaw = Math.PI / 2) {
+    if (Math.sin(yaw) < 0.55) { drawTurnedHead(ctx, o, r, Math.cos(yaw) < 0); return; }
     const side = Math.sin(yaw); // 1 de lado, 0 de frente o de espaldas
     const facing = Math.cos(yaw); // 1 de frente, -1 de espaldas
     const both = (layer) => {
@@ -311,6 +424,7 @@ const Stick = (() => {
         ctx.beginPath(); ctx.moveTo(-r * 0.05, -r * 0.2); ctx.lineTo(r * 0.05, -r * 0.2); ctx.stroke();
       }
     }
+    if (["antenna","mushroom","forge"].includes(o.hair)) specialHead(ctx,o,r,facing<-.3,true);
   }
 
   /* Armas: el arma sale de la mano hacia +y (como en Tronk Fight) */
@@ -320,6 +434,15 @@ const Stick = (() => {
     ctx.lineCap = "round"; ctx.lineJoin = "round";
     const wood = "#7a4a26", steel = "#dfe6f0", steelDk = "#5b6b80";
     switch (type) {
+      case "magnet":
+        ctx.strokeStyle="#64f5ff";ctx.lineWidth=6;ctx.beginPath();ctx.arc(0,12,14,0,Math.PI*2);ctx.stroke();
+        ctx.fillStyle="#264653";ctx.fillRect(-5,-4,10,14);break;
+      case "vial":
+        ctx.fillStyle="#b8f06a";ctx.beginPath();ctx.ellipse(0,13,10,14,0,0,Math.PI*2);ctx.fill();
+        ctx.strokeStyle="#e4ffd0";ctx.lineWidth=2;ctx.stroke();ctx.fillStyle="#7744a6";ctx.fillRect(-5,-4,10,8);break;
+      case "flamer":
+        ctx.fillStyle="#34313d";ctx.fillRect(-8,-6,16,38);ctx.fillStyle="#ff812f";ctx.fillRect(-11,20,22,10);
+        ctx.fillStyle="#ffd987";ctx.fillRect(-5,30,10,6);break;
       case "espada":
       case "katana": {
         ctx.fillStyle = "#3a2516"; ctx.fillRect(-3, -10, 6, 16);
@@ -404,6 +527,7 @@ const Stick = (() => {
 
   // Arma de Survivors → cómo se dibuja y cómo se mueve
   const WEAPON = {
+    discos: ["magnet", 0, "cast"], acido: ["vial", 0, "throw"], llamas: ["flamer", 40, "shoot"],
     tajo: ["espada", 74, "slash"], virote: ["ballesta", 46, "shoot"], mazazo: ["mazo", 70, "smash"], estocada: ["lanza", 132, "thrust"],
     hacha: ["hacha", 78, "slash"], rayo: ["tridente", 116, "thrust"], guantes: [null, 0, "punch", "gloves"], punos: [null, 0, "punch", "fists"],
     petardo: ["petardo", 0, "throw"], colonia: ["perfume", 0, "cast"], balon: ["balon", 0, "throw"], copos: ["hielo", 0, "cast"],
@@ -552,20 +676,27 @@ const Stick = (() => {
     const style = (WEAPON[o.weapon] || WEAPON.none)[2];
     const out = {};
     for (const [v, yaw] of Object.entries(VIEWS)) {
-      const make = (flash) => ({
-        idle: frame(o, pose(style, "idle"), flash, yaw),
-        walk: Array.from({ length: 8 }, (_, i) => frame(o, pose(style, "walk", i, 8), flash, yaw)),
-        attack: Array.from({ length: 6 }, (_, i) => frame(o, pose(style, "attack", i, 6), flash, yaw))
-      });
-      out[v] = make(false);
-      out[`${v}Flash`] = make(true);
+      const frames = {
+        idle: frame(o, pose(style, "idle"), false, yaw),
+        walk: Array.from({ length: 8 }, (_, i) => frame(o, pose(style, "walk", i, 8), false, yaw)),
+        attack: Array.from({ length: 6 }, (_, i) => frame(o, pose(style, "attack", i, 6), false, yaw))
+      };
+      out[v] = frames;
+      // El destello conserva exactamente los pies, el recorte y la silueta.
+      out[`${v}Flash`] = {
+        idle: Sprites.silhouette(frames.idle),
+        walk: frames.walk.map(c => Sprites.silhouette(c)),
+        attack: frames.attack.map(c => Sprites.silhouette(c))
+      };
     }
     return out;
   }
 
   /* ---------- personajes (de data.js) ---------- */
   function characterOptions(ch) {
-    const o = { color: ch.shirt, hair: ch.hair, hairColor: ch.hairColor, acc: ch.acc, weapon: ch.weapon, glasses: ch.glasses };
+    const o = { role: ch.id, color: ch.shirt, hair: ch.hair, hairColor: ch.hairColor, acc: ch.acc, weapon: ch.weapon, glasses: ch.glasses };
+    if (ch.id === "savia") o.cape = "#513659";
+    if (ch.id === "brasa") o.thick = 1.2;
     if (ch.id === "omogos") Object.assign(o, { hair: "curly", beard: true });
     if (ch.id === "eledemak") Object.assign(o, { fringe: true }); // mullet con flequillo
     if (ch.id === "sunk") Object.assign(o, { color: "#f0c8a0", legs: "#9e9a92", thick: 1.25, torso: 1.35, abs: true });
