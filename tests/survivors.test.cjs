@@ -631,3 +631,46 @@ test('compass finds healing at critical health, keeps revive priority and explai
  assert.equal(Game.hudData().compass.label,'Campamento');const site=st.sites[0];p.x=site.x;p.y=site.y;assert.equal(Game.hudData().site.hint,'Cura durante 20 s');
  const snap=Game.snapshot([p]);Game.startGuest({localId:0,players:[setup('ranjay'),setup('lia')]});Game.applySnapshot(snap);assert.equal(Game.hudData().compass.kind,'site');
 });
+
+
+test('one enemy projectile cannot hit two overlapping teammates',()=>{
+ const {Game}=engine();Game.start([setup('ranjay'),setup('lia')],{seed:4});const st=Game.state,[a,b]=st.players;
+ st.players.forEach(p=>{p.x=0;p.y=0;p.iframes=0;p.weapons[0].cd=9999;});st.enemies=[];
+ st.eshots=[{x:0,y:-18,vx:0,vy:0,dmg:10,r:4,life:10,source:'tirador'}];Game.step();
+ assert.equal(a.hp,90);assert.equal(b.hp,b.stats.maxHp);assert.equal(st.eshots.length,0);
+ assert.equal(a.damageHistory[0].source,'tirador');assert.equal(a.damageHistory[0].kind,'projectile');assert.equal(b.damageHistory.length,0);
+});
+test('death recaps record actual damage, source and type with bounded recent history',()=>{
+ const {Game,TS}=engine();Game.start([setup('ranjay')],{seed:4});const st=Game.state,p=st.players[0];p.weapons[0].cd=99999;let result;Game.on('end',r=>result=r);
+ for(let i=0;i<5;i++){p.iframes=0;st.enemies=[fixtureEnemy(TS,'zombi',p.x,p.y,{dmg:10})];Game.step();}
+ assert.equal(p.damageHistory.length,4);assert.equal(p.damageHistory[0].kind,'contact');
+ p.iframes=0;p.hp=4;st.enemies=[];st.strikes=[{x:p.x,y:p.y,t:1,dmg:100,source:'general'}];Game.step();
+ assert.ok(result);assert.equal(result.recaps[0].fatal.source,'general');assert.equal(result.recaps[0].fatal.kind,'bombardment');assert.equal(result.recaps[0].fatal.amount,4);
+ assert.equal(result.recaps[0].hits.length,4);assert.equal(result.recaps[0].hits.at(-1).amount,4);
+ Game.start([setup('ranjay')]);assert.equal(Game.state.players[0].damageHistory.length,0);assert.equal(Game.state.players[0].fatalHit,null);
+});
+test('reviving clears a fatal recap and credits only the player who completes the revive',()=>{
+ const {Game,TS}=engine();Game.start([setup('ranjay'),setup('lia')],{seed:42});const st=Game.state,[p,helper]=st.players;
+ st.players.forEach(p=>p.weapons[0].cd=99999);helper.x=p.x+30;helper.y=p.y;helper.iframes=9999;p.hp=1;st.enemies=[fixtureEnemy(TS,'zombi',p.x,p.y,{dmg:10})];Game.step();assert.equal(p.down,true);assert.ok(p.fatalHit);
+ st.enemies=[];for(let i=0;i<150;i++)Game.step();assert.equal(p.down,false);assert.equal(p.fatalHit,null);assert.equal(p.damageHistory.length,0);assert.equal(helper.combat.revives,1);
+ for(let i=0;i<20;i++)Game.step();assert.equal(helper.combat.revives,1);assert.equal(p.combat.revives,0);
+ const snap=Game.snapshot([helper]);Game.startGuest({localId:1,players:[setup('ranjay'),setup('lia')]});Game.applySnapshot(snap);assert.equal(Game.hudData().combat.revives,1);
+});
+test('pause encounters respect daily timing, final timing and guest snapshots',()=>{
+ const {Game,TS}=engine();Game.start([setup('ranjay')],{seed:4,mods:['jefes']});let st=Game.state;
+ // Use the same multiplier that the actual spawning loop uses.
+ st.t=0;assert.ok(st.mod.bossTime<1);const next=Game.hudData().upcoming.find(e=>e.kind==='boss');assert.equal(next.seconds,Math.ceil(TS.BOSSES[0].at*st.mod.bossTime));
+ st.t=TS.RUN_SECONDS*60-61*60;st.nextBreach=st.t+10000;const end=Game.hudData().upcoming.find(e=>e.kind==='final');assert.equal(end.seconds,61);
+ st.t=0;st.nextBreach=7200;const snap=Game.snapshot(st.players);Game.startGuest({localId:0,players:[setup('ranjay')]});Game.applySnapshot(snap);assert.equal(Game.hudData().upcoming.find(e=>e.kind==='breach').seconds,120);
+});
+test('best streak persists and merges with older saves without overwriting a better record',()=>{
+ const {Save}=engine({best:{time:10,kills:2,level:1,wins:0}});assert.equal(Save.get().best.streak,0);
+ const r={seconds:20,kills:3,level:2,coins:5,bestStreak:15};Save.recordRun(r);assert.equal(Save.get().best.streak,15);
+ Save.recordRun({...r,bestStreak:4});assert.equal(Save.get().best.streak,15);Save.mergeRemote({best:{streak:21}});assert.equal(Save.get().best.streak,21);
+});
+
+test('a downed teammate keeps the recap of their own death until the team run ends',()=>{
+ const {Game}=engine();Game.start([setup('ranjay'),setup('lia')],{seed:4});const st=Game.state,[host,guest]=st.players;let result;Game.on('end',r=>result=r);
+ st.players.forEach(p=>p.weapons[0].cd=99999);guest.hp=1;st.eshots=[{x:guest.x,y:guest.y-18,vx:0,vy:0,dmg:20,r:4,life:10,source:'tirador'}];Game.step();assert.equal(guest.down,true);
+ st.t+=1200;Game.finish(false);assert.equal(result.recaps[0].fatal,null);assert.equal(result.recaps[1].fatal.source,'tirador');assert.equal(result.recaps[1].hits.length,1);
+});

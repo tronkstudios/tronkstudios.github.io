@@ -116,7 +116,8 @@ const Game = (() => {
       weapons: [],
       passives: {},
       techniques: {}, techCds: {}, rerolls: 3,
-      combat: { dealt: 0, taken: 0, healed: 0, elites: 0 },
+      combat: { dealt: 0, taken: 0, healed: 0, elites: 0, revives:0 },
+      damageHistory:[],fatalHit:null,
       streak: {count:0,best:0,until:0,flashUntil:0},
       loot: {xp:0,coins:0,healed:0,until:0},
       iframes: 0,
@@ -566,9 +567,8 @@ const Game = (() => {
       const dy = ent.y - py;
       const d2 = dx * dx + dy * dy;
       if (d2 < rr * rr) {
-        const d = Math.sqrt(d2) || 0.01;
-        ent.x = px + (dx / d) * rr;
-        ent.y = py + (dy / d) * rr;
+        if(d2<1e-8){ent.x=px+(ob.line?0:rr);ent.y=py+(ob.line?rr:0);}
+        else {const d=Math.sqrt(d2);ent.x=px+dx/d*rr;ent.y=py+dy/d*rr;}
       }
     });
   }
@@ -736,7 +736,7 @@ const Game = (() => {
     st.finalPulseT = st.t + Math.max(110, 360 - st.finalRound * 20 - Math.floor((st.t - st.endlessStart) / 600));
     for (const p of alivePlayers()) {
       fx({ k: "warn", x: p.x, y: p.y, r: 26 * U, life: 60 });
-      st.strikes.push({ x: p.x, y: p.y, t: 60, dmg: e.dmg * .8 });
+      st.strikes.push({ x: p.x, y: p.y, t: 60, dmg:e.dmg*.8,source:e.type});
     }
     if(e.tactic==="gaps")return;
     const n = Math.min(24, 8 + st.finalRound * 2);
@@ -894,7 +894,7 @@ const Game = (() => {
 
   function enemyShot(e, angle, speed, dmg, extra = {}) {
     sound(extra.kind==="goo"?"slime":extra.kind==="bullet"?"eshot":"enemyMagic",.15,e.x,e.y);
-    st.eshots.push({ x: e.x, y: e.y - 14, vx: Math.cos(angle) * speed * U, vy: Math.sin(angle) * speed * U, dmg, r: 4, life: 300, kind: extra.kind || "orb" });
+    st.eshots.push({ x: e.x, y: e.y - 14, vx: Math.cos(angle) * speed * U, vy: Math.sin(angle) * speed * U, dmg, source:e.type,r: 4, life: 300, kind: extra.kind || "orb" });
   }
 
   function updateEnemy(e) {
@@ -1077,7 +1077,7 @@ const Game = (() => {
       // with different palettes, sizes and durations.
       if(e.timer<=0){
         e.timer=pattern==="ambush"?210:160;
-        for(const p of alivePlayers())st.zones.push({type:"hazard",x:p.x,y:p.y,r:(pattern==="ambush"?38:30)*U,warn:60,t:0,life:pattern==="ambush"?105:240,dmg:e.dmg*.45,theme:pattern});
+        for(const p of alivePlayers())st.zones.push({type:"hazard",x:p.x,y:p.y,r:(pattern==="ambush"?38:30)*U,warn:60,t:0,life:pattern==="ambush"?105:240,dmg:e.dmg*.45,source:e.type,theme:pattern});
         if(pattern==="ambush" && st.enemies.filter(o=>o.summonedBy===e.id&&!o.dead).length<6)for(let i=0;i<2;i++)st.zones.push({type:"summon",x:target.x+(i?60:-60)*U,y:target.y+50*U,t:0,life:61,bossId:e.id,enemy:"ninja"});
       }
     }
@@ -1102,7 +1102,7 @@ const Game = (() => {
             fx({ k: "crack", x: e.x, y: e.y, r: 34, life: 70 });
             shake(8);
             sound("wave");
-            for (const p of alivePlayers()) if (Math.hypot(p.x - e.x, p.y - e.y) < 80 * U) hurtPlayer(p, e.dmg * 1.2);
+            for (const p of alivePlayers()) if (Math.hypot(p.x - e.x, p.y - e.y) < 80 * U) hurtPlayer(p,e.dmg*1.2,e.type,"explosion");
             for (let i = 0; i < 4; i++) spawnAround("zombi", e, 30);
           }
         } else if (e.timer <= 0) {
@@ -1209,7 +1209,7 @@ const Game = (() => {
             fx({ k: "ring", x: e.x, y: e.y, r: 70 * U, color: "#7cff6b", life: 26 });
             shake(7);
             sound("wave");
-            for (const p of alivePlayers()) if (Math.hypot(p.x - e.x, p.y - e.y) < 70 * U) hurtPlayer(p, e.dmg);
+            for (const p of alivePlayers()) if (Math.hypot(p.x - e.x, p.y - e.y) < 70 * U) hurtPlayer(p,e.dmg,e.type,"explosion");
             if (e.hops % 3 === 0) {
               const off = rand(0, TAU);
               for (let i = 0; i < 12; i++) enemyShot(e, off + (i / 12) * TAU, 1.5, shotDamage(8), { kind: "goo" });
@@ -1238,7 +1238,7 @@ const Game = (() => {
             for (let i = 0; i < 4; i++) {
               const x = p.x + rand(-60, 60) * U;
               const y = p.y + rand(-60, 60) * U;
-              st.strikes.push({ x, y, t: 70, dmg: e.dmg });
+              st.strikes.push({ x, y, t:70,dmg:e.dmg,source:e.type});
               fx({ k: "warn", x, y, r: 26 * U, life: 70 });
             }
           }
@@ -1261,7 +1261,7 @@ const Game = (() => {
       if (k.t === 0) {
         fx({ k: "boom", x: k.x, y: k.y - 4, r: 26 * U, life: 18 });
         sound("boom", 0.08);
-        for (const p of alivePlayers()) if (Math.hypot(p.x - k.x, p.y - k.y) < 26 * U) hurtPlayer(p, k.dmg);
+        for (const p of alivePlayers()) if (Math.hypot(p.x - k.x, p.y - k.y) < 26 * U) hurtPlayer(p,k.dmg,k.source,"bombardment");
       }
     }
     st.strikes = st.strikes.filter((k) => k.t > 0);
@@ -1272,7 +1272,7 @@ const Game = (() => {
     fx({ k: "boom", x: e.x, y: e.y - 6, r: 34 * U, life: 18 });
     sound("boom");
     shake(4);
-    for (const p of alivePlayers()) if (Math.hypot(p.x - e.x, p.y - e.y) < 34 * U) hurtPlayer(p, e.dmg);
+    for (const p of alivePlayers()) if (Math.hypot(p.x - e.x, p.y - e.y) < 34 * U) hurtPlayer(p,e.dmg,e.type,"explosion");
     // también daña a los enemigos cercanos
     for (const o of enemiesInRadius(e.x, e.y, 34 * U)) if (o !== e) hitEnemy(o, 20, null, { kx: o.x - e.x, ky: o.y - e.y, kb: 2 });
     killEnemy(e, true);
@@ -1446,10 +1446,12 @@ const Game = (() => {
     return healed;
   }
 
-  function hurtPlayer(p, dmg) {
-    if (p.down || p.iframes > 0) return;
+  function hurtPlayer(p,dmg,source=null,kind="contact"){
+    if(p.down || p.iframes>0 || !Number.isFinite(dmg) || dmg<=0)return;
     const amount = Math.max(1, Math.round(dmg - p.stats.armor));
     if (p.combat) p.combat.taken += Math.min(p.hp,amount);
+    const hit={source:TS.ENEMIES[source]?source:null,kind,amount:Math.min(p.hp,amount),at:st.t};
+    p.damageHistory=[...(p.damageHistory || []).filter(h=>st.t-h.at<=600),hit].slice(-4);
     p.hp -= amount;
     if(p.streak){p.streak.count=0;p.streak.until=0;p.streak.flashUntil=0;}
     p.iframes = 36;
@@ -1459,7 +1461,7 @@ const Game = (() => {
     fx({ k: "num", x: p.x, y: p.y - 34, v: amount, hurt: true, life: 40 });
     if (p.hp <= 0) {
       if (p.stats.revive && !p.usedRevive) {
-        p.usedRevive = true;
+        p.usedRevive = true;p.fatalHit=null;p.damageHistory=[];
         p.hp = Math.round(p.stats.maxHp / 2);
         p.iframes = 150;
         fx({ k: "ring", x: p.x, y: p.y, r: 60, color: "#ffd23f", life: 30 });
@@ -1468,7 +1470,7 @@ const Game = (() => {
         for (const e of enemiesInRadius(p.x, p.y, 70)) hitEnemy(e, 30, p, { kx: e.x - p.x, ky: e.y - p.y, kb: 8 });
         return;
       }
-      p.hp = 0;
+      p.hp = 0;p.fatalHit=hit;
       p.down = true;
       p.reviveT = 0;
       sound("die");
@@ -1488,7 +1490,8 @@ const Game = (() => {
       if (helper) {
         p.reviveT = Math.min(150,p.reviveT + (helper.stats.reviveRate || 1));
         if (p.reviveT >= 150) {
-          p.down = false;
+          p.down=false;p.fatalHit=null;p.damageHistory=[];
+          helper.combat.revives=(helper.combat.revives || 0)+1;
           p.hp = Math.round(p.stats.maxHp * 0.4);
           p.iframes = 120;
           fx({ k: "ring", x: p.x, y: p.y, r: 40, color: "#3cc24f", life: 26 });
@@ -1714,8 +1717,8 @@ const Game = (() => {
         if (e.phased || e.prop) return;
         const rr = e.r + 6 * U;
         if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 < rr * rr) {
-          if (e.ai === "dash" && e.state === 2) hurtPlayer(p, e.dmg * 0.9);
-          else hurtPlayer(p, e.dmg * 0.6);
+          if (e.ai === "dash" && e.state === 2) hurtPlayer(p,e.dmg*.9,e.type,"charge");
+          else hurtPlayer(p,e.dmg*.6,e.type,"contact");
         }
       });
     }
@@ -1726,8 +1729,8 @@ const Game = (() => {
       for (const p of st.players) {
         if (p.down) continue;
         if ((s.x - p.x) ** 2 + (s.y - (p.y - 18)) ** 2 < (s.r + 9) ** 2) {
-          hurtPlayer(p, s.dmg);
-          s.life = 0;
+          hurtPlayer(p,s.dmg,s.source,"projectile");
+          s.life=0;break;
         }
       }
     }
@@ -2267,7 +2270,7 @@ const Game = (() => {
             const e=spawnEnemy(z.enemy,z.x,z.y);e.summonedBy=z.bossId;
           }break;
         case "hazard":
-          if(z.t>=z.warn && (z.t-z.warn)%30===0)for(const p of alivePlayers())if(dist2(p,z)<=z.r*z.r)hurtPlayer(p,z.dmg);
+          if(z.t>=z.warn && (z.t-z.warn)%30===0)for(const p of alivePlayers())if(dist2(p,z)<=z.r*z.r)hurtPlayer(p,z.dmg,z.source,"zone");
           break;
         case "perfume":
         case "acid":
@@ -2685,7 +2688,7 @@ const Game = (() => {
     const seconds = Math.floor(st.t / 60);
     const greed = st.players[localId].stats.greed;
     const coins = Math.round((st.coins + st.kills / 8 + seconds / 6 + st.bossesKilled * 60 + (victory || st.won ? 300 : 0)) * greed);
-    emit("end", { victory: victory || !!st.won, finalPhase: !!st.finalPhase, finalRound: st.finalRound || 0, endless: !!st.endless && !!st.won, endlessSeconds: st.endless ? Math.floor((st.t - st.endlessStart) / 60) : 0, seconds, kills: st.kills, level: st.level, coins, bosses: st.bossesKilled, evolutions: st.evolutions, abilities: st.abilitiesUsed || 0, props: st.propsBroken, combat: st.players.map(p=>({...p.combat})), chests: st.chests || 0, charId: st.players[localId].charId, map: st.mapId, daily: st.daily, coop: st.players.length > 1 });
+    emit("end", { victory: victory || !!st.won, finalPhase: !!st.finalPhase, finalRound: st.finalRound || 0, endless: !!st.endless && !!st.won, endlessSeconds: st.endless ? Math.floor((st.t - st.endlessStart) / 60) : 0, seconds, kills: st.kills, level: st.level, coins, bosses: st.bossesKilled, evolutions: st.evolutions, abilities: st.abilitiesUsed || 0, props: st.propsBroken, combat:st.players.map(p=>({...p.combat,bestStreak:p.streak?.best || 0})),recaps:st.players.map(p=>({fatal:p.down?p.fatalHit:null,hits:(p.damageHistory || []).filter(h=>(p.down&&p.fatalHit?p.fatalHit.at:st.t)-h.at<=600)})),bestStreak:st.players[localId].streak?.best || 0, chests: st.chests || 0, charId: st.players[localId].charId, map: st.mapId, daily: st.daily, coop: st.players.length > 1 });
   }
 
   function readInput() {
@@ -2780,6 +2783,16 @@ const Game = (() => {
     return {kind,label,arrow:["→","↘","↓","↙","←","↖","↑","↗"][(Math.round(angle/(TAU/8))+8)%8],distance:Math.round(Math.sqrt(dist2(target,p))/U)};
   }
 
+  function upcomingEncounters(){
+    if(st.finalPhase)return [{kind:"final",name:L(TS.ENEMIES[finalBossId()].name),seconds:0,active:true}];
+    const now=st.t/60,events=TS.BOSSES.filter(b=>b.id!=="rey").map(b=>({kind:"boss",name:L(TS.ENEMIES[b.id].name),at:b.at*(st.mod?.bossTime || 1)})).filter(b=>b.at>now);
+    events.push({kind:"final",name:L("Jefe final"),at:TS.RUN_SECONDS});
+    if(st.breach)events.push({kind:"breach",name:L("Brecha"),at:now,active:true});
+    else if(st.nextBreach>st.t && st.nextBreach<TS.RUN_SECONDS*60)events.push({kind:"breach",name:L("Brecha"),at:st.nextBreach/60});
+    if(TS.ENEMIES[st.boss?.type])events.push({kind:"boss",name:L(TS.ENEMIES[st.boss.type].name),at:now,active:true});
+    return events.sort((a,b)=>a.at-b.at).slice(0,3).map(({at,...e})=>({...e,seconds:Math.max(0,Math.ceil(at-now))}));
+  }
+
   function hudData() {
     const p = st.players[localId];
     const site=(st.sites || []).filter(s=>!s.used || s.activeUntil>st.t).filter(s=>dist2(s,p)<(180*U)**2).sort((a,b)=>dist2(a,p)-dist2(b,p))[0];
@@ -2792,6 +2805,7 @@ const Game = (() => {
       combo:st.comboUntil>st.t?L(st.comboLabel):null,
       streak:p.streak && p.streak.until>st.t?{...p.streak,remaining:(p.streak.until-st.t)/240,highlight:p.streak.flashUntil>st.t}:null,
       loot:p.loot?.until>st.t?p.loot:null,
+      bestStreak:p.streak?.best || 0,upcoming:upcomingEncounters(),
       combat: p.combat || {}, chests: st.chests || 0,
       evolution: evolutionInfo(p), compass: compassTarget(p),
       inWater: terrain(p.x,p.y)===2,
@@ -3806,8 +3820,7 @@ const Game = (() => {
     c.height = h;
     const g = c.getContext("2d");
     g.imageSmoothingEnabled = false;
-    const ox = 900;
-    const oy = 600;
+    const [ox,oy]=({bosque:[-160,-160],cementerio:[150,150],ciudad:[-140,-140],playa:[180,-100]})[id] || [-160,-160];
     for (let cx = Math.floor(ox / CHUNK); cx <= Math.floor((ox + w * 2) / CHUNK); cx++) {
       for (let cy = Math.floor(oy / CHUNK); cy <= Math.floor((oy + h * 2) / CHUNK); cy++) {
         g.drawImage(chunkCanvas(cx, cy), (cx * CHUNK - ox) / 2, (cy * CHUNK - oy) / 2, CHUNK / 2, CHUNK / 2);
@@ -3873,7 +3886,7 @@ const Game = (() => {
       comboLabel:st.comboLabel,comboUntil:st.comboUntil,
       sites:st.sites.map(s=>({...s,guards:[],remaining:s.guards.filter(id=>st.enemies.some(e=>e.id===id&&!e.dead)).length})),
       breach:st.breach?{remaining:st.breach.remaining,total:st.breach.total}:null,
-      chests: st.chests || 0, bossTime: st.mod?.bossTime || 1,
+      chests:st.chests || 0,nextBreach:st.nextBreach,bossTime:st.mod?.bossTime || 1,
       frozen: !!(st.choosing || st.victoryWait || st.over || paused),
       p: players, e: enemies, s: shots, es: eshots, z: zones, g: gems, pk: pickups, ev: events
     };
@@ -3911,7 +3924,7 @@ const Game = (() => {
     st.comboLabel=snap.comboLabel || null;st.comboUntil=snap.comboUntil || 0;
     st.sites=snap.sites || [];
     st.breach=snap.breach || null;
-    st.chests=snap.chests || 0; st.mod={bossTime:snap.bossTime || 1};
+    st.chests=snap.chests || 0;st.nextBreach=snap.nextBreach || 0; st.mod={bossTime:snap.bossTime || 1};
     st.t = snap.t; st.level = snap.lv; st.xp = snap.xp; st.xpNext = snap.xn; st.kills = snap.k; st.coins = snap.c;
     snap.p.forEach((a, i) => {
       const p = st.players[i];

@@ -6,7 +6,7 @@ Las pruebas de simulación no requieren dependencias:
 node --test tests/survivors.test.cjs
 ```
 
-Las 63 pruebas cubren el cofre, pausa de efectos, desconexiones durante elecciones,
+Las 69 pruebas cubren el cofre, pausa de efectos, desconexiones durante elecciones,
 instantáneas online, 24 personajes con su arma y técnicas propias, jefes finales de los cuatro
 mapas y fases finales sucesivas, colisiones con enemigos grandes, ralentizaciones, recargas,
 fusión de progreso remoto, datos guardados incompletos y tickets de partidas que
@@ -38,6 +38,7 @@ node tests/survivors.online.cjs
 node tests/survivors.strategy.cjs
 node tests/survivors.characters.cjs
 node tests/survivors.world.cjs
+node tests/survivors.insights.cjs
 # Probar el protocolo de juego con transporte simulado:
 RTC_TEST_MODE=mock node tests/survivors.online.cjs
 ```
@@ -89,6 +90,13 @@ Chromium no tiene su CA instalada; no modifica la configuración del juego.
   eventos y sonidos cercanos/lejanos de invitados. Comprueba también la prueba de
   sonidos en ajustes, su silencio y traducción; la brújula prioriza rescates,
   curación a vida crítica y cofres antes de proponer puntos del mapa.
+- **Resultados y planificación:** golpes finales con fuente/tipo/daño real,
+  récords personales, reanimaciones, próximos encuentros, pausa cooperativa
+  informativa, miniatura de playa con arena y mar y colisiones desde el centro
+  de obstáculos. Comprueba foco y cambios rápidos entre pantallas; los invitados
+  reciben su propio personaje, racha y resumen. La simulación verifica además
+  proyectiles de un solo impacto, historial acotado, tiempos del reto diario y
+  conservación del resumen de un compañero caído hasta el fin del equipo.
 - **Online:** elección independiente de las evoluciones de cofre, sala, movimiento del invitado, entrega y guardado del resultado,
   segunda partida, cambio de opciones del invitado y desconexión con una elección pendiente. Supabase, cuenta
   y TURN se sustituyen por un punto de encuentro local. En modo normal usa

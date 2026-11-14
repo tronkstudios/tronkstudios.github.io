@@ -67,7 +67,7 @@ el ajuste de sonido por su cuenta. Los controles y avisos están traducidos.
 
 ## Validación
 
-63 pruebas de simulación; 1.800 fotogramas de personajes por dispositivo; revisión
+69 pruebas de simulación; 1.800 fotogramas de personajes por dispositivo; revisión
 de mapas y técnicas en 2D/3D y móvil emulado; protocolo cooperativo con transporte
 simulado. La prueba de mapas inspecciona huellas de decoración, texturas y
 coordenadas negativas. La prueba de sonido genera audio con OfflineAudioContext

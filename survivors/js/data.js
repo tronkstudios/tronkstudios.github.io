@@ -433,28 +433,28 @@ TS.EVOLUTIONS = {
 /* ---------- MAPAS ---------- */
 TS.MAPS = {
   bosque: {
-    name: "Bosque de los Tronks", desc: "Árboles, lagos y zombis. Para empezar.",
+    name: "Bosque de los Tronks", desc: "Senderos y campamentos que curan durante 20 segundos.",
     ground: { grass: ["#3b6950", "#3e6c52", "#477759", "#39654d", "#416f54"], grassEdge: "#2e5743", dirt: ["#897454", "#826e50", "#927d5c", "#7b674a", "#8b7655"], dirtEdge: "#6e5c46", water: ["#346f86", "#326b82", "#39788e"], shore: ["#bba77a", "#ae9d74"], foam: "#a5d4cb", wave: "#66aaa9", flowers: ["#ffffff", "#ff9fd0", "#ffe066"] },
     dirt: 0.67, water: 0.73,
     obstacles: { arbol: 5, pino: 3, roca: 3, rocaGrande: 1, tronco: 1.4, arbusto: 2, hierba: 5 },
     mix: {}, unlock: null, finalBoss: "rey"
   },
   cementerio: {
-    name: "Cementerio Maldito", desc: "Niebla, tumbas, esqueletos y fantasmas.",
+    name: "Cementerio Maldito", desc: "Activa altares, derrota a sus guardianes y consigue cofres.",
     ground: { grass: ["#3b5a3e", "#365438", "#41613f", "#324e35", "#3d5c3c"], grassEdge: "#2a4230", dirt: ["#5e5650", "#544c47", "#665e57", "#4a4340", "#5a524c"], dirtEdge: "#403a36", water: ["#3a5a4a", "#355445", "#40624f"], shore: ["#4a4a3a", "#424234"], foam: "#5a7a62", wave: "#4f6f58", flowers: ["#b8a8ff", "#8a7aaa", "#e8e0ff"] },
     dirt: 0.58, water: 0.8, dark: 0.25,
     obstacles: { tumba: 5, cruz: 3, arbolMuerto: 3, roca: 2, hierba: 3 },
     mix: { esqueleto: 3, fantasma: 2.5, brujo: 1.5, murcielago: 1.5 }, finalBoss: "reyEsqueleto", unlock: { best: "time", value: 300, text: "Aguanta 5 minutos en cualquier mapa" }
   },
   playa: {
-    name: "Playa Tronk", desc: "Arena, mar y mocos al sol.",
+    name: "Playa Tronk", desc: "Arena, mar transitable y corrientes que puedes contrarrestar.",
     ground: { grass: ["#e3cc8c", "#dcc382", "#e8d398", "#d6bd7c", "#e0c888"], grassEdge: "#c9b070", dirt: ["#c9ad74", "#bfa36a", "#d1b57c", "#b49860", "#c4a870"], dirtEdge: "#a88e58", water: ["#287d98", "#318ca4", "#429eb0"], shore: ["#f2e4b4", "#ece0ac"], foam: "#e8f8ff", wave: "#6ab8ec", flowers: ["#ffffff", "#ff9fd0", "#ff8a3b"] },
     dirt: 0.62, water: 0.62,
     obstacles: { palmera: 5, roca: 3, rocaGrande: 1.5, sombrilla: 1.5, hierba: 1 },
     mix: { slime: 3, corredor: 2, murcielago: 0.5 }, finalBoss: "mocoRey", unlock: { best: "bosses", value: 2, text: "Derrota a 2 jefes en total" }
   },
   ciudad: {
-    name: "Ciudad de Noche", desc: "Calles, farolas y Antitronks por todas partes.",
+    name: "Ciudad de Noche", desc: "Busca farolas para curarte, revelar fantasmas y anular escudos.",
     ground: { grass: ["#627681", "#5e727c", "#748891", "#5d7079", "#6a7e87"], grassEdge: "#383c46", dirt: ["#5a5f6a", "#555a65", "#60656f", "#4e535e", "#585d68"], dirtEdge: "#3e434e", water: ["#526e7a", "#5b7882", "#69878f"], shore: ["#6b8088", "#5e747d"], foam: "#819a9e", wave: "#91a8ae", flowers: ["#ffe066", "#9aa3b0", "#ffffff"] },
     dirt: 0.55, water: 0.85, dark: 0.32, roads: true,
     obstacles: { farola: 3, contenedor: 2, coche: 2, banco: 2, arbusto: 1 },

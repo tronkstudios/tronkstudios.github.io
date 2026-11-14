@@ -13,6 +13,7 @@
   let current = "loading";
   let selectedView = save.selected;
   let pulling = false;
+  let gameGeneration=0;
   let lastRun = null; // cómo empezó la última partida (para «Otra vez»)
 
   const charById = (id) => TS.CHARACTERS.find((c) => c.id === id);
@@ -121,6 +122,7 @@
     $("menu-ach").hidden = (save.weekly && save.weekly.seen) === weekKey();
     const b = save.best;
     $("menu-best").textContent = b.time ? LT("best", { time: fmtTime(b.time), kills: b.kills, level: b.level }) + (b.wins ? LT("wins", { n: b.wins }) : "") : L("Aguanta hasta el minuto 25 y sobrevive a las fases del jefe final.");
+    if(b.streak>0)$("menu-best").textContent+=` · ${L("Mejor racha")}: ${b.streak}`;
     renderAccount();
   }
 
@@ -593,6 +595,7 @@
   const isTouch = window.matchMedia("(any-pointer: coarse)").matches;
 
   function enterGame(prepare) {
+    const generation=++gameGeneration;
     for (const s of document.querySelectorAll(".screen")) s.classList.remove("is-on");
     for (const id of ["levelup", "pause", "end", "victory"]) $(id).hidden = true;
     current = "game";
@@ -600,6 +603,7 @@
     $("loading").classList.add("is-on");
     $("loading-text").textContent = L("Preparando la partida…");
     setTimeout(() => {
+      if(generation!==gameGeneration || current!=="game")return;
       // los dibujos de los enemigos se hacen ahora (tarda un momento)
       for (const id of [...Object.keys(People.ENEMIES), "slime", "slimito", "fantasma", "murcielago"]) Sprites.get(`enemy:${id}`);
       $("loading").classList.remove("is-on");
@@ -849,13 +853,19 @@
     $("pause-quit").hidden = Game.mode === "guest";
     if (on) {
       const d=Game.hudData();renderSlots($("pause-build"),d,true);
+      $("pause-title").textContent=L(Game.mode==="solo"?"Pausa":"Menú de partida");
+      $("pause-live").hidden=Game.mode==="solo";
+      $("pause-live").textContent=L("La partida cooperativa continúa mientras miras este menú.");
+      $("pause-quit").textContent=L(Game.mode==="host"?"Terminar partida para todos":"Terminar partida");
+      $("pause-encounters").textContent="";
+      for(const event of d.upcoming || []){const row=el("li");row.append(el("span","",event.name),el("b","",event.active?L("En combate"):`${L("En")} ${fmtTime(event.seconds)}`));$("pause-encounters").append(row);}
       const evo=d.evolution;
       $("pause-evolution").textContent=evo?evo.evolved?`${L("Evolución")}: ${evo.name} ✓`:
         `${evo.name}
 ${evo.weapon} ${evo.level}/6 · ${evo.passive} ${evo.hasPassive?"✓":evo.blocked?L("Sin espacio para la pasiva"):"—"}
 ${L("Recoge un cofre con ambos requisitos")}`:"";
       $("pause-metrics").textContent="";
-      for(const [label,value] of [["Daño causado",d.combat.dealt],["Daño recibido",d.combat.taken],["Vida recuperada",d.combat.healed],["Élites",d.combat.elites]]){
+      for(const [label,value] of [["Daño causado",d.combat.dealt],["Daño recibido",d.combat.taken],["Vida recuperada",d.combat.healed],["Élites",d.combat.elites],["Reanimaciones",d.combat.revives],["Mejor racha",d.bestStreak]]){
         const stat=el("div");stat.append(el("b","",Math.round(value || 0).toLocaleString(LANG)),el("small","",L(label)));$("pause-metrics").append(stat);
       }
       $("pause-fullscreen").hidden=!document.fullscreenEnabled;
@@ -878,13 +888,18 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
   /* ---------- final ---------- */
 
   async function showEnd(r) {
+    const generation=gameGeneration,endedState=Game.state;
     Game.setControlsEnabled(false);
-    if (Game.mode === "guest") r = { ...r, charId: save.selected, coop: true };
+    if (Game.mode === "guest") r={...r,charId:Game.state?.players[Game.localId]?.charId || save.selected,coop:true};
     if (r.daily && save.dailyDone !== r.daily) {
       save.dailyDone = r.daily;
       r.coins += 100;
       setTimeout(() => toast(LT("dailyBonus")), 400);
     }
+    const localCombat=r.combat?.[Game.localId];
+    r={...r,bestStreak:localCombat?.bestStreak ?? r.bestStreak ?? 0};
+    const records=save.runs>0?[["Tiempo",r.seconds,save.best.time],["Enemigos",r.kills,save.best.kills],["Nivel",r.level,save.best.level],["Mejor racha",r.bestStreak,save.best.streak || 0]].filter(([,value,best])=>value>best).map(([name])=>L(name)):[];
+    $("end-records").hidden=!records.length;$("end-records").textContent=records.length?`${L("Nuevo récord")}: ${records.join(" · ")}`:"";
     updateWeekly(r);
     Save.recordRun(r);
     for (const id of checkMapUnlocks()) setTimeout(() => toast(LT("mapUnlocked", { name: L(TS.MAPS[id].name) })), 1200);
@@ -905,6 +920,14 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     add("Jefes", r.bosses);
     const combat=r.combat?.[Game.localId];
     if(combat){add("Daño causado",Math.round(combat.dealt || 0).toLocaleString(LANG));add("Daño recibido",Math.round(combat.taken || 0).toLocaleString(LANG));add("Vida recuperada",Math.round(combat.healed || 0).toLocaleString(LANG));add("Élites",combat.elites || 0);}
+    add("Mejor racha",r.bestStreak);if(combat?.revives)add("Reanimaciones",combat.revives);
+    const recap=r.recaps?.[Game.localId];$("end-recap").hidden=!recap?.fatal;$("recap-hits").textContent="";
+    if(recap?.fatal){
+      const kinds={contact:"Contacto",charge:"Carga",projectile:"Proyectil",bombardment:"Bombardeo",zone:"Zona peligrosa",explosion:"Explosión"};
+      for(const hit of recap.hits || [recap.fatal]){const row=el("li");const name=L(TS.ENEMIES[hit.source]?.name || "Enemigo");row.append(el("span","",`${fmtTime(Math.floor(hit.at/60))} · ${name} · ${L(kinds[hit.kind] || "Contacto")}`),el("b","",`−${hit.amount}`));$("recap-hits").append(row);}
+      const tips={contact:"Mantén distancia y busca una salida entre los enemigos.",charge:"Sal de la línea marcada antes de la carga.",projectile:"Muévete de lado para evitar los proyectiles.",bombardment:"Sal del área marcada antes de que se active.",zone:"Sal del área marcada antes de que se active.",explosion:"Aléjate del enemigo cuando prepare la explosión."};
+      $("recap-advice").textContent=L(tips[recap.fatal.kind] || tips.contact);
+    }
     if(r.chests)add("Cofres",r.chests);
     if (r.finalPhase) add("Fases superadas", Math.max(0, r.finalRound - 1));
     if (r.finalPhase) add("Contra el jefe final", fmtTime(r.endlessSeconds), "coins");
@@ -915,9 +938,10 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     $("pause").hidden = true;
     Game.setControlsEnabled(false);
     setTimeout(() => {
-      $("end").hidden = false;
-      $("end-again").focus();
-    }, 900);
+      if(generation!==gameGeneration || Game.state!==endedState || current!=="game")return;
+      $("end").hidden=false;$("end").querySelector(".modal-box").scrollTop=0;
+      $("end-title").focus({preventScroll:true});
+    },900);
     Account.submitRun(r);
   }
   Game.on("end", showEnd);
@@ -935,6 +959,7 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
   $("victory-end").addEventListener("click", () => { $("victory").hidden = true; Game.endWin(); });
 
   function backToMenu() {
+    gameGeneration++;
     for (const id of ["end", "levelup", "pause", "victory"]) $(id).hidden = true;
     $("hud").hidden = true;
     Game.stop();
@@ -971,8 +996,8 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     const buttons=[...modal.querySelectorAll("button:not([disabled]),a[href],input,select")].filter(e=>e.getClientRects().length);
     if(!buttons.length)return;
     const first=buttons[0],last=buttons.at(-1);
-    if(e.shiftKey && (document.activeElement===first || !modal.contains(document.activeElement))){e.preventDefault();last.focus();}
-    else if(!e.shiftKey && (document.activeElement===last || !modal.contains(document.activeElement))){e.preventDefault();first.focus();}
+    if(e.shiftKey && (document.activeElement===first || !buttons.includes(document.activeElement))){e.preventDefault();last.focus();}
+    else if(!e.shiftKey && (document.activeElement===last || !buttons.includes(document.activeElement))){e.preventDefault();first.focus();}
   });
   document.addEventListener("visibilitychange", () => {
     if (document.hidden && current === "game" && Game.mode === "solo" && $("levelup").hidden) pause(true);

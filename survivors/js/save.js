@@ -20,7 +20,7 @@ const Save = (() => {
       pity: 0,
       pulls: 0,
       freePull: true, // la primera tirada es gratis
-      best: { time: 0, kills: 0, level: 0, wins: 0 },
+      best: { time: 0, kills: 0, level: 0, wins: 0, streak:0 },
       runs: 0,
       settings: { music: true, sfx: true, musicVol: 0.7, sfxVol: 0.9, lang: "" },
       name: "",
@@ -233,6 +233,7 @@ const Save = (() => {
     d.best.time = Math.max(d.best.time, result.seconds);
     d.best.kills = Math.max(d.best.kills, result.kills);
     d.best.level = Math.max(d.best.level, result.level);
+    d.best.streak=Math.max(Number.isFinite(d.best.streak)?Math.max(0,Math.floor(d.best.streak)):0,Number.isFinite(result.bestStreak)?Math.max(0,Math.floor(result.bestStreak)):0);
     if (result.victory) d.best.wins += 1;
     d.coins += result.coins;
     const s = d.stats;

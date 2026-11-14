@@ -632,3 +632,10 @@ Object.assign(EN,{
 Object.assign(EN,{"Racha":"Streak","vida":"health","monedas":"coins"});
 
 Object.assign(EN,{"Cura durante 20 s":"Heals for 20 s","Derrota a 3 guardianes y gana un cofre":"Defeat 3 guardians to earn a chest","Cura, revela y debilita enemigos":"Heals, reveals and weakens enemies","Probar sonidos":"Test sounds","Arco":"Bow","Monstruo":"Monster","Magia":"Magic","Escuchar":"Listen","Sube el volumen de efectos para probarlos.":"Turn up the effects volume to test them."});
+
+Object.assign(EN,{
+ "Últimos golpes":"Last hits","Próximos encuentros":"Upcoming encounters","Menú de partida":"Run menu","La partida cooperativa continúa mientras miras este menú.":"The co-op game keeps running while you view this menu.","Terminar partida para todos":"End run for everyone","En combate":"In combat","En":"In","Jefe final":"Final boss","Reanimaciones":"Revives","Mejor racha":"Best streak","Nuevo récord":"New record","Contacto":"Contact","Proyectil":"Projectile","Bombardeo":"Bombardment","Zona peligrosa":"Danger zone","Explosión":"Explosion","Enemigo":"Enemy",
+ "Mantén distancia y busca una salida entre los enemigos.":"Keep your distance and look for a gap between enemies.","Sal de la línea marcada antes de la carga.":"Leave the marked line before the charge.","Muévete de lado para evitar los proyectiles.":"Move sideways to avoid projectiles.","Sal del área marcada antes de que se active.":"Leave the marked area before it activates.","Aléjate del enemigo cuando prepare la explosión.":"Move away when the enemy prepares its explosion."
+});
+
+Object.assign(EN,{"Senderos y campamentos que curan durante 20 segundos.":"Trails and camps that heal for 20 seconds.","Activa altares, derrota a sus guardianes y consigue cofres.":"Activate altars, defeat their guardians and earn chests.","Arena, mar transitable y corrientes que puedes contrarrestar.":"Sand, wadeable sea and currents you can counter.","Busca farolas para curarte, revelar fantasmas y anular escudos.":"Find lamps to heal, reveal ghosts and disable shields."});
