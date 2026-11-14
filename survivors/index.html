@@ -21,7 +21,7 @@
     http-equiv="Content-Security-Policy"
     content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://qjjnqhbtovjcbwgcwhgl.supabase.co wss://qjjnqhbtovjcbwgcwhgl.supabase.co https://tronkstudios-support.tronkstudios7.workers.dev; object-src 'none'; base-uri 'self'; form-action 'self'"
   />
-  <link rel="stylesheet" href="survivors.css?v=11" />
+  <link rel="stylesheet" href="survivors.css?v=12" />
 </head>
 <body>
   <canvas id="game" aria-label="Tronk Survivors"></canvas>
@@ -233,6 +233,7 @@
       <span class="hud-lvl" id="hud-level">Nv. 1</span>
       <div class="hud-hp"><span id="hud-hp-bar"></span><b id="hud-hp">100 / 100</b></div>
       <div class="hud-xp"><span id="hud-xp-bar"></span></div>
+      <div id="hud-loot" class="hud-loot" hidden></div>
     </div>
     <div class="hud-center">
       <div class="hud-time" id="hud-time">0:00</div>
@@ -241,6 +242,7 @@
       <div class="hud-status" id="hud-status"></div>
     </div>
     <button class="btn btn-small hud-pause" id="hud-pause" type="button" aria-label="Pausa">II</button>
+      <div id="hud-streak" class="hud-streak" hidden><b></b><span><i></i></span></div>
     <div class="hud-team" id="hud-team"></div>
     <div class="hud-tip" id="hud-tip" hidden></div>
     <div class="hud-compass" id="hud-compass" hidden></div>
@@ -314,18 +316,18 @@
   </div>
 
   <script src="js/data.js?v=8" defer></script>
-  <script src="js/sprites.js?v=12" defer></script>
+  <script src="js/sprites.js?v=13" defer></script>
   <script src="js/people.js?v=4" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js" defer></script>
   <script src="js/stick.js?v=14" defer></script>
-  <script src="js/render3d.js?v=7" defer></script>
-  <script src="js/audio.js?v=3" defer></script>
+  <script src="js/render3d.js?v=8" defer></script>
+  <script src="js/audio.js?v=4" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-  <script src="js/lang.js?v=10" defer></script>
+  <script src="js/lang.js?v=11" defer></script>
   <script src="js/save.js?v=5" defer></script>
   <script src="js/account.js?v=4" defer></script>
-  <script src="js/game.js?v=18" defer></script>
+  <script src="js/game.js?v=19" defer></script>
   <script src="js/net.js?v=9" defer></script>
-  <script src="js/ui.js?v=16" defer></script>
+  <script src="js/ui.js?v=17" defer></script>
 </body>
 </html>

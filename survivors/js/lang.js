@@ -628,3 +628,5 @@ Object.assign(EN,{
  "¡Altar purificado! Recoge el cofre":"Altar cleansed! Collect the chest","Altar activado: derrota a sus guardianes":"Altar activated: defeat its guards","Refugio activo durante 20 segundos":"Shelter active for 20 seconds",
  "Corriente: puedes moverte contra ella":"Current: you can move against it","Descarga conductora":"Conductive discharge","Vórtice ígneo":"Fire vortex"
 });
+
+Object.assign(EN,{"Racha":"Streak","vida":"health","monedas":"coins"});

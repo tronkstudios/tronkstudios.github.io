@@ -310,7 +310,7 @@ const Sprites = (() => {
     tornado: (p) => { for (let i = 0; i < 5; i++) p.rect(2 + i, 1 + i * 2.3, 10 - i * 2, 2, i % 2 ? "#e9c46a" : "#f6e2a8"); },
     corazon: (p) => { p.ell(4.5, 5, 3, 3, "#e63946"); p.ell(9.5, 5, 3, 3, "#e63946"); for (let y = 6; y < 13; y++) for (let x = y - 5; x <= 18 - y; x++) p.P(x, y, "#e63946"); p.P(3, 3, "#ff9aa2"); p.P(4, 3, "#ff9aa2"); },
     zapatillas: (p) => { p.rect(2, 6, 7, 4, "#f1f1f1"); p.rect(2, 9, 11, 2, "#3b8bff"); p.rect(9, 8, 3, 1, "#f1f1f1"); p.P(4, 7, "#e63946"); p.P(5, 7, "#e63946"); },
-    iman: (p) => { p.rect(2, 2, 3, 8, "#e63946"); p.rect(9, 2, 3, 8, "#e63946"); p.rect(2, 9, 10, 3, "#e63946"); p.rect(2, 1, 3, 2, "#e6edf5"); p.rect(9, 1, 3, 2, "#e6edf5"); },
+    iman:p=>{p.rect(2,3,3,7,"#993d4f");p.rect(9,3,3,7,"#993d4f");p.rect(3,9,8,3,"#993d4f");p.rect(2,3,1,6,"#f47e8c");p.rect(9,3,1,6,"#f47e8c");p.rect(2,1,3,3,"#c8dce0");p.rect(9,1,3,3,"#c8dce0");p.rect(2,1,2,1,"#f2f4e5");p.rect(9,1,2,1,"#f2f4e5");p.rect(4,10,6,1,"#ed6577");},
     musculo: (p) => { p.rect(2, 6, 10, 2, "#6b7380"); p.rect(0, 3, 3, 8, "#2b2f38"); p.rect(11, 3, 3, 8, "#2b2f38"); },
     reloj: (p) => { p.ell(7, 7, 5.6, 5.6, (x, y) => (Math.hypot(x - 6.5, y - 6.5) > 4.2 ? "#f2c14e" : "#fff6e0")); p.line(7, 7, 7, 3, "#14112b"); p.line(7, 7, 10, 7, "#14112b"); },
     escudo: (p) => { for (let y = 1; y < 13; y++) { const half = y < 7 ? 5.5 : 12.5 - y; for (let x = Math.round(7 - half); x < 7 + half; x++) p.P(x, y, x < 7 ? "#3b8bff" : "#2a63c2"); } p.P(5, 4, "#ffffff"); },
@@ -320,8 +320,8 @@ const Sprites = (() => {
     libro: (p) => { p.rect(2, 2, 9, 10, "#8c1c2b"); p.rect(3, 3, 7, 8, "#b5313f"); p.rect(11, 3, 1, 9, "#f2ecdc"); p.rect(4, 5, 5, 1, "#f2c14e"); },
     clon: (p) => { p.rect(1, 3, 7, 8, "#e6edf5"); p.rect(5, 1, 7, 8, "#ffffff"); p.rect(6, 3, 5, 1, "#8a96a8"); p.rect(6, 5, 5, 1, "#8a96a8"); },
     calavera: (p) => { p.ell(7, 6, 5, 4.6, (x, y) => tone(SKINS.bone, sphereI(x, y, 5, 4, 5, 4.6))); p.rect(4, 9, 6, 3, SKINS.bone.mid); p.rect(4, 5, 2, 2, "#1a1020"); p.rect(8, 5, 2, 2, "#1a1020"); p.P(5, 11, "#1a1020"); p.P(7, 11, "#1a1020"); },
-    moneda: (p) => { p.ell(7, 7, 5.6, 5.6, (x, y) => (Math.hypot(x - 6.5, y - 6.5) > 4.4 ? "#c98a12" : "#ffd23f")); p.rect(6, 4, 2, 6, "#c98a12"); p.P(4, 4, "#fff6c2"); },
-    cofre: (p) => { p.rect(1, 5, 12, 7, "#8a5a2b"); p.rect(1, 2, 12, 4, "#a8702f"); p.rect(1, 6, 12, 1, "#f2c14e"); p.rect(6, 5, 3, 3, "#f2c14e"); },
+    moneda:p=>{p.ell(7,7,5.3,5.3,"#a7752e");p.ell(6.5,6.4,4.7,4.7,"#edbe61");p.ell(6.5,6.4,3.6,3.6,"#d79739");p.line(4,4,9,4,"#ffe8a0");p.rect(6,4,1,6,"#ffe8a0");p.P(3,4,"#fff4c6");p.P(10,9,"#996632");},
+    cofre:p=>{p.rect(1,5,12,7,"#795136");p.rect(1,4,12,2,"#b88b56");p.rect(2,2,10,3,"#a57949");p.rect(3,2,8,1,"#d4ad70");p.rect(2,3,2,9,"#c6a566");p.rect(10,3,2,9,"#c6a566");p.rect(5,6,4,4,"#f0cb82");p.rect(6,7,1,2,"#463d36");p.rect(4,11,6,1,"#593c2e");for(const x of [2,10]){p.P(x,4,"#fff0b4");p.P(x,10,"#fff0b4");}},
     bocadillo: p => { p.line(2,10,11,5,"#b7ae96");p.line(2,9,11,4,"#f1ecd9");p.line(2,8,10,4,"#fff9e8");p.line(1,10,3,9,"#b18459");p.P(12,3,"#dd8952");p.P(11,3,"#788357");p.line(11,1,12,0,"#a7b7b4"); }
   };
 
@@ -410,9 +410,12 @@ const Sprites = (() => {
 
     for (const [id, draw] of Object.entries(ICONS)) cache[`icon:${id}`] = icon(draw);
 
-    cache["fx:gem1"] = icon((p) => { p.P(6, 3, "#d8f6ff"); p.rect(5, 4, 4, 4, "#3bb5ff"); p.P(5, 4, "#d8f6ff"); p.rect(8, 5, 1, 3, "#1f6fd1"); p.P(6, 8, "#1f6fd1"); p.P(7, 8, "#1f6fd1"); });
-    cache["fx:gem2"] = icon((p) => { p.P(6, 2, "#e8ffe4"); p.rect(5, 3, 4, 5, "#3cc24f"); p.P(5, 3, "#e8ffe4"); p.rect(8, 4, 1, 4, "#1f8a3a"); p.P(6, 8, "#1f8a3a"); });
-    cache["fx:gem3"] = icon((p) => { p.P(6, 2, "#ffe0e0"); p.rect(4, 3, 6, 5, "#e63946"); p.P(4, 3, "#ffe0e0"); p.rect(9, 4, 1, 4, "#a61b1b"); p.rect(5, 8, 4, 1, "#a61b1b"); });
+    for(const [i,light,base,shade] of [[1,"#d8f6ff","#55badd","#276a9c"],[2,"#e5ffd3","#79cc87","#397a60"],[3,"#ffe0dc","#e7798d","#914b79"]]){
+      cache[`fx:gem${i}`]=icon(p=>{
+        for(let y=2;y<=11;y++){const half=Math.min(y-1,(12-y)*.65);p.line(7-half,y,7+half,y,shade);p.line(7-half,y,7,y,base);}
+        p.line(7,2,4,6,light);p.line(4,6,7,10,light);p.line(4,6,10,6,light);p.P(7,3,light);
+      });
+    }
     cache["fx:enemyShot"] = icon((p) => { p.ell(7, 7, 3, 3, (x, y) => ((x + y) % 2 ? "#ff3b6b" : "#ffb0c8")); });
     cache.ground = groundTile();
     cache.tuft = (() => { const c = canvas(14, 16); const p = painter(c); const g = ["#2f6b2a", "#3a7a30", "#4a8a3a", "#5a9a44"]; for (const [bx, h, lean] of [[2, 11, -1], [4, 14, 0], [6, 12, 1], [8, 15, 0], [10, 11, 1], [11, 13, -1]]) for (let k = 0; k < h; k++) p.P(bx + Math.round((lean * k) / 6), 15 - k, g[Math.min(3, Math.floor((k / h) * 4))]); return ink(c); })();

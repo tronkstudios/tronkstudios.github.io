@@ -677,6 +677,10 @@
   Game.on("hud", (d) => {
     updateTips(d.seconds);
     $("hud-xp-bar").style.width = `${Math.min(100, (d.xp / d.xpNext) * 100)}%`;
+    const loot=$("hud-loot");loot.hidden=!d.loot;
+    if(d.loot)loot.textContent=[d.loot.xp>0?`+${Math.round(d.loot.xp)} XP`:"",d.loot.coins>0?`+${d.loot.coins} ${L("monedas")}`:"",d.loot.healed>0?`+${Math.round(d.loot.healed)} ${L("vida")}`:""].filter(Boolean).join(" · ");
+    const chain=$("hud-streak");chain.hidden=!d.streak || d.streak.count<2;
+    if(d.streak){chain.querySelector("b").textContent=`${L("Racha")} ${d.streak.count}`;chain.querySelector("i").style.width=`${Math.round(d.streak.remaining*100)}%`;chain.classList.toggle("is-milestone",d.streak.highlight);}
     $("hud-level").textContent = `${LANG === "en" ? "Lv." : "Nv."} ${d.level}`;
     $("hud-name").textContent = d.name;
     $("hud-time").textContent = fmtTime(d.seconds);
@@ -775,14 +779,14 @@
     $("levelup-reroll").disabled=true;
     $("levelup-reroll").hidden=d.kind==="chest";
     d.options.forEach((o, i) => {
-      const card = el("button", `up-card${o.kind==="technique"&&o.id==="surge"?" is-ultimate":""}${o.synergy?" is-synergy":""}${o.kind==="technique"?" is-technique":""}`);
-      card.type = "button";card.disabled=true;
+      const card = el("button", `up-card${o.kind==="technique"&&o.id==="surge"?" is-ultimate":""}${o.synergy?" is-synergy":""}${o.kind==="technique"?" is-technique":""}${o.kind==="evolution"?" is-evolution":""}`);
+      card.type = "button";card.disabled=true;if(o.path)card.dataset.path=o.path;
       const img = document.createElement("img");
       img.src = Sprites.iconUrl(o.icon, 3);
       img.alt = "";
       img.className = "pix";
       const text = el("div");
-      text.append(el("span", "new", o.isNew ? L("¡NUEVO!") : ""), el("b", "", o.title), el("small", "", o.desc));
+      text.append(el("span", "new", o.kind==="evolution"?L("Evolución"):o.isNew ? L("¡NUEVO!") : ""), el("b", "", o.title), el("small", "", o.desc));
       if(o.synergy)text.append(el("span","synergy-note",L("Necesario para evolucionar")));
       card.append(img, text, el("kbd", "", i + 1));
       card.addEventListener("click", () => pickLevel(i));

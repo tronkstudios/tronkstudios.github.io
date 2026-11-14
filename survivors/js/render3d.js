@@ -583,14 +583,33 @@ const Render3D = (() => {
   function bodyDetails(o, J, W, S, ang, flash) {
     const role=o.role || "";
     const skeleton=["esqueleto","reyEsqueleto"].includes(role);
-    const soldier=["antitronk","supremo","general"].includes(role);
+    const soldier=["antitronk","supremo","general","tirador"].includes(role);
     const ninja=["ninja","maestro"].includes(role);
     const ca=Math.cos(ang),sa=Math.sin(ang);
     const B={o:W(J.hip),X:new T.Vector3(ca*S,0,sa*S),Y:new T.Vector3(0,S,0),Z:new T.Vector3(-sa*S,0,ca*S)};
     const piece=(shape,p,s,c)=>local(shape,B,p,s,flash?0xffffff:c);
-    if(role==="guardian"){piece("box",[18,22,0],[6,37,30],0x527b95);piece("box",[22,22,0],[2,29,5],0xc6dfdd);}
-    if(role==="sanador"){piece("glowBox",[0,65,0],[14,3,3],0x8be7ac);piece("glowBox",[0,65,0],[3,14,3],0x8be7ac);}
-    if(role==="tirador")piece("glow",[8,58,0],[4,4,4],0xffb4a0);
+    if(role==="guardian"){
+      piece("box",[2,27,0],[17,31,27],0x374e60);
+      for(const side of [-1,1])piece("lowSph",[2,40,side*16],[12,8,11],0x7794a4);
+      piece("box",[21,22,0],[6,50,36],0x273d4c);
+      piece("box",[25,22,0],[2,44,31],0x527b95);
+      piece("box",[27,22,0],[2,44,4],0xc6dfdd);
+      piece("box",[27,23,0],[2,4,31],0xc6dfdd);
+      piece("lowSph",[29,23,0],[3,5,5],0xe1c487);
+      for(const h of [4,40])for(const z of [-13,13])piece("sph",[27,h,z],[1.6,1.6,1.6],0xd5e1dc);
+    }
+    if(role==="sanador"){
+      piece("box",[-12,25,0],[9,26,24],0x344f48);
+      piece("box",[-18,25,0],[3,18,16],0xd4d9bc);
+      piece("box",[-20,25,0],[1,12,3],0x54b78e);piece("box",[-20,25,0],[1,3,11],0x54b78e);
+      for(const side of [-1,1]){piece("cyl",[-8,12,side*16],[3.5,13,3.5],0x98c6ab);piece("cyl",[-8,19,side*16],[4,3,4],0x67536f);}
+      piece("glowBox",[0,103,0],[12,3,3],0x8be7ac);piece("glowBox",[0,103,0],[3,12,3],0x8be7ac);
+    }
+    if(role==="tirador"){
+      piece("box",[-12,28,0],[9,29,20],0x2d363a);piece("box",[3,44,0],[12,6,25],0x59695b);
+      piece("box",[10,58,-7],[8,7,8],0x333f49);piece("glow",[15,58,-7],[2.4,2.4,2.4],0xffb4a0);
+      piece("cyl",[-14,37,0],[4,15,4],0x606e63);
+    }
     if(skeleton) {
       for(const h of [15,25,35]) for(const side of [-1,1]) piece("box",[2,h,side*7],[5,3,13],0xd7cdb5);
       piece("box",[0,3,0],[8,7,18],0xece4cf);
@@ -618,6 +637,10 @@ const Render3D = (() => {
     if(["zombi","corredor","gordo","rey"].includes(role)) {
       piece("box",[9,30,-3],[2,14,10],o.head||0x8db56a);
       for(const h of [24,30,36])piece("box",[10,h,-3],[1,1,9],0x425237);
+    }
+    if(["supremo","general","reyEsqueleto","rey"].includes(role)){
+      piece("box",[-13,24,0],[3,30,27],role==="reyEsqueleto"?0x6c426a:0x703949);
+      for(const side of [-1,1]){piece("lowSph",[2,42,side*17],[12,8,10],0xa48a51);piece("box",[8,40,side*17],[3,3,9],0xe4c889);}
     }
     if(o.crown) {
       for(const side of [-1,1])piece("lowSph",[1,41,side*17],[12,10,10],0xc7a04e);
@@ -695,14 +718,65 @@ const Render3D = (() => {
       case "barril":
         at("cyl", e.x, 9, e.y, 8, 18, 8, w || 0x8a5a2b);
         at("cyl", e.x, 4, e.y, 8.3, 1.4, 8.3, 0x3a3f4a);
-        at("cyl", e.x, 14, e.y, 8.3, 1.4, 8.3, 0x3a3f4a);
+        at("cyl", e.x, 14, e.y, 8.3, 1.4, 8.3, w || 0x3a3f4a);
+        at("cyl",e.x,18.2,e.y,7.7,1,7.7,w || 0xb68a59);
+        for(const dx of [-4,0,4])at("box",e.x+dx,18.8,e.y,0.6,.4,12,w || 0x735033);
+        at("cyl",e.x+3,19,e.y+2,1.3,.6,1.3,w || 0x59432e);
         break;
-      case "caja": at("box", e.x, 8, e.y, 16, 16, 16, w || 0xc9a27c); at("box", e.x, 8, e.y, 17, 3, 17, 0x8a6a42); break;
-      case "jarron": at("sph", e.x, 8, e.y, 7, 8, 7, w || 0xc97a4a); at("cyl", e.x, 17, e.y, 3, 5, 3, 0xc97a4a); break;
+      case "caja":
+        at("box",e.x,9,e.y,19,18,19,w || 0xa57b51);
+        for(const dx of [-7,0,7])at("box",e.x+dx,9,e.y+10,5,15,1,w || 0xc9a27c);
+        for(const h of [3,15])at("box",e.x,h,e.y+11,21,3,2,w || 0x775638);
+        between("cyl",[e.x-8,4,e.y+12],[e.x+8,14,e.y+12],1.3,w || 0x8a643f);
+        for(const dx of [-8,8])for(const h of [3,15])at("sph",e.x+dx,h,e.y+12,1,1,1,w || 0x39444b);break;
+      case "jarron":
+        at("sph",e.x,9,e.y,8,9,8,w || 0xc97a4a);at("cyl",e.x,19,e.y,4,6,4,w || 0xb5623c);
+        at("cyl",e.x,22,e.y,5,2,5,w || 0xe2b17c);at("cyl",e.x,23.1,e.y,3.6,.3,3.6,0x49372f);
+        for(const h of [7,12])at("ring",e.x,h,e.y,7.8,1,7.8,w || 0xf0ca8e);break;
       case "brasero":
         at("cyl", e.x, 7, e.y, 7, 14, 7, w || 0x3a3f4a);
         at("glow", e.x, 17 + Math.sin((e.t || 0) * 0.3) * 1.5, e.y, 5, 7, 5, 0xffb03b);
         break;
+    }
+  }
+
+  function drawPickup(it,d){
+    const phase=d.reducedMotion?0:d.t*.07+it.x;
+    const bob=10+Math.sin(phase)*1.6;
+    if(it.kind==="moneda"){
+      at("cyl",it.x,bob,it.y,7,2,7,0xa7752e);
+      at("cyl",it.x,bob+1.2,it.y,6.3,.7,6.3,0xf0cb70);
+      at("box",it.x,bob+1.9,it.y,7,.7,1.5,0xffedb2,phase);
+      at("box",it.x,bob+2,it.y,1.5,.7,7,0xffedb2,phase);
+    }else if(it.kind==="bocadillo"){
+      between("cyl",[it.x-10,bob,it.y],[it.x+8,bob+3,it.y],2.7,0xf0ead6);
+      between("cyl",[it.x-12,bob-.3,it.y],[it.x-7,bob+.5,it.y],2.8,0xb1875e);
+      between("cyl",[it.x+7,bob+2.8,it.y],[it.x+9,bob+3.2,it.y],2.6,0x655c48);
+      at("glow",it.x+9,bob+3.3,it.y,1.6,1.6,1.6,0xdd8952);
+      if(!d.low)at("ring",it.x,.7,it.y,13,1,9,0x91c9a1);
+    }else if(it.kind==="iman"){
+      for(const side of [-1,1]){
+        at("box",it.x+side*7,bob,it.y,5,15,6,0x8f3948);
+        at("box",it.x+side*7,bob+2,it.y+3.2,4,10,.6,0xef6374);
+        at("box",it.x+side*7,bob+8,it.y,5,4,6,0xc8dce0);
+      }
+      at("box",it.x,bob-6,it.y,18,5,6,0xab4453);
+      if(!d.low)at("ring",it.x,.8,it.y,16,1,12,0x82d3dd);
+    }else if(it.kind==="cofre"){
+      at("box",it.x,9,it.y,30,18,22,0x795136);
+      at("box",it.x,18,it.y,31,5,23,0xa57949);
+      at("box",it.x,22,it.y,25,4,21,0xb88b56);
+      for(const x of [-11,11]){
+        at("box",it.x+x,13,it.y,3,25,24,0xc6a566);
+        at("box",it.x+x,7,it.y+12,4,7,2,0xe8c985);
+        for(const h of [5,19])at("sph",it.x+x,h,it.y+13,1,1,1,0xffe1a4);
+      }
+      at("box",it.x,14,it.y+13,7,9,3,0xf0cb82);at("box",it.x,14,it.y+14.7,2,4,.5,0x463d36);
+      at("ring",it.x,.8,it.y,26,1.5,20,0xdcb677);
+      if(!d.low)for(let i=0;i<3;i++){
+        const a=i*TAU/3+phase*.25,h=d.reducedMotion?24:12+((d.t+i*27)%90)*.45;
+        at("glow",it.x+Math.cos(a)*19,h,it.y+Math.sin(a)*14,1.2,1.7,1.2,0xffdf96);
+      }
     }
   }
 
@@ -774,13 +848,7 @@ const Render3D = (() => {
       const s = g.v >= 10 ? 6 : g.v >= 3 ? 5 : 4;
       at("octa", g.x, 10 + Math.sin((d.t + g.x) * 0.08) * 2, g.y, s * 0.8, s * 1.2, s * 0.8, c, d.t * 0.05 + g.x);
     }
-    for (const it of d.pickups) {
-      const bob = 9 + Math.sin(d.t * 0.1 + it.x) * 2;
-      if (it.kind === "moneda") { tmpQ.setFromEuler(new T.Euler(Math.PI / 2, d.t * 0.08 + it.x, 0)); tmpM.compose(tmpV2.set(it.x, bob, it.y), tmpQ, tmpS.set(5, 1.2, 5)); push("cyl", tmpM, 0xffd23f); }
-      else if (it.kind === "bocadillo") { between("cyl",[it.x-9,bob,it.y],[it.x+7,bob+3,it.y],2.5,0xf0ead6);between("cyl",[it.x-11,bob-.3,it.y],[it.x-7,bob+.4,it.y],2.6,0xb1875e);at("glow",it.x+8,bob+3,it.y,2,2,2,0xd98b4d); }
-      else if (it.kind === "iman") { at("box", it.x - 4, bob, it.y, 3, 10, 4, 0xe63946); at("box", it.x + 4, bob, it.y, 3, 10, 4, 0xe63946); at("box", it.x, bob - 4, it.y, 11, 3, 4, 0x9aa3b0); }
-      else if (it.kind === "cofre") { at("box", it.x, 9, it.y, 24, 16, 16, 0x8a5a2b); at("box", it.x, 18, it.y, 25, 4, 17, 0xffd23f); at("glow", it.x, 9, it.y + 8.5, 3, 4, 1, 0xffd23f); at("disc", it.x, 0.6, it.y, 26, 1, 26, 0xffd23f); }
-    }
+    for(const it of d.pickups)drawPickup(it,d);
     // aura de la colonia y drones
     for (const a of d.auras) at("disc", a.x, 0.8, a.y, a.r, 1, a.r, 0xb7f27b);
     for (const dr of d.drones) { at("box", dr.x, dr.h, dr.y, 9, 3, 6, 0x3d4451); at("glow", dr.x, dr.h, dr.y + 3, 1.5, 1.5, 1.5, 0x00e5ff); }
@@ -905,6 +973,8 @@ const Render3D = (() => {
   function effect(f) {
     const k = f.t / f.life;
     switch (f.k) {
+      case "pickup":
+        at("ring",f.x,2+k*10,f.y,9+k*15,1.5,5+k*8,f.color || 0xf0cb82);break;
       case "impact":{
         const r=(f.big?13:8)*(1+k),angle=f.ang || 0;
         for(const offset of [-.7,.7]){const a=angle+offset;between("glowCyl",[f.x-Math.cos(a)*r,18,f.y-Math.sin(a)*r],[f.x+Math.cos(a)*r,18,f.y+Math.sin(a)*r],f.big?1.7:1,f.color || 0xf8e8c8);}break;

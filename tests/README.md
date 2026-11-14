@@ -6,7 +6,7 @@ Las pruebas de simulación no requieren dependencias:
 node --test tests/survivors.test.cjs
 ```
 
-Las 54 pruebas cubren el cofre, pausa de efectos, desconexiones durante elecciones,
+Las 59 pruebas cubren el cofre, pausa de efectos, desconexiones durante elecciones,
 instantáneas online, 24 personajes con su arma y técnicas propias, jefes finales de los cuatro
 mapas y fases finales sucesivas, colisiones con enemigos grandes, ralentizaciones, recargas,
 fusión de progreso remoto, datos guardados incompletos y tickets de partidas que
@@ -18,7 +18,10 @@ reforzadas para verificar las rutas de ejecución; no evalúan el equilibrio.
 
 Las pruebas nuevas también cubren élites, sus límites y recompensas, presupuesto de
 cambio de opciones por jugador, curación real, métricas sin daño sobrante, pasiva
-de evolución, brújula, cofres de compañeros desconectados y sincronización.
+de evolución, brújula, cofres de compañeros desconectados y sincronización. También verifican curaciones
+reservadas a jugadores heridos, conservación de experiencia y atracción al agrupar
+gemas, guardianes anclados a su altar, rachas por atacante y avisos de recogida
+sincronizados con los invitados.
 
 Las comprobaciones de navegador requieren Playwright y Chromium. Desde la raíz:
 
@@ -66,7 +69,8 @@ Chromium no tiene su CA instalada; no modifica la configuración del juego.
   en dispositivos que solo tienen puntero táctil para reducir la carga gráfica.
 - **Estrategia y mapas:** dos evoluciones por arma, elecciones de cofre para cada
   jugador, señales de ataques y roles, combos y jensalada en 2D, 3D y móvil;
-  campamentos, altares, farolas y corrientes en los cuatro mapas. La simulación
+  campamentos, altares, farolas y corrientes en los cuatro mapas; exposición de objetos
+  y HUD de rachas/recogidas sin superposición con la barra del jefe. La simulación
   comprueba además el daño frontal del escudo, curación sin resurrección, avisos
   de tirador, siete patrones de jefe, recompensas únicas y combos entre propietarios.
 - **Online:** elección independiente de las evoluciones de cofre, sala, movimiento del invitado, entrega y guardado del resultado,

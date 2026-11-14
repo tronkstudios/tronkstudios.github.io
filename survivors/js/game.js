@@ -117,6 +117,8 @@ const Game = (() => {
       passives: {},
       techniques: {}, techCds: {}, rerolls: 3,
       combat: { dealt: 0, taken: 0, healed: 0, elites: 0 },
+      streak: {count:0,best:0,until:0,flashUntil:0},
+      loot: {xp:0,coins:0,healed:0,until:0},
       iframes: 0,
       down: false,
       reviveT: 0,
@@ -156,9 +158,13 @@ const Game = (() => {
     if(mapId==="playa")return [];
     const kind=mapId==="cementerio"?"altar":mapId==="ciudad"?"lamp":"camp";
     return [240,680,1100].map((r,i)=>{
-      let x=0,y=0;
-      for(let n=0;n<16;n++){const a=i*2.1+n*.4;x=-30+Math.cos(a)*r;y=Math.sin(a)*r;if(terrain(x,y)!==2)break;}
-      const site={id:i,kind,x,y,progress:0,activated:false,used:false,activeUntil:0,guards:[]};collide(site,24);return site;
+      const site={id:i,kind,x:0,y:0,progress:0,activated:false,used:false,activeUntil:0,guards:[]};
+      for(let n=0;n<64;n++){
+        const a=i*2.1+n*.4;site.x=-30+Math.cos(a)*r;site.y=Math.sin(a)*r;
+        collide(site,24);
+        if(terrain(site.x,site.y)!==2)break;
+      }
+      return site;
     });
   }
 
@@ -176,7 +182,7 @@ const Game = (() => {
         if(site.progress>=120){
           site.activated=true;
           if(site.kind==="altar"){
-            for(const type of ["guardian","sanador","esqueleto"]){const e=spawnAround(type,site,80*U);site.guards.push(e.id);}
+            for(const type of ["guardian","sanador","esqueleto"]){const e=spawnAround(type,site,80*U);e.siteId=site.id;site.guards.push(e.id);}
             emit("toast",{text:L("Altar activado: derrota a sus guardianes"),kind:"site"});
           } else {site.used=true;site.activeUntil=st.t+1200;emit("toast",{text:L("Refugio activo durante 20 segundos"),kind:"site"});}
         }
@@ -265,14 +271,14 @@ const Game = (() => {
   }
 
   function alivePlayers() {
-    return st.players.filter((p) => !p.down);
+    return st.players.filter((p) => !p.down && !p.disconnected);
   }
 
   function nearestPlayer(x, y) {
     let best = null;
     let bd = Infinity;
     for (const p of st.players) {
-      if (p.down) continue;
+      if (p.down || p.disconnected) continue;
       const d = (p.x - x) ** 2 + (p.y - y) ** 2;
       if (d < bd) { bd = d; best = p; }
     }
@@ -545,7 +551,7 @@ const Game = (() => {
   let lowFx = false;
   let autoLow = false;
   const perf = { sum: 0, n: 0 };
-  const COSMETIC = new Set(["puff", "shards", "dust", "crack", "impact"]);
+  const COSMETIC = new Set(["puff", "shards", "dust", "crack", "impact", "pickup"]);
 
   function wantLow() {
     return options.fx === "low" || (options.fx === "auto" && autoLow);
@@ -927,6 +933,10 @@ const Game = (() => {
       }
     }
 
+    if(e.siteId!==undefined){
+      const home=st.sites.find(site=>site.id===e.siteId);
+      if(home && dist2(e,home)>(180*U)**2){mx=home.x-e.x;my=home.y-e.y;}
+    }
     if(e.exposedUntil>=st.t)e.phased=false;
     if(terrain(e.x,e.y)===2){e.wetUntil=st.t+30;e.wetBy=e.controlBy ?? -1;}
     const maxSlow = e.relentless ? Math.max(.08, .4 - (st.t - st.endlessStart) / 90000) : 1;
@@ -1301,6 +1311,7 @@ const Game = (() => {
       }
     }
     st.kills++;
+    if (!silent) registerKill(e.lastHit);
     if (!silent) sound("kill", 0.05);
     fx({ k: "puff", x: e.x, y: e.y - 16, color: e.boss ? "#ffd23f" : "#c9d1dc", life: 16, big: e.boss });
     if (e.elite) {
@@ -1341,8 +1352,12 @@ const Game = (() => {
     const p = st.players[0];
     st.gems.sort((a, b) => dist2(b, p) - dist2(a, p));
     const far = st.gems.splice(0, 120);
-    const total = far.reduce((s, g) => s + g.v, 0);
-    st.gems.push({ x: far[0].x, y: far[0].y, v: total, t: 0, pull: false });
+    // Keep attracted gems attracted, without pulling unrelated gems for free.
+    for(const pull of [false,true]){
+      const group=far.filter(g=>!!g.pull===pull);
+      if(!group.length)continue;
+      st.gems.push({x:group[0].x,y:group[0].y,v:group.reduce((n,g)=>n+g.v,0),t:0,pull});
+    }
   }
 
   /* =======================================================
@@ -1363,6 +1378,7 @@ const Game = (() => {
     const amount = Math.max(1, Math.round(dmg - p.stats.armor));
     if (p.combat) p.combat.taken += Math.min(p.hp,amount);
     p.hp -= amount;
+    if(p.streak){p.streak.count=0;p.streak.until=0;p.streak.flashUntil=0;}
     p.iframes = 36;
     p.flash = 10;
     if (p.id === localId) { shake(3); emit("hurt", {}); }
@@ -2286,7 +2302,7 @@ const Game = (() => {
     const alive = alivePlayers();
     // Los objetos están anclados al suelo: usar los pies en ambos renderizadores.
     // Elegir un único receptor evita tirones opuestos en cooperativo.
-    const nearest = (item) => alive.reduce((best, p) => !best || dist2(item, p) < dist2(item, best) ? p : best, null);
+    const nearest = (item, candidates=alive) => candidates.reduce((best, p) => !best || dist2(item, p) < dist2(item, best) ? p : best, null);
     const moveTowards = (item, p, speed) => {
       const d = Math.hypot(p.x - item.x, p.y - item.y);
       if (!d) return;
@@ -2305,7 +2321,8 @@ const Game = (() => {
         moveTowards(g, p, Math.min(9, 2 + g.t * .02 + g.pullT));
         if (dist2(g, p) <= radius ** 2) {
           g.taken = true;
-          st.xp += g.v * p.stats.growth * st.mod.xp;
+          const gained=g.v * p.stats.growth * st.mod.xp;
+          st.xp += gained;recordLoot(p,"xp",gained);
           sound("gem", .03);
         }
       }
@@ -2314,7 +2331,7 @@ const Game = (() => {
 
     for (const it of st.pickups) {
       it.t++;
-      const p = nearest(it);
+      const p = nearest(it,it.kind==="bocadillo"?alive.filter(p=>p.hp<p.stats.maxHp):alive);
       if (!p) continue;
       const radius = (it.kind === "cofre" ? 21 : it.kind === "moneda" ? 12 : 17) * U;
       const reach = it.kind === "moneda" ? Math.max(radius, p.stats.magnet * .7) : radius + 18 * U;
@@ -2322,6 +2339,7 @@ const Game = (() => {
       if (dist2(it, p) <= radius ** 2) {
         it.taken = true;
         takePickup(p, it);
+        if(st.pickupFx<6){st.pickupFx++;fx({k:"pickup",x:p.x,y:p.y,color:it.kind==="bocadillo"?"#8aefc2":it.kind==="iman"?"#91e9ff":"#f0cb82",life:22});}
       }
     }
     st.pickups = st.pickups.filter((it) => !it.taken);
@@ -2337,14 +2355,33 @@ const Game = (() => {
     if ((st.pendingLevels > 0 || st.rewardQueue.length) && !st.choosing) nextChoice();
   }
 
+  function recordLoot(p,kind,amount){
+    if(!(amount>0))return;
+    if(!p.loot || p.loot.until<=st.t)p.loot={xp:0,coins:0,healed:0,until:st.t+150};
+    p.loot[kind]+=amount;
+  }
+
+  function registerKill(playerId){
+    const p=st.players[playerId];
+    if(!p || p.down || p.disconnected)return;
+    const chain=p.streak;
+    chain.count=(chain.until>=st.t?chain.count:0)+1;
+    chain.best=Math.max(chain.best,chain.count);chain.until=st.t+240;
+    if([10,25,50].includes(chain.count) || chain.count%100===0){
+      chain.flashUntil=st.t+75;
+      fx({k:"text",x:p.x,y:p.y-65,text:`${L("Racha")} ${chain.count}`,color:"#f0cb82",life:65});
+      sound("streak",.3);
+    }
+  }
+
   function takePickup(p, it) {
     switch (it.kind) {
       case "moneda":
-        st.coins += st.mod.coins;
+        st.coins += st.mod.coins;recordLoot(p,"coins",st.mod.coins);
         sound("coin", 0.05);
         break;
       case "bocadillo":
-        healPlayer(p, 30, true);
+        recordLoot(p,"healed",healPlayer(p, 30, true));
         sound("pick");
         break;
       case "iman":
@@ -2355,7 +2392,7 @@ const Game = (() => {
       case "cofre": {
         st.chests = (st.chests || 0) + 1;
         sound("chest");
-        st.coins += 40;
+        st.coins += 40;recordLoot(p,"coins",40);
         st.rewardQueue.push({kind:"chest"});
         emit("chest", { lines: [L("Elige una recompensa para tu personaje")] });
         break;
@@ -2373,7 +2410,7 @@ const Game = (() => {
     if(evo){
       const paths=TS.EVOLUTION_PATHS[evo.id] || TS.EVOLUTION_PATHS;
       return ["precision","dominion"].map(path=>({kind:"evolution",id:evo.id,path,title:evolutionName(evo.id,path),desc:L(paths[path].desc),icon:evo.id}))
-        .concat({kind:"supplies",title:L("Suministros"),desc:L("Recupera 40 de vida, atrae las gemas y suma 20 monedas."),icon:"bocadillo"});
+        .concat({kind:"supplies",title:L("Suministros"),desc:L("Recupera 40 de vida, atrae las gemas y suma 20 monedas."),icon:"iman"});
     }
     const options=buildOptions(pl,30),native=options.filter(o=>o.kind==="weapon" || o.kind==="technique");
     const support=options.filter(o=>o.kind==="passive");
@@ -2524,7 +2561,7 @@ const Game = (() => {
     if (st.choosing || paused || st.victoryWait) return;
     for (const f of st.fx) f.t++;
     st.fx = st.fx.filter((f) => f.t < f.life);
-    st.t++;st.impacts=0;
+    st.t++;st.impacts=0;st.pickupFx=0;
     if (st.t % 60 === 0) for (const e of st.enemies) if (!e.dead) scaleEnemy(e);
     if (st.finalPhase) finalPressure();
     buildGrid();
@@ -2538,7 +2575,7 @@ const Game = (() => {
     if (alive.length && st.t % 30 === 0) {
       const far = spawnRadius() * 1.8;
       for (const e of st.enemies) {
-        if (e.boss) continue;
+        if (e.boss || e.siteId!==undefined) continue;
         const p = nearestPlayer(e.x, e.y);
         if (e.prop) { if (p && Math.hypot(p.x - e.x, p.y - e.y) > far * 1.5) e.dead = true; continue; }
         if (p && Math.hypot(p.x - e.x, p.y - e.y) > far) {
@@ -2675,6 +2712,8 @@ const Game = (() => {
       nextTechnique:(TS.TECHNIQUES[p.charId] || []).find(m=>m.unlock>st.level || m.at>st.t/60) || null,
       techniqueRanks:Object.values(p.techniques || {}).reduce((n,v)=>n+v,0),
       combo:st.comboUntil>st.t?L(st.comboLabel):null,
+      streak:p.streak && p.streak.until>st.t?{...p.streak,remaining:(p.streak.until-st.t)/240,highlight:p.streak.flashUntil>st.t}:null,
+      loot:p.loot?.until>st.t?p.loot:null,
       combat: p.combat || {}, chests: st.chests || 0,
       evolution: evolutionInfo(p), compass: compassTarget(p),
       inWater: terrain(p.x,p.y)===2,
@@ -3192,6 +3231,10 @@ const Game = (() => {
         ctx.globalAlpha = 1;
         break;
       }
+      case "pickup": {
+        ctx.save();ctx.strokeStyle=f.color;ctx.globalAlpha=1-k;ctx.lineWidth=2;
+        ctx.beginPath();ctx.ellipse(f.x,f.y-5-k*12,9+k*15,3+k*5,0,0,TAU);ctx.stroke();ctx.restore();break;
+      }
       case "impact": {
         ctx.save();ctx.translate(f.x,f.y);ctx.rotate(f.ang || 0);ctx.globalAlpha=1-k;ctx.strokeStyle=f.color;ctx.lineWidth=f.big?2.5:1.5;
         const r=(f.big?14:9)*(1+k);ctx.beginPath();ctx.moveTo(-r,-r*.6);ctx.lineTo(r,r*.6);ctx.moveTo(-r,r*.6);ctx.lineTo(r,-r*.6);ctx.stroke();ctx.restore();break;
@@ -3403,7 +3446,8 @@ const Game = (() => {
       if (it.kind === "cofre") {
         ctx.fillStyle = `rgba(255,210,63,${0.25 + Math.sin(it.t * 0.1) * 0.15})`;
         ctx.beginPath(); ctx.arc(it.x, it.y - 12, 26, 0, TAU); ctx.fill();
-        ctx.drawImage(Sprites.scaled(img, 3), Math.round(it.x - 21), Math.round(it.y - 40 + bob));
+        const chest=Sprites.scaled(Sprites.get("icon:cofre"),3);
+        ctx.drawImage(chest,Math.round(it.x-chest.width/2),Math.round(it.y-chest.height+6+bob));
       } else ctx.drawImage(img, Math.round(it.x - 14), Math.round(it.y - 24 + bob));
       if(it.kind==="bocadillo" && dist2(it,me)<140**2){ctx.font="bold 9px sans-serif";ctx.textAlign="center";ctx.fillStyle="#c9edb2";ctx.fillText(L("jensalada"),it.x,it.y-32);}
     }
@@ -3596,7 +3640,7 @@ const Game = (() => {
     Render3D.draw({
       cx: cam.x, cy: cam.y, wH, shake: shakeNow, dark: map.dark || 0, t: st.t,
       sites:st.sites, actors, gems: st.gems.filter(visible), pickups: st.pickups.filter(visible), shots: st.shots.filter((x) => !(x.delay > 0) && visible(x)), eshots: st.eshots.filter(visible),
-      zones: st.zones, fx: st.fx, auras, drones, contrast: options.contrast, low: lowFx
+      zones: st.zones, fx: st.fx, auras, drones, contrast: options.contrast, low: lowFx, reducedMotion:options.reducedMotion
     });
     // capa 2D: números, nombres, barras de vida, flecha del jefe y joystick
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -3717,7 +3761,7 @@ const Game = (() => {
       p.weapons.map((w) => [w.id, w.lvl, w.evo ? 1 : 0, (w.drones || []).map((d) => [r1(d.x || 0), r1(d.y || 0)]),w.path || null]),
       Object.entries(p.passives), r1(p.stats.area), Math.round((1 - p.abCd / abilityMax(p)) * 100) / 100,
       p.moveX, p.moveY, p.atk ? p.atk.ax : null, p.atk ? p.atk.ay : null, Object.entries(p.techniques || {}), {
-        rerolls:p.rerolls, combat:p.combat, disconnected:!!p.disconnected, reviver:p.reviver ?? null,
+        rerolls:p.rerolls, combat:p.combat, streak:p.streak,loot:p.loot, disconnected:!!p.disconnected, reviver:p.reviver ?? null,
         ready:Object.fromEntries((TS.TECHNIQUES[p.charId] || []).map(m=>[m.id,clamp(1-(p.techCds?.[m.id] || 0)/(m.cd*p.stats.cdMul),0,1)]))
       }
     ]);
@@ -3793,6 +3837,7 @@ const Game = (() => {
       p.atk = a[6] > 0 ? { t: a[6], total: a[7], ...(a[20] != null && a[21] != null ? { ax: a[20], ay: a[21] } : {}) } : null;
       p.moveX = a[18]; p.moveY = a[19];
       p.techniques = Object.fromEntries(a[22] || []);
+      p.streak=a[23]?.streak || {count:0,best:0,until:0,flashUntil:0};p.loot=a[23]?.loot || null;
       p.reviver=a[23]?.reviver ?? null; p.disconnected=!!a[23]?.disconnected; p.rerolls=a[23]?.rerolls ?? 0; p.combat=a[23]?.combat || {}; p.techReady=a[23]?.ready || {};
       p.hp = a[8]; p.stats.maxHp = a[9]; p.down = !!a[10]; p.reviveT = a[11]; p.iframes = a[12]; p.flash = a[13];
       p.weapons = a[14].filter(([id]) => id === charById(p.charId).weapon).map(([id, lvl, evo, drones, path]) => ({ id, lvl, evo: !!evo, path, drones: drones.map(([x, y]) => ({ x, y })) }));

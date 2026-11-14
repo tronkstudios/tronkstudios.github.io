@@ -552,3 +552,46 @@ test('ice from a teammate makes electric attacks conduct to nearby enemies',()=>
  st.shots=[{type:'ice',x:a.x,y:a.y-16,vx:0,vy:0,life:100,r:5,dmg:1,pierce:1,owner:0,hit:new Set()}];Game.step();assert.equal(a.wetBy,0);
  st.players[1].weapons[0].cd=0;Game.step();assert.equal(st.comboLabel,'Descarga conductora');assert.ok(st.zones.some(z=>z.type==='bolt'));
 });
+
+test('healing stays on the ground at full health and goes to a wounded nearby teammate',()=>{
+ const {Game}=engine();Game.start([setup('ranjay'),setup('lia')]);const st=Game.state,[a,b]=st.players;
+ st.players.forEach(p=>{p.weapons[0].cd=99999;p.stats.regen=0;});a.x=0;a.y=0;b.x=25;b.y=0;
+ st.pickups=[{kind:'bocadillo',x:0,y:0,t:0}];Game.step();assert.equal(st.pickups.length,1);
+ b.hp=50;Game.step();assert.equal(b.hp,80);assert.equal(a.hp,a.stats.maxHp);assert.equal(st.pickups.length,0);
+ assert.equal(b.loot.healed,30);assert.equal(a.loot.healed,0);
+});
+test('gem compaction conserves XP and the magnet state without attracting other gems',()=>{
+ const {Game,TS}=engine();Game.start([setup('ranjay')],{seed:42});const st=Game.state,p=st.players[0];p.weapons[0].cd=99999;st.xpNext=1e9;
+ st.gems=Array.from({length:421},(_,i)=>({x:1500+i,y:0,v:2,t:0,pull:i>=400}));
+ const expected=st.gems.reduce((sum,g)=>sum+g.v,0)+TS.ENEMIES.zombi.xp,pulled=st.gems.filter(g=>g.pull).reduce((sum,g)=>sum+g.v,0);
+ st.enemies=[fixtureEnemy(TS,'zombi',p.x+200,p.y,{hp:1,maxHp:1})];
+ st.zones=[{type:'acid',x:p.x+200,y:p.y,r:50,dmg:100,owner:0,t:19,warn:0,life:100}];Game.step();
+ assert.ok(st.gems.length<421);assert.equal(st.gems.reduce((sum,g)=>sum+g.v,0),expected);
+ assert.equal(st.gems.filter(g=>g.pull).reduce((sum,g)=>sum+g.v,0),pulled);
+});
+test('altar guardians return home and are never teleported to a distant player',()=>{
+ const {Game}=engine();Game.start([setup('ranjay')],{map:'cementerio',seed:2});const st=Game.state,p=st.players[0],site=st.sites[0];p.weapons[0].cd=99999;p.stats.armor=9999;p.x=site.x;p.y=site.y;
+ for(let i=0;i<120;i++)Game.step();const guard=st.enemies.find(e=>e.id===site.guards[0]);assert.equal(guard.siteId,site.id);
+ guard.x=site.x+400;guard.y=site.y;p.x=site.x+6000;p.y=site.y+6000;st.t=299;
+ const before=Math.hypot(guard.x-site.x,guard.y-site.y);Game.step();
+ assert.ok(Math.hypot(guard.x-site.x,guard.y-site.y)<=before);assert.ok(Math.hypot(guard.x-p.x,guard.y-p.y)>5000);assert.equal(site.used,false);
+});
+test('streaks credit the attacker, expire, break on damage and retain their best in guest snapshots',()=>{
+ const {Game,TS}=engine();Game.start([setup('ranjay'),setup('lia')],{seed:42});const st=Game.state,[p,other]=st.players;st.xpNext=1e9;
+ st.players.forEach(p=>p.weapons[0].cd=99999);p.stats.armor=9999;
+ for(let i=0;i<10;i++){
+  st.enemies=[fixtureEnemy(TS,'zombi',p.x+90,p.y,{hp:1,maxHp:1})];st.zones=[{type:'acid',x:p.x+90,y:p.y,r:40,dmg:100,owner:0,t:19,warn:0,life:100}];Game.step();
+ }
+ assert.equal(p.streak.count,10);assert.equal(other.streak.count,0);assert.ok(p.streak.flashUntil>st.t);assert.equal(p.streak.best,10);
+ const snap=Game.snapshot([p]);Game.startGuest({localId:0,players:[setup('ranjay'),setup('lia')]});Game.applySnapshot(snap);assert.equal(Game.hudData().streak.count,10);
+ Game.start([setup('ranjay')]);const next=Game.state,q=next.players[0];q.weapons[0].cd=99999;q.streak={count:12,best:12,until:999,flashUntil:0};q.iframes=0;
+ next.enemies=[fixtureEnemy(TS,'zombi',q.x,q.y,{dmg:5})];Game.step();assert.equal(q.streak.count,0);assert.equal(q.streak.best,12);
+ next.enemies=[];q.streak={count:3,best:12,until:next.t+1,flashUntil:0};Game.step();assert.equal(Game.hudData().streak,null);
+});
+test('loot feedback reports actual XP and currency and expires with simulation time',()=>{
+ const {Game}=engine();Game.start([setup('ranjay')]);const st=Game.state,p=st.players[0];p.weapons[0].cd=99999;st.xpNext=1e9;
+ st.gems=[{x:p.x,y:p.y,v:3,t:0,pull:false}];st.pickups=[{kind:'moneda',x:p.x,y:p.y,t:0}];Game.step();
+ assert.equal(p.loot.xp,3*p.stats.growth*st.mod.xp);assert.equal(p.loot.coins,st.mod.coins);assert.equal(p.loot.healed,0);
+ const snap=Game.snapshot([p]);Game.startGuest({localId:0,players:[setup('ranjay')]});Game.applySnapshot(snap);assert.equal(Game.hudData().loot.xp,p.loot.xp);
+ const until=Game.state.players[0].loot.until;Game.applySnapshot({...snap,t:until+1});assert.equal(Game.hudData().loot,null);
+});

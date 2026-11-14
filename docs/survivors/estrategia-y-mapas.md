@@ -88,10 +88,13 @@ La clave interna `bocadillo` se mantiene para compatibilidad.
 
 ## Validación
 
-Las 54 pruebas de simulación y las pruebas de estrategia, escritorio, móvil,
+Las 59 pruebas de simulación y las pruebas de estrategia, escritorio, móvil,
 contenido, cofres y protocolo online comprueban estas rutas. El transporte online
 se probó con canales simulados por la política ICE del entorno; no acredita
 conectividad WebRTC entre redes. El equilibrio necesita partidas humanas y
 Safari/iOS requiere una prueba en un dispositivo físico. No hay migración nueva
 de base de datos; sigue siendo necesaria la migración de partidas de más de
 30 minutos descrita en [Supervivencia](supervivencia.md).
+
+La ampliación de rachas, recogidas, objetos y modelos se describe en
+[Sensaciones y objetos](sensaciones-y-objetos.md).

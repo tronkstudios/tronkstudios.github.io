@@ -106,6 +106,7 @@ const Sfx = (() => {
     dodge: (t) => hiss(t, 0.16, 0.18, { f: 1800, f2: 5000 }),
     eshot: (t) => tone("square", 300, t, 0.08, 0.035, { slide: 1.6 }),
     levelUp: (t) => { [523, 659, 784, 1047].forEach((f, i) => tone("square", f, t + i * 0.07, 0.14, 0.07)); },
+    streak: (t) => { [659, 880, 1319].forEach((f,i)=>tone("triangle",f,t+i*.065,.16,.055)); },
     pick: (t) => tone("square", 880, t, 0.05, 0.05),
     boss: (t) => { for (let i = 0; i < 3; i++) { tone("sawtooth", 110, t + i * 0.35, 0.28, 0.12); tone("sawtooth", 116, t + i * 0.35, 0.28, 0.08); } },
     chest: (t) => { [392, 523, 659, 784, 1047, 1319].forEach((f, i) => tone("triangle", f, t + i * 0.06, 0.2, 0.08)); },
