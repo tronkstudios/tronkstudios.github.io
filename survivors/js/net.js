@@ -265,7 +265,7 @@ const TronkNet = (() => {
     } else {
       if (m.type === "snap") Game.applySnapshot(m.d);
       else if (m.type === "start") startAsGuest(m);
-      else if (m.type === "choices") TronkUI.showLevelUp({ options: m.options, level: m.level, rerolls: m.rerolls });
+      else if (m.type === "choices") TronkUI.showLevelUp({ options: m.options, kind:m.kind, level: m.level, rerolls: m.rerolls });
       else if (m.type === "chosenWait") TronkUI.waitOthers();
       else if (m.type === "resume") TronkUI.hideLevelUp();
       else if (m.type === "end") { playing = false; if (Game.state) Game.state.over = true; TronkUI.showEnd(m.result); }
@@ -316,11 +316,12 @@ const TronkNet = (() => {
   // Del juego del anfitrión a los invitados
   Game.on("netChoices", (choosing) => {
     if (!room || !room.host) return;
-    for (const peer of peers.values()) if (peer.index !== undefined && choosing[peer.index]) sendCtrl(peer, { type: "choices", options: choosing[peer.index], level: Game.state.level, rerolls: Game.state.players[peer.index].rerolls });
+    for (const peer of peers.values()) if (peer.index !== undefined && choosing[peer.index]) sendCtrl(peer, { type: "choices", options: choosing[peer.index], kind:Game.state.choiceKind, level: Game.state.level, rerolls: Game.state.players[peer.index].rerolls });
   });
   Game.on("resume", () => { if (room && room.host) for (const peer of peers.values()) sendCtrl(peer, { type: "resume" }); });
   Game.on("toast", (d) => { if (room && room.host && playing) for (const peer of peers.values()) sendCtrl(peer, { type: "toast", text: d.text }); });
   Game.on("chest", d => {if(room && room.host && playing)for(const peer of peers.values())sendCtrl(peer,{type:"chest",lines:d.lines});});
+  Game.on("evolve", d=>{if(room && room.host && playing)for(const peer of peers.values())sendCtrl(peer,{type:"banner",text:d.name,small:d.desc});});
   Game.on("boss", (d) => { if (room && room.host && playing) for (const peer of peers.values()) sendCtrl(peer, { type: "banner", text: L("¡JEFE!"), small: d.name }); });
   Game.on("finalPhase", d => {
     if (room && room.host && playing) for (const peer of peers.values()) sendCtrl(peer, {type:"banner",text:L(d.round === 1 ? "¡JEFE FINAL!" : "¡NUEVA FASE!"),small:`${L("Fase")} ${d.round}`});

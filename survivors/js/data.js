@@ -701,3 +701,22 @@ for(const ch of TS.CHARACTERS){
 }
 
 for(const moves of Object.values(TS.TECHNIQUES))for(const move of moves)move.at=({burst:0,ring:0,pierce:180,guard:420,focus:720,surge:1080})[move.id];
+
+
+TS.EVOLUTION_PATHS={
+ precision:{name:"Impacto",desc:"+45 % de daño, −15 % de área y recarga un 18 % más lenta."},
+ dominion:{name:"Dominio",desc:"+40 % de área, dos ataques más, −20 % de daño y recarga un 10 % más rápida."}
+};
+TS.EVOLUTION_PATHS.tornado={
+ precision:{name:"Ojo del huracán",desc:"Un huracán potente que acompaña al personaje."},
+ dominion:{name:"Vientos errantes",desc:"Más tornados, más amplios, que avanzan en línea a gran velocidad."}
+};
+Object.assign(TS.ENEMIES,{
+ guardian:{name:"Guardián",hp:68,speed:.48,dmg:12,xp:7,r:10,ai:"guardian",sprite:"casco",heavy:true},
+ sanador:{name:"Sanador de la horda",hp:38,speed:.55,dmg:5,xp:8,r:8,ai:"medic",sprite:"brujo"},
+ tirador:{name:"Tirador de precisión",hp:32,speed:.6,dmg:12,xp:8,r:8,ai:"sniper",sprite:"antitronk"}
+});
+TS.BOSS_PATTERNS={gigante:["charge","gaps","guards"],supremo:["gaps","volley","charge"],maestro:["charge","ambush","gaps"],
+ rey:["charge","gaps","guards"],reyEsqueleto:["guards","gaps","ambush"],mocoRey:["pools","charge","gaps"],general:["volley","guards","charge"]};
+TS.TACTIC_NAMES={charge:"Carga",gaps:"Anillos con abertura",guards:"Refuerzos",volley:"Fuego dirigido",ambush:"Emboscada",pools:"Charcos peligrosos"};
+TS.SITE_NAMES={camp:"Campamento",altar:"Altar maldito",lamp:"Farola de refugio"};

@@ -6,7 +6,7 @@ Las pruebas de simulación no requieren dependencias:
 node --test tests/survivors.test.cjs
 ```
 
-Las 42 pruebas cubren el cofre, pausa de efectos, desconexiones durante elecciones,
+Las 54 pruebas cubren el cofre, pausa de efectos, desconexiones durante elecciones,
 instantáneas online, 24 personajes con su arma y técnicas propias, jefes finales de los cuatro
 mapas y fases finales sucesivas, colisiones con enemigos grandes, ralentizaciones, recargas,
 fusión de progreso remoto, datos guardados incompletos y tickets de partidas que
@@ -32,6 +32,7 @@ node tests/survivors.polish.cjs
 node tests/survivors.expansion.cjs
 node tests/survivors.rewards.cjs
 node tests/survivors.online.cjs
+node tests/survivors.strategy.cjs
 # Probar el protocolo de juego con transporte simulado:
 RTC_TEST_MODE=mock node tests/survivors.online.cjs
 ```
@@ -63,7 +64,12 @@ Chromium no tiene su CA instalada; no modifica la configuración del juego.
   mientras te mueves, soltar el joystick, pausa, elección de mejora, rotación,
   distribución con arma propia, seis técnicas y seis pasivas y reinicio. Se usa 2D por defecto
   en dispositivos que solo tienen puntero táctil para reducir la carga gráfica.
-- **Online:** sala, movimiento del invitado, entrega y guardado del resultado,
+- **Estrategia y mapas:** dos evoluciones por arma, elecciones de cofre para cada
+  jugador, señales de ataques y roles, combos y jensalada en 2D, 3D y móvil;
+  campamentos, altares, farolas y corrientes en los cuatro mapas. La simulación
+  comprueba además el daño frontal del escudo, curación sin resurrección, avisos
+  de tirador, siete patrones de jefe, recompensas únicas y combos entre propietarios.
+- **Online:** elección independiente de las evoluciones de cofre, sala, movimiento del invitado, entrega y guardado del resultado,
   segunda partida, cambio de opciones del invitado y desconexión con una elección pendiente. Supabase, cuenta
   y TURN se sustituyen por un punto de encuentro local. En modo normal usa
   WebRTC real; si Chromium no genera candidatos ICE, informa de que omite la

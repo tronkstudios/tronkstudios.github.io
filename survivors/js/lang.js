@@ -466,7 +466,7 @@ const TEMPLATES = {
   tipMoveTouch: ["Usa el joystick de la izquierda para moverte. Atacas automáticamente; toca el botón de la derecha para la habilidad.", "Use the left stick to move. Attacks are automatic; tap the right button to use your ability."],
   tipMove: ["Muévete con WASD o las flechas (en el móvil, arrastra el dedo). Tu personaje ataca solo.", "Move with WASD or the arrow keys (on mobile, drag your finger). Your character attacks on their own."],
   tipGems: ["Recoge las gemas azules: dan experiencia para subir de nivel y elegir mejoras.", "Pick up the blue gems: they give experience to level up and choose upgrades."],
-  tipProps: ["Rompe barriles, cajas y jarrones: sueltan comida, monedas, imanes y a veces cofres.", "Break barrels, crates and vases: they drop food, coins, magnets and sometimes chests."],
+  tipProps: ["Rompe barriles, cajas y jarrones: sueltan jensalada, monedas, imanes y a veces cofres.", "Break barrels, crates and vases: they drop jensalada, coins, magnets and sometimes chests."],
   tipAbility: ["Cuando el círculo de abajo a la derecha brille, pulsa {key} para usar tu habilidad especial.", "When the circle at the bottom right glows, press {key} to use your special ability."],
   tipRanged: ["¡Cuidado con los Antitronks! Disparan desde lejos: no te quedes quieto.", "Watch out for the Antitronks! They shoot from afar: keep moving."]
 };
@@ -612,3 +612,19 @@ for(const [id,names] of Object.entries({iria:["Arrow Volley","Arrow Circle"],bor
 }
 
 EN["Técnica definitiva"]="Ultimate technique";
+
+EN["jensalada"]="jensalada";
+
+Object.assign(EN,{
+ "Impacto":"Impact","Dominio":"Dominion","Ojo del huracán":"Eye of the Hurricane","Vientos errantes":"Wandering Winds",
+ "+45 % de daño, −15 % de área y recarga un 18 % más lenta.":"+45% damage, -15% area and 18% slower cooldown.",
+ "+40 % de área, dos ataques más, −20 % de daño y recarga un 10 % más rápida.":"+40% area, two extra attacks, -20% damage and 10% faster cooldown.",
+ "Un huracán potente que acompaña al personaje.":"A powerful hurricane that follows the character.","Más tornados, más amplios, que avanzan en línea a gran velocidad.":"More, wider tornadoes travelling quickly in a straight line.",
+ "Elige tu recompensa":"Choose your reward","Cada jugador elige una recompensa":"Each player chooses one reward","Elige una recompensa para tu personaje":"Choose a reward for your character",
+ "Suministros":"Supplies","Recupera 40 de vida, atrae las gemas y suma 20 monedas.":"Restore 40 health, attract gems and gain 20 coins.","Dos caminos de evolución":"Two evolution paths",
+ "Guardián":"Guardian","Sanador de la horda":"Horde healer","Tirador de precisión":"Sharpshooter",
+ "Carga":"Charge","Anillos con abertura":"Gapped rings","Refuerzos":"Reinforcements","Fuego dirigido":"Aimed fire","Emboscada":"Ambush","Charcos peligrosos":"Hazard pools",
+ "Campamento":"Camp","Altar maldito":"Cursed altar","Farola de refugio":"Shelter lamp","Activo":"Active","Guardianes restantes":"Guards remaining","Mantente en el círculo":"Stay inside the circle",
+ "¡Altar purificado! Recoge el cofre":"Altar cleansed! Collect the chest","Altar activado: derrota a sus guardianes":"Altar activated: defeat its guards","Refugio activo durante 20 segundos":"Shelter active for 20 seconds",
+ "Corriente: puedes moverte contra ella":"Current: you can move against it","Descarga conductora":"Conductive discharge","Vórtice ígneo":"Fire vortex"
+});

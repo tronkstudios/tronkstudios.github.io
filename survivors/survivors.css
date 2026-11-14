@@ -20,6 +20,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 
 html, body {
   margin: 0;
@@ -845,3 +846,7 @@ img[data-icon], .pix { image-rendering: pixelated; }
 .hud-slot.is-technique[data-technique="VI"] { box-shadow:0 0 0 2px #f0cb82; }
 
 .up-card.is-ultimate { border-color:#f0cb82; background:linear-gradient(110deg,#4a4030,#203640); }
+
+.hud-world { max-width:min(520px,80vw); color:#b5e7d5; font-size:11px; text-align:center; text-shadow:0 1px 3px #000; }
+.hud-world:empty { display:none; }
+@media (any-pointer:coarse) { .hud-world { font-size:10px; max-width:70vw; } }

@@ -224,8 +224,8 @@ test('the late final boss resists permanent slows and its projectiles scale with
   const boss=st.boss;boss.ai='chase';boss.x=200;boss.y=0;boss.slow=999;boss.slowAmt=.99;
   st.enemies=[boss];st.t=(TS.RUN_SECONDS+1200)*60-1;Game.step();
   assert.ok(Math.hypot(boss.vx,boss.vy)>4.675,'late pursuit exceeds even a speed build');
-  boss.ai='boss_king';boss.t=149;Game.step();
-  assert.ok(st.eshots.some(s=>s.kind==='goo'&&s.dmg>9));
+  boss.ai='boss_king';boss.hp=boss.maxHp*.5;boss.tacticPhase=1;boss.state=1;boss.timer=1;boss.gap=0;Game.step();
+  assert.ok(st.eshots.some(s=>s.kind==='orb'&&s.dmg>9));
 });
 test('every character learns only its own weapon and six personal techniques, including chest rewards', () => {
   const {Game,TS}=engine();
@@ -470,4 +470,85 @@ test('overlapping Duna tornadoes share damage windows while different players st
  };
  assert.equal(damage(20),damage(1),'20 overlapping tornadoes do not multiply one player damage by 20');
  assert.ok(damage(2,2)>damage(1),'cooperative players both deal damage');
+});
+
+const fixtureEnemy=(TS,type,x,y,extra={})=>({id:999,type,x,y,hp:1000,maxHp:1000,speed:0,dmg:0,r:TS.ENEMIES[type].r*1.7,ai:TS.ENEMIES[type].ai,boss:!!TS.ENEMIES[type].boss,prop:false,t:0,vx:0,vy:0,kx:0,ky:0,slow:0,slowAmt:0,dodgeCd:0,atk:0,state:0,timer:100,...extra});
+test('chests offer two exclusive native evolution paths for all 24 characters',()=>{
+ const {Game,TS}=engine();for(const ch of TS.CHARACTERS){
+  Game.start([setup(ch.id)],{seed:1});const st=Game.state,p=st.players[0];p.weapons[0].lvl=6;p.weapons[0].cd=9999;p.passives[TS.EVOLUTIONS[ch.weapon].passive]=1;
+  st.pickups=[{kind:'cofre',x:p.x,y:p.y,t:0}];Game.step();
+  assert.equal(st.choiceKind,'chest');assert.equal(st.evolutions,0);
+  assert.deepEqual(Array.from(st.choosing[0].filter(o=>o.kind==='evolution'),o=>o.path),['precision','dominion']);
+  assert.equal(Game.reroll(0),false);Game.choose(0,1);assert.equal(p.weapons[0].path,'dominion');assert.equal(st.evolutions,1);
+  st.pendingLevels=1;st.choosing={0:[{kind:'evolution',id:ch.weapon,path:'precision'}]};Game.choose(0,0);assert.equal(p.weapons[0].path,'dominion');
+ }
+});
+test('chest rewards preserve queued levels and resolve all cooperative choices once',()=>{
+ const {Game}=engine();Game.start([setup('ranjay'),setup('lia')]);const st=Game.state,p=st.players[0];
+ st.xp=st.xpNext;st.pickups=[{kind:'cofre',x:p.x,y:p.y,t:0}];Game.step();
+ assert.equal(st.choiceKind,'chest');assert.equal(st.pendingLevels,1);Game.choose(0,2);const coins=st.coins;Game.choose(0,2);assert.equal(st.coins,coins);
+ Game.choose(1,2);assert.equal(st.choiceKind,'level');assert.equal(st.pendingLevels,1);Game.choose(0,0);Game.dropPlayer(1);assert.equal(st.choosing,null);assert.equal(st.pendingLevels,0);
+});
+test('Duna evolution paths create a following hurricane or fast travelling tornadoes',()=>{
+ const {Game}=engine();for(const path of ['precision','dominion']){
+  Game.start([setup('duna')]);const p=Game.state.players[0];p.weapons[0]={id:'tornado',lvl:6,evo:true,path,cd:0};Game.step();
+  const winds=Game.state.zones.filter(z=>z.type==='tornado');assert.ok(winds.length);
+  if(path==='precision'){assert.equal(winds.length,1);assert.equal(winds[0].orbitRadius,0);assert.equal(winds[0].orbit,true);}
+  else {assert.ok(winds.length>1);assert.ok(winds.every(z=>z.straight&&Math.hypot(z.vx,z.vy)>4));}
+  const snap=Game.snapshot([p]);Game.startGuest({localId:0,players:[setup('duna')]});Game.applySnapshot(snap);assert.equal(Game.state.players[0].weapons[0].path,path);
+ }
+});
+test('guardian shields block the front but can be flanked',()=>{
+ const damage=front=>{const {Game,TS}=engine();Game.start([setup('lia')],{seed:42});const p=Game.state.players[0];p.x=0;p.y=0;p.weapons[0].cd=0;const e=fixtureEnemy(TS,'guardian',40,0,{guardAngle:front?Math.PI:0});Game.state.enemies=[e];Game.step();return 1000-e.hp;};
+ assert.ok(damage(false)>damage(true)*3);
+});
+test('horde medics restore nearby enemies without reviving dead ones or healing bosses',()=>{
+ const {Game,TS}=engine();Game.start([setup('ranjay')]);Game.state.players[0].weapons[0].cd=9999;
+ const healer=fixtureEnemy(TS,'sanador',100,0,{timer:1}),ally=fixtureEnemy(TS,'guardian',110,0,{id:1000,hp:50,maxHp:100}),boss=fixtureEnemy(TS,'rey',120,0,{id:1001,hp:50,maxHp:100});
+ Game.state.enemies=[healer,ally,boss];Game.step();assert.equal(ally.hp,58);assert.equal(boss.hp,50);
+});
+test('snipers mark a fixed shot before firing and do not track the player during the warning',()=>{
+ const {Game,TS}=engine();Game.start([setup('ranjay')]);const st=Game.state,p=st.players[0];p.weapons[0].cd=9999;p.x=0;p.y=0;
+ const e=fixtureEnemy(TS,'tirador',130,0,{timer:1,dmg:12});st.enemies=[e];Game.step();assert.equal(st.eshots.length,0);assert.equal(st.zones[0].type,'dangerLine');
+ p.x=50;p.y=100;for(let i=0;i<60;i++)Game.step();assert.ok(st.eshots.some(s=>s.vx<0 && Math.abs(s.vy)<.001));
+});
+test('all seven bosses change tactics with health and gapped rings leave a warned opening',()=>{
+ const {Game,TS}=engine();for(const [id,patterns] of Object.entries(TS.BOSS_PATTERNS)){
+  Game.start([setup('ranjay')]);const p=Game.state.players[0];p.weapons[0].cd=9999;
+  const boss=fixtureEnemy(TS,id,250,0,{boss:true});Game.state.enemies=[boss];
+  for(const [index,hp] of [900,500,200].entries()){boss.hp=hp;Game.step();assert.equal(boss.tactic,patterns[index],id);}
+ }
+ Game.start([setup('ranjay')],{seed:42});const st=Game.state;st.players[0].weapons[0].cd=9999;
+ const boss=fixtureEnemy(TS,'rey',300,0,{boss:true,hp:500,tacticPhase:1,timer:0,dmg:15});st.enemies=[boss];Game.step();assert.equal(st.zones[0].type,'dangerRing');assert.equal(st.eshots.length,0);
+ for(let i=0;i<60;i++)Game.step();assert.ok(st.eshots.length>0&&st.eshots.length<24);
+ assert.ok(st.eshots.every(s=>Math.abs(Math.atan2(Math.sin(Math.atan2(s.vy,s.vx)-boss.gap),Math.cos(Math.atan2(s.vy,s.vx)-boss.gap)))>.5));
+});
+test('forest shelters activate once and heal only during their limited duration',()=>{
+ const {Game}=engine();Game.start([setup('ranjay')]);const st=Game.state,p=st.players[0],site=st.sites[0];p.x=site.x;p.y=site.y;p.hp=50;p.weapons[0].cd=99999;
+ for(let i=0;i<120;i++)Game.step();assert.equal(site.activated,true);assert.equal(site.used,true);assert.equal(p.hp,52);const until=site.activeUntil;
+ for(let i=0;i<60;i++)Game.step();assert.equal(p.hp,54);assert.equal(site.activeUntil,until);
+});
+test('cemetery altars reward a cleared challenge once and city lamps expose shields',()=>{
+ const {Game,TS}=engine();Game.start([setup('ranjay')],{map:'cementerio'});let st=Game.state,p=st.players[0],site=st.sites[0];p.x=site.x;p.y=site.y;p.weapons[0].cd=99999;p.stats.armor=9999;
+ for(let i=0;i<120;i++)Game.step();assert.equal(site.guards.length,3);assert.equal(site.used,false);
+ st.enemies.filter(e=>site.guards.includes(e.id)).forEach(e=>e.dead=true);Game.step();assert.equal(site.used,true);assert.equal(st.chests,1);Game.choose(0,2);Game.step();assert.equal(st.chests,1);
+ Game.start([setup('ranjay')],{map:'ciudad'});st=Game.state;p=st.players[0];site=st.sites[0];p.x=site.x;p.y=site.y;p.weapons[0].cd=99999;
+ const guard=fixtureEnemy(TS,'guardian',p.x+30,p.y);st.enemies=[guard];for(let i=0;i<120;i++)Game.step();assert.ok(guard.exposedUntil>st.t);
+});
+test('beach currents move grounded players in water and remain weak enough to oppose',()=>{
+ const {Game}=engine();Game.start([setup('ranjay')],{map:'playa'});const p=Game.state.players[0];
+ let spot;for(let x=500;x<4000&&!spot;x+=100)for(let y=500;y<4000;y+=100)if([[0,0],[80,0],[-80,0],[0,80],[0,-80]].every(([dx,dy])=>Game.terrain(x+dx,y+dy)===2)){spot={x,y};break;}
+ assert.ok(spot);p.x=spot.x;p.y=spot.y;p.weapons[0].cd=99999;Game.step();assert.ok(p.x>spot.x);
+ const before=p.x;Game.setInput(0,{x:-1,y:0,ab:0});Game.step();assert.ok(p.x<before);
+});
+test('cooperative wind and fire ignite a vortex while same-owner effects do not',()=>{
+ for(const same of [false,true]){const {Game}=engine();Game.start([setup('duna'),setup('brasa')]);const st=Game.state;st.players.forEach(p=>p.weapons[0].cd=9999);
+  const wind={type:'tornado',x:100,y:0,vx:0,vy:0,t:0,life:300,r:30,dmg:10,owner:0,stationary:true};st.zones=[wind,{type:'flame',x:100,y:0,ang:0,len:90,spread:.5,t:0,life:40,dmg:1,owner:same?0:1,fixed:true}];Game.step();assert.equal(wind.ignited,!same);
+ }
+});
+test('ice from a teammate makes electric attacks conduct to nearby enemies',()=>{
+ const {Game,TS}=engine();Game.start([setup('frosti'),setup('quizo')]);const st=Game.state;st.players.forEach(p=>p.weapons[0].cd=9999);
+ const a=fixtureEnemy(TS,'zombi',70,0),b=fixtureEnemy(TS,'zombi',110,0,{id:1000});st.enemies=[a,b];
+ st.shots=[{type:'ice',x:a.x,y:a.y-16,vx:0,vy:0,life:100,r:5,dmg:1,pierce:1,owner:0,hit:new Set()}];Game.step();assert.equal(a.wetBy,0);
+ st.players[1].weapons[0].cd=0;Game.step();assert.equal(st.comboLabel,'Descarga conductora');assert.ok(st.zones.some(z=>z.type==='bolt'));
 });
