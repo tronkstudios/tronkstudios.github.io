@@ -630,3 +630,5 @@ Object.assign(EN,{
 });
 
 Object.assign(EN,{"Racha":"Streak","vida":"health","monedas":"coins"});
+
+Object.assign(EN,{"Cura durante 20 s":"Heals for 20 s","Derrota a 3 guardianes y gana un cofre":"Defeat 3 guardians to earn a chest","Cura, revela y debilita enemigos":"Heals, reveals and weakens enemies","Probar sonidos":"Test sounds","Arco":"Bow","Monstruo":"Monster","Magia":"Magic","Escuchar":"Listen","Sube el volumen de efectos para probarlos.":"Turn up the effects volume to test them."});

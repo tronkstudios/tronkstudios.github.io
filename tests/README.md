@@ -6,7 +6,7 @@ Las pruebas de simulación no requieren dependencias:
 node --test tests/survivors.test.cjs
 ```
 
-Las 59 pruebas cubren el cofre, pausa de efectos, desconexiones durante elecciones,
+Las 63 pruebas cubren el cofre, pausa de efectos, desconexiones durante elecciones,
 instantáneas online, 24 personajes con su arma y técnicas propias, jefes finales de los cuatro
 mapas y fases finales sucesivas, colisiones con enemigos grandes, ralentizaciones, recargas,
 fusión de progreso remoto, datos guardados incompletos y tickets de partidas que
@@ -37,6 +37,7 @@ node tests/survivors.rewards.cjs
 node tests/survivors.online.cjs
 node tests/survivors.strategy.cjs
 node tests/survivors.characters.cjs
+node tests/survivors.world.cjs
 # Probar el protocolo de juego con transporte simulado:
 RTC_TEST_MODE=mock node tests/survivors.online.cjs
 ```
@@ -53,7 +54,8 @@ Chromium no tiene su CA instalada; no modifica la configuración del juego.
   cinco direcciones, reposo, ocho pasos y seis ataques), pantalones compartidos con
   el menú, contacto de los pies, retratos con cámara común, visor de Boro solo de
   frente y ausencia de ojos duplicados en máscaras. Verifica que el mazo no
-  atraviese el suelo y que los retratos de las cinco vistas no se recorten.
+  atraviese el suelo, que el arco tenga su propia postura y que la cuerda y el
+  agarre coincidan con las manos y que los retratos de las cinco vistas no se recorten.
 - **Contenido nuevo:** los 24 personajes, sus seis técnicas y habilidad en 2D/3D,
   efectos de sus armas, HUD final al minuto 25 y vista cercana de enemigos 3D.
 - **Diseño y usabilidad:** menú, HUD con élites y brújula, recargas de técnicas,
@@ -79,6 +81,14 @@ Chromium no tiene su CA instalada; no modifica la configuración del juego.
   y HUD de rachas/recogidas sin superposición con la barra del jefe. La simulación
   comprueba además el daño frontal del escudo, curación sin resurrección, avisos
   de tirador, siete patrones de jefe, recompensas únicas y combos entre propietarios.
+- **Mapas y audio:** carreteras y pasillos continuos, costa coherente, terreno
+  opaco en casillas positivas/negativas y decoración repetible fuera del agua y
+  los caminos. Renderiza 19 sonidos en OfflineAudioContext: señal audible, salida
+  finita, silencio, atenuación y límite de repetición desde el instante cero.
+  La simulación verifica además sonido del arco, avisos de monstruos, límites de
+  eventos y sonidos cercanos/lejanos de invitados. Comprueba también la prueba de
+  sonidos en ajustes, su silencio y traducción; la brújula prioriza rescates,
+  curación a vida crítica y cofres antes de proponer puntos del mapa.
 - **Online:** elección independiente de las evoluciones de cofre, sala, movimiento del invitado, entrega y guardado del resultado,
   segunda partida, cambio de opciones del invitado y desconexión con una elección pendiente. Supabase, cuenta
   y TURN se sustituyen por un punto de encuentro local. En modo normal usa

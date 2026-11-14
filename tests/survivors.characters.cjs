@@ -23,6 +23,13 @@ const fs=require('node:fs');const path=require('node:path');
      }
     }
    }
+   if(Stick.rig.styleOf(Stick.characterOptions(TS.CHARACTERS.find(ch=>ch.id==='iria')))!=='bow')failures.push('Iria uses a firearm pose');
+   for(let i=0;i<6;i++){
+    const p=Stick.rig.pose('bow','attack',i,6),J=Stick.rig.joints(p),bow=Stick.rig.bowModel(p);
+    if(Math.hypot(bow.grip[0]-J.fHand[0],bow.grip[1]-J.fHand[1])>.01)failures.push('bow grip detaches');
+    if(bow.loaded&&Math.hypot(bow.nock[0]-J.bHand[0],bow.nock[1]-J.bHand[1])>.01)failures.push('drawn string detaches');
+    if(!(bow.limbs[0][1]<bow.grip[1]&&bow.limbs.at(-1)[1]>bow.grip[1]))failures.push('bow limbs do not straddle hand');
+   }
    // The maul head must stay above ground throughout the attack, not sink
    // beneath the feet when the wrist folds down at the impact frame.
    for(let i=0;i<6;i++){

@@ -88,7 +88,7 @@ La clave interna `bocadillo` se mantiene para compatibilidad.
 
 ## Validación
 
-Las 59 pruebas de simulación y las pruebas de estrategia, escritorio, móvil,
+Las 63 pruebas de simulación y las pruebas de estrategia, escritorio, móvil,
 contenido, cofres y protocolo online comprueban estas rutas. El transporte online
 se probó con canales simulados por la política ICE del entorno; no acredita
 conectividad WebRTC entre redes. El equilibrio necesita partidas humanas y

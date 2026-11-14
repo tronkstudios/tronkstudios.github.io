@@ -142,6 +142,11 @@ const Render3D = (() => {
     pool("cyl", cyl, lambert(), 9000);
     pool("sph", sph, lambert(), 9000);
     pool("box", box, lambert(), 5000);
+    const tentShape=new T.Shape();tentShape.moveTo(-28,0);tentShape.lineTo(0,38);tentShape.lineTo(28,0);tentShape.closePath();
+    const tentGeo=new T.ExtrudeGeometry(tentShape,{depth:42,bevelEnabled:false}).translate(0,0,-21);
+    pool("tent",tentGeo,lambert(),3);
+    const door=new T.Shape();door.moveTo(-10,0);door.lineTo(0,25);door.lineTo(10,0);door.closePath();
+    pool("tentDoor",new T.ShapeGeometry(door),new T.MeshLambertMaterial({color:0xffffff,side:T.DoubleSide}),3,false);
     pool("cone", cone, lambert(), 4000);
     pool("octa", new T.OctahedronGeometry(1), lambert(), 1500, false);
     pool("lowSph", new T.IcosahedronGeometry(1, 1), new T.MeshLambertMaterial({ color: 0xffffff, flatShading: true }), 3000);
@@ -287,18 +292,28 @@ const Render3D = (() => {
         break;
       case "farola":
         between("cyl", [x, 0, y], [x, 80, y], 2.5, 0x3a3f4a);
-        at("glow", x, 84, y, 6, 5, 6, 0xffe9a8);
+        at("box",x,83,y,12,12,10,0x34454d);at("glowBox",x,83,y,8,8,11,0xffe9a8);at("box",x,90,y,15,2,13,0x34454d);
         break;
       case "contenedor":
         at("box", x, 15, y, 40, 30, 22, 0x2f7a3a);
         at("box", x, 31, y, 42, 3, 24, 0x255f2e);
-        break;
+        for(const dx of [-14,-7,0,7,14])at("box",x+dx,15,y+11.4,1.5,23,1,0x3d814f);
+        at("box",x,25,y+12,11,2,2,0x293f39);
+        for(const dx of [-15,15])at("sph",x+dx,2,y,3,3,3,0x29323b);break;
       case "coche": {
         const c = [0xd62828, 0x3b8bff, 0xf1c40f, 0xe8e8e8][Math.floor(v * 4)];
         at("box", x, 10, y, 48, 14, 22, c);
         at("box", x - 3, 22, y, 26, 11, 20, c);
-        at("glowBox", x - 3, 22, y, 27, 7, 18, 0x9ad2ff);
-        for (const [dx, dz] of [[-15, 11], [15, 11], [-15, -11], [15, -11]]) at("cyl", x + dx, 5, y + dz, 5, 4, 5, 0x1a1a1a);
+        for(const side of [-1,1]){
+          at("box",x-3,23,y+side*10.3,21,7,1,0x759baa);
+          for(const dx of [-15,15]){
+            between("cyl",[x+dx,5,y+side*10],[x+dx,5,y+side*14],5,0x252e34);
+            between("cyl",[x+dx,5,y+side*14],[x+dx,5,y+side*14.5],2.2,0x899ba1);
+          }
+          at("glowBox",x+24.5,12,y+side*7,1,3,4,0xffedb0);
+          at("box",x-24.5,12,y+side*7,1,3,4,0xa35454);
+        }
+        at("box",x+11,23,y,1,7,17,0x759baa);
         break;
       }
       case "banco":
@@ -515,7 +530,7 @@ const Render3D = (() => {
     };
     const hipB = W(J.hip, L.hipB), hipF = W(J.hip, L.hipF);
     const shB = W(J.sh, L.shB), shF = W(J.sh, L.shF);
-    const bHand = W(J.bHand, L.bHand), fHand = W(J.fHand, L.fHand);
+    const bHand = W(J.bHand,o.weapon==="arco"?L.fHand:L.bHand), fHand = W(J.fHand,L.fHand);
     limb([hipB, W(J.bKnee, L.bKnee), W(J.bFoot, L.bFoot)], legsDark, 7);
     if (!o.robe) limb([hipF, W(J.fKnee, L.fKnee), W(J.fFoot, L.fFoot)], legs, 7);
     limb([shB, W(J.bEl, L.bEl), bHand], dark, 6.5);
@@ -560,7 +575,13 @@ const Render3D = (() => {
     const HB = { o: hd, X: new T.Vector3(ca * hr, 0, sa * hr), Y: new T.Vector3(0, hr, 0), Z: new T.Vector3(-sa * hr, 0, ca * hr) };
     for (const [shape, p, s, c, rz] of parts) local(shape, HB, p, s, flash ? 0xffffff : c, rz ? new T.Euler(0, 0, rz) : null);
     // arma en la mano de delante
-    if (type) {
+    if(type==="arco"){
+      const model=rig.bowModel(P),points=model.limbs.map(pt=>W(pt,L.fHand)),nock=W(model.nock,L.fHand);
+      for(let i=1;i<points.length;i++)between("cyl",points[i-1],points[i],2.4*S,flash?0xffffff:0x9d7249);
+      between("cyl",points[0],nock,.65*S,0xeee2be);between("cyl",nock,points.at(-1),.65*S,0xeee2be);
+      if(model.loaded){const tip=W(model.arrowTip,L.fHand);between("cyl",nock,tip,.9*S,0xcda470);at("octa",tip[0],tip[1],tip[2],2*S,2*S,2*S,0xe1e8dc);}
+      for(const hand of [fHand,bHand])at("sph",hand[0],hand[1],hand[2],4.5*S,4.5*S,4.5*S,flash?0xffffff:o.skin);
+    }else if (type) {
       const dirF = Math.sin((P.w * Math.PI) / 180);
       const dirU = -Math.cos((P.w * Math.PI) / 180);
       const Y = new T.Vector3(dirF * ca, dirU, dirF * sa).normalize();
@@ -833,15 +854,20 @@ const Render3D = (() => {
     for(const s of d.sites || []){
       if((s.x-d.cx)**2+(s.y-d.cy)**2>radius*radius)continue;
       const active=s.activeUntil>d.t;
-      at("ring",s.x,1,s.y,75,2,75,s.kind==="altar"?0xc9a3ef:0xf0cb82);
-      if(active)at("disc",s.x,.8,s.y,145,1,145,0xf0cb82);
+      const r=s.progress>0&&!s.activated?76:32;
+      at("ring",s.x,1,s.y,r,1,r,s.kind==="altar"?0xa294b6:active?0xb6d8b1:0x8caa95);
       if(s.kind==="lamp"){
         at("cyl",s.x,32,s.y,3,64,3,0x7f969c);at("box",s.x,70,s.y,19,14,16,active?0xffe7a2:0x526674);
       } else if(s.kind==="altar"){
         at("box",s.x,8,s.y,48,16,34,0x655275);at("octa",s.x,33,s.y,12,20,12,s.used?0x80e3d0:0xd7a1f4);
       } else {
-        at("cone",s.x,19,s.y,30,38,26,0xd7af71);at("box",s.x,9,s.y+20,12,18,2,0x31494f);
-        if(active)at("glow",s.x+30,5,s.y,6,8,6,0xffcc80);
+        at("tent",s.x,0,s.y,1,1,1,0xbda276);at("tentDoor",s.x,0,s.y+21.4,1,1,1,0x293f42);
+        for(const side of [-1,1]){
+          between("cyl",[s.x+side*28,1,s.y+22],[s.x,38,s.y+22],.8,0x665a48);
+          between("cyl",[s.x+side*38,1,s.y+29],[s.x+side*18,14,s.y+22],.5,0xe0d3ac);
+        }
+        at("cyl",s.x+39,2,s.y+5,7,4,7,0x5b6055);
+        if(active)at("glow",s.x+39,6,s.y+5,3,5,3,0xffcc80);
       }
     }
     // gemas, monedas y premios
@@ -875,6 +901,12 @@ const Render3D = (() => {
     const ang = s.ang ?? Math.atan2(s.vy || 0, s.vx || 1);
     const h = 16;
     switch (s.type) {
+      case "arrow":{
+        const cx=Math.cos(ang),sz=Math.sin(ang),z=s.y+16;
+        between("cyl",[s.x-cx*12,40,z-sz*12],[s.x+cx*12,40,z+sz*12],.65,0xcda470);
+        at("octa",s.x+cx*14,40,z+sz*14,2,1.6,2,0xe1e8dc,-ang);
+        at("box",s.x-cx*10,40,z-sz*10,5,1,4,0xeee2be,-ang);break;
+      }
       case "bolt": at("box", s.x, h, s.y, 14, 1.6, 1.6, 0xe9d8b0, -ang); break;
       case "kunai": at("box", s.x, h, s.y, 10, 1.4, 3, 0x2a2a35, -ang); break;
       case "onda": at("ghost", s.x, h, s.y, s.r * 0.6, 6, s.r, 0xffb03b, -ang); break;

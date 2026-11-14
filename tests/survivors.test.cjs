@@ -5,13 +5,14 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
 function engine(raw = null) {
+  const sounds=[];
   const context = vm.createContext({ console, performance, Math, Map, Set,
     requestAnimationFrame: () => 1, cancelAnimationFrame() {},
     localStorage: { getItem: () => raw && JSON.stringify(raw), setItem() {} },
-    Sfx: new Proxy({}, { get: () => () => {} }),
+    Sfx: new Proxy({}, { get: (_,name) => name==='play'?((...args)=>{sounds.push(args);}):()=>{} }),
     Sprites: { get() {} }, L: s => s, LT: s => s });
   for (const file of ['data', 'save', 'game']) vm.runInContext(fs.readFileSync(path.join(__dirname, `../survivors/js/${file}.js`), 'utf8'), context);
-  return vm.runInContext('({Game, Save, TS})', context);
+  return {...vm.runInContext('({Game, Save, TS})', context),sounds};
 }
 const setup = charId => ({ charId, name: charId });
 test('invalid chest counts do not alter coins, pity or free pull', () => {
@@ -350,7 +351,7 @@ test('compass prioritizes reviving teammates, ignores disconnected players and t
   ally.down=true;ally.x=p.x;ally.y=p.y-170;
   assert.equal(Game.hudData().compass.label,'Revivir');assert.equal(Game.hudData().compass.arrow,'↑');
   ally.disconnected=true;assert.equal(Game.hudData().compass.label,'Cofre');
-  st.pickups=[];assert.equal(Game.hudData().compass,null);
+  st.pickups=[];assert.equal(Game.hudData().compass.kind,'site');
 });
 test('snapshots preserve elite markers, cooldown progress, counters and distant chests',()=>{
   const {Game}=engine();Game.start([setup('nix'),setup('lia')],{seed:92});const st=Game.state,p=st.players[0];
@@ -595,4 +596,38 @@ test('loot feedback reports actual XP and currency and expires with simulation t
  assert.equal(p.loot.xp,3*p.stats.growth*st.mod.xp);assert.equal(p.loot.coins,st.mod.coins);assert.equal(p.loot.healed,0);
  const snap=Game.snapshot([p]);Game.startGuest({localId:0,players:[setup('ranjay')]});Game.applySnapshot(snap);assert.equal(Game.hudData().loot.xp,p.loot.xp);
  const until=Game.state.players[0].loot.until;Game.applySnapshot({...snap,t:until+1});assert.equal(Game.hudData().loot,null);
+});
+
+
+test('maps have continuous roads, cemetery aisles and a coherent swimmable coast',()=>{
+ const {Game}=engine();
+ Game.start([setup('ranjay')],{map:'ciudad'});
+ for(let y=-1800;y<=1800;y+=19)assert.equal(Game.terrain(0,y),3,'vertical road is continuous');
+ for(let x=-1800;x<=1800;x+=19)assert.equal(Game.terrain(x,0),3,'horizontal road is continuous');
+ assert.equal(Game.terrain(-640,-640),3);assert.equal(Game.terrain(320,320),2);
+ Game.start([setup('ranjay')],{map:'cementerio'});for(let x=-1200;x<=1200;x+=31)assert.equal(Game.terrain(x,0),1);
+ Game.start([setup('ranjay')],{map:'playa'});for(let y=-1500;y<=1500;y+=50){assert.notEqual(Game.terrain(0,y),2);assert.equal(Game.terrain(700,y),2);}
+});
+test('Iria fires a bow sound and monster cues are spatial and rate limited',()=>{
+ const {Game,TS}=engine();Game.start([setup('iria')],{mode:'host',seed:42});const st=Game.state,p=st.players[0];p.weapons[0].cd=0;p.iframes=9999;
+ Game.step();const first=Game.snapshot([p]);assert.ok(first.ev.some(e=>e.k==='snd'&&e.n==='bow'&&e.x===p.x));assert.ok(first.s.some(s=>s[0]==='arrow'));
+ p.weapons[0].cd=99999;st.audioLast={};st.nextVoice=st.t+1;st.enemies=[fixtureEnemy(TS,'zombi',p.x+100,p.y)];Game.step();
+ assert.ok(Game.snapshot([p]).ev.some(e=>e.k==='snd'&&e.n==='growl'&&Number.isFinite(e.x)));
+ const healers=Array.from({length:40},(_,i)=>fixtureEnemy(TS,'sanador',p.x+200+i,p.y,{id:2000+i,hp:500,timer:1}));
+ st.enemies=healers;Game.step();const events=Game.snapshot([p]).ev.filter(e=>e.k==='snd');assert.ok(events.length<=8);assert.equal(events.filter(e=>e.n==='enemyHeal').length,1);
+});
+test('guests attenuate nearby creature sounds and ignore distant sources',()=>{
+ const {Game,sounds}=engine();Game.start([setup('ranjay')],{mode:'host',seed:2});const snap=Game.snapshot(Game.state.players),p=Game.state.players[0];
+ Game.startGuest({localId:0,players:[setup('ranjay')]});sounds.length=0;
+ Game.applySnapshot({...snap,ev:[{k:'snd',n:'growl',x:p.x+200,y:p.y},{k:'snd',n:'ghost',x:p.x+5000,y:p.y}]});
+ assert.equal(sounds.length,1);assert.equal(sounds[0][0],'growl');assert.ok(sounds[0][2]>0&&sounds[0][2]<1);
+});
+
+test('compass finds healing at critical health, keeps revive priority and explains map sites',()=>{
+ const {Game}=engine();Game.start([setup('ranjay'),setup('lia')],{seed:42});const st=Game.state,[p,ally]=st.players;p.hp=20;
+ st.pickups=[{kind:'cofre',x:p.x+20,y:p.y},{kind:'bocadillo',x:p.x+100,y:p.y}];
+ assert.equal(Game.hudData().compass.label,'jensalada');ally.down=true;ally.hp=0;assert.equal(Game.hudData().compass.label,'Revivir');
+ Game.dropPlayer(1);p.hp=p.stats.maxHp;assert.equal(Game.hudData().compass.label,'Cofre');st.pickups=[];
+ assert.equal(Game.hudData().compass.label,'Campamento');const site=st.sites[0];p.x=site.x;p.y=site.y;assert.equal(Game.hudData().site.hint,'Cura durante 20 s');
+ const snap=Game.snapshot([p]);Game.startGuest({localId:0,players:[setup('ranjay'),setup('lia')]});Game.applySnapshot(snap);assert.equal(Game.hudData().compass.kind,'site');
 });

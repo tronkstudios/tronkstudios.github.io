@@ -38,6 +38,7 @@ const Stick = (() => {
     slash: { lean: 6, fu: 35, ff: 80, bu: -25, bf: 15, ful: 20, fll: 6, bul: -18, bll: -10, w: 135 },
     thrust: { lean: 5, fu: 40, ff: 85, bu: 30, bf: 80, ful: 20, fll: 6, bul: -18, bll: -10, w: 96 },
     smash: { lean: 8, fu: 30, ff: 150, bu: -20, bf: 20, ful: 22, fll: 6, bul: -18, bll: -10, w: 205 },
+    bow: { lean:3,fu:80,ff:100,bu:60,bf:160,ful:18,fll:6,bul:-16,bll:-10,w:90 },
     shoot: { lean: 4, fu: 60, ff: 88, bu: 45, bf: 85, ful: 18, fll: 6, bul: -16, bll: -10, w: 92 },
     // nuevos para Survivors
     punch: { lean: 8, fu: 55, ff: 160, bu: 40, bf: 150, ful: 22, fll: 6, bul: -18, bll: -10, w: 0 },
@@ -50,6 +51,7 @@ const Stick = (() => {
     slash: [{ lean: -8, fu: 160, ff: 200, bu: -40, bf: -10, w: 215, ful: 14, fll: 4, bul: -22, bll: -12 }, { lean: 22, fu: 65, ff: 75, bu: -50, bf: -30, w: 40, ful: 38, fll: 12, bul: -34, bll: -14 }],
     thrust: [{ lean: -10, fu: -5, ff: 40, bu: -10, bf: 50, w: 92, ful: 12, fll: 2, bul: -26, bll: -14 }, { lean: 16, fu: 88, ff: 92, bu: 70, bf: 90, w: 92, ful: 40, fll: 14, bul: -36, bll: -18 }],
     smash: [{ lean: -16, fu: 175, ff: 195, bu: 150, bf: 190, w: 205, ful: 12, fll: 2, bul: -24, bll: -12 }, { lean: 30, fu: 60, ff: 115, bu: 55, bf: 40, w: 15, ful: 42, fll: 16, bul: -38, bll: -18 }],
+    bow: [{lean:3,fu:80,ff:100,bu:235,bf:80,w:90},{lean:1,fu:78,ff:98,bu:235,bf:80,w:90}],
     shoot: [{ lean: 2, fu: 88, ff: 90, bu: 70, bf: 92, w: 90 }, { lean: -8, fu: 80, ff: 102, bu: 60, bf: 100, w: 106 }],
     punch: [{ lean: -4, fu: 40, ff: 150, bu: 45, bf: 160 }, { lean: 18, fu: 90, ff: 90, bu: 35, bf: 150, ful: 38, fll: 12, bul: -32, bll: -14 }],
     cast: [{ lean: -6, fu: 150, ff: 170, bu: -30, bf: 0, w: 190 }, { lean: 12, fu: 92, ff: 92, bu: -40, bf: -10, w: 95, ful: 30, fll: 10, bul: -28, bll: -12 }],
@@ -84,7 +86,7 @@ const Stick = (() => {
     if (kind === "walk") {
       const p = (i / n) * Math.PI * 2;
       const fl = 26 * Math.sin(p), bl = -26 * Math.sin(p);
-      const armSwing = style === "zombie" ? 0.2 : 1;
+      const armSwing = style === "zombie" ? .2 : style==="bow"?.12:1;
       return over(base, {
         ful: fl, fll: fl - 24 * (0.5 + 0.5 * Math.sin(p - 1.3)),
         bul: bl, bll: bl - 24 * (0.5 + 0.5 * Math.sin(p + Math.PI - 1.3)),
@@ -97,9 +99,11 @@ const Stick = (() => {
       const [k0, k1] = ATK[style];
       const K0 = over(base, k0), K1 = over(base, k1);
       const t = i / (n - 1);
-      if (t < 0.34) return mix(base, K0, ease(t / 0.34));
-      if (t < 0.6) return mix(K0, K1, 1 - Math.pow(1 - (t - 0.34) / 0.26, 3));
-      return mix(K1, base, ease((t - 0.6) / 0.4) * 0.6);
+      if(style==="bow"){
+        const p=t<.16?mix(K0,K1,t/.16):mix(K1,base,ease((t-.16)/.84));p.bowReleased=t>=.16&&t<.9;return p;
+      }
+      const p=t<.34?mix(base,K0,ease(t/.34)):t<.6?mix(K0,K1,1-Math.pow(1-(t-.34)/.26,3)):mix(K1,base,ease((t-.6)/.4));
+      return p;
     }
     return base;
   }
@@ -561,7 +565,7 @@ const Stick = (() => {
 
   // Arma de Survivors → cómo se dibuja y cómo se mueve
   const WEAPON = {
-    faro:["faro",100,"cast"], arco:["arco",64,"shoot"], bobina:["bobina",40,"cast"], abanico:["abanico",30,"throw"], tambor:["tambor",35,"smash"],
+    faro:["faro",100,"cast"], arco:["arco",64,"bow"], bobina:["bobina",40,"cast"], abanico:["abanico",30,"throw"], tambor:["tambor",35,"smash"],
     discos: ["magnet", 0, "cast"], acido: ["vial", 0, "throw"], llamas: ["flamer", 40, "shoot"],
     tajo: ["espada", 74, "slash"], virote: ["ballesta", 46, "shoot"], mazazo: ["mazo", 70, "smash"], estocada: ["lanza", 132, "thrust"],
     hacha: ["hacha", 78, "slash"], rayo: ["tridente", 116, "thrust"], guantes: [null, 0, "punch", "gloves"], punos: [null, 0, "punch", "fists"],
@@ -584,7 +588,7 @@ const Stick = (() => {
     J.shF = J.shB = J.sh;
     const sy = Math.sin(yaw), cy = Math.cos(yaw);
     const k = o.thick || 1;
-    const lat = (n) => (LAT[n] || 0) * (o.thick ? 0.7 + 0.3 * o.thick : 1);
+    const lat = (n) => (o.weapon==="arco" && n==="bHand"?LAT.fHand:LAT[n] || 0) * (o.thick ? 0.7 + 0.3 * o.thick : 1);
     // proyección: (delante, arriba, derecha) → pantalla y profundidad
     const P3 = (n, pt = J[n], l = lat(n)) => {
       const f = pt[0], u = -pt[1];
@@ -666,7 +670,18 @@ const Stick = (() => {
       ctx.restore();
     });
     // arma: sale de la mano en la dirección de Tronk Fight, girada con la vista
-    if (type) {
+    if(type==="arco"){
+      const model=bowModel(P),project=pt=>P3("x",pt,lat("fHand"));
+      const grip=project(model.grip),tips=model.limbs.map(project),nock=project(model.nock);
+      add(grip[2]+.3,()=>{
+        ctx.strokeStyle=INK;ctx.lineWidth=7;ctx.beginPath();tips.forEach((pt,i)=>i?ctx.lineTo(pt[0],pt[1]):ctx.moveTo(pt[0],pt[1]));ctx.stroke();
+        ctx.strokeStyle="#9d7249";ctx.lineWidth=4;ctx.stroke();
+        ctx.strokeStyle="#eee2be";ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(tips[0][0],tips[0][1]);ctx.lineTo(nock[0],nock[1]);ctx.lineTo(tips.at(-1)[0],tips.at(-1)[1]);ctx.stroke();
+        if(model.loaded){const tip=project(model.arrowTip);ctx.strokeStyle="#cda470";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(nock[0],nock[1]);ctx.lineTo(tip[0],tip[1]);ctx.stroke();
+          ctx.fillStyle="#e1e8dc";ctx.beginPath();ctx.arc(tip[0],tip[1],2.3,0,Math.PI*2);ctx.fill();}
+        for(const hand of [fArm[2],bArm[2]]){ctx.fillStyle=flash?"#ffffff":o.skin;ctx.strokeStyle=INK;ctx.lineWidth=2;ctx.beginPath();ctx.arc(hand[0],hand[1],4.5,0,Math.PI*2);ctx.fill();ctx.stroke();}
+      });
+    }else if (type) {
       const hand = fArm[2];
       const dir = [Math.sin(rad(P.w)), Math.cos(rad(P.w))]; // en el plano de perfil (x delante, y abajo)
       const f = dir[0], u = -dir[1];
@@ -820,8 +835,16 @@ const Stick = (() => {
     return out;
   }
 
+  // Bow limbs, string and nock share the real hand joints in both renderers.
+  function bowModel(P){
+    const J=joints(P),grip=J.fHand,tipX=grip[0]-20;
+    const limbs=Array.from({length:13},(_,i)=>{const y=-38+i*76/12;return [grip[0]-20*(y/38)**2,grip[1]+y];});
+    const nock=P.bowReleased?[tipX,grip[1]-12]:J.bHand;
+    return {grip,limbs,nock,loaded:!P.bowReleased,arrowTip:[grip[0]+26,grip[1]-12]};
+  }
+
   // El esqueleto, para el motor 3D (render3d.js)
-  const rig = { pose, joints, LAT, WEAPON, styleOf: (o) => (WEAPON[o.weapon] || WEAPON.none)[2] };
+  const rig = { pose, joints, bowModel, LAT, WEAPON, styleOf: (o) => (WEAPON[o.weapon] || WEAPON.none)[2] };
 
   return { set, portrait, illustration, characterOptions, ENEMIES, RES, rig };
 })();

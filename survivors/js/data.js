@@ -442,21 +442,21 @@ TS.MAPS = {
   cementerio: {
     name: "Cementerio Maldito", desc: "Niebla, tumbas, esqueletos y fantasmas.",
     ground: { grass: ["#3b5a3e", "#365438", "#41613f", "#324e35", "#3d5c3c"], grassEdge: "#2a4230", dirt: ["#5e5650", "#544c47", "#665e57", "#4a4340", "#5a524c"], dirtEdge: "#403a36", water: ["#3a5a4a", "#355445", "#40624f"], shore: ["#4a4a3a", "#424234"], foam: "#5a7a62", wave: "#4f6f58", flowers: ["#b8a8ff", "#8a7aaa", "#e8e0ff"] },
-    dirt: 0.58, water: 0.8, dark: 0.35,
+    dirt: 0.58, water: 0.8, dark: 0.25,
     obstacles: { tumba: 5, cruz: 3, arbolMuerto: 3, roca: 2, hierba: 3 },
     mix: { esqueleto: 3, fantasma: 2.5, brujo: 1.5, murcielago: 1.5 }, finalBoss: "reyEsqueleto", unlock: { best: "time", value: 300, text: "Aguanta 5 minutos en cualquier mapa" }
   },
   playa: {
     name: "Playa Tronk", desc: "Arena, mar y mocos al sol.",
-    ground: { grass: ["#e3cc8c", "#dcc382", "#e8d398", "#d6bd7c", "#e0c888"], grassEdge: "#c9b070", dirt: ["#c9ad74", "#bfa36a", "#d1b57c", "#b49860", "#c4a870"], dirtEdge: "#a88e58", water: ["#2f8ad0", "#2a80c4", "#3896dc"], shore: ["#f2e4b4", "#ece0ac"], foam: "#e8f8ff", wave: "#6ab8ec", flowers: ["#ffffff", "#ff9fd0", "#ff8a3b"] },
+    ground: { grass: ["#e3cc8c", "#dcc382", "#e8d398", "#d6bd7c", "#e0c888"], grassEdge: "#c9b070", dirt: ["#c9ad74", "#bfa36a", "#d1b57c", "#b49860", "#c4a870"], dirtEdge: "#a88e58", water: ["#287d98", "#318ca4", "#429eb0"], shore: ["#f2e4b4", "#ece0ac"], foam: "#e8f8ff", wave: "#6ab8ec", flowers: ["#ffffff", "#ff9fd0", "#ff8a3b"] },
     dirt: 0.62, water: 0.62,
     obstacles: { palmera: 5, roca: 3, rocaGrande: 1.5, sombrilla: 1.5, hierba: 1 },
     mix: { slime: 3, corredor: 2, murcielago: 0.5 }, finalBoss: "mocoRey", unlock: { best: "bosses", value: 2, text: "Derrota a 2 jefes en total" }
   },
   ciudad: {
     name: "Ciudad de Noche", desc: "Calles, farolas y Antitronks por todas partes.",
-    ground: { grass: ["#4a4e58", "#454953", "#50545e", "#41454f", "#4c505a"], grassEdge: "#383c46", dirt: ["#5a5f6a", "#555a65", "#60656f", "#4e535e", "#585d68"], dirtEdge: "#3e434e", water: ["#2a3a5a", "#263552", "#304062"], shore: ["#8a8a92", "#80808a"], foam: "#4a5a7a", wave: "#3a4a6a", flowers: ["#ffe066", "#9aa3b0", "#ffffff"] },
-    dirt: 0.55, water: 0.85, dark: 0.45, roads: true,
+    ground: { grass: ["#627681", "#5e727c", "#748891", "#5d7079", "#6a7e87"], grassEdge: "#383c46", dirt: ["#5a5f6a", "#555a65", "#60656f", "#4e535e", "#585d68"], dirtEdge: "#3e434e", water: ["#526e7a", "#5b7882", "#69878f"], shore: ["#6b8088", "#5e747d"], foam: "#819a9e", wave: "#91a8ae", flowers: ["#ffe066", "#9aa3b0", "#ffffff"] },
+    dirt: 0.55, water: 0.85, dark: 0.32, roads: true,
     obstacles: { farola: 3, contenedor: 2, coche: 2, banco: 2, arbusto: 1 },
     mix: { antitronk: 3, ninja: 2.5, supremo: 0, brujo: 1 }, finalBoss: "general", unlock: { best: "wins", value: 1, text: "Supera la primera fase de cualquier jefe final" }
   }
@@ -720,3 +720,5 @@ TS.BOSS_PATTERNS={gigante:["charge","gaps","guards"],supremo:["gaps","volley","c
  rey:["charge","gaps","guards"],reyEsqueleto:["guards","gaps","ambush"],mocoRey:["pools","charge","gaps"],general:["volley","guards","charge"]};
 TS.TACTIC_NAMES={charge:"Carga",gaps:"Anillos con abertura",guards:"Refuerzos",volley:"Fuego dirigido",ambush:"Emboscada",pools:"Charcos peligrosos"};
 TS.SITE_NAMES={camp:"Campamento",altar:"Altar maldito",lamp:"Farola de refugio"};
+
+TS.SITE_HINTS={camp:"Cura durante 20 s",altar:"Derrota a 3 guardianes y gana un cofre",lamp:"Cura, revela y debilita enemigos"};

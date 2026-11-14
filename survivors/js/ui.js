@@ -388,6 +388,10 @@
 
   $("vol-music").addEventListener("input", (e) => { save.settings.musicVol = e.target.value / 100; applySettings(); renderSettings(); Save.persist(); });
   $("vol-sfx").addEventListener("input", (e) => { save.settings.sfxVol = e.target.value / 100; applySettings(); renderSettings(); Save.persist(); Sfx.play("coin", 0.15); });
+  $("sfx-preview").addEventListener("click",()=>{
+    if((save.settings.sfxVol ?? .9)===0){toast(L("Sube el volumen de efectos para probarlos."));return;}
+    Sfx.init();Sfx.play($("sfx-sample").value,.3);
+  });
   $("opt-numbers").addEventListener("change", (e) => { save.settings.numbers = e.target.checked; applySettings(); Save.persist(); });
   $("opt-shake").addEventListener("change", (e) => { save.settings.shake = e.target.checked; applySettings(); Save.persist(); });
   $("opt-fx").addEventListener("change", (e) => { save.settings.fx = e.target.value; applySettings(); Save.persist(); });
@@ -687,7 +691,7 @@
     $("hud-phase").textContent = d.finalPhase ? `${L("Fase")} ${d.finalRound}` : `${L("Final")} ${fmtTime(d.finalIn)}`;
     if(d.breach)$("hud-phase").textContent+=` · ${L("Brecha")} ${d.breach.total-d.breach.remaining}/${d.breach.total}`;
     $("hud-milestone").textContent=d.nextTechnique?`${L("Próxima técnica")}: ${L(d.nextTechnique.name)} · ${L("Nivel")} ${d.nextTechnique.unlock} · ${fmtTime(d.nextTechnique.at || 0)}`:`${L("Rangos de técnicas")}: ${d.techniqueRanks}/30`;
-    $("hud-world").textContent=d.combo?d.combo:d.site?`${d.site.name} · ${d.site.used?`${L("Activo")} ${d.site.seconds}s`:d.site.activated?`${L("Guardianes restantes")}: ${d.site.guards}`:`${L("Mantente en el círculo")}: ${d.site.progress}%`}`:Game.mapId==="playa" && d.inWater?L("Corriente: puedes moverte contra ella"):"";
+    $("hud-world").textContent=d.combo?d.combo:d.site?`${d.site.name} · ${d.site.used?`${L("Activo")} ${d.site.seconds}s`:d.site.activated?`${L("Guardianes restantes")}: ${d.site.guards}`:`${d.site.hint} · ${L("Mantente en el círculo")}: ${d.site.progress}%`}`:Game.mapId==="playa" && d.inWater?L("Corriente: puedes moverte contra ella"):"";
     $("hud-sub").textContent = (d.finalPhase ? `${L("Supervivencia final")} · ` : Game.state && Game.state.endless ? `${L("Modo infinito")} · ` : "") + LT("hudSub", { map: L(TS.MAPS[Game.mapId].name), kills: d.kills, coins: d.coins });
     const pct = Math.max(0, d.hp / d.maxHp);
     $("hud-hp-bar").style.width = `${pct * 100}%`;
@@ -712,6 +716,7 @@
     $("hud").classList.toggle("is-critical",!d.down && pct<.25);
     $("hud-status").textContent = d.down ? `${L("Reanimación")} ${Math.round((d.players[Game.localId]?.revivePct || 0)*100)}% · ${L(d.players[Game.localId]?.reviver!=null?"Mantén al compañero cerca":"Un compañero debe acercarse")}` : d.inWater ? L("Agua · movimiento al 58 %") : d.nextBossIn<=30 && !d.finalPhase ? `${L("Jefe en")} ${d.nextBossIn}s` : "";
     $("hud-compass").hidden=!d.compass;
+    $("hud-compass").classList.toggle("is-help",["revive","heal"].includes(d.compass?.kind));
     if(d.compass) $("hud-compass").textContent=`${d.compass.arrow} ${d.compass.label} · ${d.compass.distance}`;
     const boss = $("hud-boss");
     boss.hidden = !d.boss;

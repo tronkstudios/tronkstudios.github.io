@@ -45,7 +45,8 @@ de élites y recompensas necesita también partidas de jugadores reales.
 
 ## Información y accesibilidad
 
-La brújula señala el cofre más cercano y prioriza compañeros caídos conectados.
+La brújula prioriza compañeros caídos conectados, curación cercana con vida
+crítica y cofres. Si no hay ninguno, guía hacia puntos del mapa sin usar.
 Las distancias son pasos de juego. Las instantáneas incluyen los cofres lejanos
 para que el invitado pueda encontrarlos. El HUD señala el agua, un jefe que vaya
 a llegar en los próximos 30 segundos y la vida crítica mediante un borde fijo.

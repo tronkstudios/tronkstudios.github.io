@@ -872,3 +872,6 @@ img[data-icon], .pix { image-rendering: pixelated; }
 .toasts { top:185px; max-width:min(320px,40vw); }
 @media (any-pointer:coarse) and (orientation:portrait) { .toasts { top:auto; bottom:calc(250px + env(safe-area-inset-bottom)); max-width:72vw; } }
 @media (any-pointer:coarse) and (orientation:landscape) { .toasts { top:auto; bottom:calc(122px + env(safe-area-inset-bottom)); max-width:36vw; } }
+
+.hud-compass.is-help { color:#b5f0ce; border-color:#80e3d0; }
+@media (min-width:600px) { .sound-check { grid-template-columns:160px minmax(0,1fr) auto; } }
