@@ -33,7 +33,9 @@ hasta un máximo del 8 %. Sigue siendo inmune al empuje como los demás jefes.
 El General final avanza en vez de huir permanentemente de armas de corto alcance.
 
 Los bombardeos adicionales avisan un segundo antes en rojo y las descargas son
-radiales. La frecuencia aumenta con el tiempo y las fases. Vaciar una barra da
+radiales; se omiten estas descargas durante la táctica de anillos para conservar
+su abertura. Cada jefe cambia de táctica al bajar de dos tercios y de un tercio
+de vida; los patrones y avisos se detallan en [Estrategia y mapas](estrategia-y-mapas.md). La frecuencia aumenta con el tiempo y las fases. Vaciar una barra da
 un cofre, recupera un 15 % de vida y concede un segundo de protección. Los ataques
 anteriores se reinician para evitar prolongar accidentalmente una carga del jefe.
 Los límites de población siguen evitando un número ilimitado de mallas y enemigos.

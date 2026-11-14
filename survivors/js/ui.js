@@ -13,6 +13,7 @@
   let current = "loading";
   let selectedView = save.selected;
   let pulling = false;
+  let gameGeneration=0;
   let lastRun = null; // cómo empezó la última partida (para «Otra vez»)
 
   const charById = (id) => TS.CHARACTERS.find((c) => c.id === id);
@@ -121,6 +122,7 @@
     $("menu-ach").hidden = (save.weekly && save.weekly.seen) === weekKey();
     const b = save.best;
     $("menu-best").textContent = b.time ? LT("best", { time: fmtTime(b.time), kills: b.kills, level: b.level }) + (b.wins ? LT("wins", { n: b.wins }) : "") : L("Aguanta hasta el minuto 25 y sobrevive a las fases del jefe final.");
+    if(b.streak>0)$("menu-best").textContent+=` · ${L("Mejor racha")}: ${b.streak}`;
     renderAccount();
   }
 
@@ -388,6 +390,10 @@
 
   $("vol-music").addEventListener("input", (e) => { save.settings.musicVol = e.target.value / 100; applySettings(); renderSettings(); Save.persist(); });
   $("vol-sfx").addEventListener("input", (e) => { save.settings.sfxVol = e.target.value / 100; applySettings(); renderSettings(); Save.persist(); Sfx.play("coin", 0.15); });
+  $("sfx-preview").addEventListener("click",()=>{
+    if((save.settings.sfxVol ?? .9)===0){toast(L("Sube el volumen de efectos para probarlos."));return;}
+    Sfx.init();Sfx.play($("sfx-sample").value,.3);
+  });
   $("opt-numbers").addEventListener("change", (e) => { save.settings.numbers = e.target.checked; applySettings(); Save.persist(); });
   $("opt-shake").addEventListener("change", (e) => { save.settings.shake = e.target.checked; applySettings(); Save.persist(); });
   $("opt-fx").addEventListener("change", (e) => { save.settings.fx = e.target.value; applySettings(); Save.persist(); });
@@ -479,7 +485,7 @@
       list.append(el("li","",`${L(TS.ABILITIES[ch.id].name)} · ${L("Habilidad activa")}`));
       moves.append(list,el("small","",L("Aprende y mejora tus técnicas al subir de nivel. Solo usas el arma de tu personaje.")));
       const evo=TS.EVOLUTIONS[ch.weapon];
-      if(evo)moves.append(el("p","evolution-recipe",`${L(evo.name)} = ${L(TS.WEAPONS[ch.weapon].name)} 6 + ${L(TS.PASSIVES[evo.passive].name)} + ${L("Cofre")}`));
+      if(evo)moves.append(el("p","evolution-recipe",`${L(evo.name)} = ${L(TS.WEAPONS[ch.weapon].name)} 6 + ${L(TS.PASSIVES[evo.passive].name)} + ${L("Cofre")} · ${L("Dos caminos de evolución")}`));
       box.append(el("p", "", L(ch.desc)), weapon, moves, el("p", "", LT("perk", { perk: L(ch.perkText) })), btn);
     } else {
       const btn = el("button", "btn btn-gold", L("Ir al cofre"));
@@ -589,6 +595,7 @@
   const isTouch = window.matchMedia("(any-pointer: coarse)").matches;
 
   function enterGame(prepare) {
+    const generation=++gameGeneration;
     for (const s of document.querySelectorAll(".screen")) s.classList.remove("is-on");
     for (const id of ["levelup", "pause", "end", "victory"]) $(id).hidden = true;
     current = "game";
@@ -596,6 +603,7 @@
     $("loading").classList.add("is-on");
     $("loading-text").textContent = L("Preparando la partida…");
     setTimeout(() => {
+      if(generation!==gameGeneration || current!=="game")return;
       // los dibujos de los enemigos se hacen ahora (tarda un momento)
       for (const id of [...Object.keys(People.ENEMIES), "slime", "slimito", "fantasma", "murcielago"]) Sprites.get(`enemy:${id}`);
       $("loading").classList.remove("is-on");
@@ -641,7 +649,7 @@
       const img = document.createElement("img");
       img.src = Sprites.iconUrl(it.icon || it.id, big ? 3 : 2);
       img.alt = "";
-      slot.title = it.kind === "t" ? it.name : it.evo ? L(TS.EVOLUTIONS[it.id].name) : L((TS.WEAPONS[it.id] || TS.PASSIVES[it.id] || {}).name || "");
+      slot.title = it.kind === "t" ? it.name : it.evo ? Game.evolutionName(it.id,it.path) : L((TS.WEAPONS[it.id] || TS.PASSIVES[it.id] || {}).name || "");
       slot.append(img, el("i", "", it.evo ? "★" : it.lvl));
       box.appendChild(slot);
     }
@@ -677,12 +685,17 @@
   Game.on("hud", (d) => {
     updateTips(d.seconds);
     $("hud-xp-bar").style.width = `${Math.min(100, (d.xp / d.xpNext) * 100)}%`;
+    const loot=$("hud-loot");loot.hidden=!d.loot;
+    if(d.loot)loot.textContent=[d.loot.xp>0?`+${Math.round(d.loot.xp)} XP`:"",d.loot.coins>0?`+${d.loot.coins} ${L("monedas")}`:"",d.loot.healed>0?`+${Math.round(d.loot.healed)} ${L("vida")}`:""].filter(Boolean).join(" · ");
+    const chain=$("hud-streak");chain.hidden=!d.streak || d.streak.count<2;
+    if(d.streak){chain.querySelector("b").textContent=`${L("Racha")} ${d.streak.count}`;chain.querySelector("i").style.width=`${Math.round(d.streak.remaining*100)}%`;chain.classList.toggle("is-milestone",d.streak.highlight);}
     $("hud-level").textContent = `${LANG === "en" ? "Lv." : "Nv."} ${d.level}`;
     $("hud-name").textContent = d.name;
     $("hud-time").textContent = fmtTime(d.seconds);
     $("hud-phase").textContent = d.finalPhase ? `${L("Fase")} ${d.finalRound}` : `${L("Final")} ${fmtTime(d.finalIn)}`;
     if(d.breach)$("hud-phase").textContent+=` · ${L("Brecha")} ${d.breach.total-d.breach.remaining}/${d.breach.total}`;
     $("hud-milestone").textContent=d.nextTechnique?`${L("Próxima técnica")}: ${L(d.nextTechnique.name)} · ${L("Nivel")} ${d.nextTechnique.unlock} · ${fmtTime(d.nextTechnique.at || 0)}`:`${L("Rangos de técnicas")}: ${d.techniqueRanks}/30`;
+    $("hud-world").textContent=d.combo?d.combo:d.site?`${d.site.name} · ${d.site.used?`${L("Activo")} ${d.site.seconds}s`:d.site.activated?`${L("Guardianes restantes")}: ${d.site.guards}`:`${d.site.hint} · ${L("Mantente en el círculo")}: ${d.site.progress}%`}`:Game.mapId==="playa" && d.inWater?L("Corriente: puedes moverte contra ella"):"";
     $("hud-sub").textContent = (d.finalPhase ? `${L("Supervivencia final")} · ` : Game.state && Game.state.endless ? `${L("Modo infinito")} · ` : "") + LT("hudSub", { map: L(TS.MAPS[Game.mapId].name), kills: d.kills, coins: d.coins });
     const pct = Math.max(0, d.hp / d.maxHp);
     $("hud-hp-bar").style.width = `${pct * 100}%`;
@@ -707,10 +720,11 @@
     $("hud").classList.toggle("is-critical",!d.down && pct<.25);
     $("hud-status").textContent = d.down ? `${L("Reanimación")} ${Math.round((d.players[Game.localId]?.revivePct || 0)*100)}% · ${L(d.players[Game.localId]?.reviver!=null?"Mantén al compañero cerca":"Un compañero debe acercarse")}` : d.inWater ? L("Agua · movimiento al 58 %") : d.nextBossIn<=30 && !d.finalPhase ? `${L("Jefe en")} ${d.nextBossIn}s` : "";
     $("hud-compass").hidden=!d.compass;
+    $("hud-compass").classList.toggle("is-help",["revive","heal"].includes(d.compass?.kind));
     if(d.compass) $("hud-compass").textContent=`${d.compass.arrow} ${d.compass.label} · ${d.compass.distance}`;
     const boss = $("hud-boss");
     boss.hidden = !d.boss;
-    if (d.boss) { $("hud-boss-name").textContent = d.boss.name; $("hud-boss-bar").style.width = `${d.boss.pct * 100}%`; }
+    if (d.boss) { $("hud-boss-name").textContent = d.boss.name+(d.boss.tactic?` · ${d.boss.tactic}`:""); $("hud-boss-bar").style.width = `${d.boss.pct * 100}%`; }
     const team = $("hud-team");
     team.textContent = "";
     if (d.players.length > 1) {
@@ -760,40 +774,51 @@
 
   /* ---------- subida de nivel ---------- */
 
+  let choiceGeneration=0;
   function showLevelUp(d) {
+    const generation=++choiceGeneration;
     Game.setControlsEnabled(false);
-    $("levelup-title").textContent = LT("levelTitle", { n: d.level });
+    $("levelup").querySelector(".modal-sub").textContent=d.kind==="chest"?L("Cada jugador elige una recompensa"):L("Elige una mejora");
+    $("levelup-title").textContent = d.kind==="chest"?L("Elige tu recompensa"):LT("levelTitle", { n: d.level });
     const box = $("levelup-cards");
     box.textContent = "";
     $("levelup-wait").hidden = true;
     const rerolls = d.rerolls ?? Game.state?.players[Game.localId]?.rerolls ?? 0;
     $("levelup-reroll").textContent=`${L("Cambiar opciones")} · ${rerolls}/3`;
-    $("levelup-reroll").disabled=rerolls<=0;
+    $("levelup-reroll").disabled=true;
+    $("levelup-reroll").hidden=d.kind==="chest";
     d.options.forEach((o, i) => {
-      const card = el("button", `up-card${o.kind==="technique"&&o.id==="surge"?" is-ultimate":""}${o.synergy?" is-synergy":""}${o.kind==="technique"?" is-technique":""}`);
-      card.type = "button";
+      const card = el("button", `up-card${o.kind==="technique"&&o.id==="surge"?" is-ultimate":""}${o.synergy?" is-synergy":""}${o.kind==="technique"?" is-technique":""}${o.kind==="evolution"?" is-evolution":""}`);
+      card.type = "button";card.disabled=true;if(o.path)card.dataset.path=o.path;
       const img = document.createElement("img");
       img.src = Sprites.iconUrl(o.icon, 3);
       img.alt = "";
       img.className = "pix";
       const text = el("div");
-      text.append(el("span", "new", o.isNew ? L("¡NUEVO!") : ""), el("b", "", o.title), el("small", "", o.desc));
+      text.append(el("span", "new", o.kind==="evolution"?L("Evolución"):o.isNew ? L("¡NUEVO!") : ""), el("b", "", o.title), el("small", "", o.desc));
       if(o.synergy)text.append(el("span","synergy-note",L("Necesario para evolucionar")));
       card.append(img, text, el("kbd", "", i + 1));
       card.addEventListener("click", () => pickLevel(i));
       box.appendChild(card);
     });
     $("levelup").hidden = false;
-    setTimeout(() => box.querySelector("button")?.focus(), 50);
+    setTimeout(()=>{
+      if(generation!==choiceGeneration || $("levelup").hidden)return;
+      for(const card of box.children)card.disabled=false;
+      $("levelup-reroll").disabled=rerolls<=0 || d.kind==="chest";
+      box.querySelector("button")?.focus();
+    },180);
   }
 
   function waitOthers() {
+    choiceGeneration++;
     $("levelup-reroll").disabled=true;
     $("levelup-cards").textContent = "";
     $("levelup-wait").hidden = false;
   }
 
   function hideLevelUp() {
+    choiceGeneration++;
     $("levelup").hidden = true;
     Game.setControlsEnabled($("pause").hidden && $("end").hidden);
   }
@@ -828,13 +853,19 @@
     $("pause-quit").hidden = Game.mode === "guest";
     if (on) {
       const d=Game.hudData();renderSlots($("pause-build"),d,true);
+      $("pause-title").textContent=L(Game.mode==="solo"?"Pausa":"Menú de partida");
+      $("pause-live").hidden=Game.mode==="solo";
+      $("pause-live").textContent=L("La partida cooperativa continúa mientras miras este menú.");
+      $("pause-quit").textContent=L(Game.mode==="host"?"Terminar partida para todos":"Terminar partida");
+      $("pause-encounters").textContent="";
+      for(const event of d.upcoming || []){const row=el("li");row.append(el("span","",event.name),el("b","",event.active?L("En combate"):`${L("En")} ${fmtTime(event.seconds)}`));$("pause-encounters").append(row);}
       const evo=d.evolution;
       $("pause-evolution").textContent=evo?evo.evolved?`${L("Evolución")}: ${evo.name} ✓`:
         `${evo.name}
 ${evo.weapon} ${evo.level}/6 · ${evo.passive} ${evo.hasPassive?"✓":evo.blocked?L("Sin espacio para la pasiva"):"—"}
 ${L("Recoge un cofre con ambos requisitos")}`:"";
       $("pause-metrics").textContent="";
-      for(const [label,value] of [["Daño causado",d.combat.dealt],["Daño recibido",d.combat.taken],["Vida recuperada",d.combat.healed],["Élites",d.combat.elites]]){
+      for(const [label,value] of [["Daño causado",d.combat.dealt],["Daño recibido",d.combat.taken],["Vida recuperada",d.combat.healed],["Élites",d.combat.elites],["Reanimaciones",d.combat.revives],["Mejor racha",d.bestStreak]]){
         const stat=el("div");stat.append(el("b","",Math.round(value || 0).toLocaleString(LANG)),el("small","",L(label)));$("pause-metrics").append(stat);
       }
       $("pause-fullscreen").hidden=!document.fullscreenEnabled;
@@ -857,13 +888,18 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
   /* ---------- final ---------- */
 
   async function showEnd(r) {
+    const generation=gameGeneration,endedState=Game.state;
     Game.setControlsEnabled(false);
-    if (Game.mode === "guest") r = { ...r, charId: save.selected, coop: true };
+    if (Game.mode === "guest") r={...r,charId:Game.state?.players[Game.localId]?.charId || save.selected,coop:true};
     if (r.daily && save.dailyDone !== r.daily) {
       save.dailyDone = r.daily;
       r.coins += 100;
       setTimeout(() => toast(LT("dailyBonus")), 400);
     }
+    const localCombat=r.combat?.[Game.localId];
+    r={...r,bestStreak:localCombat?.bestStreak ?? r.bestStreak ?? 0};
+    const records=save.runs>0?[["Tiempo",r.seconds,save.best.time],["Enemigos",r.kills,save.best.kills],["Nivel",r.level,save.best.level],["Mejor racha",r.bestStreak,save.best.streak || 0]].filter(([,value,best])=>value>best).map(([name])=>L(name)):[];
+    $("end-records").hidden=!records.length;$("end-records").textContent=records.length?`${L("Nuevo récord")}: ${records.join(" · ")}`:"";
     updateWeekly(r);
     Save.recordRun(r);
     for (const id of checkMapUnlocks()) setTimeout(() => toast(LT("mapUnlocked", { name: L(TS.MAPS[id].name) })), 1200);
@@ -884,6 +920,14 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     add("Jefes", r.bosses);
     const combat=r.combat?.[Game.localId];
     if(combat){add("Daño causado",Math.round(combat.dealt || 0).toLocaleString(LANG));add("Daño recibido",Math.round(combat.taken || 0).toLocaleString(LANG));add("Vida recuperada",Math.round(combat.healed || 0).toLocaleString(LANG));add("Élites",combat.elites || 0);}
+    add("Mejor racha",r.bestStreak);if(combat?.revives)add("Reanimaciones",combat.revives);
+    const recap=r.recaps?.[Game.localId];$("end-recap").hidden=!recap?.fatal;$("recap-hits").textContent="";
+    if(recap?.fatal){
+      const kinds={contact:"Contacto",charge:"Carga",projectile:"Proyectil",bombardment:"Bombardeo",zone:"Zona peligrosa",explosion:"Explosión"};
+      for(const hit of recap.hits || [recap.fatal]){const row=el("li");const name=L(TS.ENEMIES[hit.source]?.name || "Enemigo");row.append(el("span","",`${fmtTime(Math.floor(hit.at/60))} · ${name} · ${L(kinds[hit.kind] || "Contacto")}`),el("b","",`−${hit.amount}`));$("recap-hits").append(row);}
+      const tips={contact:"Mantén distancia y busca una salida entre los enemigos.",charge:"Sal de la línea marcada antes de la carga.",projectile:"Muévete de lado para evitar los proyectiles.",bombardment:"Sal del área marcada antes de que se active.",zone:"Sal del área marcada antes de que se active.",explosion:"Aléjate del enemigo cuando prepare la explosión."};
+      $("recap-advice").textContent=L(tips[recap.fatal.kind] || tips.contact);
+    }
     if(r.chests)add("Cofres",r.chests);
     if (r.finalPhase) add("Fases superadas", Math.max(0, r.finalRound - 1));
     if (r.finalPhase) add("Contra el jefe final", fmtTime(r.endlessSeconds), "coins");
@@ -894,9 +938,10 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     $("pause").hidden = true;
     Game.setControlsEnabled(false);
     setTimeout(() => {
-      $("end").hidden = false;
-      $("end-again").focus();
-    }, 900);
+      if(generation!==gameGeneration || Game.state!==endedState || current!=="game")return;
+      $("end").hidden=false;$("end").querySelector(".modal-box").scrollTop=0;
+      $("end-title").focus({preventScroll:true});
+    },900);
     Account.submitRun(r);
   }
   Game.on("end", showEnd);
@@ -914,6 +959,7 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
   $("victory-end").addEventListener("click", () => { $("victory").hidden = true; Game.endWin(); });
 
   function backToMenu() {
+    gameGeneration++;
     for (const id of ["end", "levelup", "pause", "victory"]) $(id).hidden = true;
     $("hud").hidden = true;
     Game.stop();
@@ -950,8 +996,8 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     const buttons=[...modal.querySelectorAll("button:not([disabled]),a[href],input,select")].filter(e=>e.getClientRects().length);
     if(!buttons.length)return;
     const first=buttons[0],last=buttons.at(-1);
-    if(e.shiftKey && (document.activeElement===first || !modal.contains(document.activeElement))){e.preventDefault();last.focus();}
-    else if(!e.shiftKey && (document.activeElement===last || !modal.contains(document.activeElement))){e.preventDefault();first.focus();}
+    if(e.shiftKey && (document.activeElement===first || !buttons.includes(document.activeElement))){e.preventDefault();last.focus();}
+    else if(!e.shiftKey && (document.activeElement===last || !buttons.includes(document.activeElement))){e.preventDefault();first.focus();}
   });
   document.addEventListener("visibilitychange", () => {
     if (document.hidden && current === "game" && Game.mode === "solo" && $("levelup").hidden) pause(true);

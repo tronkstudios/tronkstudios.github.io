@@ -105,10 +105,15 @@ const assert = require('node:assert/strict');
     await guest.waitForFunction(()=>Game.state.breach?.remaining===4 && Game.hudData().techniques.some(m=>m.id==='surge'));
     assert.ok(await guest.evaluate(()=>Game.state.enemies.some(e=>e.breach&&e.hp<1)));
 
-    await host.evaluate(()=>{const p=Game.state.players[1];Game.state.pickups=[{kind:'cofre',x:p.x,y:p.y,t:0}];Game.step();});
+    await host.evaluate(()=>{const p=Game.state.players[1];for(const ally of Game.state.players){ally.weapons[0].lvl=6;ally.passives[TS.EVOLUTIONS[ally.weapons[0].id].passive]=1;}Game.state.pickups=[{kind:'cofre',x:p.x,y:p.y,t:0}];Game.step();});
     await guest.waitForFunction(()=>[...document.querySelectorAll('.toast')].some(t=>t.textContent.includes('¡Cofre!')));
     assert.ok(await guest.locator('.toast').count()>=2,'guest sees the reward as well as the coins');
     assert.equal(await host.evaluate(()=>Game.state.chests),1);
+    await guest.waitForFunction(()=>document.getElementById('levelup-title').textContent==='Elige tu recompensa');
+    await host.locator('.up-card').first().click();await guest.locator('.up-card').nth(1).click();
+    await host.waitForFunction(()=>Game.state.choosing===null);
+    await guest.waitForFunction(()=>Game.state.players[1].weapons[0].path==='dominion');
+    assert.equal(await host.evaluate(()=>Game.state.players[0].weapons[0].path),'precision');
     await host.evaluate(()=>Game.finish(false));
     await guest.waitForSelector('#end:not([hidden])');
     assert.equal(await guest.evaluate(()=>Save.get().runs),1,'guest receives and saves the final result');
@@ -125,7 +130,7 @@ const assert = require('node:assert/strict');
     await guest.locator('#levelup-reroll').click();
     await guest.waitForFunction(()=>document.getElementById('levelup-reroll').textContent.includes('2/3'));
     assert.equal(await host.evaluate(()=>Game.state.players[1].rerolls),2);
-    assert.equal(await guest.locator('.up-card:enabled').count(),3);
+    await guest.waitForFunction(()=>document.querySelectorAll('.up-card:enabled').length===3);
     assert.ok(await host.evaluate(()=>Game.state.choosing[1]));
     await host.locator('.up-card').first().click();
     // A closed peer while its choice is pending must not freeze the host.

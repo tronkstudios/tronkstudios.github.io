@@ -21,7 +21,7 @@
     http-equiv="Content-Security-Policy"
     content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://qjjnqhbtovjcbwgcwhgl.supabase.co wss://qjjnqhbtovjcbwgcwhgl.supabase.co https://tronkstudios-support.tronkstudios7.workers.dev; object-src 'none'; base-uri 'self'; form-action 'self'"
   />
-  <link rel="stylesheet" href="survivors.css?v=10" />
+  <link rel="stylesheet" href="survivors.css?v=14" />
 </head>
 <body>
   <canvas id="game" aria-label="Tronk Survivors"></canvas>
@@ -192,6 +192,7 @@
       </header>
       <label class="setting"><span>Música</span><input type="range" id="vol-music" min="0" max="100" step="5" /><b id="vol-music-v"></b></label>
       <label class="setting"><span>Efectos de sonido</span><input type="range" id="vol-sfx" min="0" max="100" step="5" /><b id="vol-sfx-v"></b></label>
+      <div class="setting sound-check"><label for="sfx-sample">Probar sonidos</label><select id="sfx-sample"><option value="bow">Arco</option><option value="growl">Monstruo</option><option value="enemyMagic">Magia</option></select><button class="btn btn-small" id="sfx-preview" type="button">Escuchar</button></div>
       <label class="setting"><span>Idioma</span>
         <select id="lang-select">
           <option value="es">Español</option>
@@ -233,6 +234,7 @@
       <span class="hud-lvl" id="hud-level">Nv. 1</span>
       <div class="hud-hp"><span id="hud-hp-bar"></span><b id="hud-hp">100 / 100</b></div>
       <div class="hud-xp"><span id="hud-xp-bar"></span></div>
+      <div id="hud-loot" class="hud-loot" hidden></div>
     </div>
     <div class="hud-center">
       <div class="hud-time" id="hud-time">0:00</div>
@@ -241,12 +243,14 @@
       <div class="hud-status" id="hud-status"></div>
     </div>
     <button class="btn btn-small hud-pause" id="hud-pause" type="button" aria-label="Pausa">II</button>
+      <div id="hud-streak" class="hud-streak" hidden><b></b><span><i></i></span></div>
     <div class="hud-team" id="hud-team"></div>
     <div class="hud-tip" id="hud-tip" hidden></div>
     <div class="hud-compass" id="hud-compass" hidden></div>
     <div class="hud-boss" id="hud-boss" hidden><b id="hud-boss-name"></b><span><i id="hud-boss-bar"></i></span></div>
     <div class="hud-bottom">
       <span class="hud-evo" id="hud-evo" hidden>¡Evolución disponible! Coge un cofre</span>
+      <div class="hud-world" id="hud-world"></div>
       <div class="hud-slots" id="hud-slots"></div>
       <div class="hud-milestone" id="hud-milestone"></div>
       <p class="hud-hint">WASD o flechas para moverte · los ataques son automáticos · Espacio: habilidad · Esc pausa</p>
@@ -275,12 +279,14 @@
   </div>
 
   <!-- Pausa -->
-  <div id="pause" class="modal" role="dialog" aria-modal="true" aria-label="Pausa" hidden>
+  <div id="pause" class="modal" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden>
     <div class="modal-box">
-      <h2>Pausa</h2>
+      <h2 id="pause-title">Pausa</h2>
+      <p id="pause-live" class="play-note" hidden></p>
       <div class="pause-build" id="pause-build"></div>
       <div class="evolution-guide" id="pause-evolution"></div>
       <div class="run-metrics" id="pause-metrics"></div>
+      <section class="encounter-plan" aria-labelledby="encounter-title"><h3 id="encounter-title">Próximos encuentros</h3><ol id="pause-encounters"></ol></section>
       <div class="modal-buttons">
         <button class="btn btn-big" id="pause-resume">Seguir</button>
         <button class="btn" id="pause-fullscreen" type="button">Pantalla completa</button>
@@ -292,7 +298,9 @@
   <!-- Fin -->
   <div id="end" class="modal" role="dialog" aria-modal="true" aria-labelledby="end-title" hidden>
     <div class="modal-box">
-      <h2 id="end-title">¡Has caído!</h2>
+      <h2 id="end-title" tabindex="-1">¡Has caído!</h2>
+      <p id="end-records" class="record-note" hidden></p>
+      <section id="end-recap" class="damage-recap" aria-labelledby="recap-title" hidden><h3 id="recap-title">Últimos golpes</h3><ol id="recap-hits"></ol><p id="recap-advice"></p></section>
       <div class="end-stats" id="end-stats"></div>
       <div class="modal-buttons">
         <button class="btn btn-big" id="end-again">Otra vez</button>
@@ -312,19 +320,19 @@
     </div>
   </div>
 
-  <script src="js/data.js?v=7" defer></script>
-  <script src="js/sprites.js?v=11" defer></script>
+  <script src="js/data.js?v=10" defer></script>
+  <script src="js/sprites.js?v=13" defer></script>
   <script src="js/people.js?v=4" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js" defer></script>
-  <script src="js/stick.js?v=14" defer></script>
-  <script src="js/render3d.js?v=6" defer></script>
-  <script src="js/audio.js?v=3" defer></script>
+  <script src="js/stick.js?v=16" defer></script>
+  <script src="js/render3d.js?v=10" defer></script>
+  <script src="js/audio.js?v=5" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-  <script src="js/lang.js?v=9" defer></script>
-  <script src="js/save.js?v=5" defer></script>
+  <script src="js/lang.js?v=13" defer></script>
+  <script src="js/save.js?v=6" defer></script>
   <script src="js/account.js?v=4" defer></script>
-  <script src="js/game.js?v=17" defer></script>
-  <script src="js/net.js?v=8" defer></script>
-  <script src="js/ui.js?v=15" defer></script>
+  <script src="js/game.js?v=21" defer></script>
+  <script src="js/net.js?v=9" defer></script>
+  <script src="js/ui.js?v=19" defer></script>
 </body>
 </html>
