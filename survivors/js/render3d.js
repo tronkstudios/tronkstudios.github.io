@@ -338,6 +338,9 @@ const Render3D = (() => {
     const sp = (p, s, c, shape = "sph") => P.push([shape, p, s, c]);
     const cap = (k = 1) => sp([-0.06, 0.32, 0], [1.06 * k, 0.78, 1.06 * k], h);
     switch (o.hair) {
+      case "visor":
+        cap();P.push(["box",[.7,.08,0],[.5,.35,1.85],0x354853]);
+        P.push(["glowBox",[1,.08,0],[.2,.38,1.55],acc]);break;
       case "antenna":
         sp([0,0,0],[1.08,1.08,1.08],h);
         P.push(["glowBox",[1.02,.05,0],[.18,.4,1.3],acc]);
@@ -544,7 +547,6 @@ const Render3D = (() => {
     if (hands === "gloves" || hands === "fists") {
       const gr = (hands === "gloves" ? 10 : 7) * S;
       for (const [hnd, c] of [[fHand, 0xe53935], [bHand, 0xb71c1c]]) {
-        if (hands === "fists" && hnd === bHand) continue;
         at("sph", hnd[0], hnd[1], hnd[2], gr, gr, gr, flash ? 0xffffff : hands === "gloves" ? c : o.color);
       }
     }
@@ -650,7 +652,7 @@ const Render3D = (() => {
     if(role==="nix")piece("glowBox",[10,29,0],[2,10,12],0x64f5ff);
     if(!o.robe) for(const [pt,lat] of [[J.fFoot,rig.LAT.fFoot],[J.bFoot,rig.LAT.bFoot]]) {
       const foot=W(pt,lat);
-      at("box",foot[0]+ca*2*S,foot[1]+2*S,foot[2]+sa*2*S,13*S,6*S,10*S,flash?0xffffff:0x252431,-ang);
+      at("box",foot[0]+ca*2*S,foot[1]+2*S,foot[2]+sa*2*S,13*S,6*S,10*S,flash?0xffffff:(o.shoes || 0x252431),-ang);
     }
   }
 

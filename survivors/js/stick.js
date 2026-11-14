@@ -49,7 +49,7 @@ const Stick = (() => {
   const ATK = {
     slash: [{ lean: -8, fu: 160, ff: 200, bu: -40, bf: -10, w: 215, ful: 14, fll: 4, bul: -22, bll: -12 }, { lean: 22, fu: 65, ff: 75, bu: -50, bf: -30, w: 40, ful: 38, fll: 12, bul: -34, bll: -14 }],
     thrust: [{ lean: -10, fu: -5, ff: 40, bu: -10, bf: 50, w: 92, ful: 12, fll: 2, bul: -26, bll: -14 }, { lean: 16, fu: 88, ff: 92, bu: 70, bf: 90, w: 92, ful: 40, fll: 14, bul: -36, bll: -18 }],
-    smash: [{ lean: -16, fu: 175, ff: 195, bu: 150, bf: 190, w: 205, ful: 12, fll: 2, bul: -24, bll: -12 }, { lean: 30, fu: 60, ff: 35, bu: 55, bf: 40, w: 15, ful: 42, fll: 16, bul: -38, bll: -18 }],
+    smash: [{ lean: -16, fu: 175, ff: 195, bu: 150, bf: 190, w: 205, ful: 12, fll: 2, bul: -24, bll: -12 }, { lean: 30, fu: 60, ff: 115, bu: 55, bf: 40, w: 15, ful: 42, fll: 16, bul: -38, bll: -18 }],
     shoot: [{ lean: 2, fu: 88, ff: 90, bu: 70, bf: 92, w: 90 }, { lean: -8, fu: 80, ff: 102, bu: 60, bf: 100, w: 106 }],
     punch: [{ lean: -4, fu: 40, ff: 150, bu: 45, bf: 160 }, { lean: 18, fu: 90, ff: 90, bu: 35, bf: 150, ful: 38, fll: 12, bul: -32, bll: -14 }],
     cast: [{ lean: -6, fu: 150, ff: 170, bu: -30, bf: 0, w: 190 }, { lean: 12, fu: 92, ff: 92, bu: -40, bf: -10, w: 95, ful: 30, fll: 10, bul: -28, bll: -12 }],
@@ -305,7 +305,7 @@ const Stick = (() => {
       ctx.quadraticCurveTo(0, -r * .6, -r, -r * .2); ctx.fill();
     };
     if (long) ellipse(0, .15, 1.13, o.hair === "bob" ? 1.15 : 1.65, hair);
-    if (o.hair === "afro") ellipse(0, -.35, 1.5, 1.4, hair);
+    if(o.hair==="afro")for(const [x,y,k] of [[-.75,-.3,.75],[-.45,-.9,.8],[.2,-1.05,.75],[.75,-.65,.7],[.9,0,.6],[-.8,.5,.6]])ellipse(x,y,k,k,hair);
     if (o.hair === "ponytail") {
       // Una sola coleta: detrás del cráneo de frente, sobre él de espaldas.
       ellipse(.5, .35, .35, 1.05, hair);
@@ -337,6 +337,8 @@ const Stick = (() => {
       }
     }
     if (["antenna","mushroom","forge"].includes(o.hair)) specialHead(ctx,o,r,rear,false);
+    // The visor already supplies its own face window; no extra eyes over it.
+    if(["antenna","forge"].includes(o.hair))return;
     if (rear) {
       if (!covered && !["skull","zombie","hardhat","beanie","capBack","antenna","mushroom","forge"].includes(o.hair)) {
         ctx.save(); ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.clip();
@@ -380,7 +382,22 @@ const Stick = (() => {
     if (o.crown) drawHair(ctx, { ...o, hair: null }, r, "front");
   }
 
+  function drawVisorHead(ctx,o,r,yaw){
+    const rear=Math.cos(yaw)<-.3,side=Math.sin(yaw)>.55;
+    ctx.fillStyle=o.head || o.color;ctx.strokeStyle=INK;ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.fillStyle=o.hairColor;ctx.beginPath();ctx.arc(0,-r*.1,r*1.04,Math.PI,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#354853";ctx.fillRect(-r,-r*.32,r*2,r*.27);
+    if(!rear){
+      const x=side?r*.1:-r*.85,w=side?r*.95:r*1.7;
+      ctx.fillStyle=o.acc;ctx.fillRect(x,-r*.35,w,r*.48);
+      ctx.strokeStyle=INK;ctx.lineWidth=2;ctx.strokeRect(x,-r*.35,w,r*.48);
+      ctx.fillStyle="#e8fbff";ctx.fillRect(x+r*.1,-r*.27,w*.45,r*.09);
+    }
+  }
+
   function drawHead(ctx, o, r, yaw = Math.PI / 2) {
+    if(o.hair==="visor"){drawVisorHead(ctx,o,r,yaw);return;}
     if (Math.sin(yaw) < 0.55) { drawTurnedHead(ctx, o, r, Math.cos(yaw) < 0); return; }
     const side = Math.sin(yaw); // 1 de lado, 0 de frente o de espaldas
     const facing = Math.cos(yaw); // 1 de frente, -1 de espaldas
@@ -574,6 +591,9 @@ const Stick = (() => {
       const depth = f * cy + l * sy;
       return [f * sy - l * cy, -u + depth * TILT, depth];
     };
+    const shoeDepth=o.outfit?3:0;
+    const floor=Math.max(P3("fFoot")[1],P3("bFoot")[1])+shoeDepth;
+    ctx.save();ctx.translate(0,-floor);
     const col = flash ? "#ffffff" : o.color;
     const dark = flash ? "#e8e8ff" : shade(o.color, -0.38);
     const legs = flash ? "#ffffff" : o.legs || o.color;
@@ -584,9 +604,17 @@ const Stick = (() => {
     const add = (depth, draw) => parts.push({ depth, draw });
     const limb = (names, color, w) => {
       const pts = names.map((n) => P3(n));
-      add(pts.reduce((a, p) => a + p[2], 0) / pts.length, () => bone(ctx, pts, color, w));
+      for(let i=1;i<pts.length;i++){
+        const segment=[pts[i-1],pts[i]];
+        add((segment[0][2]+segment[1][2])/2,()=>bone(ctx,segment,color,w));
+      }
       return pts;
     };
+    if(o.outfit)for(const name of ["bFoot","fFoot"]){
+      const foot=P3(name);
+      add(foot[2]+.2,()=>{ctx.fillStyle=flash?"#ffffff":o.shoes;ctx.strokeStyle=INK;ctx.lineWidth=2;
+        ctx.beginPath();ctx.ellipse(foot[0]+sy*2,foot[1],6+3*Math.abs(sy),3,0,0,Math.PI*2);ctx.fill();ctx.stroke();});
+    }
     // la mano izquierda es la «de atrás» de Tronk Fight
     limb(["hipB", "bKnee", "bFoot"], legsDark, 7 * k);
     if (!o.robe) limb(["hipF", "fKnee", "fFoot"], legs, 7 * k);
@@ -594,11 +622,11 @@ const Stick = (() => {
     const fArm = limb(["shF", "fEl", "fHand"], col, 7 * k);
     const hip = P3("hip"), neck = P3("neck"), sh = P3("sh"), hd = P3("head");
     const glove = (pt, front) => add(pt[2] + 0.5, () => {
-      ctx.fillStyle = flash ? "#ffffff" : hands === "gloves" ? (front ? "#e53935" : "#b71c1c") : o.color; ctx.strokeStyle = INK; ctx.lineWidth = 3;
+      ctx.fillStyle = flash ? "#ffffff" : hands === "gloves" ? (front ? "#e53935" : "#b71c1c") : (o.skin || o.color); ctx.strokeStyle = INK; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(pt[0], pt[1], hands === "gloves" ? 10 : 7, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
       if (hands === "gloves") { ctx.fillStyle = "#f4f4f4"; ctx.fillRect(pt[0] - 6, pt[1] + 6, 12, 4); }
     });
-    if (hands) { glove(fArm[2], true); if (hands === "gloves") glove(bArm[2], false); }
+    if (["gloves","fists"].includes(hands)) { glove(fArm[2],true);glove(bArm[2],false); }
     // tronco (o túnica)
     if (o.robe) {
       const rl = [P3("x", [J.sh[0], J.sh[1]], 9), P3("x", [J.sh[0], J.sh[1]], -9), P3("x", [J.hip[0], -2], -26), P3("x", [J.hip[0], -2], 26)];
@@ -606,7 +634,7 @@ const Stick = (() => {
     } else {
       add(hip[2] + 0.1, () => {
         bone(ctx, [hip, neck], col, 8 * k * (o.torso || 1));
-        if(o.illustration && !o.abs) {
+        if(o.outfit && !o.abs) {
           const sw=15*Math.max(.45,Math.abs(cy)),hw=10*Math.max(.45,Math.abs(cy));
           ctx.fillStyle=col;ctx.strokeStyle=INK;ctx.lineWidth=2.5;
           ctx.beginPath();ctx.moveTo(sh[0]-sw,sh[1]-4);ctx.lineTo(sh[0]+sw,sh[1]-4);ctx.lineTo(hip[0]+hw,hip[1]+4);ctx.lineTo(hip[0]-hw,hip[1]+4);ctx.closePath();ctx.fill();ctx.stroke();
@@ -650,6 +678,8 @@ const Stick = (() => {
         ctx.scale(1, shrink);
         drawWeapon(ctx, type, len);
         ctx.restore();
+        if(o.outfit){ctx.fillStyle=flash?"#ffffff":o.skin;ctx.strokeStyle=INK;ctx.lineWidth=2;
+          ctx.beginPath();ctx.arc(hand[0],hand[1],4.5,0,Math.PI*2);ctx.fill();ctx.stroke();}
       });
     }
     // dron de Zeta flotando junto al hombro
@@ -663,6 +693,7 @@ const Stick = (() => {
     }
     parts.sort((a, b) => a.depth - b.depth);
     for (const p of parts) p.draw();
+    ctx.restore();
   }
 
   function frame(o, P, flash, yaw) {
@@ -719,13 +750,14 @@ const Stick = (() => {
 
   /* ---------- personajes (de data.js) ---------- */
   function characterOptions(ch) {
-    const o = { role: ch.id, color: ch.shirt, hair: ch.hair, hairColor: ch.hairColor, acc: ch.acc, weapon: ch.weapon, glasses: ch.glasses };
+    const skin=ch.skin==="dark"?"#a87554":"#efc29e";
+    const o = { role:ch.id,outfit:true,color:ch.shirt,legs:ch.pants || ch.shirt,head:skin,skin,shoes:ch.shoes || "#252431",hair:ch.hair,hairColor:ch.hairColor,acc:ch.acc,weapon:ch.weapon,glasses:ch.glasses,beard:!!ch.beard,stubble:!!ch.stubble };
     if(ch.id==="lumen") o.cape="#d8d0ac";
     if (ch.id === "savia") o.cape = "#513659";
     if (ch.id === "brasa") o.thick = 1.2;
     if (ch.id === "omogos") Object.assign(o, { hair: "curly", beard: true });
     if (ch.id === "eledemak") Object.assign(o, { fringe: true }); // mullet con flequillo
-    if (ch.id === "sunk") Object.assign(o, { color: "#f0c8a0", legs: "#9e9a92", thick: 1.25, torso: 1.35, abs: true });
+    if (ch.id === "sunk") Object.assign(o, { color:skin,thick:1.25,torso:1.35,abs:true });
     if (ch.id === "finillos") Object.assign(o, { thick: 1.15 });
     if (ch.id === "quizo") Object.assign(o, { cape: ch.acc || "#6b2fa0" });
     if (ch.id === "zeta") Object.assign(o, { drone: true, eye: null, noEye: true });
@@ -764,18 +796,27 @@ const Stick = (() => {
     return out;
   }
 
-  // Ilustración de menú: se vuelve a dibujar a alta resolución, con ropa y botas.
-  function illustration(ch, view="down") {
-    const raw=document.createElement("canvas");raw.width=raw.height=960;
-    const g=raw.getContext("2d");g.translate(480,720);g.scale(2.1,2.1);
-    const o={...characterOptions(ch),illustration:true,legs:ch.pants || ch.shirt};
-    drawFigure(g,o,pose((WEAPON[o.weapon] || WEAPON.none)[2],"idle"),false,VIEWS[view] ?? 0);
-    const pixels=g.getImageData(0,0,960,960).data;
-    let x0=960,y0=960,x1=0,y1=0;
-    for(let y=0;y<960;y++)for(let x=0;x<960;x++)if(pixels[(y*960+x)*4+3]){x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y);}
-    const out=document.createElement("canvas");out.width=360;out.height=420;out.res=6;
-    const w=x1-x0+1,h=y1-y0+1,scale=Math.min(336/w,396/h);
-    out.getContext("2d").drawImage(raw,x0,y0,w,h,(360-w*scale)/2,(420-h*scale)/2,w*scale,h*scale);
+  // A shared camera per view keeps body size and foot position independent
+  // of weapon length. Fit the roster once, then render every portrait directly.
+  const portraitCameras={};
+  function illustration(ch,view="down"){
+    const yaw=VIEWS[view] ?? 0;
+    if(!portraitCameras[view]){
+      const raw=document.createElement("canvas");raw.width=raw.height=960;
+      const g=raw.getContext("2d",{willReadFrequently:true});
+      let left=960,right=0,top=960,bottom=0;
+      for(const hero of TS.CHARACTERS){
+        g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,960,960);g.translate(480,720);g.scale(2.1,2.1);
+        const o=characterOptions(hero);drawFigure(g,o,pose((WEAPON[o.weapon] || WEAPON.none)[2],"idle"),false,yaw);
+        const pixels=g.getImageData(0,0,960,960).data;
+        for(let y=0;y<960;y++)for(let x=0;x<960;x++)if(pixels[(y*960+x)*4+3]){left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y);}
+      }
+      const scale=Math.min(336/(right-left+1),396/(bottom-top+1));
+      portraitCameras[view]={scale:2.1*scale,x:180+(480-(left+right)/2)*scale,y:408+(720-bottom)*scale};
+    }
+    const camera=portraitCameras[view],out=document.createElement("canvas");out.width=360;out.height=420;out.res=6;out.foot=camera.y;
+    const g=out.getContext("2d");g.translate(camera.x,camera.y);g.scale(camera.scale,camera.scale);
+    const o=characterOptions(ch);drawFigure(g,o,pose((WEAPON[o.weapon] || WEAPON.none)[2],"idle"),false,yaw);
     return out;
   }
 

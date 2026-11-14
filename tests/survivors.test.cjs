@@ -524,9 +524,10 @@ test('all seven bosses change tactics with health and gapped rings leave a warne
  assert.ok(st.eshots.every(s=>Math.abs(Math.atan2(Math.sin(Math.atan2(s.vy,s.vx)-boss.gap),Math.cos(Math.atan2(s.vy,s.vx)-boss.gap)))>.5));
 });
 test('forest shelters activate once and heal only during their limited duration',()=>{
- const {Game}=engine();Game.start([setup('ranjay')]);const st=Game.state,p=st.players[0],site=st.sites[0];p.x=site.x;p.y=site.y;p.hp=50;p.weapons[0].cd=99999;
+ const {Game}=engine();Game.start([setup('ranjay')],{seed:42});const st=Game.state,p=st.players[0],site=st.sites[0];p.x=site.x;p.y=site.y;p.hp=50;p.iframes=10000;p.weapons[0].cd=99999;
  for(let i=0;i<120;i++)Game.step();assert.equal(site.activated,true);assert.equal(site.used,true);assert.equal(p.hp,52);const until=site.activeUntil;
  for(let i=0;i<60;i++)Game.step();assert.equal(p.hp,54);assert.equal(site.activeUntil,until);
+ st.t=until-1;st.enemies=[];Game.step();assert.equal(p.hp,54,'expired shelters no longer heal');
 });
 test('cemetery altars reward a cleared challenge once and city lamps expose shields',()=>{
  const {Game,TS}=engine();Game.start([setup('ranjay')],{map:'cementerio'});let st=Game.state,p=st.players[0],site=st.sites[0];p.x=site.x;p.y=site.y;p.weapons[0].cd=99999;p.stats.armor=9999;

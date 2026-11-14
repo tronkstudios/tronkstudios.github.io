@@ -36,6 +36,7 @@ node tests/survivors.expansion.cjs
 node tests/survivors.rewards.cjs
 node tests/survivors.online.cjs
 node tests/survivors.strategy.cjs
+node tests/survivors.characters.cjs
 # Probar el protocolo de juego con transporte simulado:
 RTC_TEST_MODE=mock node tests/survivors.online.cjs
 ```
@@ -48,6 +49,11 @@ Chromium no tiene su CA instalada; no modifica la configuración del juego.
   personajes, enemigos y jefes, con WebGL y con Three.js bloqueado para forzar
   2D. Detecta recortes y coordenadas de dibujo no finitas en todos los fotogramas
   normales; comprueba que sus destellos conservan las dimensiones, pies y alfa.
+- **Coherencia de personajes:** 1.800 fotogramas por dispositivo (24 personajes,
+  cinco direcciones, reposo, ocho pasos y seis ataques), pantalones compartidos con
+  el menú, contacto de los pies, retratos con cámara común, visor de Boro solo de
+  frente y ausencia de ojos duplicados en máscaras. Verifica que el mazo no
+  atraviese el suelo y que los retratos de las cinco vistas no se recorten.
 - **Contenido nuevo:** los 24 personajes, sus seis técnicas y habilidad en 2D/3D,
   efectos de sus armas, HUD final al minuto 25 y vista cercana de enemigos 3D.
 - **Diseño y usabilidad:** menú, HUD con élites y brújula, recargas de técnicas,
