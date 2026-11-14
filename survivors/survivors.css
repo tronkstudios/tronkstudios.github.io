@@ -20,6 +20,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 
 html, body {
   margin: 0;
@@ -845,3 +846,32 @@ img[data-icon], .pix { image-rendering: pixelated; }
 .hud-slot.is-technique[data-technique="VI"] { box-shadow:0 0 0 2px #f0cb82; }
 
 .up-card.is-ultimate { border-color:#f0cb82; background:linear-gradient(110deg,#4a4030,#203640); }
+
+.hud-world { max-width:min(520px,80vw); color:#b5e7d5; font-size:11px; text-align:center; text-shadow:0 1px 3px #000; }
+.hud-world:empty { display:none; }
+@media (any-pointer:coarse) { .hud-world { font-size:10px; max-width:70vw; } }
+
+/* Combat rewards remain legible without covering targets or touch controls. */
+.hud-loot { color:#b9e9d3; font-size:10px; min-height:12px; white-space:nowrap; }
+.hud-streak { position:absolute; top:130px; right:14px; width:130px; text-align:center; padding:4px 10px; border:1px solid #d7b46b55; border-radius:9px; background:#132731e6; color:#f0cb82; font-size:12px; }
+.hud-streak > span { display:block; height:3px; margin-top:4px; border-radius:3px; background:#ffffff19; overflow:hidden; }
+.hud-streak i { display:block; height:100%; background:#80e3d0; transition:width .1s linear; }
+.hud-streak.is-milestone { border-color:#f0cb82; box-shadow:0 0 14px #f0cb8233; color:#fff0bf; }
+@media (any-pointer:coarse) { .hud-streak { width:110px; font-size:10px; padding:3px 6px; } .hud-loot { font-size:9px; } }
+@media (prefers-reduced-motion:reduce) { .hud-streak i { transition:none; } }
+
+@media (any-pointer:coarse) and (orientation:portrait) { .hud-streak { top:calc(160px + env(safe-area-inset-top)); right:12px; } }
+
+.up-card.is-evolution { border-color:#b89a60; background:linear-gradient(115deg,#4b4030,#203640 70%); }
+.up-card.is-evolution[data-path="dominion"] { border-color:#69b5a6; background:linear-gradient(115deg,#234f4b,#203640 70%); }
+.up-card.is-evolution .new { color:#f0cb82; }
+.up-card.is-evolution[data-path="dominion"] .new { color:#80e3d0; }
+
+@media (any-pointer:coarse) and (orientation:landscape) { .hud-streak { top:76px; } }
+/* Keep temporary rewards clear of the boss, compass and streak HUD. */
+.toasts { top:185px; max-width:min(320px,40vw); }
+@media (any-pointer:coarse) and (orientation:portrait) { .toasts { top:auto; bottom:calc(250px + env(safe-area-inset-bottom)); max-width:72vw; } }
+@media (any-pointer:coarse) and (orientation:landscape) { .toasts { top:auto; bottom:calc(122px + env(safe-area-inset-bottom)); max-width:36vw; } }
+
+.hud-compass.is-help { color:#b5f0ce; border-color:#80e3d0; }
+@media (min-width:600px) { .sound-check { grid-template-columns:160px minmax(0,1fr) auto; } }

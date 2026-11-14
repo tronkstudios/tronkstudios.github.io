@@ -388,6 +388,10 @@
 
   $("vol-music").addEventListener("input", (e) => { save.settings.musicVol = e.target.value / 100; applySettings(); renderSettings(); Save.persist(); });
   $("vol-sfx").addEventListener("input", (e) => { save.settings.sfxVol = e.target.value / 100; applySettings(); renderSettings(); Save.persist(); Sfx.play("coin", 0.15); });
+  $("sfx-preview").addEventListener("click",()=>{
+    if((save.settings.sfxVol ?? .9)===0){toast(L("Sube el volumen de efectos para probarlos."));return;}
+    Sfx.init();Sfx.play($("sfx-sample").value,.3);
+  });
   $("opt-numbers").addEventListener("change", (e) => { save.settings.numbers = e.target.checked; applySettings(); Save.persist(); });
   $("opt-shake").addEventListener("change", (e) => { save.settings.shake = e.target.checked; applySettings(); Save.persist(); });
   $("opt-fx").addEventListener("change", (e) => { save.settings.fx = e.target.value; applySettings(); Save.persist(); });
@@ -479,7 +483,7 @@
       list.append(el("li","",`${L(TS.ABILITIES[ch.id].name)} · ${L("Habilidad activa")}`));
       moves.append(list,el("small","",L("Aprende y mejora tus técnicas al subir de nivel. Solo usas el arma de tu personaje.")));
       const evo=TS.EVOLUTIONS[ch.weapon];
-      if(evo)moves.append(el("p","evolution-recipe",`${L(evo.name)} = ${L(TS.WEAPONS[ch.weapon].name)} 6 + ${L(TS.PASSIVES[evo.passive].name)} + ${L("Cofre")}`));
+      if(evo)moves.append(el("p","evolution-recipe",`${L(evo.name)} = ${L(TS.WEAPONS[ch.weapon].name)} 6 + ${L(TS.PASSIVES[evo.passive].name)} + ${L("Cofre")} · ${L("Dos caminos de evolución")}`));
       box.append(el("p", "", L(ch.desc)), weapon, moves, el("p", "", LT("perk", { perk: L(ch.perkText) })), btn);
     } else {
       const btn = el("button", "btn btn-gold", L("Ir al cofre"));
@@ -641,7 +645,7 @@
       const img = document.createElement("img");
       img.src = Sprites.iconUrl(it.icon || it.id, big ? 3 : 2);
       img.alt = "";
-      slot.title = it.kind === "t" ? it.name : it.evo ? L(TS.EVOLUTIONS[it.id].name) : L((TS.WEAPONS[it.id] || TS.PASSIVES[it.id] || {}).name || "");
+      slot.title = it.kind === "t" ? it.name : it.evo ? Game.evolutionName(it.id,it.path) : L((TS.WEAPONS[it.id] || TS.PASSIVES[it.id] || {}).name || "");
       slot.append(img, el("i", "", it.evo ? "★" : it.lvl));
       box.appendChild(slot);
     }
@@ -677,12 +681,17 @@
   Game.on("hud", (d) => {
     updateTips(d.seconds);
     $("hud-xp-bar").style.width = `${Math.min(100, (d.xp / d.xpNext) * 100)}%`;
+    const loot=$("hud-loot");loot.hidden=!d.loot;
+    if(d.loot)loot.textContent=[d.loot.xp>0?`+${Math.round(d.loot.xp)} XP`:"",d.loot.coins>0?`+${d.loot.coins} ${L("monedas")}`:"",d.loot.healed>0?`+${Math.round(d.loot.healed)} ${L("vida")}`:""].filter(Boolean).join(" · ");
+    const chain=$("hud-streak");chain.hidden=!d.streak || d.streak.count<2;
+    if(d.streak){chain.querySelector("b").textContent=`${L("Racha")} ${d.streak.count}`;chain.querySelector("i").style.width=`${Math.round(d.streak.remaining*100)}%`;chain.classList.toggle("is-milestone",d.streak.highlight);}
     $("hud-level").textContent = `${LANG === "en" ? "Lv." : "Nv."} ${d.level}`;
     $("hud-name").textContent = d.name;
     $("hud-time").textContent = fmtTime(d.seconds);
     $("hud-phase").textContent = d.finalPhase ? `${L("Fase")} ${d.finalRound}` : `${L("Final")} ${fmtTime(d.finalIn)}`;
     if(d.breach)$("hud-phase").textContent+=` · ${L("Brecha")} ${d.breach.total-d.breach.remaining}/${d.breach.total}`;
     $("hud-milestone").textContent=d.nextTechnique?`${L("Próxima técnica")}: ${L(d.nextTechnique.name)} · ${L("Nivel")} ${d.nextTechnique.unlock} · ${fmtTime(d.nextTechnique.at || 0)}`:`${L("Rangos de técnicas")}: ${d.techniqueRanks}/30`;
+    $("hud-world").textContent=d.combo?d.combo:d.site?`${d.site.name} · ${d.site.used?`${L("Activo")} ${d.site.seconds}s`:d.site.activated?`${L("Guardianes restantes")}: ${d.site.guards}`:`${d.site.hint} · ${L("Mantente en el círculo")}: ${d.site.progress}%`}`:Game.mapId==="playa" && d.inWater?L("Corriente: puedes moverte contra ella"):"";
     $("hud-sub").textContent = (d.finalPhase ? `${L("Supervivencia final")} · ` : Game.state && Game.state.endless ? `${L("Modo infinito")} · ` : "") + LT("hudSub", { map: L(TS.MAPS[Game.mapId].name), kills: d.kills, coins: d.coins });
     const pct = Math.max(0, d.hp / d.maxHp);
     $("hud-hp-bar").style.width = `${pct * 100}%`;
@@ -707,10 +716,11 @@
     $("hud").classList.toggle("is-critical",!d.down && pct<.25);
     $("hud-status").textContent = d.down ? `${L("Reanimación")} ${Math.round((d.players[Game.localId]?.revivePct || 0)*100)}% · ${L(d.players[Game.localId]?.reviver!=null?"Mantén al compañero cerca":"Un compañero debe acercarse")}` : d.inWater ? L("Agua · movimiento al 58 %") : d.nextBossIn<=30 && !d.finalPhase ? `${L("Jefe en")} ${d.nextBossIn}s` : "";
     $("hud-compass").hidden=!d.compass;
+    $("hud-compass").classList.toggle("is-help",["revive","heal"].includes(d.compass?.kind));
     if(d.compass) $("hud-compass").textContent=`${d.compass.arrow} ${d.compass.label} · ${d.compass.distance}`;
     const boss = $("hud-boss");
     boss.hidden = !d.boss;
-    if (d.boss) { $("hud-boss-name").textContent = d.boss.name; $("hud-boss-bar").style.width = `${d.boss.pct * 100}%`; }
+    if (d.boss) { $("hud-boss-name").textContent = d.boss.name+(d.boss.tactic?` · ${d.boss.tactic}`:""); $("hud-boss-bar").style.width = `${d.boss.pct * 100}%`; }
     const team = $("hud-team");
     team.textContent = "";
     if (d.players.length > 1) {
@@ -760,40 +770,51 @@
 
   /* ---------- subida de nivel ---------- */
 
+  let choiceGeneration=0;
   function showLevelUp(d) {
+    const generation=++choiceGeneration;
     Game.setControlsEnabled(false);
-    $("levelup-title").textContent = LT("levelTitle", { n: d.level });
+    $("levelup").querySelector(".modal-sub").textContent=d.kind==="chest"?L("Cada jugador elige una recompensa"):L("Elige una mejora");
+    $("levelup-title").textContent = d.kind==="chest"?L("Elige tu recompensa"):LT("levelTitle", { n: d.level });
     const box = $("levelup-cards");
     box.textContent = "";
     $("levelup-wait").hidden = true;
     const rerolls = d.rerolls ?? Game.state?.players[Game.localId]?.rerolls ?? 0;
     $("levelup-reroll").textContent=`${L("Cambiar opciones")} · ${rerolls}/3`;
-    $("levelup-reroll").disabled=rerolls<=0;
+    $("levelup-reroll").disabled=true;
+    $("levelup-reroll").hidden=d.kind==="chest";
     d.options.forEach((o, i) => {
-      const card = el("button", `up-card${o.kind==="technique"&&o.id==="surge"?" is-ultimate":""}${o.synergy?" is-synergy":""}${o.kind==="technique"?" is-technique":""}`);
-      card.type = "button";
+      const card = el("button", `up-card${o.kind==="technique"&&o.id==="surge"?" is-ultimate":""}${o.synergy?" is-synergy":""}${o.kind==="technique"?" is-technique":""}${o.kind==="evolution"?" is-evolution":""}`);
+      card.type = "button";card.disabled=true;if(o.path)card.dataset.path=o.path;
       const img = document.createElement("img");
       img.src = Sprites.iconUrl(o.icon, 3);
       img.alt = "";
       img.className = "pix";
       const text = el("div");
-      text.append(el("span", "new", o.isNew ? L("¡NUEVO!") : ""), el("b", "", o.title), el("small", "", o.desc));
+      text.append(el("span", "new", o.kind==="evolution"?L("Evolución"):o.isNew ? L("¡NUEVO!") : ""), el("b", "", o.title), el("small", "", o.desc));
       if(o.synergy)text.append(el("span","synergy-note",L("Necesario para evolucionar")));
       card.append(img, text, el("kbd", "", i + 1));
       card.addEventListener("click", () => pickLevel(i));
       box.appendChild(card);
     });
     $("levelup").hidden = false;
-    setTimeout(() => box.querySelector("button")?.focus(), 50);
+    setTimeout(()=>{
+      if(generation!==choiceGeneration || $("levelup").hidden)return;
+      for(const card of box.children)card.disabled=false;
+      $("levelup-reroll").disabled=rerolls<=0 || d.kind==="chest";
+      box.querySelector("button")?.focus();
+    },180);
   }
 
   function waitOthers() {
+    choiceGeneration++;
     $("levelup-reroll").disabled=true;
     $("levelup-cards").textContent = "";
     $("levelup-wait").hidden = false;
   }
 
   function hideLevelUp() {
+    choiceGeneration++;
     $("levelup").hidden = true;
     Game.setControlsEnabled($("pause").hidden && $("end").hidden);
   }

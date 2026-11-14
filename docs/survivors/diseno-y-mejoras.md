@@ -45,7 +45,8 @@ de élites y recompensas necesita también partidas de jugadores reales.
 
 ## Información y accesibilidad
 
-La brújula señala el cofre más cercano y prioriza compañeros caídos conectados.
+La brújula prioriza compañeros caídos conectados, curación cercana con vida
+crítica y cofres. Si no hay ninguno, guía hacia puntos del mapa sin usar.
 Las distancias son pasos de juego. Las instantáneas incluyen los cofres lejanos
 para que el invitado pueda encontrarlos. El HUD señala el agua, un jefe que vaya
 a llegar en los próximos 30 segundos y la vida crítica mediante un borde fijo.
@@ -55,7 +56,10 @@ vida recuperada (sin curación sobrante) y élites derrotados. Las métricas son
 jugador y viajan en las instantáneas y el resultado cooperativo. Los cofres
 recogidos se cuentan por equipo. La curación ya no muestra siempre +30 aunque
 solo falten unos pocos puntos de vida, y no cambia la vida de compañeros caídos.
-Los cofres dejan de asignar mejoras a jugadores desconectados.
+Cada cofre pausa la acción y ofrece una elección a cada jugador conectado.
+No se pueden cambiar sus opciones; las elecciones de nivel pendientes se conservan.
+Las dos ramas de evolución y las mecánicas nuevas se detallan en
+[Estrategia y mapas](estrategia-y-mapas.md).
 
 Ajustes persistentes:
 
