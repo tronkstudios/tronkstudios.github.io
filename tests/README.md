@@ -6,7 +6,7 @@ Las pruebas de simulación no requieren dependencias:
 node --test tests/survivors.test.cjs
 ```
 
-Las 75 pruebas cubren el cofre, pausa de efectos, desconexiones durante elecciones,
+Las 86 pruebas cubren el cofre, pausa de efectos, desconexiones durante elecciones,
 instantáneas online, 24 personajes con su arma y técnicas propias, jefes finales de los cuatro
 mapas y fases finales sucesivas, colisiones con enemigos grandes, ralentizaciones, recargas,
 fusión de progreso remoto, datos guardados incompletos y tickets de partidas que
@@ -40,6 +40,7 @@ node tests/survivors.characters.cjs
 node tests/survivors.world.cjs
 node tests/survivors.insights.cjs
 node tests/survivors.specializations.cjs
+node tests/survivors.combat.cjs
 # Probar el protocolo de juego con transporte simulado:
 RTC_TEST_MODE=mock node tests/survivors.online.cjs
 ```
@@ -100,9 +101,15 @@ Chromium no tiene su CA instalada; no modifica la configuración del juego.
   conservación del resumen de un compañero caído hasta el fin del equipo.
 - **Especializaciones:** tres etapas con ventajas y costes, requisitos de nivel y
   tiempo, comparaciones numéricas, ficha de estadísticas en pausa y resumen final
-  en escritorio y móvil. Las 75 pruebas de simulación cubren las nueve opciones
+  en escritorio y móvil. Las 86 pruebas de simulación cubren las nueve opciones
   en los 24 personajes, cofres, reinicio y recargas proporcionales de armas,
   habilidad, técnicas, drones y contactos orbitales.
+- **Combate propio y reliquias:** dieciocho comportamientos para espada, arco y
+  viento, iconos distintos, treinta fotogramas de estocada y sus destellos,
+  recompensas opcionales de reliquia, resumen local y avisos de pinza en 3D y
+  móvil 2D. La simulación compara el daño nominal anunciado con el emitido y
+  comprueba rebote único, recorrido real, recargas, curación acotada, compatibilidad
+  y propiedad. El protocolo online comprueba reliquias distintas por jugador.
 - **Online:** elección independiente de las evoluciones de cofre y especializaciones, sala, movimiento del invitado, entrega y guardado del resultado,
   segunda partida, cambio de opciones del invitado y desconexión con una elección pendiente. Supabase, cuenta
   y TURN se sustituyen por un punto de encuentro local. En modo normal usa

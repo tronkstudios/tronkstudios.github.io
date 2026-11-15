@@ -126,8 +126,14 @@ const assert = require('node:assert/strict');
     const guestStats=await guest.evaluate(()=>Game.hudData().stats);
     assert.equal(guestStats.find(s=>s.label==='Vida máxima').value,90);
     await guest.locator('#hud-pause').click();assert.match(await guest.locator('#pause-talents').textContent(),/Paso ligero/);await guest.locator('#pause-resume').click();
+    await host.evaluate(()=>{const st=Game.state,p=st.players[1];st.chests=3;st.pickups=[{kind:'cofre',x:p.x,y:p.y,t:0}];Game.step();});
+    await host.waitForSelector('.up-card.is-relic:enabled');await guest.waitForSelector('.up-card.is-relic:enabled');
+    await host.locator('.up-card.is-relic').click();await guest.locator('.up-card').nth(2).click();
+    await guest.waitForFunction(()=>Game.state.players[0].relics?.length===1&&Game.state.players[1].relics?.length===0);
+    await guest.locator('#hud-pause').click();assert.match(await guest.locator('#pause-relics').textContent(),/0\/2/);await guest.locator('#pause-resume').click();
     await host.evaluate(()=>Game.finish(false));
     await guest.waitForSelector('#end:not([hidden])');
+    assert.equal(await guest.locator('#end-relics').isVisible(),false,'guest does not inherit host relics');
     assert.equal(await guest.evaluate(()=>Save.get().runs),1,'guest receives and saves the final result');
     await host.waitForFunction(()=>!TronkNet.active);
     for(const page of [host,guest]) {await page.locator('#end-menu').click();await page.locator('#menu [data-go="online"]').click();}
@@ -152,6 +158,6 @@ const assert = require('node:assert/strict');
     const tick=await host.evaluate(()=>Game.state.t);
     await host.waitForFunction(t=>Game.state.t>t,tick,{timeout:5000});
     assert.deepEqual(errors,[]);
-    console.log(`Online (${process.env.RTC_TEST_MODE === 'mock' ? 'mock transport' : 'real local RTC'}): room, guest movement, final results, shared level up, chest reward, specializations, guest reroll and disconnect during choice passed`);
+    console.log(`Online (${process.env.RTC_TEST_MODE === 'mock' ? 'mock transport' : 'real local RTC'}): room, guest movement, final results, shared level up, chest reward, relic ownership, specializations, guest reroll and disconnect during choice passed`);
   } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

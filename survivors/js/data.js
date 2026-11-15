@@ -736,3 +736,38 @@ TS.TALENTS={
  perimeter:{tier:2,name:"Control del terreno",desc:"+28 puntos de área y +8 puntos de tiempo de recarga.",stats:{area:.28,cooldown:-.08}},
  resolve:{tier:2,name:"Última resistencia",desc:"+20 de vida máxima y −10 puntos de potencia.",stats:{maxHp:.2,might:-.1}}
 };
+
+
+// Kits propios: cada técnica mantiene el arma y los requisitos existentes.
+TS.DISTINCT_KITS={
+ ranjay:{
+  burst:["Tres filos","Three edges","Encadena tres cortes de espada hacia el frente.","Chains three sword cuts in front of you."],
+  ring:["Rueda de acero","Steel wheel","Un giro completo de espada aparta a los enemigos cercanos.","A full sword spin pushes nearby enemies away."],
+  pierce:["Punta de acero","Steel point","Estocada de espada estrecha y larga que atraviesa una fila.","A narrow, long sword thrust pierces a line of enemies."],
+  guard:["Guardia de acero","Steel guard","Corte defensivo: bloquea un proyectil durante un segundo.","Defensive cut: blocks one projectile for one second."],
+  focus:["Corte decisivo","Decisive cut","Un corte frontal concentrado con más alcance y potencia.","A focused frontal cut with greater reach and power."],
+  surge:["Danza de Excalibur","Excalibur dance","Seis cortes sucesivos de espada despejan un círculo.","Six successive sword cuts clear a circle."]},
+ iria:{
+  burst:["Triple cuerda","Triple string","Tres flechas rápidas hacia el objetivo más cercano.","Three quick arrows at the nearest target."],
+  ring:["Abanico de flechas","Arrow fan","Abre un abanico frontal para alcanzar varios enemigos.","Opens a frontal fan to hit several enemies."],
+  pierce:["Flecha penetrante","Piercing arrow","Una flecha larga atraviesa una fila de enemigos.","One long arrow pierces a line of enemies."],
+  guard:["Flechas de sujeción","Pinning arrows","Flechas cortas frenan a los enemigos cercanos.","Short arrows slow nearby enemies."],
+  focus:["Ojo de halcón","Hawk eye","Una flecha precisa concentra la potencia en un objetivo.","One precise arrow concentrates power on a target."],
+  surge:["Horizonte de flechas","Arrow horizon","Tres salvas escalonadas cubren el frente con flechas.","Three staggered volleys cover the front with arrows."]},
+ duna:{
+  burst:["Viento de avance","Advancing wind","Un tornado estrecho avanza directamente hacia el objetivo.","A narrow tornado travels straight toward its target."],
+  ring:["Pozos de viento","Wind wells","Dos remolinos fijos reúnen enemigos delante del báculo.","Two fixed vortices gather enemies in front of the staff."],
+  pierce:["Tornado perforante","Piercing tornado","Tornados rápidos atraviesan el frente en línea recta.","Fast tornadoes cross the front in straight lines."],
+  guard:["Muralla de viento","Wind wall","Tres tornados orbitan alrededor del báculo para proteger el paso.","Three tornadoes orbit the staff to protect your path."],
+  focus:["Ojo del huracán","Eye of the Hurricane","Un gran remolino fijo concentra el daño en la posición del objetivo.","A large fixed vortex concentrates damage at the target's position."],
+  surge:["Tormenta total","Total storm","Seis tornados dibujan una espiral que reúne y golpea enemigos.","Six tornadoes trace a spiral that gathers and hits enemies."]}
+};
+for(const [charId,kit] of Object.entries(TS.DISTINCT_KITS))for(const move of TS.TECHNIQUES[charId]){
+ const [name,nameEn,desc,descEn]=kit[move.id];const hitScale=({ranjay:{burst:.65,ring:.65,guard:.6,surge:.7},iria:{burst:.65,ring:.7,guard:.55,focus:1.2,surge:.65}})[charId]?.[move.id] || 1;Object.assign(move,{name,nameEn,desc,descEn,hitScale,icon:`move:${charId}:${move.id}`});
+}
+TS.MAX_RELICS=2;
+TS.RELICS={
+ prisma:{name:"Prisma de desvío",desc:"Las flechas, virotes, kunais y copos rebotan una vez hacia otro enemigo, con la mitad de potencia.",icon:"relic-prisma",weapons:["arco","virote","kunai","copos"]},
+ pasos:{name:"Botas de resonancia",desc:"Recorrer 160 pasos crea una onda cercana. Como máximo una cada 3 segundos.",icon:"relic-pasos"},
+ semilla:{name:"Semilla de refugio",desc:"Recoger jensalada deja un círculo que cura 2 de vida por segundo durante 5 segundos. Un círculo por jugador.",icon:"relic-semilla"}
+};

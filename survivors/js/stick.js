@@ -752,12 +752,14 @@ const Stick = (() => {
         walk: Array.from({ length: 8 }, (_, i) => frame(o, pose(style, "walk", i, 8), false, yaw)),
         attack: Array.from({ length: 6 }, (_, i) => frame(o, pose(style, "attack", i, 6), false, yaw))
       };
+      if(o.role==="ranjay")frames.thrust=Array.from({length:6},(_,i)=>frame(o,pose("thrust","attack",i,6),false,yaw));
       out[v] = frames;
       // El destello conserva exactamente los pies, el recorte y la silueta.
       out[`${v}Flash`] = {
         idle: Sprites.silhouette(frames.idle),
         walk: frames.walk.map(c => Sprites.silhouette(c)),
-        attack: frames.attack.map(c => Sprites.silhouette(c))
+        attack: frames.attack.map(c => Sprites.silhouette(c)),
+        ...(frames.thrust?{thrust:frames.thrust.map(c=>Sprites.silhouette(c))}:{})
       };
     }
     return out;

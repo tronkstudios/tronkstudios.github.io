@@ -678,7 +678,7 @@ const Render3D = (() => {
   }
 
   function poseFor(o, moving, walkT, atk) {
-    const style = rig.styleOf(o);
+    const style=atk?.pose==="thrust" && o.role==="ranjay"?"thrust":rig.styleOf(o);
     if (atk && atk.t > 0) {
       const k = clamp(1 - atk.t / atk.total, 0, 1);
       return rig.pose(style, "attack", k * 5, 6);
@@ -903,6 +903,7 @@ const Render3D = (() => {
     switch (s.type) {
       case "arrow":{
         const cx=Math.cos(ang),sz=Math.sin(ang),z=s.y+16;
+        if(s.style==="focus" || s.style==="guard")between("glowCyl",[s.x-cx*17,40,z-sz*17],[s.x,40,z],.9,s.style==="focus"?0xf0cb82:0x80e3d0);
         between("cyl",[s.x-cx*12,40,z-sz*12],[s.x+cx*12,40,z+sz*12],.65,0xcda470);
         at("octa",s.x+cx*14,40,z+sz*14,2,1.6,2,0xe1e8dc,-ang);
         at("box",s.x-cx*10,40,z-sz*10,5,1,4,0xeee2be,-ang);break;
@@ -930,6 +931,11 @@ const Render3D = (() => {
     if (z.t < 0) return;
     const k = z.t / (z.life || 1);
     switch (z.type) {
+      case "pincer":
+        for(let i=0;i<30;i++){const a=i*TAU/30,b=(i+1)*TAU/30,gap=Math.abs(Math.atan2(Math.sin((a+b)/2-z.ang),Math.cos((a+b)/2-z.ang)))<z.opening;
+          between("glowCyl",[z.x+Math.cos(a)*z.r,2,z.y+Math.sin(a)*z.r],[z.x+Math.cos(b)*z.r,2,z.y+Math.sin(b)*z.r],gap?2.2:1.1,gap?0x80e3d0:0xed9b85);
+        }between("glowCyl",[z.x,2,z.y],[z.x+Math.cos(z.ang)*z.r,2,z.y+Math.sin(z.ang)*z.r],1,0x80e3d0);break;
+      case "refuge":at("ring",z.x,2,z.y,z.r,3,z.r,0x80e3d0);at("disc",z.x,1,z.y,z.r,1,z.r,0x3b7764);break;
       case "dangerLine":
         between("glowCyl",[z.x,2,z.y],[z.tx,2,z.ty],1.3,0xffab97);at("ring",z.tx,2,z.ty,12,2,12,0xffab97);break;
       case "dangerRing":
@@ -954,7 +960,7 @@ const Render3D = (() => {
           if(i<3)at("glow",z.x+Math.cos(a)*z.len*t,15,z.y+Math.sin(a)*z.len*t,r*.45,r*.45,r*.45,0xffe5a0);
         }break;
       case "slash": {
-        const sweep = 2.7;
+        const sweep = z.spread || 2.7;
         const a0 = z.ang - (sweep / 2) * z.dirSign;
         const a1 = a0 + sweep * Math.min(1, k * 2.2) * z.dirSign;
         arc(z.x, z.y + 16, 18, z.R, Math.min(a0, a1), Math.max(a0, a1), z.gold ? 0xffd23f : 0xffffff);
@@ -964,6 +970,7 @@ const Render3D = (() => {
       case "punch": at("ghost", z.x, 18, z.y + 18, z.r, z.r, z.r, z.glove ? 0xff6b6b : 0xffe9a8); break;
       case "thrust":
       case "laser": {
+        if(z.sword){const reach=z.len*Math.min(1,k*3),fade=1-k;between("glowCyl",[z.x+Math.cos(z.ang)*reach*.3,18,z.y+16+Math.sin(z.ang)*reach*.3],[z.x+Math.cos(z.ang)*reach,18,z.y+16+Math.sin(z.ang)*reach],Math.max(.1,fade),0xbfe6ff);at("octa",z.x+Math.cos(z.ang)*reach,18,z.y+16+Math.sin(z.ang)*reach,3*fade,1,3*fade,0xf0faff,-z.ang);break;}
         const L = z.len || 40;
         const c = z.type === "laser" ? 0xff3b6b : 0xffffff;
         at("glowBox", z.x + Math.cos(z.ang) * L / 2, 18, z.y + 16 + Math.sin(z.ang) * L / 2, L, z.type === "laser" ? 2 : 1.5, z.type === "laser" ? 2 : 4, c, -z.ang);

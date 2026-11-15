@@ -480,7 +480,7 @@
       const list = el("ul");
       list.append(el("li","",`${L(TS.WEAPONS[ch.weapon].name)} · ${L("Ataque base")}`));
       for(const move of TS.TECHNIQUES[ch.id] || []) {
-        const row=el("li");row.append(el("strong","",L(move.name)),el("small","",`${L(move.desc)} · ${L("Desbloqueo")}: ${L("Nivel")} ${move.unlock || 1} · ${fmtTime(move.at || 0)} · ${move.max} ${L("rangos")}`));list.append(row);
+        const row=el("li");if(move.icon){const img=document.createElement("img");img.src=Sprites.iconUrl(move.icon,2);img.alt="";img.className="move-icon pix";row.append(img);}row.append(el("strong","",L(move.name)),el("small","",`${L(move.desc)} · ${L("Desbloqueo")}: ${L("Nivel")} ${move.unlock || 1} · ${fmtTime(move.at || 0)} · ${move.max} ${L("rangos")}`));list.append(row);
       }
       list.append(el("li","",`${L(TS.ABILITIES[ch.id].name)} · ${L("Habilidad activa")}`));
       moves.append(list,el("small","",L("Aprende y mejora tus técnicas al subir de nivel. Solo usas el arma de tu personaje.")));
@@ -792,14 +792,16 @@
     $("levelup-reroll").disabled=true;
     $("levelup-reroll").hidden=d.kind==="chest" || specializing;
     d.options.forEach((o, i) => {
-      const card = el("button", `up-card${o.kind==="technique"&&o.id==="surge"?" is-ultimate":""}${o.synergy?" is-synergy":""}${o.kind==="technique"?" is-technique":""}${o.kind==="evolution"?" is-evolution":""}${o.kind==="talent"?" is-talent":""}`);
+      const card = el("button", `up-card${o.kind==="technique"&&o.id==="surge"?" is-ultimate":""}${o.synergy?" is-synergy":""}${o.kind==="technique"?" is-technique":""}${o.kind==="evolution"?" is-evolution":""}${o.kind==="talent"?" is-talent":""}${o.kind==="relic"?" is-relic":""}`);
       card.type = "button";card.disabled=true;if(o.path)card.dataset.path=o.path;
       const img = document.createElement("img");
       img.src = Sprites.iconUrl(o.icon, 3);
       img.alt = "";
       img.className = "pix";
       const text = el("div");
-      text.append(el("span", "new", o.kind==="talent"?L("Especialización"):o.kind==="evolution"?L("Evolución"):o.isNew ? L("¡NUEVO!") : ""), el("b", "", o.title), el("small", "", o.desc));
+      text.append(el("span", "new", o.kind==="relic"?L("Reliquia · solo esta partida"):o.kind==="talent"?L("Especialización"):o.kind==="evolution"?L("Evolución"):o.isNew ? L("¡NUEVO!") : ""), el("b", "", o.title), el("small", "", o.desc));
+      if(o.kind==="technique" && o.cooldownSeconds!==undefined){const ch=Game.state?.players[Game.localId]?.charId,d=TS.TECHNIQUES[ch]?.find(m=>m.id===o.id);if(d){text.querySelector("b").textContent=o.lvl===1?L(d.name):LT("levelOf",{name:L(d.name),lvl:o.lvl});text.querySelector("small").textContent=`${L(d.desc)} · ${L("Recarga")}: ${o.cooldownSeconds.toLocaleString(LANG)} s`;}}
+      if(o.kind==="relic"){text.querySelector("b").textContent=L(TS.RELICS[o.id].name);text.querySelector("small").textContent=L(TS.RELICS[o.id].desc);}
       if(o.kind==="talent"){text.querySelector("b").textContent=L(TS.TALENTS[o.id].name);text.querySelector("small").textContent=L(TS.TALENTS[o.id].desc);}
       if(o.preview?.length){const changes=el("dl","choice-stats");for(const row of o.preview){const value=el("dd",row.loss?"is-loss":"is-gain",`${row.from.toLocaleString(LANG)}${row.unit} → ${row.to.toLocaleString(LANG)}${row.unit}`);changes.append(el("dt","",L(row.label)),value);}text.append(changes);}
       if(o.synergy)text.append(el("span","synergy-note",L("Necesario para evolucionar")));
@@ -870,6 +872,10 @@
         `${evo.name}
 ${evo.weapon} ${evo.level}/6 · ${evo.passive} ${evo.hasPassive?"✓":evo.blocked?L("Sin espacio para la pasiva"):"—"}
 ${L("Recoge un cofre con ambos requisitos")}`:"";
+      $("pause-relics").textContent="";
+      $("pause-relics").append(el("small","",`${L("Reliquias de partida")} · ${(d.relics || []).length}/${TS.MAX_RELICS}`));
+      for(const relic of d.relics || []){const item=el("div");const img=document.createElement("img");img.src=Sprites.iconUrl(relic.icon,2);img.alt="";item.append(img,el("b","",relic.name),el("small","",relic.desc));$("pause-relics").append(item);}
+      if(!(d.relics || []).length)$("pause-relics").append(el("small","",L("En los cofres pares puede aparecer una reliquia. La evolución y su receta tienen prioridad.")));
       $("pause-talents").textContent="";
       for(const talent of d.talents || [])$("pause-talents").append(el("span","",talent.name));
       if(d.talentNext)$("pause-talents").append(el("small","",`${L("Próxima especialización")}: ${L("Nivel")} ${d.talentNext.level} · ${fmtTime(d.talentNext.at)}`));
@@ -929,6 +935,8 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     add("Nivel", r.level);
     add("Enemigos", r.kills);
     add("Jefes", r.bosses);
+    const chosenRelics=(r.relics?.[Game.localId] || []).filter(id=>TS.RELICS[id]);$("end-relics").hidden=!chosenRelics.length;$("end-relics").textContent="";
+    for(const id of chosenRelics)$("end-relics").append(el("small","",`${L("Reliquia")}: ${L(TS.RELICS[id].name)}`));
     const chosenTalents=(r.talents?.[Game.localId] || []).filter(id=>TS.TALENTS[id]);
     $("end-talents").hidden=!chosenTalents.length;$("end-talents").textContent="";
     for(const id of chosenTalents)$("end-talents").append(el("span","",L(TS.TALENTS[id].name)));

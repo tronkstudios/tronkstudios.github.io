@@ -901,3 +901,11 @@ img[data-icon], .pix { image-rendering: pixelated; }
 .build-details dl { display:grid; grid-template-columns:1fr auto; gap:7px 12px; margin:12px 0 0; font-size:12px; }
 .build-details dd { margin:0; color:#f0cb82; font-variant-numeric:tabular-nums; }
 @media (max-width:600px) { .choice-stats { font-size:10px; gap:3px 6px; } }
+
+.up-card.is-relic { border-color:#d6b0f0; background:linear-gradient(115deg,#3c354c,#203640); }
+.relic-summary { display:grid; gap:6px; text-align:left; }
+.relic-summary>small { color:#b8ccc8; font-size:11px; text-align:center; }
+.relic-summary>div { display:grid; grid-template-columns:30px 1fr; gap:3px 8px; padding:8px; border:1px solid #d6b0f055; border-radius:8px; }
+.relic-summary img { width:28px; height:28px; grid-row:span 2; image-rendering:pixelated; }
+.relic-summary b { color:#e0c9ed; font-size:12px; }.relic-summary small { color:#bdd0cd; font-size:11px; }
+.char-moves .move-icon { float:left; width:32px; height:32px; margin:0 8px 4px 0; object-fit:contain; }
