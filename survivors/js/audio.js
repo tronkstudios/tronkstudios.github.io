@@ -14,7 +14,7 @@ const Sfx = (() => {
   let enabled = { sfx: true, music: true };
   const volume = { sfx: 0.9, music: 0.7 };
   const target = (kind) => (enabled[kind] ? volume[kind] * (kind === "music" ? 0.45 : 1.1) : 0);
-  let cueVolume=1;
+  let cueVolume=1, cueDest=null;
   const last = {}; // para no repetir el mismo sonido 50 veces por segundo
 
   function init() {
@@ -71,7 +71,7 @@ const Sfx = (() => {
     g.gain.setValueAtTime(0.0001, start);
     g.gain.exponentialRampToValueAtTime(vol, start + 0.008);
     g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
-    o.connect(g).connect(dest || sfxGain);
+    o.connect(g).connect(dest || cueDest || sfxGain);
     o.start(start);
     o.stop(start + dur + 0.02);
   }
@@ -87,7 +87,7 @@ const Sfx = (() => {
     const g = ctx.createGain();
     g.gain.setValueAtTime(vol, start);
     g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
-    s.connect(flt).connect(g).connect(dest || sfxGain);
+    s.connect(flt).connect(g).connect(dest || cueDest || sfxGain);
     s.start(start);
     s.stop(start + dur + 0.02);
   }
@@ -141,13 +141,15 @@ const Sfx = (() => {
   };
 
   // gap: segundos mínimos entre dos sonidos iguales
-  function play(name, gap = 0.03, gain = 1) {
+  function play(name, gap = 0.03, gain = 1, pan = 0) {
     if (!ctx || !enabled.sfx || !volume.sfx || !SOUNDS[name]) return;
     const t = ctx.currentTime;
     if(last[name]!==undefined && t-last[name]<gap)return;
     last[name] = t;
     cueVolume=Math.max(.01,Math.min(1,Number.isFinite(gain)?gain:1));
-    try{SOUNDS[name](t);}finally{cueVolume=1;}
+    const node=ctx.createStereoPanner?.();
+    if(node){node.pan.value=Math.max(-1,Math.min(1,Number.isFinite(pan)?pan:0));node.connect(sfxGain);cueDest=node;}
+    try{SOUNDS[name](t);}finally{cueVolume=1;cueDest=null;if(node)setTimeout(()=>node.disconnect(),3000);}
   }
 
   /* ---------- Música ---------- */

@@ -181,10 +181,11 @@ const Render3D = (() => {
 
   /* ---------- suelo ---------- */
   function ground(cx, cy, radius) {
-    if (api.mapId() !== lastMap) {
+    const mapKey=api.mapId()+":"+(api.mapRevision?.() || "");
+    if (mapKey !== lastMap) {
       for (const m of chunks.values()) { scene.remove(m); m.geometry.dispose(); m.material.map.dispose(); m.material.dispose(); }
       chunks.clear();
-      lastMap = api.mapId();
+      lastMap = mapKey;
     }
     const C = api.CHUNK;
     const x0 = Math.floor((cx - radius) / C);
@@ -863,7 +864,14 @@ const Render3D = (() => {
       const active=s.activeUntil>d.t;
       const r=s.progress>0&&!s.activated?76:32;
       at("ring",s.x,1,s.y,r,1,r,s.kind==="altar"?0xa294b6:active?0xb6d8b1:0x8caa95);
-      if(s.kind==="lamp"){
+      if(s.nest){
+        const col=s.used?0x80b7a4:s.kind==="grave"?0xbc9cdd:0xdf997d;
+        at("lowSph",s.x,5,s.y,32,9,24,0x384350);
+        if(s.kind==="grave"){
+          at("box",s.x,25,s.y,30,43,12,col);at("box",s.x,29,s.y+7,5,24,2,0x414553);at("box",s.x,32,s.y+7,18,5,2,0x414553);
+        }else{for(let i=0;i<5;i++){const a=i*Math.PI*2/5;at("lowSph",s.x+Math.cos(a)*18,13,s.y+Math.sin(a)*18,10,16,10,col);}at("lowSph",s.x,8,s.y,13,5,13,0x262735);}
+        if(!s.used){at("box",s.x,64,s.y,48,4,3,0x15252b);at("box",s.x-24+24*(s.pct ?? 1),64,s.y+2,48*(s.pct ?? 1),4,3,col);}
+      } else if(s.kind==="lamp"){
         at("cyl",s.x,32,s.y,3,64,3,0x7f969c);at("box",s.x,70,s.y,19,14,16,active?0xffe7a2:0x526674);
       } else if(s.kind==="altar"){
         at("box",s.x,8,s.y,48,16,34,0x655275);at("octa",s.x,33,s.y,12,20,12,s.used?0x80e3d0:0xd7a1f4);
@@ -938,6 +946,7 @@ const Render3D = (() => {
     if (z.t < 0) return;
     const k = z.t / (z.life || 1);
     switch (z.type) {
+      case "nestSpawn": at("ring",z.x,2,z.y,z.r,1,z.r,0xdf997d);break;
       case "pincer":
         for(let i=0;i<30;i++){const a=i*TAU/30,b=(i+1)*TAU/30,gap=Math.abs(Math.atan2(Math.sin((a+b)/2-z.ang),Math.cos((a+b)/2-z.ang)))<z.opening;
           between("glowCyl",[z.x+Math.cos(a)*z.r,2,z.y+Math.sin(a)*z.r],[z.x+Math.cos(b)*z.r,2,z.y+Math.sin(b)*z.r],gap?2.2:1.1,gap?0x80e3d0:0xed9b85);

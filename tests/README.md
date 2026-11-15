@@ -3,7 +3,7 @@
 Las pruebas de simulación no requieren dependencias:
 
 ```sh
-node --test tests/survivors.test.cjs
+node --test tests/survivors.test.cjs tests/survivors.depth.cjs
 ```
 
 Las 86 pruebas cubren el cofre, pausa de efectos, desconexiones durante elecciones,
@@ -28,6 +28,7 @@ Las comprobaciones de navegador requieren Playwright y Chromium. Desde la raíz:
 ```sh
 python3 -m http.server 8000
 # En otra terminal, con Playwright disponible:
+node tests/survivors.depth.browser.cjs
 node tests/survivors.browser.cjs
 node tests/survivors.mobile.cjs
 node tests/survivors.features.cjs
@@ -132,3 +133,12 @@ impidió probar WebRTC local en el entorno cloud. No se cambia esa política.
 TURN, conexiones entre redes distintas, guardado en producción y Safari/iOS en
 un teléfono físico requieren una comprobación adicional con esos servicios y
 dispositivos.
+
+- **Profundidad de combate:** 103 comprobaciones de simulación entre las dos suites.
+  Las 17 nuevas cubren variantes activas en los 24 personajes, daño diferido,
+  postura, esquivas, enlaces, escoltas, refuerzos y resurrección limitada,
+  semillas e historial validado. La suite de navegador adicional recorre las
+  192 demostraciones por dispositivo, elección activa, sepulcro 2D/3D, resultados,
+  historial, traducción y repetición. Online comprueba ramas activas distintas,
+  origen destructible compartido y resultado local mediante transporte simulado.
+  Véase `docs/survivors/profundidad-de-combate.md` para reglas y límites.

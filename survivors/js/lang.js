@@ -654,3 +654,46 @@ Object.assign(EN,{
  "Reliquia":"Relic","Reliquias de partida":"Run relics","Reliquia · solo esta partida":"Relic · this run only","En los cofres pares puede aparecer una reliquia. La evolución y su receta tienen prioridad.":"Even-numbered chests may offer a relic. Evolution and its recipe take priority.",
  "¡Pinza! Busca la abertura turquesa":"Pincer attack! Find the turquoise opening","Pinza de la horda":"Horde pincer"
 });
+
+Object.assign(EN,{
+  "Activa concentrada": "Focused active",
+  "Eco de la activa": "Active echo",
+  "+35 % de daño y curación de la activa. Recarga un 20 % más lenta.": "+35% active damage and healing. Cooldown is 20% longer.",
+  "Repite la activa un segundo después al 45 % de daño y curación. Recarga un 25 % más lenta.": "Repeats the active one second later at 45% damage and healing. Cooldown is 25% longer.",
+  "Tornado viajero: avanza en la dirección apuntada, con +35 % de daño y recarga un 20 % más lenta.": "Travelling tornado: moves in the aimed direction, with +35% damage and a 20% longer cooldown.",
+  "Ojo del vendaval: tornado fijo más amplio que atrae enemigos durante 4 segundos. Recarga un 25 % más lenta.": "Eye of the gale: a larger stationary tornado pulls enemies for 4 seconds. Cooldown is 25% longer.",
+  "Nido de refuerzos": "Reinforcement nest",
+  "Sepulcro inquieto": "Restless tomb",
+  "Sepulcro inquieto: destrúyelo para impedir resurrecciones": "Restless tomb: destroy it to stop resurrections",
+  "Nido descubierto: destrúyelo para cortar los refuerzos": "Nest discovered: destroy it to stop reinforcements",
+  "¡Origen destruido! Cofre y refugio durante 10 segundos": "Source destroyed! Chest and refuge for 10 seconds",
+  "Destruye el nido para cortar sus refuerzos y conseguir un cofre.": "Destroy the nest to stop its reinforcements and earn a chest.",
+  "Destruye el sepulcro: los esqueletos cercanos pueden resucitar una vez.": "Destroy the tomb: nearby skeletons can resurrect once.",
+  "¡Postura rota!": "Posture broken!",
+  "¡Esquiva precisa!": "Precise dodge!",
+  "¡Técnicas enlazadas!": "Linked techniques!",
+  "Ver ataque": "Play attack",
+  "Demostración de ataques": "Attack demonstration",
+  "Ataque de demostración": "Demonstration attack",
+  "Rendimiento por habilidad": "Skill performance",
+  "Sin impactos registrados": "No hits recorded",
+  "Daño": "Damage",
+  "Curación": "Healing",
+  "Control": "Control",
+  "Comparación con tu partida anterior": "Comparison with your previous run",
+  "Técnicas anteriores": "Previous techniques",
+  "Técnicas actuales": "Current techniques",
+  "Tu siguiente partida con este personaje y mapa tendrá una comparación.": "Your next run with this character and map will include a comparison.",
+  "Últimas partidas comparables": "Recent comparable runs",
+  "Detalles y comparación": "Details and comparison",
+  "Esquivas precisas": "Precise dodges",
+  "Volver a la sala online": "Return to online lobby",
+  "Repetir configuración": "Replay setup",
+  "Vuelve a crear o unirte a una sala para jugar con tus amigos.": "Create or join a lobby again to play with your friends.",
+  "Mismo personaje, mapa y reglas. El mapa se genera de nuevo salvo en retos con semilla.": "Same character, map and rules. A new map is generated except in seeded challenges.",
+  "Evoluciona tu habilidad activa": "Evolve your active ability"
+});
+
+Object.assign(EN,{"+35 % de daño si se enlazan en 3 segundos.":"+35% damage when linked within 3 seconds."});
+
+Object.assign(EN,{"Tornado viajero":"Travelling tornado","Ojo del vendaval":"Eye of the gale"});

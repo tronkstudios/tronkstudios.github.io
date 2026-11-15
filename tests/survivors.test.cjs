@@ -430,7 +430,7 @@ test('Duna keeps unlocking new moves later and gains four distinct tornado patte
     assert.equal(p.weapons.length,1);assert.equal(p.weapons[0].id,'tornado');
   }
   Game.start([setup('duna')]);const st=Game.state,p=st.players[0];p.techniques={burst:5,ring:5,pierce:5,guard:5,focus:5};
-  p.talents=['edge','tempo'];st.level=47;st.t=1080*60;st.xp=st.xpNext;Game.step();assert.ok(st.choosing[0].some(o=>o.id==='surge'));
+  p.talents=['edge','tempo'];p.activePath='precision';st.level=47;st.t=1080*60;st.xp=st.xpNext;Game.step();assert.ok(st.choosing[0].some(o=>o.id==='surge'));
   Game.choose(0,st.choosing[0].findIndex(o=>o.id==='surge'));st.xp=st.xpNext;Game.step();
   assert.equal(st.choosing[0].some(o=>o.id==='surge'),false,'next rank waits until level 52 and another 75 seconds');
   Game.start([setup('duna')]);Game.state.level=99;Game.state.t=900*60;Game.state.xp=Game.state.xpNext;Game.step();
@@ -792,7 +792,7 @@ test('refuge seed replaces its own circle, heals at most ten per ally, and never
 });
 test('midgame pincer warns before spawning, leaves an opening and respects pauses and major encounters',()=>{
  const {Game}=engine();for(const n of [1,4]){
-  const st=combatRun(Game,'duna',n);st.t=600*60;st.nextPressure=st.t;Game.step();const z=st.zones.find(z=>z.type==='pincer');assert.ok(z);assert.equal(st.enemies.length,0);assert.ok(z.opening>Math.PI/4);
+  const st=combatRun(Game,'duna',n);st.t=600*60;st.nextPressure=st.t;Game.step();const z=st.zones.find(z=>z.type==='pincer');assert.ok(z);assert.equal(st.enemies.filter(e=>!e.prop).length,0);assert.ok(z.opening>Math.PI/4);
   Game.setPaused(true);Game.step();assert.equal(z.t,1);Game.setPaused(false);for(let i=0;i<89;i++)Game.step();const fighters=st.enemies.filter(e=>!e.prop);assert.ok(fighters.length>0);assert.ok(fighters.length<=20);
   for(const e of fighters){const a=Math.atan2(e.y-z.y,e.x-z.x);assert.ok(Math.abs(Math.atan2(Math.sin(a-z.ang),Math.cos(a-z.ang)))>=z.opening-.05);}
  }
@@ -810,7 +810,7 @@ test('relics, projectile variants and pincer warnings reach guest snapshots and 
 });
 test('all eighteen distinct technique cards preview the nominal power actually emitted',()=>{
  const {Game,TS}=engine();for(const charId of ['ranjay','iria','duna'])for(const def of TS.TECHNIQUES[charId]){
-  const st=combatRun(Game,charId),p=st.players[0];p.talents=['edge','tempo','resolve'];st.level=def.unlock;st.t=def.at*60;st.nextPressure=st.nextBreach=st.nextElite=1e12;
+  const st=combatRun(Game,charId),p=st.players[0];p.talents=['edge','tempo','resolve'];p.activePath='precision';st.level=def.unlock;st.t=def.at*60;st.nextPressure=st.nextBreach=st.nextElite=1e12;
   p.techniques=Object.fromEntries(TS.TECHNIQUES[charId].filter(d=>d.id!==def.id).map(d=>[d.id,5]));p.techCds=Object.fromEntries(Object.keys(p.techniques).map(id=>[id,1e9]));st.xp=st.xpNext;Game.step();
   const choice=st.choosing[0].find(o=>o.id===def.id&&o.kind==='technique');assert.ok(choice,charId+':'+def.id);const nominal=choice.preview[0].to;Game.choose(0,st.choosing[0].indexOf(choice));p.techCds[def.id]=0;st.shots=[];st.zones=[];Game.step();
   const emitted=st.shots.find(s=>s.dmg) || st.zones.find(z=>z.dmg);assert.ok(emitted);assert.equal(Math.round(emitted.dmg*p.stats.might*10)/10,nominal,charId+':'+def.id);

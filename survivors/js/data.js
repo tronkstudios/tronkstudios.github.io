@@ -771,3 +771,17 @@ TS.RELICS={
  pasos:{name:"Botas de resonancia",desc:"Recorrer 160 pasos crea una onda cercana. Como máximo una cada 3 segundos.",icon:"relic-pasos"},
  semilla:{name:"Semilla de refugio",desc:"Recoger jensalada deja un círculo que cura 2 de vida por segundo durante 5 segundos. Un círculo por jugador.",icon:"relic-semilla"}
 };
+
+// Profundidad de combate: cada variante conserva el arma y la activa originales.
+TS.ACTIVE_PATHS={
+ precision:{name:"Activa concentrada",desc:"+35 % de daño y curación de la activa. Recarga un 20 % más lenta."},
+ echo:{name:"Eco de la activa",desc:"Repite la activa un segundo después al 45 % de daño y curación. Recarga un 25 % más lenta."}
+};
+TS.ENEMIES.nido={name:"Nido de refuerzos",hp:260,speed:0,dmg:0,r:22,prop:true,ai:"nest",sprite:"barril"};
+TS.SITE_NAMES.nest="Nido de refuerzos";
+TS.SITE_NAMES.grave="Sepulcro inquieto";
+
+TS.SITE_HINTS.nest="Destruye el nido para cortar sus refuerzos y conseguir un cofre.";
+TS.SITE_HINTS.grave="Destruye el sepulcro: los esqueletos cercanos pueden resucitar una vez.";
+
+TS.activePathName=(charId,id)=>charId==="duna"?({precision:"Tornado viajero",echo:"Ojo del vendaval"}[id] || ""):(TS.ACTIVE_PATHS[id]?.name || "");
