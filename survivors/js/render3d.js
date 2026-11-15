@@ -159,6 +159,9 @@ const Render3D = (() => {
     pool("ghostBox", box, ghost(), 1500, false);
     pool("ghostCone", cone, ghost(), 300, false);
     pool("invertedCone", cone.clone().rotateZ(Math.PI), ghost(), 300, false);
+    const foliage=(flatShading=false)=>new T.MeshLambertMaterial({color:0xffffff,transparent:true,opacity:.22,depthWrite:false,flatShading});
+    pool("leafSph",new T.IcosahedronGeometry(1,1),foliage(true),500,false);
+    pool("leafCone",cone,foliage(),500,false);
     pool("ring", torus, basic(), 600, false);
     pool("disc", disc, ghost(), 300, false);
     resize();
@@ -219,7 +222,7 @@ const Render3D = (() => {
   /* ---------- obstáculos ---------- */
   const hashF = (x, y, k) => { const s = Math.sin(x * 12.9898 + y * 78.233 + k * 37.719) * 43758.5453; return s - Math.floor(s); };
 
-  function obstacle(ob, dark) {
+  function obstacle(ob, dark, fade=false) {
     const { x, y } = ob;
     const v = hashF(x, y, 1);
     const g = hashF(x, y, 2);
@@ -232,15 +235,15 @@ const Render3D = (() => {
           between("cyl",[x,2,y],[x+Math.cos(a)*13,1,y+Math.sin(a)*13],2.2,0x5e4935);
           between("cyl",[x,25,y],[x+Math.cos(a)*18,54,y+Math.sin(a)*14],2.8,0x775639);
         }
-        at("lowSph", x, 70, y, 30, 26, 30, leaf, v * 3);
-        at("lowSph", x-6,83,y-8,17,13,18,dark?0x426458:0x6a9168,v*4);
-        at("lowSph", x+20,69,y+3,14,16,16,dark?0x2b493f:0x47735a,v*2);
-        at("lowSph", x - 14, 58, y + 6, 20, 18, 20, leaf, v * 5);
-        at("lowSph", x + 15, 62, y - 4, 19, 17, 19, leaf, v * 7);
+        at(fade?"leafSph":"lowSph", x, 70, y, 30, 26, 30, leaf, v * 3);
+        at(fade?"leafSph":"lowSph", x-6,83,y-8,17,13,18,dark?0x426458:0x6a9168,v*4);
+        at(fade?"leafSph":"lowSph", x+20,69,y+3,14,16,16,dark?0x2b493f:0x47735a,v*2);
+        at(fade?"leafSph":"lowSph", x - 14, 58, y + 6, 20, 18, 20, leaf, v * 5);
+        at(fade?"leafSph":"lowSph", x + 15, 62, y - 4, 19, 17, 19, leaf, v * 7);
         break;
       case "pino":
         between("cyl", [x, 0, y], [x, 30, y], 4.5, 0x5a3a20);
-        for (let i = 0; i < 4; i++) at("cone", x, 34 + i * 19, y, 28 - i * 6, 36 - i * 3, 28 - i * 6, dark ? 0x29493f : [0x315a49,0x3b6851,0x47755b,0x568269][i]);
+        for (let i = 0; i < 4; i++) at(fade?"leafCone":"cone", x, 34 + i * 19, y, 28 - i * 6, 36 - i * 3, 28 - i * 6, dark ? 0x29493f : [0x315a49,0x3b6851,0x47755b,0x568269][i]);
         break;
       case "roca":
       case "rocaGrande": {
@@ -282,7 +285,7 @@ const Render3D = (() => {
         for (let i = 0; i < 3; i++) between("cyl", pts[i], pts[i + 1], 4.5 - i * 0.6, 0x9a6a3a);
         for (let i = 0; i < 6; i++) {
           const a = (i / 6) * TAU;
-          between("cone", [x + 18, 76, y], [x + 18 + Math.cos(a) * 32, 66, y + Math.sin(a) * 32], 5, 0x3f9a40);
+          between(fade?"leafCone":"cone", [x + 18, 76, y], [x + 18 + Math.cos(a) * 32, 66, y + Math.sin(a) * 32], 5, 0x3f9a40);
         }
         break;
       }
@@ -829,7 +832,11 @@ const Render3D = (() => {
     scene.background = new T.Color(dark ? 0x080618 : 0x4a8a3a);
     const radius = Math.max(H * 1.4, 700);
     ground(d.cx, d.cy, radius);
-    api.obstaclesNear(d.cx, d.cy, radius * 0.9, (ob) => obstacle(ob, dark > 0));
+    const characters=d.actors.filter(a=>a.kind==="char");
+    api.obstaclesNear(d.cx,d.cy,radius*.9,ob=>{
+      const fade=["arbol","pino","palmera"].includes(ob.kind) && characters.some(a=>Math.abs(a.x-ob.x)<(ob.kind==="palmera"?65:46) && ob.y-a.y>-12 && ob.y-a.y<90);
+      obstacle(ob,dark>0,fade);
+    });
 
     for (const a of d.actors) {
       const k = a.scale || 1;

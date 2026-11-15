@@ -41,6 +41,7 @@ node tests/survivors.world.cjs
 node tests/survivors.insights.cjs
 node tests/survivors.specializations.cjs
 node tests/survivors.combat.cjs
+node tests/survivors.visual.cjs
 # Probar el protocolo de juego con transporte simulado:
 RTC_TEST_MODE=mock node tests/survivors.online.cjs
 ```
@@ -110,6 +111,13 @@ Chromium no tiene su CA instalada; no modifica la configuración del juego.
   móvil 2D. La simulación compara el daño nominal anunciado con el emitido y
   comprueba rebote único, recorrido real, recargas, curación acotada, compatibilidad
   y propiedad. El protocolo online comprueba reliquias distintas por jugador.
+- **Revisión visual:** equipo completo y nombres largos con jefe, recogidas,
+  racha, rescate y trece huecos de equipo en 1280×800, 1024×768, 800×600,
+  320×568, 390×844,
+  568×320 y 844×390, con densidad doble en móvil. Comprueba que los paneles y
+  etiquetas no se superpongan, que la pausa admita estadísticas abiertas y que
+  los avisos de una partida no entren en otra. Verifica follaje 3D atenuado
+  por personajes y transparencia 2D por un compañero, conservando recompensas.
 - **Online:** elección independiente de las evoluciones de cofre y especializaciones, sala, movimiento del invitado, entrega y guardado del resultado,
   segunda partida, cambio de opciones del invitado y desconexión con una elección pendiente. Supabase, cuenta
   y TURN se sustituyen por un punto de encuentro local. En modo normal usa

@@ -53,6 +53,7 @@ const Game = (() => {
     (listeners[name] = listeners[name] || []).push(fn);
   }
   function emit(name, data) {
+    if(name==="hud")nameHudCache.at=-Infinity;
     for (const fn of listeners[name] || []) fn(data);
   }
 
@@ -3093,14 +3094,41 @@ const Game = (() => {
     ctx.fillRect(Math.round(p.x - 13), Math.round(p.y + 4), 26, 4);
     ctx.fillStyle = pct > 0.35 ? "#3cc24f" : "#e63946";
     ctx.fillRect(Math.round(p.x - 12), Math.round(p.y + 5), Math.round(24 * pct), 2);
-    if (st.players.length > 1) {
-      ctx.font = "bold 12px monospace";
-      ctx.textAlign = "center";
-      ctx.fillStyle = "#14112b";
-      ctx.fillText(p.name, Math.round(p.x) + 1, Math.round(p.y - 62) + 1);
-      ctx.fillStyle = p.id === localId ? "#ffd23f" : "#ffffff";
-      ctx.fillText(p.name, Math.round(p.x), Math.round(p.y - 62));
+  }
+
+  // Screen-space labels share one layout in 2D and 3D, including HiDPI screens.
+  const nameHudCache={at:-Infinity,width:0,height:0,rects:[]};
+  function nameHudRects(){
+    const now=performance.now(),d=view.dpr;
+    if(now-nameHudCache.at>150 || nameHudCache.width!==view.w || nameHudCache.height!==view.h){
+      nameHudCache.at=now;nameHudCache.width=view.w;nameHudCache.height=view.h;
+      nameHudCache.rects=[...document.querySelectorAll(".hud-me,.hud-center,#hud-sub,#hud-pause,#hud-boss,#hud-team,#hud-compass,#hud-streak,.hud-bottom,#touch-pad,#hud-ab,#hud-tip,#toasts,#banner")].filter(e=>!e.hidden && e.getClientRects().length).map(e=>{const r=e.getBoundingClientRect();return {left:r.left*d,right:r.right*d,top:r.top*d,bottom:r.bottom*d};});
     }
+    return nameHudCache.rects;
+  }
+  function drawPlayerLabels(project,ground){
+    if(st.players.length<2)return;
+    const d=view.dpr,pad=5*d,height=18*d,placed=[...nameHudRects()],points=st.players.filter(p=>!p.disconnected).map(p=>({p,head:project(p),foot:ground(p)}));
+    const overlap=(a,b)=>a.left<b.right+2*d && a.right>b.left-2*d && a.top<b.bottom+2*d && a.bottom>b.top-2*d;
+    for(const {head,foot} of points)placed.push({left:head[0]-18*d,right:head[0]+18*d,top:head[1]+14*d,bottom:foot[1]+8*d});
+    ctx.save();ctx.font=`600 ${Math.round(11*d)}px sans-serif`;ctx.textAlign="center";ctx.textBaseline="middle";
+    const colors=["#f0cb82","#80e3d0","#a8cdf2","#e2b5db"];
+    for(const {p,head:[px,py]} of points){
+      if(p.id===localId || px<0 || px>view.w || py<0 || py>view.h)continue;
+      const maxWidth=Math.min(105*d,view.w*.28),chars=Array.from((p.down?"↓ ":"")+p.name);let name=chars.join("");
+      while(chars.length>1 && ctx.measureText(name).width>maxWidth){chars.pop();name=chars.join("")+"…";}
+      const width=ctx.measureText(name).width+pad*2,candidates=[];
+      for(const row of [0,-1,1,-2,2,-3,3,-4,4])for(const col of [0,-1,1]){
+        const x=clamp(px+col*(width+12*d),width/2+2*d,view.w-width/2-2*d),y=py+row*(height+3*d);
+        candidates.push({x,y,cost:row*row+(col?4:0),left:x-width/2,right:x+width/2,top:y-height/2,bottom:y+height/2});
+      }
+      const box=candidates.sort((a,b)=>a.cost-b.cost).find(b=>b.top>=0 && b.bottom<=view.h && !placed.some(o=>overlap(b,o)));
+      if(!box)continue;
+      placed.push(box);const {x,y}=box;ctx.strokeStyle=colors[p.id%colors.length];ctx.lineWidth=d;
+      if(Math.hypot(x-px,y-py)>height){ctx.globalAlpha=.65;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(px,py+height/2);ctx.stroke();ctx.globalAlpha=1;}
+      ctx.fillStyle="#102530db";ctx.fillRect(box.left,box.top,width,height);ctx.fillStyle=colors[p.id%colors.length];ctx.fillText(name,x,y);
+    }
+    ctx.restore();
   }
 
   function drawEliteBadge(x,y,pct,ground = true,breach = false) {
@@ -3188,7 +3216,7 @@ const Game = (() => {
     shadow(ob.x, ob.y, ob.kind === "rocaGrande" || ob.kind === "coche" ? 34 : ob.kind === "tronco" || ob.kind === "contenedor" ? 30 : ob.kind === "cruz" || ob.kind === "farola" ? 10 : 20);
     // si el jugador queda detrás de la copa, se ve a través
     const tall = oy > 80;
-    const behind = me && tall && me.y < ob.y && me.y > ob.y - oy && Math.abs(me.x - ob.x) < img.width * 0.4;
+    const behind = tall && (st?.players || (me?[me]:[])).some(p=>!p.disconnected && p.y<ob.y && p.y>ob.y-oy && Math.abs(p.x-ob.x)<img.width*.4);
     if (behind) ctx.globalAlpha = 0.5;
     ctx.drawImage(img, x, y);
     ctx.globalAlpha = 1;
@@ -3729,6 +3757,8 @@ const Game = (() => {
       ctx.fillRect(0, 0, view.w, view.h);
     }
 
+    drawPlayerLabels(p=>[(p.x-left)*k,(p.y-62-top)*k],p=>[(p.x-left)*k,(p.y-top)*k]);
+
     // flecha hacia el jefe si está fuera de la pantalla
     if (st.boss) {
       const bx = (st.boss.x - left) * k;
@@ -3925,13 +3955,8 @@ const Game = (() => {
         ctx.strokeStyle = "#3cc24f"; ctx.lineWidth = 3 * d;
         ctx.beginPath(); ctx.arc(hx, hy, 22 * d, -Math.PI / 2, -Math.PI / 2 + (p.reviveT / 150) * TAU); ctx.stroke();
       }
-      if (st.players.length > 1) {
-        const [nx, ny] = P(p.x, p.y, 62);
-        ctx.font = `bold ${Math.round(12 * d)}px monospace`;
-        ctx.fillStyle = "#14112b"; ctx.fillText(p.name, nx + d, ny + d);
-        ctx.fillStyle = p.id === localId ? "#ffd23f" : "#ffffff"; ctx.fillText(p.name, nx, ny);
-      }
     }
+    drawPlayerLabels(p=>P(p.x,p.y,62),p=>P(p.x,p.y,0));
     if (st.boss && st.boss.x !== undefined) {
       const [bx, by] = P(st.boss.x, st.boss.y, 20);
       if (bx < 0 || by < 0 || bx > view.w || by > view.h) {

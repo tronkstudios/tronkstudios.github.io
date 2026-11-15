@@ -256,6 +256,11 @@
     $("ach-count").textContent = LT("achCount", { a: done, b: TS.ACHIEVEMENTS.length });
   }
 
+  function scheduleNotice(callback,delay){
+    const generation=gameGeneration;
+    setTimeout(()=>{if(generation===gameGeneration)callback();},delay);
+  }
+
   function checkAchievements(run) {
     const got = [];
     for (const a of TS.ACHIEVEMENTS) {
@@ -270,7 +275,7 @@
     }
     if (got.length) {
       Save.persist();
-      got.forEach((a, i) => setTimeout(() => { toast(LT("achDone", { name: L(a.name), n: a.reward })); Sfx.play("chest"); }, 600 + i * 900));
+      got.forEach((a, i) => scheduleNotice(() => { toast(LT("achDone", { name: L(a.name), n: a.reward })); Sfx.play("chest"); }, 600 + i * 900));
     }
     return got;
   }
@@ -327,7 +332,7 @@
         done.push(m);
       }
     }
-    done.forEach((m, i) => setTimeout(() => { toast(LT("missionDone", { name: missionText(m), n: m.reward })); Sfx.play("chest"); }, 1800 + i * 900));
+    done.forEach((m, i) => scheduleNotice(() => { toast(LT("missionDone", { name: missionText(m), n: m.reward })); Sfx.play("chest"); }, 1800 + i * 900));
   }
 
   function renderMissions() {
@@ -595,7 +600,12 @@
 
   const isTouch = window.matchMedia("(any-pointer: coarse)").matches;
 
+  function clearTransientUI(){
+    clearTimeout(banner.t);$("banner").hidden=true;$("banner").textContent="";$("toasts").textContent="";$("hud-tip").hidden=true;
+  }
+
   function enterGame(prepare) {
+    clearTransientUI();
     const generation=++gameGeneration;
     for (const s of document.querySelectorAll(".screen")) s.classList.remove("is-on");
     for (const id of ["levelup", "pause", "end", "victory"]) $(id).hidden = true;
@@ -669,7 +679,7 @@
   function startTips(easy) {
     tipIdx = save.tutorial ? TIPS.length : 0;
     $("hud-tip").hidden = true;
-    if (easy) setTimeout(() => toast(L("Primeras partidas: los enemigos pegan un 25 % menos.")), 1500);
+    if (easy) scheduleNotice(() => toast(L("Primeras partidas: los enemigos pegan un 25 % menos.")), 1500);
   }
   function updateTips(seconds) {
     const tip = $("hud-tip");
@@ -691,7 +701,7 @@
     const chain=$("hud-streak");chain.hidden=!d.streak || d.streak.count<2;
     if(d.streak){chain.querySelector("b").textContent=`${L("Racha")} ${d.streak.count}`;chain.querySelector("i").style.width=`${Math.round(d.streak.remaining*100)}%`;chain.classList.toggle("is-milestone",d.streak.highlight);}
     $("hud-level").textContent = `${LANG === "en" ? "Lv." : "Nv."} ${d.level}`;
-    $("hud-name").textContent = d.name;
+    $("hud-name").textContent = d.name;$("hud-name").title=d.name;
     $("hud-time").textContent = fmtTime(d.seconds);
     $("hud-phase").textContent = d.finalPhase ? `${L("Fase")} ${d.finalRound}` : `${L("Final")} ${fmtTime(d.finalIn)}`;
     if(d.breach)$("hud-phase").textContent+=` · ${L("Brecha")} ${d.breach.total-d.breach.remaining}/${d.breach.total}`;
@@ -726,7 +736,7 @@
     if(d.compass) $("hud-compass").textContent=`${d.compass.arrow} ${d.compass.label} · ${d.compass.distance}`;
     const boss = $("hud-boss");
     boss.hidden = !d.boss;
-    if (d.boss) { $("hud-boss-name").textContent = d.boss.name+(d.boss.tactic?` · ${d.boss.tactic}`:""); $("hud-boss-bar").style.width = `${d.boss.pct * 100}%`; }
+    if (d.boss) { $("hud-boss-name").textContent = d.boss.name+(d.boss.tactic?` · ${d.boss.tactic}`:"");$("hud-boss-name").title=$("hud-boss-name").textContent; $("hud-boss-bar").style.width = `${d.boss.pct * 100}%`; }
     const team = $("hud-team");
     team.textContent = "";
     if (d.players.length > 1) {
@@ -740,7 +750,7 @@
         const label=p.disconnected?`${p.name} · ${L("Desconectado")}`:p.down?`${p.name} · ${L("Reanimación")} ${Math.round(p.revivePct*100)}%`:p.name;
         if(p.down && !p.disconnected)fill.style.width=`${p.revivePct*100}%`;
         row.classList.toggle("is-reviving",p.down && p.revivePct>0 && !p.disconnected);
-        row.append(el("b", "", label), bar);
+        const name=el("b","",label);name.title=label;row.append(name,bar);
         team.appendChild(row);
       });
     }
@@ -911,7 +921,7 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     if (r.daily && save.dailyDone !== r.daily) {
       save.dailyDone = r.daily;
       r.coins += 100;
-      setTimeout(() => toast(LT("dailyBonus")), 400);
+      scheduleNotice(() => toast(LT("dailyBonus")), 400);
     }
     const localCombat=r.combat?.[Game.localId];
     r={...r,bestStreak:localCombat?.bestStreak ?? r.bestStreak ?? 0};
@@ -919,7 +929,7 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     $("end-records").hidden=!records.length;$("end-records").textContent=records.length?`${L("Nuevo récord")}: ${records.join(" · ")}`:"";
     updateWeekly(r);
     Save.recordRun(r);
-    for (const id of checkMapUnlocks()) setTimeout(() => toast(LT("mapUnlocked", { name: L(TS.MAPS[id].name) })), 1200);
+    for (const id of checkMapUnlocks()) scheduleNotice(() => toast(LT("mapUnlocked", { name: L(TS.MAPS[id].name) })), 1200);
     checkAchievements(r);
     TronkNet.leave();
     const points = Account.points(r);
@@ -981,6 +991,7 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
   $("victory-end").addEventListener("click", () => { $("victory").hidden = true; Game.endWin(); });
 
   function backToMenu() {
+    clearTransientUI();
     gameGeneration++;
     for (const id of ["end", "levelup", "pause", "victory"]) $(id).hidden = true;
     $("hud").hidden = true;
