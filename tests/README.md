@@ -6,7 +6,7 @@ Las pruebas de simulación no requieren dependencias:
 node --test tests/survivors.test.cjs
 ```
 
-Las 69 pruebas cubren el cofre, pausa de efectos, desconexiones durante elecciones,
+Las 75 pruebas cubren el cofre, pausa de efectos, desconexiones durante elecciones,
 instantáneas online, 24 personajes con su arma y técnicas propias, jefes finales de los cuatro
 mapas y fases finales sucesivas, colisiones con enemigos grandes, ralentizaciones, recargas,
 fusión de progreso remoto, datos guardados incompletos y tickets de partidas que
@@ -39,6 +39,7 @@ node tests/survivors.strategy.cjs
 node tests/survivors.characters.cjs
 node tests/survivors.world.cjs
 node tests/survivors.insights.cjs
+node tests/survivors.specializations.cjs
 # Probar el protocolo de juego con transporte simulado:
 RTC_TEST_MODE=mock node tests/survivors.online.cjs
 ```
@@ -97,7 +98,12 @@ Chromium no tiene su CA instalada; no modifica la configuración del juego.
   reciben su propio personaje, racha y resumen. La simulación verifica además
   proyectiles de un solo impacto, historial acotado, tiempos del reto diario y
   conservación del resumen de un compañero caído hasta el fin del equipo.
-- **Online:** elección independiente de las evoluciones de cofre, sala, movimiento del invitado, entrega y guardado del resultado,
+- **Especializaciones:** tres etapas con ventajas y costes, requisitos de nivel y
+  tiempo, comparaciones numéricas, ficha de estadísticas en pausa y resumen final
+  en escritorio y móvil. Las 75 pruebas de simulación cubren las nueve opciones
+  en los 24 personajes, cofres, reinicio y recargas proporcionales de armas,
+  habilidad, técnicas, drones y contactos orbitales.
+- **Online:** elección independiente de las evoluciones de cofre y especializaciones, sala, movimiento del invitado, entrega y guardado del resultado,
   segunda partida, cambio de opciones del invitado y desconexión con una elección pendiente. Supabase, cuenta
   y TURN se sustituyen por un punto de encuentro local. En modo normal usa
   WebRTC real; si Chromium no genera candidatos ICE, informa de que omite la

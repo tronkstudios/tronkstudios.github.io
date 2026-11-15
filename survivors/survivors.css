@@ -888,3 +888,16 @@ img[data-icon], .pix { image-rendering: pixelated; }
 @media (max-width:600px) { .run-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 
 #end-title:focus { outline:none; }
+
+.up-card.is-talent { border-color:#77bcae; background:linear-gradient(115deg,#254b49,#203640); }
+.choice-stats { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:3px 10px; margin:8px 0 0; font-size:11px; text-align:left; }
+.choice-stats dt { color:#c4d8d3; }.choice-stats dd { margin:0; font-variant-numeric:tabular-nums; }
+.choice-stats .is-gain { color:#a9e7c6; }.choice-stats .is-loss { color:#f2b7a6; }
+.talent-summary { display:flex; flex-wrap:wrap; justify-content:center; gap:6px; }
+.talent-summary span { border:1px solid #80e3d055; border-radius:8px; padding:5px 8px; color:#b9e8d9; font-size:11px; }
+.talent-summary small { flex-basis:100%; color:#b8ccc8; font-size:11px; }
+.build-details { text-align:left; border:1px solid #87ada844; border-radius:10px; padding:10px 12px; color:#c1dcd1; }
+.build-details summary { cursor:pointer; font-size:13px; }
+.build-details dl { display:grid; grid-template-columns:1fr auto; gap:7px 12px; margin:12px 0 0; font-size:12px; }
+.build-details dd { margin:0; color:#f0cb82; font-variant-numeric:tabular-nums; }
+@media (max-width:600px) { .choice-stats { font-size:10px; gap:3px 6px; } }

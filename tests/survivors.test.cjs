@@ -429,7 +429,7 @@ test('Duna keeps unlocking new moves later and gains four distinct tornado patte
     assert.equal(p.weapons.length,1);assert.equal(p.weapons[0].id,'tornado');
   }
   Game.start([setup('duna')]);const st=Game.state,p=st.players[0];p.techniques={burst:5,ring:5,pierce:5,guard:5,focus:5};
-  st.level=47;st.t=1080*60;st.xp=st.xpNext;Game.step();assert.ok(st.choosing[0].some(o=>o.id==='surge'));
+  p.talents=['edge','tempo'];st.level=47;st.t=1080*60;st.xp=st.xpNext;Game.step();assert.ok(st.choosing[0].some(o=>o.id==='surge'));
   Game.choose(0,st.choosing[0].findIndex(o=>o.id==='surge'));st.xp=st.xpNext;Game.step();
   assert.equal(st.choosing[0].some(o=>o.id==='surge'),false,'next rank waits until level 52 and another 75 seconds');
   Game.start([setup('duna')]);Game.state.level=99;Game.state.t=900*60;Game.state.xp=Game.state.xpNext;Game.step();
@@ -673,4 +673,58 @@ test('a downed teammate keeps the recap of their own death until the team run en
  const {Game}=engine();Game.start([setup('ranjay'),setup('lia')],{seed:4});const st=Game.state,[host,guest]=st.players;let result;Game.on('end',r=>result=r);
  st.players.forEach(p=>p.weapons[0].cd=99999);guest.hp=1;st.eshots=[{x:guest.x,y:guest.y-18,vx:0,vy:0,dmg:20,r:4,life:10,source:'tirador'}];Game.step();assert.equal(guest.down,true);
  st.t+=1200;Game.finish(false);assert.equal(result.recaps[0].fatal,null);assert.equal(result.recaps[1].fatal.source,'tirador');assert.equal(result.recaps[1].hits.length,1);
+});
+
+
+test('specializations require both level and time, remain native and lock one choice per stage',()=>{
+ const {Game,TS}=engine();for(const ch of TS.CHARACTERS){
+  Game.start([setup(ch.id)],{seed:42});const st=Game.state,p=st.players[0];p.weapons[0].cd=999999;p.iframes=999999;
+  for(const [tier,stage] of TS.TALENT_STAGES.entries()){
+   st.level=stage.level-1;st.t=stage.at*60;st.pendingLevels=1;st.choosing={0:[{kind:'talent',id:Object.keys(TS.TALENTS).find(id=>TS.TALENTS[id].tier===tier)}]};Game.choose(0,0);assert.equal(p.talents.length,tier,'level gate');
+   st.level=stage.level;st.t=stage.at*60-1;st.pendingLevels=1;st.choosing={0:[{kind:'talent',id:Object.keys(TS.TALENTS).find(id=>TS.TALENTS[id].tier===tier)}]};Game.choose(0,0);assert.equal(p.talents.length,tier,'time gate');
+   st.t=stage.at*60;st.xp=st.xpNext;Game.step();assert.ok(st.choosing[0].every(o=>o.kind==='talent'));assert.equal(st.choosing[0].length,3);
+   const options=st.choosing[0],before=p.rerolls;assert.equal(Game.reroll(0),false);assert.equal(p.rerolls,before);Game.choose(0,0);assert.equal(p.talents.length,tier+1);
+   st.pendingLevels=1;st.choosing={0:[options[1]]};Game.choose(0,0);assert.equal(p.talents.length,tier+1,'cannot choose a second branch');
+   assert.deepEqual(Array.from(p.weapons,w=>w.id),[ch.weapon]);
+  }
+  const snap=Game.snapshot([p]),stats=JSON.stringify(Game.hudData().stats);Game.startGuest({localId:0,players:[setup(ch.id)]});Game.applySnapshot(snap);assert.equal(Game.state.players[0].talents.length,3);assert.equal(JSON.stringify(Game.hudData().stats),stats);
+ }
+});
+test('specialization previews have gains and costs and match their applied stats',()=>{
+ const {Game,TS}=engine();
+ for(const [id,d] of Object.entries(TS.TALENTS)){
+  Game.start([setup('ranjay')],{seed:42});const st=Game.state,p=st.players[0];p.weapons[0].cd=999999;p.iframes=999999;
+  const earlier=['edge','tempo'];for(let tier=0;tier<d.tier;tier++){const stage=TS.TALENT_STAGES[tier];st.level=stage.level;st.t=stage.at*60;st.pendingLevels=1;st.choosing={0:[{kind:'talent',id:earlier[tier]}]};Game.choose(0,0);}
+  const stage=TS.TALENT_STAGES[d.tier];st.level=stage.level;st.t=stage.at*60;st.xp=st.xpNext;Game.step();const option=st.choosing[0].find(o=>o.id===id);assert.ok(option.preview.some(p=>p.loss));assert.ok(option.preview.some(p=>!p.loss));
+  Game.choose(0,st.choosing[0].indexOf(option));const stats=Game.hudData().stats;
+  for(const row of option.preview)assert.equal(stats.find(s=>s.label===row.label).value,row.to,id+':'+row.label);
+ }
+});
+test('specializations never replace chest choices or occupy passive slots and reset on a new run',()=>{
+ const {Game}=engine();Game.start([setup('ranjay'),setup('lia')],{seed:42});const st=Game.state,p=st.players[0];st.level=15;st.t=300*60;p.weapons[0].cd=99999;p.iframes=99999;st.players[1].iframes=99999;
+ st.pickups=[{kind:'cofre',x:p.x,y:p.y,t:0}];Game.step();assert.equal(st.choiceKind,'chest');assert.ok(st.choosing[0].every(o=>o.kind!=='talent'));Game.choose(0,2);Game.choose(1,2);
+ st.xp=st.xpNext;Game.step();Game.choose(0,0);Game.choose(1,2);assert.deepEqual(Array.from(p.talents),['edge']);assert.deepEqual(Array.from(st.players[1].talents),['fleet']);assert.equal(Object.keys(p.passives).length,0);
+ Game.start([setup('ranjay')]);assert.equal(Game.state.players[0].talents.length,0);
+});
+test('cooldown upgrades preserve remaining progress for abilities, weapons, techniques, drones and orbit hits',()=>{
+ const {Game}=engine();Game.start([setup('nix')],{seed:42});const st=Game.state,p=st.players[0];st.t=100;p.abCd=1000;p.techniques={burst:1};p.techCds={burst:120};p.weapons[0].cd=200;p.weapons[0].drones=[{cd:100}];p.weapons[0].orbs=[{hitT:{99:200,98:80}}];
+ st.pendingLevels=1;st.choosing={0:[{kind:'passive',id:'reloj'}]};Game.choose(0,0);
+ assert.equal(p.abCd,920);assert.equal(p.weapons[0].cd,184);assert.ok(Math.abs(p.techCds.burst-110.4)<.0001);assert.equal(p.weapons[0].drones[0].cd,92);assert.equal(p.weapons[0].orbs[0].hitT[99],192);assert.equal(p.weapons[0].orbs[0].hitT[98],80);
+
+ // A slower specialization also preserves progress instead of granting free cooldown.
+ st.level=15;st.t=300*60;const before={ability:p.abCd,weapon:p.weapons[0].cd,tech:p.techCds.burst,drone:p.weapons[0].drones[0].cd};
+ p.weapons[0].orbs[0].hitT[99]=st.t+100;st.pendingLevels=1;st.choosing={0:[{kind:'talent',id:'reach'}]};Game.choose(0,0);
+ const ratio=.98/.92;assert.equal(p.abCd,Math.round(before.ability*ratio));assert.ok(Math.abs(p.weapons[0].cd-before.weapon*ratio)<.0001);assert.ok(Math.abs(p.techCds.burst-before.tech*ratio)<.0001);assert.ok(Math.abs(p.weapons[0].drones[0].cd-before.drone*ratio)<.0001);assert.ok(Math.abs(p.weapons[0].orbs[0].hitT[99]-(st.t+100*ratio))<.0001);
+ p.abCd=99999;assert.equal(Game.hudData().ability.pct,0);
+});
+test('passive and weapon cards compare actual effects without mutating the player',()=>{
+ const {Game}=engine();Game.start([setup('ranjay')],{seed:42});const st=Game.state,p=st.players[0];st.xp=st.xpNext;p.hp=50;p.abCd=900;p.weapons[0].cd=500;Game.step();const hp=p.hp,ab=p.abCd,cd=p.weapons[0].cd;assert.equal(Game.reroll(0),true);
+ const options=st.choosing[0];assert.equal(p.weapons[0].cd,cd);assert.equal(p.hp,hp);assert.equal(p.abCd,ab);assert.ok(options.some(o=>o.preview?.length));
+ const passive=options.find(o=>o.kind==='passive');if(passive){const preview=passive.preview;Game.choose(0,options.indexOf(passive));for(const row of preview)assert.equal(Game.hudData().stats.find(s=>s.label===row.label).value,row.to);}
+});
+
+test('maximum health upgrades keep downed teammates at zero health until a real revive',()=>{
+ const {Game}=engine();Game.start([setup('ranjay'),setup('lia')]);const st=Game.state,p=st.players[1];p.down=true;p.hp=0;
+ st.pendingLevels=1;st.choosing={1:[{kind:'passive',id:'corazon'}]};Game.choose(1,0);assert.ok(p.stats.maxHp>100);assert.equal(p.hp,0);assert.equal(p.down,true);
+ p.talents=['edge','tempo'];st.level=50;st.t=1200*60;st.pendingLevels=1;st.choosing={1:[{kind:'talent',id:'resolve'}]};const max=p.stats.maxHp;Game.choose(1,0);assert.ok(p.stats.maxHp>max);assert.equal(p.hp,0);assert.equal(p.down,true);
 });

@@ -484,6 +484,7 @@
       }
       list.append(el("li","",`${L(TS.ABILITIES[ch.id].name)} · ${L("Habilidad activa")}`));
       moves.append(list,el("small","",L("Aprende y mejora tus técnicas al subir de nivel. Solo usas el arma de tu personaje.")));
+      moves.append(el("p","evolution-recipe",`${L("Especializaciones")}: ${TS.TALENT_STAGES.map(s=>`${L("Nivel")} ${s.level} · ${fmtTime(s.at)}`).join(" / ")}`));
       const evo=TS.EVOLUTIONS[ch.weapon];
       if(evo)moves.append(el("p","evolution-recipe",`${L(evo.name)} = ${L(TS.WEAPONS[ch.weapon].name)} 6 + ${L(TS.PASSIVES[evo.passive].name)} + ${L("Cofre")} · ${L("Dos caminos de evolución")}`));
       box.append(el("p", "", L(ch.desc)), weapon, moves, el("p", "", LT("perk", { perk: L(ch.perkText) })), btn);
@@ -695,6 +696,7 @@
     $("hud-phase").textContent = d.finalPhase ? `${L("Fase")} ${d.finalRound}` : `${L("Final")} ${fmtTime(d.finalIn)}`;
     if(d.breach)$("hud-phase").textContent+=` · ${L("Brecha")} ${d.breach.total-d.breach.remaining}/${d.breach.total}`;
     $("hud-milestone").textContent=d.nextTechnique?`${L("Próxima técnica")}: ${L(d.nextTechnique.name)} · ${L("Nivel")} ${d.nextTechnique.unlock} · ${fmtTime(d.nextTechnique.at || 0)}`:`${L("Rangos de técnicas")}: ${d.techniqueRanks}/30`;
+    if(d.talentNext?.ready)$("hud-milestone").textContent=L("Especialización disponible en tu próxima subida de nivel");
     $("hud-world").textContent=d.combo?d.combo:d.site?`${d.site.name} · ${d.site.used?`${L("Activo")} ${d.site.seconds}s`:d.site.activated?`${L("Guardianes restantes")}: ${d.site.guards}`:`${d.site.hint} · ${L("Mantente en el círculo")}: ${d.site.progress}%`}`:Game.mapId==="playa" && d.inWater?L("Corriente: puedes moverte contra ella"):"";
     $("hud-sub").textContent = (d.finalPhase ? `${L("Supervivencia final")} · ` : Game.state && Game.state.endless ? `${L("Modo infinito")} · ` : "") + LT("hudSub", { map: L(TS.MAPS[Game.mapId].name), kills: d.kills, coins: d.coins });
     const pct = Math.max(0, d.hp / d.maxHp);
@@ -777,25 +779,29 @@
   let choiceGeneration=0;
   function showLevelUp(d) {
     const generation=++choiceGeneration;
+    const specializing=d.options.length>0&&d.options.every(o=>o.kind==="talent");
     Game.setControlsEnabled(false);
     $("levelup").querySelector(".modal-sub").textContent=d.kind==="chest"?L("Cada jugador elige una recompensa"):L("Elige una mejora");
-    $("levelup-title").textContent = d.kind==="chest"?L("Elige tu recompensa"):LT("levelTitle", { n: d.level });
+    $("levelup-title").textContent=specializing?L("Define tu especialización"):d.kind==="chest"?L("Elige tu recompensa"):LT("levelTitle",{n:d.level});
+    if(specializing)$("levelup").querySelector(".modal-sub").textContent=L("Elige una ventaja con su coste. Solo para esta partida.");
     const box = $("levelup-cards");
     box.textContent = "";
     $("levelup-wait").hidden = true;
     const rerolls = d.rerolls ?? Game.state?.players[Game.localId]?.rerolls ?? 0;
     $("levelup-reroll").textContent=`${L("Cambiar opciones")} · ${rerolls}/3`;
     $("levelup-reroll").disabled=true;
-    $("levelup-reroll").hidden=d.kind==="chest";
+    $("levelup-reroll").hidden=d.kind==="chest" || specializing;
     d.options.forEach((o, i) => {
-      const card = el("button", `up-card${o.kind==="technique"&&o.id==="surge"?" is-ultimate":""}${o.synergy?" is-synergy":""}${o.kind==="technique"?" is-technique":""}${o.kind==="evolution"?" is-evolution":""}`);
+      const card = el("button", `up-card${o.kind==="technique"&&o.id==="surge"?" is-ultimate":""}${o.synergy?" is-synergy":""}${o.kind==="technique"?" is-technique":""}${o.kind==="evolution"?" is-evolution":""}${o.kind==="talent"?" is-talent":""}`);
       card.type = "button";card.disabled=true;if(o.path)card.dataset.path=o.path;
       const img = document.createElement("img");
       img.src = Sprites.iconUrl(o.icon, 3);
       img.alt = "";
       img.className = "pix";
       const text = el("div");
-      text.append(el("span", "new", o.kind==="evolution"?L("Evolución"):o.isNew ? L("¡NUEVO!") : ""), el("b", "", o.title), el("small", "", o.desc));
+      text.append(el("span", "new", o.kind==="talent"?L("Especialización"):o.kind==="evolution"?L("Evolución"):o.isNew ? L("¡NUEVO!") : ""), el("b", "", o.title), el("small", "", o.desc));
+      if(o.kind==="talent"){text.querySelector("b").textContent=L(TS.TALENTS[o.id].name);text.querySelector("small").textContent=L(TS.TALENTS[o.id].desc);}
+      if(o.preview?.length){const changes=el("dl","choice-stats");for(const row of o.preview){const value=el("dd",row.loss?"is-loss":"is-gain",`${row.from.toLocaleString(LANG)}${row.unit} → ${row.to.toLocaleString(LANG)}${row.unit}`);changes.append(el("dt","",L(row.label)),value);}text.append(changes);}
       if(o.synergy)text.append(el("span","synergy-note",L("Necesario para evolucionar")));
       card.append(img, text, el("kbd", "", i + 1));
       card.addEventListener("click", () => pickLevel(i));
@@ -805,7 +811,7 @@
     setTimeout(()=>{
       if(generation!==choiceGeneration || $("levelup").hidden)return;
       for(const card of box.children)card.disabled=false;
-      $("levelup-reroll").disabled=rerolls<=0 || d.kind==="chest";
+      $("levelup-reroll").disabled=rerolls<=0 || d.kind==="chest" || specializing;
       box.querySelector("button")?.focus();
     },180);
   }
@@ -864,6 +870,11 @@
         `${evo.name}
 ${evo.weapon} ${evo.level}/6 · ${evo.passive} ${evo.hasPassive?"✓":evo.blocked?L("Sin espacio para la pasiva"):"—"}
 ${L("Recoge un cofre con ambos requisitos")}`:"";
+      $("pause-talents").textContent="";
+      for(const talent of d.talents || [])$("pause-talents").append(el("span","",talent.name));
+      if(d.talentNext)$("pause-talents").append(el("small","",`${L("Próxima especialización")}: ${L("Nivel")} ${d.talentNext.level} · ${fmtTime(d.talentNext.at)}`));
+      $("pause-stats").textContent="";
+      for(const row of d.stats || [])$("pause-stats").append(el("dt","",L(row.label)),el("dd","",`${row.value.toLocaleString(LANG)}${row.unit}`));
       $("pause-metrics").textContent="";
       for(const [label,value] of [["Daño causado",d.combat.dealt],["Daño recibido",d.combat.taken],["Vida recuperada",d.combat.healed],["Élites",d.combat.elites],["Reanimaciones",d.combat.revives],["Mejor racha",d.bestStreak]]){
         const stat=el("div");stat.append(el("b","",Math.round(value || 0).toLocaleString(LANG)),el("small","",L(label)));$("pause-metrics").append(stat);
@@ -918,6 +929,9 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     add("Nivel", r.level);
     add("Enemigos", r.kills);
     add("Jefes", r.bosses);
+    const chosenTalents=(r.talents?.[Game.localId] || []).filter(id=>TS.TALENTS[id]);
+    $("end-talents").hidden=!chosenTalents.length;$("end-talents").textContent="";
+    for(const id of chosenTalents)$("end-talents").append(el("span","",L(TS.TALENTS[id].name)));
     const combat=r.combat?.[Game.localId];
     if(combat){add("Daño causado",Math.round(combat.dealt || 0).toLocaleString(LANG));add("Daño recibido",Math.round(combat.taken || 0).toLocaleString(LANG));add("Vida recuperada",Math.round(combat.healed || 0).toLocaleString(LANG));add("Élites",combat.elites || 0);}
     add("Mejor racha",r.bestStreak);if(combat?.revives)add("Reanimaciones",combat.revives);
@@ -993,7 +1007,7 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     if(e.key!=="Tab")return;
     const modal=[...document.querySelectorAll(".modal:not([hidden]), .gacha-reveal:not([hidden])")].pop();
     if(!modal)return;
-    const buttons=[...modal.querySelectorAll("button:not([disabled]),a[href],input,select")].filter(e=>e.getClientRects().length);
+    const buttons=[...modal.querySelectorAll("button:not([disabled]),a[href],input,select,summary")].filter(e=>e.getClientRects().length);
     if(!buttons.length)return;
     const first=buttons[0],last=buttons.at(-1);
     if(e.shiftKey && (document.activeElement===first || !buttons.includes(document.activeElement))){e.preventDefault();last.focus();}

@@ -60,7 +60,7 @@ const Game = (() => {
      ESTADÍSTICAS DEL JUGADOR
      ======================================================= */
 
-  function computeStats(pl) {
+  function calculateStats(pl) {
     const ch = charById(pl.charId);
     const s = { maxHp: 0, speed: 0, might: 0, area: 0, cooldown: 0, magnet: 0, armor: 0, regen: 0, growth: 0, greed: 0, amount: 0, revive: 0, reviveSpeed: 0 };
     const add = (obj) => { for (const [k, v] of Object.entries(obj || {})) if (k in s) s[k] += v; };
@@ -73,8 +73,8 @@ const Game = (() => {
       const def = TS.PASSIVES[id];
       if (def) s[def.stat] += def.per * lvl;
     }
-    const before = pl.stats ? pl.stats.maxHp : 0;
-    pl.stats = {
+    for(const id of pl.talents || [])add(TS.TALENTS[id]?.stats);
+    return {
       maxHp: Math.round(100 * (1 + s.maxHp)),
       speed: 1.25 * U * (1 + s.speed),
       might: 1 + s.might,
@@ -88,9 +88,48 @@ const Game = (() => {
       amount: s.amount,
       revive: s.revive, reviveRate: 1 + s.reviveSpeed
     };
-    if (before && pl.stats.maxHp > before) pl.hp += pl.stats.maxHp - before;
-    pl.hp = Math.min(pl.hp, pl.stats.maxHp);
   }
+
+  function computeStats(pl){
+    const previous=pl.stats,next=calculateStats(pl);pl.stats=next;
+    if(!pl.down && previous?.maxHp && next.maxHp>previous.maxHp)pl.hp+=next.maxHp-previous.maxHp;
+    pl.hp=pl.down?0:Math.min(pl.hp,next.maxHp);
+    if(previous?.cdMul && Math.abs(next.cdMul-previous.cdMul)>1e-8){
+      const ratio=next.cdMul/previous.cdMul;
+      if(pl.abCd>0)pl.abCd=Math.round(pl.abCd*ratio);
+      for(const w of pl.weapons || []){
+        if(w.cd>0)w.cd*=ratio;
+        for(const dr of w.drones || [])if(dr.cd>0)dr.cd*=ratio;
+        for(const orb of w.orbs || [])for(const key of Object.keys(orb.hitT || {}))if(orb.hitT[key]>(st?.t || 0))orb.hitT[key]=(st?.t || 0)+(orb.hitT[key]-(st?.t || 0))*ratio;
+      }
+      for(const key of Object.keys(pl.techCds || {}))if(pl.techCds[key]>0)pl.techCds[key]*=ratio;
+    }
+  }
+
+  const STAT_KEYS=["might","speed","area","cdMul","maxHp","armor","regen","magnet","growth","greed","amount"];
+  function statRows(stats){
+    const items=[
+      ["Potencia",stats.might*100,"%"],["Movimiento",stats.speed/(1.25*U)*100,"%"],["Área",stats.area/U*100,"%"],
+      ["Tiempo de recarga",stats.cdMul*100,"%",true],["Vida máxima",stats.maxHp,""],["Armadura",stats.armor,""],
+      ["Regeneración",stats.regen,"/s"],["Alcance de recogida",stats.magnet/(62*U)*100,"%"],
+      ["Experiencia",stats.growth*100,"%"],["Monedas",stats.greed*100,"%"],["Proyectiles adicionales",stats.amount,""]
+    ];
+    return items.filter(([,v])=>Number.isFinite(v)).map(([label,value,unit,lower])=>({label,value:Math.round(value*10)/10,unit,lower:!!lower}));
+  }
+  function compareStats(before,after){
+    const next=statRows(after);
+    return statRows(before).flatMap(row=>{const value=next.find(s=>s.label===row.label)?.value;return value!==undefined&&value!==row.value?[{label:row.label,from:row.value,to:value,unit:row.unit,loss:row.lower?value>row.value:value<row.value}]:[];});
+  }
+  function weaponPreview(pl,id,lvl){
+    const current=pl.weapons.find(w=>w.id===id),before=current?levelStats(current):null,after=levelStats({...current,id,lvl});
+    const items=[{label:"Potencia por impacto",from:before?before.dmg*pl.stats.might:0,to:after.dmg*pl.stats.might,unit:""},
+      {label:"Recarga del arma",from:before?.cd?before.cd*pl.stats.cdMul/60:0,to:after.cd?after.cd*pl.stats.cdMul/60:0,unit:"s",lower:true},
+      {label:"Cantidad",from:before?(before.count || 1)+pl.stats.amount:0,to:(after.count || 1)+pl.stats.amount,unit:""},
+      {label:"Área del arma",from:before?(before.area || 1)*pl.stats.area/U*100:0,to:(after.area || 1)*pl.stats.area/U*100,unit:"%"}];
+    return items.map(row=>({...row,from:Math.round(row.from*10)/10,to:Math.round(row.to*10)/10})).filter(row=>row.from!==row.to).slice(0,3).map(({lower,...row})=>({...row,loss:lower?row.to>row.from:row.to<row.from}));
+  }
+  function nextTalent(pl){return TS.TALENT_STAGES[(pl.talents || []).length] || null;}
+  function canSpecialize(pl){const stage=nextTalent(pl);return !!stage && st.level>=stage.level && st.t>=stage.at*60;}
 
   function newPlayer(id, setup) {
     const ch = charById(setup.charId);
@@ -115,7 +154,7 @@ const Game = (() => {
       stats: null,
       weapons: [],
       passives: {},
-      techniques: {}, techCds: {}, rerolls: 3,
+      techniques: {}, techCds: {}, talents:[],rerolls: 3,
       combat: { dealt: 0, taken: 0, healed: 0, elites: 0, revives:0 },
       damageHistory:[],fatalHit:null,
       streak: {count:0,best:0,until:0,flashUntil:0},
@@ -2503,7 +2542,8 @@ const Game = (() => {
     else emit("resume",{});
   }
 
-  function buildOptions(pl, n = 3) {
+  function buildOptions(pl,n=3,allowTalents=false){
+    if(allowTalents && canSpecialize(pl))return Object.entries(TS.TALENTS).filter(([,d])=>d.tier===(pl.talents || []).length).map(([id])=>describe(pl,{kind:"talent",id}));
     const pool = [];
     const weapon = charById(pl.charId).weapon;
     const native = pl.weapons.find(w => w.id === weapon);
@@ -2538,18 +2578,22 @@ const Game = (() => {
   }
 
   function describe(pl, o) {
-    if (o.kind === "heal") return { ...o, title: L("jensalada"), desc: L("Recupera 40 de vida"), icon: "bocadillo" };
+    if(o.kind==="talent"){
+      const d=TS.TALENTS[o.id],next=calculateStats({...pl,talents:[...(pl.talents || []),o.id]});
+      return {...o,title:L(d.name),desc:L(d.desc),icon:charById(pl.charId).weapon,preview:compareStats(pl.stats,next)};
+    }
+    if(o.kind==="heal")return {...o,title:L("jensalada"),desc:L("Recupera 40 de vida"),icon:"bocadillo",preview:[{label:"Vida",from:Math.round(pl.hp),to:Math.round(pl.down?pl.hp:Math.min(pl.stats.maxHp,pl.hp+40)),unit:"",loss:false}]};
     if (o.kind === "coins") return { ...o, title: L("Bolsa de monedas"), desc: L("+25 monedas"), icon: "moneda" };
     if (o.kind === "technique") {
       const d = TS.TECHNIQUES[pl.charId].find(m => m.id === o.id);
-      return {...o,title:o.lvl === 1 ? L(d.name) : LT("levelOf",{name:L(d.name),lvl:o.lvl}),desc:`${L(o.id==="surge"?"Técnica definitiva":"Técnica automática")} · ${L(d.desc)} · ${L("Recarga")}: ${(d.cd/60*pl.stats.cdMul).toFixed(1)} s · ${L("Potencia")}: +${20*o.lvl}%`,icon:charById(pl.charId).weapon,isNew:o.lvl === 1};
+      return {...o,title:o.lvl === 1 ? L(d.name) : LT("levelOf",{name:L(d.name),lvl:o.lvl}),desc:`${L(o.id==="surge"?"Técnica definitiva":"Técnica automática")} · ${L(d.desc)} · ${L("Recarga")}: ${(d.cd/60*pl.stats.cdMul).toFixed(1)} s · ${L("Potencia")}: +${Math.round(((1+.2*o.lvl)*(o.id==="focus"?1.8:o.id==="surge"?1.45:1)-1)*100)}%`,icon:charById(pl.charId).weapon,isNew:o.lvl === 1};
     }
     if (o.kind === "passive") {
       const d = TS.PASSIVES[o.id];
-      return { ...o, title: L(d.name), desc: L(d.desc), icon: o.id, isNew: o.lvl === 1, synergy: TS.EVOLUTIONS[charById(pl.charId).weapon]?.passive === o.id };
+      return { ...o, title: L(d.name), desc: L(d.desc), icon:o.id,preview:compareStats(pl.stats,calculateStats({...pl,passives:{...pl.passives,[o.id]:(pl.passives[o.id] || 0)+1}})),isNew:o.lvl===1,synergy: TS.EVOLUTIONS[charById(pl.charId).weapon]?.passive === o.id };
     }
     const d = TS.WEAPONS[o.id];
-    if (o.lvl === 1) return { ...o, title: L(d.name), desc: L(d.desc), icon: o.id, isNew: true };
+    if (o.lvl === 1) return { ...o, title: L(d.name), desc: L(d.desc), icon: o.id,preview:weaponPreview(pl,o.id,o.lvl),isNew:true };
     const a = d.levels[o.lvl - 2];
     const b = d.levels[o.lvl - 1];
     const parts = [];
@@ -2558,11 +2602,17 @@ const Game = (() => {
     if (b.area && b.area !== a.area) parts.push(LT("areaUp", { n: Math.round((b.area / a.area - 1) * 100) }));
     if (b.pierce && b.pierce !== a.pierce) parts.push(LT("pierceUp"));
     if (b.cd && b.cd < a.cd) parts.push(LT("faster"));
-    return { ...o, title: LT("levelOf", { name: L(d.name), lvl: o.lvl }), desc: parts.join(" · "), icon: o.id };
+    return { ...o, title: LT("levelOf", { name: L(d.name), lvl: o.lvl }), desc:parts.join(" · "),icon:o.id,preview:weaponPreview(pl,o.id,o.lvl)};
   }
 
   function applyChoice(pl, o) {
-    if(o.kind==="evolution"){
+    if(o.kind==="talent"){
+      const d=TS.TALENTS[o.id];
+      if(!d || !canSpecialize(pl) || d.tier!==(pl.talents || []).length)return;
+      pl.talents.push(o.id);computeStats(pl);
+      fx({k:"ring",x:pl.x,y:pl.y,r:55,color:"#80e3d0",life:35});
+      emit("toast",{text:`${pl.name} · ${L(d.name)}`,kind:"talent"});
+    }else if(o.kind==="evolution"){
       const w=evolvable(pl);
       if(!w || w.id!==o.id || !["precision","dominion"].includes(o.path))return;
       w.evo=true;w.path=o.path;st.evolutions++;
@@ -2596,12 +2646,12 @@ const Game = (() => {
   function reroll(playerId) {
     if (!st || st.over || st.choiceKind==="chest" || mode === "guest" || !st.choosing?.[playerId]) return false;
     const p = st.players[playerId];
-    if (!p || p.disconnected || !(p.rerolls > 0)) return false;
+    if(!p || p.disconnected || !(p.rerolls>0) || st.choosing[playerId].every(o=>o.kind==="talent"))return false;
     p.rerolls--;
     const previous = st.choosing[playerId];
-    let choices = buildOptions(p,3);
+    let choices=buildOptions(p,3,true);
     const same = list => JSON.stringify(list.map(o=>[o.kind,o.id,o.lvl]).sort());
-    for (let i=0;i<4 && same(choices)===same(previous);i++) choices=buildOptions(p,3);
+    for (let i=0;i<4 && same(choices)===same(previous);i++) choices=buildOptions(p,3,true);
     st.choosing[playerId] = choices;
     if (playerId===localId) emit("levelUp",{options:choices,level:st.level,rerolls:p.rerolls});
     if (mode === "host") emit("netChoices",{[playerId]:choices});
@@ -2610,7 +2660,7 @@ const Game = (() => {
 
   function startChoosing(kind="level") {
     st.choiceKind=kind;st.choosing = {};
-    for (const pl of st.players) if (!pl.disconnected) st.choosing[pl.id] = kind==="chest"?chestOptions(pl):buildOptions(pl, 3);
+    for (const pl of st.players) if (!pl.disconnected) st.choosing[pl.id] = kind==="chest"?chestOptions(pl):buildOptions(pl,3,true);
     emit("levelUp", { options: st.choosing[localId], kind, level: st.level, players: st.players.length, rerolls: st.players[localId].rerolls });
     if (mode === "host") emit("netChoices", st.choosing);
   }
@@ -2688,7 +2738,7 @@ const Game = (() => {
     const seconds = Math.floor(st.t / 60);
     const greed = st.players[localId].stats.greed;
     const coins = Math.round((st.coins + st.kills / 8 + seconds / 6 + st.bossesKilled * 60 + (victory || st.won ? 300 : 0)) * greed);
-    emit("end", { victory: victory || !!st.won, finalPhase: !!st.finalPhase, finalRound: st.finalRound || 0, endless: !!st.endless && !!st.won, endlessSeconds: st.endless ? Math.floor((st.t - st.endlessStart) / 60) : 0, seconds, kills: st.kills, level: st.level, coins, bosses: st.bossesKilled, evolutions: st.evolutions, abilities: st.abilitiesUsed || 0, props: st.propsBroken, combat:st.players.map(p=>({...p.combat,bestStreak:p.streak?.best || 0})),recaps:st.players.map(p=>({fatal:p.down?p.fatalHit:null,hits:(p.damageHistory || []).filter(h=>(p.down&&p.fatalHit?p.fatalHit.at:st.t)-h.at<=600)})),bestStreak:st.players[localId].streak?.best || 0, chests: st.chests || 0, charId: st.players[localId].charId, map: st.mapId, daily: st.daily, coop: st.players.length > 1 });
+    emit("end", { victory: victory || !!st.won, finalPhase: !!st.finalPhase, finalRound: st.finalRound || 0, endless: !!st.endless && !!st.won, endlessSeconds: st.endless ? Math.floor((st.t - st.endlessStart) / 60) : 0, seconds, kills: st.kills, level: st.level, coins, bosses: st.bossesKilled, evolutions: st.evolutions, abilities: st.abilitiesUsed || 0, props: st.propsBroken, combat:st.players.map(p=>({...p.combat,bestStreak:p.streak?.best || 0})),recaps:st.players.map(p=>({fatal:p.down?p.fatalHit:null,hits:(p.damageHistory || []).filter(h=>(p.down&&p.fatalHit?p.fatalHit.at:st.t)-h.at<=600)})),talents:st.players.map(p=>[...(p.talents || [])]),bestStreak:st.players[localId].streak?.best || 0, chests: st.chests || 0, charId: st.players[localId].charId, map: st.mapId, daily: st.daily, coop: st.players.length > 1 });
   }
 
   function readInput() {
@@ -2805,6 +2855,7 @@ const Game = (() => {
       combo:st.comboUntil>st.t?L(st.comboLabel):null,
       streak:p.streak && p.streak.until>st.t?{...p.streak,remaining:(p.streak.until-st.t)/240,highlight:p.streak.flashUntil>st.t}:null,
       loot:p.loot?.until>st.t?p.loot:null,
+      talents:(p.talents || []).map(id=>({id,name:L(TS.TALENTS[id].name),desc:L(TS.TALENTS[id].desc)})),talentNext:nextTalent(p)?{...nextTalent(p),ready:canSpecialize(p)}:null,stats:statRows(p.stats),
       bestStreak:p.streak?.best || 0,upcoming:upcomingEncounters(),
       combat: p.combat || {}, chests: st.chests || 0,
       evolution: evolutionInfo(p), compass: compassTarget(p),
@@ -2830,7 +2881,7 @@ const Game = (() => {
       boss: st.boss && TS.ENEMIES[st.boss.type] ? { name: L(TS.ENEMIES[st.boss.type].name) + (st.finalPhase ? ` · ${L("Fase")} ${st.finalRound}` : ""), pct: st.boss.hp / st.boss.maxHp, tactic:L(TS.TACTIC_NAMES[st.boss.tactic] || "") } : null,
       down: p.down,
       name: p.name,
-      ability: abDef ? { name: L(abDef.name), pct: st.guest ? p.abPct ?? 1 : 1 - p.abCd / abilityMax(p) } : null,
+      ability: abDef ? { name: L(abDef.name), pct:clamp(st.guest?p.abPct ?? 1:1-p.abCd/abilityMax(p),0,1) } : null,
       players: st.players.map((o) => ({ name: o.name, hp: o.hp, maxHp: o.stats.maxHp, down: o.down, charId: o.charId, disconnected:!!o.disconnected, revivePct:clamp(o.reviveT/150,0,1), reviver:o.reviver ?? null }))
     };
   }
@@ -3858,7 +3909,7 @@ const Game = (() => {
       p.weapons.map((w) => [w.id, w.lvl, w.evo ? 1 : 0, (w.drones || []).map((d) => [r1(d.x || 0), r1(d.y || 0)]),w.path || null]),
       Object.entries(p.passives), r1(p.stats.area), Math.round((1 - p.abCd / abilityMax(p)) * 100) / 100,
       p.moveX, p.moveY, p.atk ? p.atk.ax : null, p.atk ? p.atk.ay : null, Object.entries(p.techniques || {}), {
-        rerolls:p.rerolls, combat:p.combat, streak:p.streak,loot:p.loot, disconnected:!!p.disconnected, reviver:p.reviver ?? null,
+        talents:p.talents,stats:STAT_KEYS.map(k=>p.stats[k]),rerolls:p.rerolls, combat:p.combat, streak:p.streak,loot:p.loot, disconnected:!!p.disconnected, reviver:p.reviver ?? null,
         ready:Object.fromEntries((TS.TECHNIQUES[p.charId] || []).map(m=>[m.id,clamp(1-(p.techCds?.[m.id] || 0)/(m.cd*p.stats.cdMul),0,1)]))
       }
     ]);
@@ -3934,12 +3985,14 @@ const Game = (() => {
       p.atk = a[6] > 0 ? { t: a[6], total: a[7], ...(a[20] != null && a[21] != null ? { ax: a[20], ay: a[21] } : {}) } : null;
       p.moveX = a[18]; p.moveY = a[19];
       p.techniques = Object.fromEntries(a[22] || []);
+      p.talents=(a[23]?.talents || []).filter(id=>TS.TALENTS[id]);
+      STAT_KEYS.forEach((key,i)=>{if(Number.isFinite(a[23]?.stats?.[i]))p.stats[key]=a[23].stats[i];});
       p.streak=a[23]?.streak || {count:0,best:0,until:0,flashUntil:0};p.loot=a[23]?.loot || null;
       p.reviver=a[23]?.reviver ?? null; p.disconnected=!!a[23]?.disconnected; p.rerolls=a[23]?.rerolls ?? 0; p.combat=a[23]?.combat || {}; p.techReady=a[23]?.ready || {};
       p.hp = a[8]; p.stats.maxHp = a[9]; p.down = !!a[10]; p.reviveT = a[11]; p.iframes = a[12]; p.flash = a[13];
       p.weapons = a[14].filter(([id]) => id === charById(p.charId).weapon).map(([id, lvl, evo, drones, path]) => ({ id, lvl, evo: !!evo, path, drones: drones.map(([x, y]) => ({ x, y })) }));
       p.passives = Object.fromEntries(a[15]);
-      p.stats.area = a[16];
+      p.stats.area=Number.isFinite(a[23]?.stats?.[2])?a[23].stats[2]:a[16];
       p.abPct = a[17];
     });
     const seen = new Set();

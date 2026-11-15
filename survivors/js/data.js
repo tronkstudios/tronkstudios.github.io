@@ -722,3 +722,17 @@ TS.TACTIC_NAMES={charge:"Carga",gaps:"Anillos con abertura",guards:"Refuerzos",v
 TS.SITE_NAMES={camp:"Campamento",altar:"Altar maldito",lamp:"Farola de refugio"};
 
 TS.SITE_HINTS={camp:"Cura durante 20 s",altar:"Derrota a 3 guardianes y gana un cofre",lamp:"Cura, revela y debilita enemigos"};
+
+// One specialization per stage; choices trade strengths rather than add weapons.
+TS.TALENT_STAGES=[{level:15,at:300},{level:30,at:720},{level:50,at:1200}];
+TS.TALENTS={
+ edge:{tier:0,name:"Dominio del arma",desc:"+16 puntos de potencia y −8 puntos de área.",stats:{might:.16,area:-.08}},
+ reach:{tier:0,name:"Cobertura",desc:"+20 puntos de área y +6 puntos de tiempo de recarga.",stats:{area:.2,cooldown:-.06}},
+ fleet:{tier:0,name:"Paso ligero",desc:"+15 puntos de movimiento y −10 de vida máxima.",stats:{speed:.15,maxHp:-.1}},
+ tempo:{tier:1,name:"Ritmo de combate",desc:"−10 puntos de tiempo de recarga y −8 puntos de potencia.",stats:{cooldown:.1,might:-.08}},
+ guarded:{tier:1,name:"Guardia firme",desc:"+1,5 de armadura y −8 puntos de movimiento.",stats:{armor:1.5,speed:-.08}},
+ recovery:{tier:1,name:"Recuperación",desc:"Regenera 0,5 de vida por segundo y pierde 8 puntos de área.",stats:{regen:.5,area:-.08}},
+ overdrive:{tier:2,name:"Sobrecarga ofensiva",desc:"+22 puntos de potencia y −15 de vida máxima.",stats:{might:.22,maxHp:-.15}},
+ perimeter:{tier:2,name:"Control del terreno",desc:"+28 puntos de área y +8 puntos de tiempo de recarga.",stats:{area:.28,cooldown:-.08}},
+ resolve:{tier:2,name:"Última resistencia",desc:"+20 de vida máxima y −10 puntos de potencia.",stats:{maxHp:.2,might:-.1}}
+};
