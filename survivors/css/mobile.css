@@ -1,0 +1,77 @@
+/* Mobile presentation: readable on every biome, with room left for combat. */
+@media (any-pointer: coarse) {
+  .screen,.modal { padding-top:max(12px,env(safe-area-inset-top)); padding-bottom:max(12px,env(safe-area-inset-bottom)); }
+  .panel { padding:16px; border-radius:20px; }
+  .panel-head { gap:10px; padding-bottom:12px; }.panel-head h2 { font-size:23px; }
+  .setting { gap:12px; padding:12px 0; line-height:1.45; }.setting select { max-width:48%; }
+  .modal-box { padding:18px; border-radius:22px; gap:14px; overscroll-behavior:contain; }
+  .modal-box h2 { font-size:25px; line-height:1.15; }.modal-eyebrow { font-size:10px; }
+  .up-card { border-radius:13px; padding:12px; gap:11px; }.up-card b { font-size:15px; line-height:1.25; }.up-card small { font-size:12px; line-height:1.5; }
+  .modal-buttons { gap:12px; }.modal-buttons .btn { min-height:46px; }
+  .hud-me { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:5px 6px; padding:8px 10px; border:1px solid #b4d7ce44; border-radius:12px; background:linear-gradient(145deg,#18333ff2,#102732ed); box-shadow:0 3px 12px #0003; text-shadow:none; }
+  .hud-me > b { font-size:12px; line-height:14px; }.hud-lvl { align-self:center; font-size:10px; color:#e6cd98; white-space:nowrap; }
+  .hud-hp,.hud-xp,.hud-loot { grid-column:1/-1; width:100%; }.hud-hp { height:12px; border-radius:5px; }.hud-hp b { font-size:9px; line-height:10px; }.hud-xp { height:3px; border-radius:3px; background:#091d27; }
+  .hud-loot { font-size:10px; color:#b3ead5; line-height:12px; }
+  .hud-center { padding:7px 8px; border:1px solid #b4d7ce33; border-radius:12px; background:linear-gradient(145deg,#18333ff2,#102732ed); text-shadow:none; box-shadow:0 3px 12px #0002; }
+  .hud-time { font-size:23px; line-height:25px; font-variant-numeric:tabular-nums; }.hud-phase { font-size:10px; color:#edd29d; line-height:12px; text-shadow:none; }
+  .hud-status { font-size:10px; line-height:12px; color:#d7e8e5; text-shadow:none; overflow-wrap:anywhere; }
+  .hud-team { padding:7px 8px; border:1px solid #9cc6bb33; border-radius:10px; background:#102732e8; }.hud-team:empty { display:none; }
+  .hud-compass { border-radius:10px; padding:8px 9px; background:#102732ed; color:#f2d79e; line-height:14px; text-shadow:none; overflow:hidden; text-overflow:ellipsis; }
+  .hud-streak { background:#102732e8; border:1px solid #b4d7ce33; border-radius:10px; padding:6px 8px; }
+  .hud-world,.hud-milestone,.hud-evo { padding:4px 8px; border:1px solid #b4d7ce26; border-radius:7px; background:#102732e8; max-width:100%; font-size:10px; line-height:13px; text-shadow:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .hud-slots { padding:6px; border:1px solid #b4d7ce33; border-radius:12px; background:#102732de; gap:5px; max-width:100%; }
+  .hud-slot { width:31px; height:34px; background:linear-gradient(145deg,#294753,#142e3b); border:1px solid #93b9b344; }.hud-slot img { width:25px; height:25px; }.hud-slot.is-passive { width:25px; height:28px; }.hud-slot.is-passive img { width:20px; height:20px; }
+  .touch-pad { width:108px; height:108px; border:1px solid #c2e0d080; background:radial-gradient(circle,#1b3b456b 0 48%,#102732a6 50% 100%); box-shadow:inset 0 1px 0 #edfff130,0 4px 16px #0002; }
+  .touch-stick { width:43px; height:43px; border:1px solid #d8eee6a3; background:radial-gradient(circle at 35% 25%,#e6f3e9c9,#7caba6b3); box-shadow:0 2px 6px #0003; }
+  .touch-pad small { bottom:8px; font-size:10px; color:#eff7ee; text-shadow:0 1px 3px #08212b; }
+  .hud-ab { width:94px; height:94px; border:2px solid #8bb5b3; background:#102d3df0; box-shadow:0 4px 16px #0005,inset 0 1px 0 #d3efe51f; padding:10px; }.hud-ab b { font-size:11px; line-height:1.2; }.hud-ab small { font-size:11px; color:#deeee8; }.hud-ab.is-ready { border-color:#ffe1a0; box-shadow:0 0 0 3px #d5a85e55,0 4px 18px #0004; }
+  .hud-pause { border:1px solid #b4d7ce66; border-radius:12px; background:#102732ed; box-shadow:0 3px 10px #0003; }
+  .banner { padding:16px; border-radius:16px; background:#102732ed; border:1px solid #b4d7ce44; text-shadow:none; }
+  .toast { box-shadow:0 3px 12px #0003; }
+}
+@media (any-pointer: coarse) and (orientation: portrait) {
+  .hud-center { left:calc(50% + 8px); right:calc(68px + env(safe-area-inset-right)); top:calc(12px + env(safe-area-inset-top)); width:auto; max-width:none; }
+  .hud-sub { position:fixed; top:calc(94px + env(safe-area-inset-top)); left:calc(12px + env(safe-area-inset-left)); right:calc(12px + env(safe-area-inset-right)); max-width:none; padding:4px 8px; border-radius:7px; background:#102732e8; font-size:10px; line-height:14px; color:#d3e3de; text-shadow:none; }
+  .hud-bottom { width:calc(100% - 24px); gap:5px; }
+  .menu-layout { gap:18px; }.menu-box { padding:22px 18px; gap:13px; backdrop-filter:none; }.menu-box .logo { font-size:40px; }.menu-buttons { gap:10px; }.menu-buttons .btn { padding:12px 14px; min-height:48px; border-radius:12px; }
+  .menu-stage { padding:22px 14px 14px; gap:12px; border:1px solid #b4d7ce26; border-radius:22px; background:linear-gradient(160deg,#1b3541a8,#10232caa); }.stage-hero img { width:154px; height:183px; }.stage-floor { width:190px; height:48px; margin-top:-30px; }.stage-info { padding:0; gap:6px; }.stage-name { font-size:24px; }.stage-weapon { line-height:1.5; font-size:12px; }
+  .menu-version { position:static; padding:10px; align-self:center; text-align:center; }
+  .chars-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }.char-card { min-width:0; padding:9px 4px; border-radius:12px; font-size:12px; gap:3px; }.char-card img { width:52px; height:62px; }.char-card .char-rarity { font-size:10px; }.char-card .stars { font-size:9px; letter-spacing:0; }.char-detail { padding:14px; gap:10px; }.char-detail .big img { width:92px; height:110px; }.char-detail h3 { font-size:24px; }.char-detail p { font-size:13px; line-height:1.6; }.character-preview { margin:8px 0; }.char-moves { font-size:13px; padding:12px; }.char-moves li { padding:4px 0; }
+}
+@media (any-pointer: coarse) and (orientation: landscape) {
+  .hud-me { padding:6px 8px; gap:4px 6px; }.hud-center { padding:5px 10px; }.hud-time { font-size:21px; line-height:23px; }.hud-sub { display:none; }
+  .hud-bottom { gap:4px; }.hud-world,.hud-milestone,.hud-evo { padding:3px 7px; font-size:9px; line-height:12px; }.hud-slots { padding:5px; gap:4px; }.hud-slot { width:27px; height:29px; }.hud-slot img { width:22px; height:22px; }.hud-slot.is-passive { width:23px; height:25px; }.hud-slot.is-passive img { width:18px; height:18px; }
+  .touch-pad { width:96px; height:96px; }.hud-ab { width:84px; height:84px; padding:9px; }.hud-ab b { font-size:10px; }
+  .menu-box { padding:18px; backdrop-filter:none; }.modal-box { padding:14px 18px; }.modal-box h2 { font-size:23px; }
+}
+
+/* Opening theatre: warm light comes from behind the rim and the emerging hero. */
+.gacha-reveal{gap:10px;align-content:safe center;background:radial-gradient(ellipse at 50% 35%,#44351b99,transparent 60%),#09141ef5}
+.reveal-theatre{position:relative;width:min(440px,90vw);max-width:100%;height:260px;isolation:isolate;overflow:visible}
+.opening-chest{position:absolute;width:150px;height:100px;bottom:6px;left:50%;transform:translateX(-50%);z-index:5;filter:drop-shadow(0 10px 12px #0008)}
+.chest-body{position:absolute;inset:34px 0 0;background:repeating-linear-gradient(0deg,#80512c 0 18px,#694022 19px 21px);border:5px solid #d5ac52;border-radius:5px 5px 16px 16px;box-shadow:inset 0 4px 0 #392415,inset 14px 0 0 #c39a46,inset -14px 0 0 #c39a46}
+.chest-lid{position:absolute;inset:4px -3px auto;height:42px;background:linear-gradient(#b77b37,#75502b);border:5px solid #e0ba65;border-radius:28px 28px 5px 5px;transform-origin:10% 100%;transition:transform .45s ease;z-index:7;box-shadow:inset 12px 0 0 #ba8f41,inset -12px 0 0 #ba8f41}
+.chest-lock{position:absolute;left:63px;top:47px;width:24px;height:28px;border-radius:4px;background:#f1d184;border:3px solid #a97e32;z-index:8}.chest-lock:after{content:"";position:absolute;width:5px;height:10px;background:#593e23;left:7px;top:6px;border-radius:4px}
+.chest-interior{position:absolute;left:5px;right:5px;top:25px;height:25px;border-radius:50%;background:#ffe4a0;box-shadow:0 0 28px 8px #ffc65c99;opacity:0;transition:opacity .4s;z-index:3}
+.chest-rays{position:absolute;z-index:0;inset:0 8% 40px;opacity:0;background:linear-gradient(0deg,#ffdb75bd,#ffe6a124 70%,transparent);clip-path:polygon(0 0,100% 0,65% 100%,35% 100%);filter:blur(3px);transition:opacity .45s}
+.chest-aura{position:absolute;z-index:0;inset:25px 5% 20px;opacity:0;background:radial-gradient(ellipse at 50% 80%,#ffdf8a80,#ffc55426 45%,transparent 72%);transition:opacity .4s}
+.is-open .chest-lid{transform:translateY(-29px) rotate(-25deg)}.is-open .chest-interior,.is-open .chest-rays,.is-open .chest-aura{opacity:1}
+.reveal-hero{position:absolute;z-index:4;left:50%;bottom:83px;width:150px;height:178px;object-fit:contain;transform:translateX(-50%);filter:drop-shadow(0 0 13px #ffe2a480)}
+.reveal-hero.is-emerging{animation:emerge-from-chest .65s cubic-bezier(.15,.8,.2,1) both}
+@keyframes emerge-from-chest{0%{transform:translate(-50%,95px) scale(.12);opacity:0}35%{opacity:1}75%{transform:translate(-50%,-8px) scale(1.04)}100%{transform:translate(-50%,0) scale(1);opacity:1}}
+.reveal-identity{margin:0;max-width:90vw;min-height:32px;text-align:center;font-size:14px;line-height:1.5;color:#fff0cb}
+.reveal-slot{width:110px;min-height:130px;border:1px solid #b8c8bc33;border-radius:12px;background:#17303a88}.reveal-slot .reveal-card{width:100%;box-shadow:inset 0 0 0 2px var(--rarity);animation:none;background:linear-gradient(150deg,#29404c,#172c36)}
+.gacha-reveal.is-ten .reveal-cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));width:min(650px,calc(100vw - 32px));gap:8px}.gacha-reveal.is-ten .reveal-slot{width:auto;min-width:0}.gacha-reveal.is-ten .reveal-card{width:100%;min-width:0}.reveal-card b{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#reveal-skip{position:fixed;right:max(12px,env(safe-area-inset-right));top:max(12px,env(safe-area-inset-top));z-index:40}
+@media(max-width:600px){.reveal-theatre{height:220px}.reveal-hero{width:130px;height:155px;bottom:78px}.opening-chest{transform:translateX(-50%) scale(.9);transform-origin:50% 100%}.gacha-reveal.is-ten .reveal-cards{gap:5px}.gacha-reveal.is-ten .reveal-card{padding:6px 2px;font-size:9px}.gacha-reveal.is-ten .reveal-card img{width:43px;height:52px}.gacha-reveal.is-ten .reveal-card b{font-size:10px}.gacha-reveal.is-ten .reveal-slot{min-height:97px}.reveal-identity{font-size:12px}.gacha-reveal h2{font-size:21px}}
+@media(max-height:620px){.gacha-reveal{align-content:start;padding-top:12px}.reveal-theatre{height:178px}.reveal-hero{height:135px;width:115px;bottom:65px}.opening-chest{transform:translateX(-50%) scale(.75);transform-origin:50% 100%}}
+@media(orientation:landscape) and (max-height:500px){.gacha-reveal{grid-template-columns:minmax(180px,1fr) minmax(240px,1fr);gap:8px}.gacha-reveal>h2{grid-column:1/-1}.reveal-theatre{grid-column:1;grid-row:2/span 2;width:100%;height:170px}.gacha-reveal .reveal-cards,.gacha-reveal.is-ten .reveal-cards{grid-column:2;grid-row:2/span 2;width:100%}.reveal-identity{grid-column:1;max-width:100%}.gacha-reveal.is-ten .reveal-slot{min-height:84px}.gacha-reveal.is-ten .reveal-card img{height:42px;width:36px}.gacha-reveal #reveal-ok{grid-column:2;grid-row:4}}
+.reduce-motion .chest-lid,.reduce-motion .chest-aura,.reduce-motion .chest-rays{transition:none}.reduce-motion .reveal-hero{animation:none}
+@media(prefers-reduced-motion:reduce){.chest-lid,.chest-aura,.chest-rays{transition:none}.reveal-hero{animation:none}}
+
+.roster-filters{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0;align-items:end}.roster-filters label{display:grid;gap:5px;font-size:12px;flex:1 1 120px;min-width:0}.roster-filters input,.roster-filters select,.skill-sorting{width:100%;min-width:0;padding:10px;border:1px solid #6b858b;border-radius:8px;background:#19333f;color:#ecf2e8;font:inherit}.roster-filters small{flex-basis:100%;color:#bad2cb}.history-list{list-style:none;padding:0;display:grid;gap:12px}.history-list li{padding:12px;border:1px solid #799f9a44;border-radius:12px;display:grid;gap:6px}.history-list small{color:#b6cfc9}.compact-hud #hud-sub,.compact-hud #hud-world,.compact-hud #hud-milestone{display:none}.compact-hud .hud.is-critical #hud-world{display:block}
+
+.reveal-card.is-new .tag:after{content:none}
+
+@media(max-width:600px){.gacha-reveal>h2{justify-self:start;max-width:calc(100% - 90px);font-size:19px}}
+@media(orientation:portrait) and (max-height:620px){.gacha-reveal{gap:6px;padding:12px}.gacha-reveal .reveal-theatre{height:150px}.gacha-reveal .reveal-hero{height:105px;width:92px;bottom:45px}.gacha-reveal .opening-chest{transform:translateX(-50%) scale(.7)}.gacha-reveal .reveal-identity{font-size:11px;min-height:30px}.gacha-reveal.is-ten .reveal-card img{width:34px;height:40px}.gacha-reveal.is-ten .reveal-card{padding:4px 2px;gap:1px;font-size:8px}.gacha-reveal.is-ten .reveal-card b{font-size:9px}.gacha-reveal.is-ten .reveal-slot{min-height:78px}.gacha-reveal.is-ten .reveal-card small{white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}}

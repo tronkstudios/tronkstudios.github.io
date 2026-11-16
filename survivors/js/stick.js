@@ -115,6 +115,9 @@ const Stick = (() => {
     for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
     ctx.lineWidth = w * LINE + 4.5; ctx.strokeStyle = INK; ctx.stroke();
     ctx.lineWidth = w * LINE; ctx.strokeStyle = color; ctx.stroke();
+    if(color!=="#ffffff" && color!=="#e8e8ff"){
+      ctx.save();ctx.beginPath();ctx.moveTo(pts[0][0]-w*.15,pts[0][1]-w*.1);for(const pt of pts.slice(1))ctx.lineTo(pt[0]-w*.15,pt[1]-w*.1);ctx.lineWidth=Math.max(1,w*.24);ctx.strokeStyle="rgba(239,255,246,.19)";ctx.stroke();ctx.restore();
+    }
   }
   const blob = (ctx, x, y, r) => { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); };
   const poly = (ctx, r, pts, fill) => { ctx.beginPath(); ctx.moveTo(pts[0][0] * r, pts[0][1] * r); for (const [x, y] of pts.slice(1)) ctx.lineTo(x * r, y * r); ctx.closePath(); if (fill) { ctx.fillStyle = fill; } ctx.fill(); };
@@ -455,6 +458,12 @@ const Stick = (() => {
     ctx.lineCap = "round"; ctx.lineJoin = "round";
     const wood = "#7a4a26", steel = "#dfe6f0", steelDk = "#5b6b80";
     switch (type) {
+      case "garfio":ctx.strokeStyle=wood;ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(0,-8);ctx.lineTo(0,tip-22);ctx.stroke();ctx.strokeStyle=steel;ctx.lineWidth=7;ctx.beginPath();ctx.arc(0,tip-13,15,-Math.PI/2,Math.PI);ctx.stroke();break;
+      case "prisma":ctx.strokeStyle="#727c91";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(0,-10);ctx.lineTo(0,tip-15);ctx.stroke();ctx.fillStyle="#a4e4de";ctx.beginPath();ctx.moveTo(0,tip+6);ctx.lineTo(14,tip-13);ctx.lineTo(0,tip-32);ctx.lineTo(-14,tip-13);ctx.closePath();ctx.fill();ctx.strokeStyle="#e5dcba";ctx.lineWidth=3;ctx.stroke();break;
+      case "tijeras":for(const side of [-1,1]){ctx.strokeStyle=steel;ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(side*7,-8);ctx.lineTo(-side*15,tip);ctx.stroke();ctx.strokeStyle="#a35f78";ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(side*8,-8,7,10,0,0,Math.PI*2);ctx.stroke();}break;
+      case "estandarte":ctx.strokeStyle=wood;ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(0,-15);ctx.lineTo(0,tip);ctx.stroke();ctx.fillStyle="#526f9a";ctx.beginPath();ctx.moveTo(0,tip-4);ctx.lineTo(30,tip-4);ctx.lineTo(24,tip-44);ctx.lineTo(0,tip-39);ctx.closePath();ctx.fill();ctx.strokeStyle="#e3c27e";ctx.lineWidth=3;ctx.stroke();break;
+      case "diapason":ctx.strokeStyle=steel;ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(0,-8);ctx.lineTo(0,tip-28);ctx.moveTo(-13,tip);ctx.lineTo(-13,tip-24);ctx.quadraticCurveTo(0,tip-42,13,tip-24);ctx.lineTo(13,tip);ctx.stroke();break;
+      case "bumeran":ctx.strokeStyle="#ca9d62";ctx.lineWidth=12;ctx.beginPath();ctx.moveTo(-20,26);ctx.lineTo(0,52);ctx.lineTo(20,26);ctx.stroke();ctx.strokeStyle="#7c654e";ctx.lineWidth=3;ctx.stroke();break;
       case "faro":
         ctx.strokeStyle="#426b68";ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(0,-20);ctx.lineTo(0,75);ctx.stroke();
         ctx.fillStyle="#f2d18b";ctx.fillRect(-11,65,22,6);ctx.fillRect(-11,94,22,5);
@@ -565,6 +574,7 @@ const Stick = (() => {
 
   // Arma de Survivors → cómo se dibuja y cómo se mueve
   const WEAPON = {
+    garfio:["garfio",90,"thrust"],prisma:["prisma",88,"cast"],tijeras:["tijeras",68,"slash"],estandarte:["estandarte",100,"cast"],diapason:["diapason",78,"smash"],bumeran:["bumeran",52,"throw"],
     faro:["faro",100,"cast"], arco:["arco",64,"bow"], bobina:["bobina",40,"cast"], abanico:["abanico",30,"throw"], tambor:["tambor",35,"smash"],
     discos: ["magnet", 0, "cast"], acido: ["vial", 0, "throw"], llamas: ["flamer", 40, "shoot"],
     tajo: ["espada", 74, "slash"], virote: ["ballesta", 46, "shoot"], mazazo: ["mazo", 70, "smash"], estocada: ["lanza", 132, "thrust"],
@@ -587,7 +597,7 @@ const Stick = (() => {
     J.hipF = J.hipB = J.hip;
     J.shF = J.shB = J.sh;
     const sy = Math.sin(yaw), cy = Math.cos(yaw);
-    const k = o.thick || 1;
+    const d=o.design || {},k=(o.thick || 1);
     const lat = (n) => (o.weapon==="arco" && n==="bHand"?LAT.fHand:LAT[n] || 0) * (o.thick ? 0.7 + 0.3 * o.thick : 1);
     // proyección: (delante, arriba, derecha) → pantalla y profundidad
     const P3 = (n, pt = J[n], l = lat(n)) => {
@@ -607,7 +617,7 @@ const Stick = (() => {
     const parts = [];
     const add = (depth, draw) => parts.push({ depth, draw });
     const limb = (names, color, w) => {
-      const pts = names.map((n) => P3(n));
+      const pts = names.map((n) => {const p=P3(n);if(o.design && n.endsWith("Foot"))p[1]-=6;return p;});
       for(let i=1;i<pts.length;i++){
         const segment=[pts[i-1],pts[i]];
         add((segment[0][2]+segment[1][2])/2,()=>bone(ctx,segment,color,w));
@@ -616,15 +626,39 @@ const Stick = (() => {
     };
     if(o.outfit)for(const name of ["bFoot","fFoot"]){
       const foot=P3(name);
-      add(foot[2]+.2,()=>{ctx.fillStyle=flash?"#ffffff":o.shoes;ctx.strokeStyle=INK;ctx.lineWidth=2;
-        ctx.beginPath();ctx.ellipse(foot[0]+sy*2,foot[1],6+3*Math.abs(sy),3,0,0,Math.PI*2);ctx.fill();ctx.stroke();});
+      const knee=P3(name==="fFoot"?"fKnee":"bKnee");
+      add(Math.max(foot[2],(foot[2]+knee[2])/2)+.3,()=>{ctx.fillStyle=flash?"#ffffff":o.shoes;ctx.strokeStyle=INK;ctx.lineWidth=2;
+        ctx.beginPath();ctx.ellipse(foot[0]+sy*2,foot[1],6+3*Math.abs(sy),4,0,0,Math.PI*2);ctx.fill();ctx.stroke();});
     }
     // la mano izquierda es la «de atrás» de Tronk Fight
-    limb(["hipB", "bKnee", "bFoot"], legsDark, 7 * k);
-    if (!o.robe) limb(["hipF", "fKnee", "fFoot"], legs, 7 * k);
-    const bArm = limb(["shB", "bEl", "bHand"], dark, 6.5 * k);
-    const fArm = limb(["shF", "fEl", "fHand"], col, 7 * k);
+    limb(["hipB", "bKnee", "bFoot"], legsDark, (o.design?10:7) * k);
+    if (!o.robe) limb(["hipF", "fKnee", "fFoot"], legs, (o.design?10:7) * k);
+    const bArm = limb(["shB", "bEl", "bHand"], dark, (o.design?8.5:6.5) * k);
+    const fArm = limb(["shF", "fEl", "fHand"], col, (o.design?9:7) * k);
     const hip = P3("hip"), neck = P3("neck"), sh = P3("sh"), hd = P3("head");
+    if(o.design){
+      const trim=d.trim || o.acc || "#d8c49c",coat=o.cape || shade(o.color,-.24);
+      const project=(pt,l=0)=>P3("x",pt,l);
+      if(d.coat || d.mantle){
+        const top=project([J.sh[0]-4,J.sh[1]+8],0),bottom=project([J.hip[0]-7,J.hip[1]+(d.coat?29:12)],0);
+        add(hip[2]-8,()=>{ctx.fillStyle=flash?"#ffffff":coat;ctx.strokeStyle=INK;ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(top[0]-19,top[1]);ctx.lineTo(top[0]+19,top[1]);ctx.lineTo(bottom[0]+23,bottom[1]);ctx.lineTo(bottom[0],bottom[1]-6);ctx.lineTo(bottom[0]-23,bottom[1]);ctx.closePath();ctx.fill();ctx.stroke();ctx.strokeStyle=flash?"#ffffff":trim;ctx.lineWidth=2;ctx.stroke();});
+      }
+      if(d.quiver || d.pack || d.satchel){
+        const back=project([J.sh[0]-13,J.sh[1]+14],-5);
+        add(back[2]-14,()=>{ctx.fillStyle=flash?"#ffffff":d.pack?"#586875":"#77583f";ctx.strokeStyle=INK;ctx.lineWidth=2.5;ctx.beginPath();ctx.roundRect(back[0]-10,back[1]-10,d.quiver?13:24,d.quiver?34:29,4);ctx.fill();ctx.stroke();
+          if(d.quiver){ctx.strokeStyle=flash?"#ffffff":"#dac796";ctx.lineWidth=2;for(const offset of [-4,0,4]){ctx.beginPath();ctx.moveTo(back[0]+offset,back[1]+5);ctx.lineTo(back[0]+offset+4,back[1]-21);ctx.stroke();}}
+        });
+      }
+      if(d.armor || d.vest || d.scarf){
+        for(const side of [-1,1]){const shoulder=project(J.sh,side*14);
+          add(shoulder[2]+.2,()=>{ctx.fillStyle=flash?"#ffffff":d.armor?"#758a91":shade(o.color,-.28);ctx.strokeStyle=INK;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(shoulder[0],shoulder[1]+2,d.armor?11:8,7,0,0,Math.PI*2);ctx.fill();ctx.stroke();});}
+      }
+      for(const [pts,side] of [[[P3("fKnee"),P3("fFoot")],1],[[P3("bKnee"),P3("bFoot")],-1]]){
+        const knee=pts[0],foot=pts[1];if(!d.boots)continue;
+        add((foot[2]+knee[2])/2+.1,()=>{const top=[lerp(knee[0],foot[0],.45),lerp(knee[1],foot[1],.45)],end=[foot[0],foot[1]-6];bone(ctx,[top,end],flash?"#ffffff":o.shoes,11*k);});
+      }
+      if(d.scarf){const a=project([J.neck[0],J.neck[1]+4],0);add(a[2]+1,()=>{ctx.strokeStyle=flash?"#ffffff":o.acc || trim;ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(a[0]-8,a[1]);ctx.lineTo(a[0]+8,a[1]);ctx.lineTo(a[0]+14,a[1]+21);ctx.stroke();});}
+    }
     const glove = (pt, front) => add(pt[2] + 0.5, () => {
       ctx.fillStyle = flash ? "#ffffff" : hands === "gloves" ? (front ? "#e53935" : "#b71c1c") : (o.skin || o.color); ctx.strokeStyle = INK; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(pt[0], pt[1], hands === "gloves" ? 10 : 7, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
@@ -637,13 +671,22 @@ const Stick = (() => {
       add(hip[2], () => { ctx.fillStyle = flash ? "#ffffff" : o.robe; ctx.strokeStyle = INK; ctx.lineWidth = 3; ctx.beginPath(); rl.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.closePath(); ctx.fill(); ctx.stroke(); });
     } else {
       add(hip[2] + 0.1, () => {
-        bone(ctx, [hip, neck], col, 8 * k * (o.torso || 1));
-        if(o.outfit && !o.abs) {
-          const sw=15*Math.max(.45,Math.abs(cy)),hw=10*Math.max(.45,Math.abs(cy));
-          ctx.fillStyle=col;ctx.strokeStyle=INK;ctx.lineWidth=2.5;
+        bone(ctx, [hip, neck], col, (o.design?12:8) * k * (o.torso || 1));
+        const uniform=o.outfit || ["zombi","corredor","gordo","antitronk","supremo","general","ninja","maestro","casco","sanador","tirador"].includes(o.role);
+        if(uniform && !o.abs) {
+          const sw=15*(d.width || 1)*Math.max(.45,Math.abs(cy)),hw=10*(d.width || 1)*Math.max(.45,Math.abs(cy));
+          const cloth=ctx.createLinearGradient(sh[0]-sw,sh[1],hip[0]+hw,hip[1]);cloth.addColorStop(0,flash?"#ffffff":shade(o.color,.12));cloth.addColorStop(.4,col);cloth.addColorStop(1,flash?"#e8e8ff":shade(o.color,-.25));
+          ctx.fillStyle=cloth;ctx.strokeStyle=INK;ctx.lineWidth=2.5;
           ctx.beginPath();ctx.moveTo(sh[0]-sw,sh[1]-4);ctx.lineTo(sh[0]+sw,sh[1]-4);ctx.lineTo(hip[0]+hw,hip[1]+4);ctx.lineTo(hip[0]-hw,hip[1]+4);ctx.closePath();ctx.fill();ctx.stroke();
           ctx.strokeStyle=shade(o.color,-.3);ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(sh[0],sh[1]+4);ctx.lineTo(hip[0],hip[1]);ctx.stroke();
-          ctx.strokeStyle=o.acc || "#e9cf90";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(hip[0]-hw,hip[1]-3);ctx.lineTo(hip[0]+hw,hip[1]-3);ctx.stroke();
+          ctx.strokeStyle=o.acc || (o.outfit?"#c8b183":"#718a85");ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(hip[0]-hw,hip[1]-3);ctx.lineTo(hip[0]+hw,hip[1]-3);ctx.stroke();
+          if(!flash && Math.abs(cy)>.3){
+            ctx.strokeStyle=shade(o.color,-.4);ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(sh[0]-sw*.45,sh[1]+2);ctx.quadraticCurveTo(sh[0],sh[1]+9,sh[0]+sw*.45,sh[1]+2);ctx.stroke();
+            if(cy>.3){ctx.fillStyle="#d7c9a3";ctx.fillRect(hip[0]-2,hip[1]-5,4,4);}
+            if(cy>.3 && ["antitronk","supremo","general","casco","tirador"].includes(o.role)){
+              ctx.fillStyle=shade(o.color,-.32);for(const side of [-1,1]){ctx.fillRect(sh[0]+side*sw*.45-3,sh[1]+11,6,9);ctx.strokeStyle="#9aaca1";ctx.lineWidth=1;ctx.strokeRect(sh[0]+side*sw*.45-3,sh[1]+11,6,9);}
+            }
+          }
         }
         if (o.abs && !flash && cy > 0) {
           ctx.strokeStyle = shade(o.color, -0.3); ctx.lineWidth = 1.5;
@@ -752,12 +795,14 @@ const Stick = (() => {
         walk: Array.from({ length: 8 }, (_, i) => frame(o, pose(style, "walk", i, 8), false, yaw)),
         attack: Array.from({ length: 6 }, (_, i) => frame(o, pose(style, "attack", i, 6), false, yaw))
       };
+      if(o.role==="ranjay")frames.thrust=Array.from({length:6},(_,i)=>frame(o,pose("thrust","attack",i,6),false,yaw));
       out[v] = frames;
       // El destello conserva exactamente los pies, el recorte y la silueta.
       out[`${v}Flash`] = {
         idle: Sprites.silhouette(frames.idle),
         walk: frames.walk.map(c => Sprites.silhouette(c)),
-        attack: frames.attack.map(c => Sprites.silhouette(c))
+        attack: frames.attack.map(c => Sprites.silhouette(c)),
+        ...(frames.thrust?{thrust:frames.thrust.map(c=>Sprites.silhouette(c))}:{})
       };
     }
     return out;
@@ -766,7 +811,8 @@ const Stick = (() => {
   /* ---------- personajes (de data.js) ---------- */
   function characterOptions(ch) {
     const skin=ch.skin==="dark"?"#a87554":"#efc29e";
-    const o = { role:ch.id,outfit:true,color:ch.shirt,legs:ch.pants || ch.shirt,head:skin,skin,shoes:ch.shoes || "#252431",hair:ch.hair,hairColor:ch.hairColor,acc:ch.acc,weapon:ch.weapon,glasses:ch.glasses,beard:!!ch.beard,stubble:!!ch.stubble };
+    const design=TS.OUTFIT_TYPES[TS.OUTFITS[ch.id]];
+    const o = { design,role:ch.id,outfit:true,color:ch.shirt,legs:ch.pants || ch.shirt,head:skin,skin,shoes:ch.shoes || "#252431",hair:ch.hair,hairColor:ch.hairColor,acc:ch.acc,weapon:ch.weapon,glasses:ch.glasses,beard:!!ch.beard,stubble:!!ch.stubble };
     if(ch.id==="lumen") o.cape="#d8d0ac";
     if (ch.id === "savia") o.cape = "#513659";
     if (ch.id === "brasa") o.thick = 1.2;

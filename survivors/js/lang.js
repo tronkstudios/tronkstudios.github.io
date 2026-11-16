@@ -639,3 +639,171 @@ Object.assign(EN,{
 });
 
 Object.assign(EN,{"Senderos y campamentos que curan durante 20 segundos.":"Trails and camps that heal for 20 seconds.","Activa altares, derrota a sus guardianes y consigue cofres.":"Activate altars, defeat their guardians and earn chests.","Arena, mar transitable y corrientes que puedes contrarrestar.":"Sand, wadeable sea and currents you can counter.","Busca farolas para curarte, revelar fantasmas y anular escudos.":"Find lamps to heal, reveal ghosts and disable shields."});
+
+Object.assign(EN,{
+ "Define tu especialización":"Choose your specialization","Elige una ventaja con su coste. Solo para esta partida.":"Choose a benefit with a trade-off. Only for this run.","Especialización":"Specialization","Especializaciones":"Specializations","Próxima especialización":"Next specialization","Especialización disponible en tu próxima subida de nivel":"Specialization available on your next level-up","Estadísticas del equipo":"Build statistics","Movimiento":"Movement","Tiempo de recarga":"Cooldown time","Vida máxima":"Maximum health","Armadura":"Armor","Regeneración":"Regeneration","Alcance de recogida":"Pickup range","Experiencia":"Experience","Proyectiles adicionales":"Additional projectiles","Potencia por impacto":"Power per hit","Recarga del arma":"Weapon cooldown","Cantidad":"Count","Área del arma":"Weapon area",
+ "Dominio del arma":"Weapon mastery","Cobertura":"Coverage","Paso ligero":"Light step","Ritmo de combate":"Combat rhythm","Guardia firme":"Steady guard","Recuperación":"Recovery","Sobrecarga ofensiva":"Offensive overload","Control del terreno":"Ground control","Última resistencia":"Last stand",
+ "+16 puntos de potencia y −8 puntos de área.":"+16 power percentage points and −8 area percentage points.","+20 puntos de área y +6 puntos de tiempo de recarga.":"+20 area percentage points and +6 cooldown percentage points.","+15 puntos de movimiento y −10 de vida máxima.":"+15 movement percentage points and −10 maximum health.","−10 puntos de tiempo de recarga y −8 puntos de potencia.":"−10 cooldown percentage points and −8 power percentage points.","+1,5 de armadura y −8 puntos de movimiento.":"+1.5 armor and −8 movement percentage points.","Regenera 0,5 de vida por segundo y pierde 8 puntos de área.":"Regenerate 0.5 health per second and lose 8 area percentage points.","+22 puntos de potencia y −15 de vida máxima.":"+22 power percentage points and −15 maximum health.","+28 puntos de área y +8 puntos de tiempo de recarga.":"+28 area percentage points and +8 cooldown percentage points.","+20 de vida máxima y −10 puntos de potencia.":"+20 maximum health and −10 power percentage points."
+});
+
+for(const kit of Object.values(TS.DISTINCT_KITS))for(const [name,nameEn,desc,descEn] of Object.values(kit)){if(!EN[name])EN[name]=nameEn;EN[desc]=descEn;}
+Object.assign(EN,{
+ "Prisma de desvío":"Deflection prism","Las flechas, virotes, kunais y copos rebotan una vez hacia otro enemigo, con la mitad de potencia.":"Arrows, bolts, kunai and ice shards bounce once toward another enemy at half power.",
+ "Botas de resonancia":"Resonance boots","Recorrer 160 pasos crea una onda cercana. Como máximo una cada 3 segundos.":"Traveling 160 steps creates a nearby shockwave. At most once every 3 seconds.",
+ "Semilla de refugio":"Refuge seed","Recoger jensalada deja un círculo que cura 2 de vida por segundo durante 5 segundos. Un círculo por jugador.":"Picking up jensalada leaves a circle that heals 2 health per second for 5 seconds. One circle per player.",
+ "Reliquia":"Relic","Reliquias de partida":"Run relics","Reliquia · solo esta partida":"Relic · this run only","En los cofres pares puede aparecer una reliquia. La evolución y su receta tienen prioridad.":"Even-numbered chests may offer a relic. Evolution and its recipe take priority.",
+ "¡Pinza! Busca la abertura turquesa":"Pincer attack! Find the turquoise opening","Pinza de la horda":"Horde pincer"
+});
+
+Object.assign(EN,{
+  "Activa concentrada": "Focused active",
+  "Eco de la activa": "Active echo",
+  "+35 % de daño y curación de la activa. Recarga un 20 % más lenta.": "+35% active damage and healing. Cooldown is 20% longer.",
+  "Repite la activa un segundo después al 45 % de daño y curación. Recarga un 25 % más lenta.": "Repeats the active one second later at 45% damage and healing. Cooldown is 25% longer.",
+  "Tornado viajero: avanza en la dirección apuntada, con +35 % de daño y recarga un 20 % más lenta.": "Travelling tornado: moves in the aimed direction, with +35% damage and a 20% longer cooldown.",
+  "Ojo del vendaval: tornado fijo más amplio que atrae enemigos durante 4 segundos. Recarga un 25 % más lenta.": "Eye of the gale: a larger stationary tornado pulls enemies for 4 seconds. Cooldown is 25% longer.",
+  "Nido de refuerzos": "Reinforcement nest",
+  "Sepulcro inquieto": "Restless tomb",
+  "Sepulcro inquieto: destrúyelo para impedir resurrecciones": "Restless tomb: destroy it to stop resurrections",
+  "Nido descubierto: destrúyelo para cortar los refuerzos": "Nest discovered: destroy it to stop reinforcements",
+  "¡Origen destruido! Cofre y refugio durante 10 segundos": "Source destroyed! Chest and refuge for 10 seconds",
+  "Destruye el nido para cortar sus refuerzos y conseguir un cofre.": "Destroy the nest to stop its reinforcements and earn a chest.",
+  "Destruye el sepulcro: los esqueletos cercanos pueden resucitar una vez.": "Destroy the tomb: nearby skeletons can resurrect once.",
+  "¡Postura rota!": "Posture broken!",
+  "¡Esquiva precisa!": "Precise dodge!",
+  "¡Técnicas enlazadas!": "Linked techniques!",
+  "Ver ataque": "Play attack",
+  "Demostración de ataques": "Attack demonstration",
+  "Ataque de demostración": "Demonstration attack",
+  "Rendimiento por habilidad": "Skill performance",
+  "Sin impactos registrados": "No hits recorded",
+  "Daño": "Damage",
+  "Curación": "Healing",
+  "Control": "Control",
+  "Comparación con tu partida anterior": "Comparison with your previous run",
+  "Técnicas anteriores": "Previous techniques",
+  "Técnicas actuales": "Current techniques",
+  "Tu siguiente partida con este personaje y mapa tendrá una comparación.": "Your next run with this character and map will include a comparison.",
+  "Últimas partidas comparables": "Recent comparable runs",
+  "Detalles y comparación": "Details and comparison",
+  "Esquivas precisas": "Precise dodges",
+  "Volver a la sala online": "Return to online lobby",
+  "Repetir configuración": "Replay setup",
+  "Vuelve a crear o unirte a una sala para jugar con tus amigos.": "Create or join a lobby again to play with your friends.",
+  "Mismo personaje, mapa y reglas. El mapa se genera de nuevo salvo en retos con semilla.": "Same character, map and rules. A new map is generated except in seeded challenges.",
+  "Evoluciona tu habilidad activa": "Evolve your active ability"
+});
+
+Object.assign(EN,{"+35 % de daño si se enlazan en 3 segundos.":"+35% damage when linked within 3 seconds."});
+
+Object.assign(EN,{"Tornado viajero":"Travelling tornado","Ojo del vendaval":"Eye of the gale"});
+
+Object.assign(EN,{
+  "Guardia del rey": "King's guard",
+  "Corona de acero": "Steel crown",
+  "Flecha perforadora": "Piercing arrow",
+  "Salvas del bosque": "Forest volleys",
+  "Carga comprimida": "Compressed charge",
+  "Festival expansivo": "Expanding festival",
+  "Perfume protector": "Protective perfume",
+  "Jardín de aromas": "Aromatic garden",
+  "Balones perforantes": "Piercing balls",
+  "Rebote prolongado": "Lasting rebound",
+  "Virotes veloces": "Swift bolts",
+  "Cerco de virotes": "Bolt enclosure",
+  "Martillo quebrantador": "Posture-breaking hammer",
+  "Ondas expansivas": "Expanding waves",
+  "Hachas de largo alcance": "Long-range axes",
+  "Corona de hachas": "Axe crown",
+  "Escarcha persistente": "Lasting frost",
+  "Invierno extenso": "Wide winter",
+  "Estocada protegida": "Protected thrust",
+  "Eco de estocada": "Thrust echo",
+  "Puños quebrantadores": "Posture-breaking fists",
+  "Cerco de puños": "Fist enclosure",
+  "Impactos inmediatos": "Immediate impacts",
+  "Lluvia persistente": "Lasting rain",
+  "Puño demoledor": "Demolishing fist",
+  "Onda expansiva": "Expanding wave",
+  "Descarga paralizante": "Slowing discharge",
+  "Tormenta extensa": "Wide storm",
+  "Paso protegido": "Protected step",
+  "Eco de sombras": "Shadow echo",
+  "Láser de precisión": "Precision laser",
+  "Barrido de drones": "Drone sweep",
+  "Auxilio concentrado": "Focused aid",
+  "Luz compartida": "Shared light",
+  "Discos de contención": "Containment discs",
+  "Órbita extensa": "Wide orbit",
+  "Ácido inmediato": "Immediate acid",
+  "Jardín corrosivo": "Corrosive garden",
+  "Llamas concentradas": "Focused flames",
+  "Corona de fuego": "Fire crown",
+  "Marea penetrante": "Piercing tide",
+  "Marea extensa": "Wide tide",
+  "Abanico perforante": "Piercing fan",
+  "Brisa envolvente": "Enveloping breeze",
+  "Pulso persistente": "Lasting pulse",
+  "Cobertura extensa": "Wide coverage",
+  "Bloquea un proyectil durante 1,5 segundos.": "Blocks one projectile for 1.5 seconds.",
+  "Amplía un 20 % el alcance del eco.": "Increases echo range by 20%.",
+  "Proyectiles un 20 % más rápidos y dos penetraciones adicionales.": "20% faster projectiles with two additional penetrations.",
+  "Abre las trayectorias del eco y amplía su alcance.": "Widens echo trajectories and increases range.",
+  "Explosión más concentrada.": "A more concentrated explosion.",
+  "Amplía un 20 % el radio del eco.": "Increases echo radius by 20%.",
+  "Acumula un 40 % más de postura con la activa.": "The active builds 40% more posture.",
+  "Amplía un 20 % el alcance de las ondas del eco.": "Increases echo wave range by 20%.",
+  "Las hachas viajan un 50 % más lejos antes de volver.": "Axes travel 50% farther before returning.",
+  "Las hachas del eco duran un 30 % más.": "Echo axes last 30% longer.",
+  "Balones más rápidos con dos penetraciones adicionales.": "Faster balls with two additional penetrations.",
+  "Los balones del eco duran un 30 % más.": "Echo balls last 30% longer.",
+  "Prolonga un 50 % las ralentizaciones de la activa.": "Active slows last 50% longer.",
+  "Amplía un 20 % la zona de la activa y de su eco.": "Increases active and echo area by 20%.",
+  "Reduce a la mitad el aviso de los meteoros.": "Halves the meteor warning time.",
+  "Amplía un 20 % el radio de los impactos del eco.": "Increases echo impact radius by 20%.",
+  "La activa también ralentiza un 35 % durante un segundo.": "The active also slows by 35% for one second.",
+  "Amplía un 20 % el alcance de la activa y de su eco.": "Increases active and echo range by 20%.",
+  "Láseres un 25 % más largos en un abanico estrecho.": "25% longer lasers in a narrow fan.",
+  "Abanico de láseres más abierto.": "A wider laser fan.",
+  "El ácido de la activa empieza a golpear inmediatamente.": "Active acid starts hitting immediately.",
+  "Los charcos del eco duran un 30 % más.": "Echo pools last 30% longer.",
+  "Llamaradas un 20 % más largas y estrechas.": "20% longer, narrower flames.",
+  "Amplía un 20 % el alcance de las llamaradas del eco.": "Increases echo flame range by 20%.",
+  "El perfume permite bloquear un proyectil durante 1,5 segundos.": "The perfume blocks one projectile for 1.5 seconds.",
+  "El eco deja un refugio perfumado de cuatro segundos.": "The echo leaves a perfumed refuge for four seconds.",
+  "Concentra la cura en el aliado más herido o adelanta su reanimación.": "Focuses healing on the most injured ally or advances their revival.",
+  "Amplía un 20 % el alcance de ambas curaciones.": "Increases both healing ranges by 20%.",
+  "Antena de refuerzos": "Reinforcement antenna",
+  "Nido de coral": "Coral nest",
+  "Rango": "Rank",
+  "Rango del arma o técnica": "Weapon or technique rank",
+  "Enlace disponible": "Link available",
+  "Objetivo de la brújula": "Compass target",
+  "Elegir objetivo de la brújula": "Choose compass target",
+  "Automático": "Automatic",
+  "Daño por segundo disponible": "Damage per available second",
+  "Tiempo disponible": "Available time",
+  "La comparación requiere las mismas estrellas, mejoras iniciales, equipo y reglas. Las partidas antiguas sin estos datos se conservan en el historial.": "Comparisons require matching stars, starting upgrades, team and rules. Older runs without this information remain in history.",
+  "Señales de combate": "Combat signals",
+  "◇ La barra dorada muestra la postura acumulada. ! indica interrupción. × y la barra rayada indican resistencia temporal. El rombo de color marca un objetivo de Iria. La concentración iluminada muestra los segundos restantes del enlace.": "◇ The gold bar shows accumulated posture. ! indicates stagger. × and the striped bar indicate temporary resistance. The colored diamond marks an Iria target. The highlighted focus technique shows seconds remaining on the link."
+});
+
+Object.assign(EN,{"La protección del perfume dura un segundo más.":"Perfume protection lasts one second longer."});
+
+Object.assign(EN,{"Destruye el origen para cortar sus refuerzos y conseguir un cofre.":"Destroy the source to stop its reinforcements and earn a chest."});
+
+Object.assign(EN,{"Amplía un 20 % la cobertura del eco.": "Increases echo coverage by 20%.", "Abre las trayectorias del eco.": "Widens echo trajectories.", "Reduce un 15 % el radio de la explosión.": "Reduces explosion radius by 15%.", "Las hachas del eco vuelven tras recorrer un 25 % menos de distancia.": "Echo axes return after travelling 25% less distance.", "La activa también ralentiza un 65 % durante 1,5 segundos.": "The active also slows by 65% for 1.5 seconds."});
+
+Object.assign(EN,{"Volver al plantel":"Back to roster"});
+
+Object.assign(EN,{"30 personajes": "30 characters", "30 armas": "30 weapons", "Historial": "Run history", "Buscar personaje": "Find character", "Nombre": "Name", "Disponibilidad": "Availability", "Todos": "All", "Todas": "All", "Conseguidos": "Unlocked", "Arma": "Weapon", "Personaje": "Character", "Mapa": "Map", "HUD discreto": "Compact HUD", "Anticipar cámara al caminar": "Look ahead while walking", "Ordenar rendimiento": "Sort performance", "Aplicaciones de control": "Control applications", "Configuración registrada": "Starting setup recorded", "Partida antigua: sin equivalencia de reglas": "Older run: different or unknown rules", "Todavía no hay partidas para este filtro.": "No runs match this filter yet.", "Ver todos": "Reveal all", "Tus personajes ya están guardados.": "Your characters have been saved.", "También se desbloquea jugando": "Also unlocked by playing", "partidas": "runs", "enemigos derrotados": "enemies defeated", "jefes derrotados": "bosses defeated", "segundos de supervivencia": "survival seconds", "Amplía el comportamiento de su arma propia.": "Expands the behavior of the native weapon."});
+const newcomerEnglish=[["Boarding hook", "Boarding action", "A canal captain whose hook thrusts and pulls enemies out of formation.", "Hits an enemy and pulls it closer; bosses resist the pull."], ["Refracting prism", "Refracted constellation", "A light cartographer whose suspended prism links beams between targets.", "Projects beams that link nearby enemies."], ["Steel shears", "Hold the pattern", "A barricade tailor whose steel shears deliver two crossing cuts.", "Crosses two frontal cuts with the shears."], ["Refuge banner", "Hold the line", "The last plaza guardian whose banner sends defensive pulses.", "Emits nearby pulses and protects allies with the active ability."], ["Industrial tuning fork", "Breaking frequency", "A machine tuner whose industrial fork creates resonant shockwaves.", "Strikes the ground and releases resonant shockwaves."], ["Tracker boomerang", "Returning wind", "A dune tracker whose returning boomerang pierces enemy ranks.", "Flies forward and returns through enemies."]];
+for(const [i,ch] of TS.NEW_ROSTER.entries()){
+ const [weapon,active,description,weaponDescription]=newcomerEnglish[i];
+ EN[ch.weaponName]=weapon;EN[ch.active]=active;EN[ch.desc]=description;EN[ch.weaponDesc]=weaponDescription;
+ EN[TS.EVOLUTIONS[ch.weapon].name]=`${weapon} · Masterwork`;
+ EN[TS.ACTIVE_IDENTITIES[ch.id][0]]=`${active} · Precision`;EN[TS.ACTIVE_IDENTITIES[ch.id][1]]=`${active} · Echo`;
+ for(const move of TS.TECHNIQUES[ch.id]){EN[move.name]=move.nameEn.replace(ch.weaponName,weapon);EN[move.desc]=move.descEn.replace(ch.weaponName,weapon);}
+}
+
+Object.assign(EN,{"Premio":"Reward","Abriendo el cofre…":"Opening the chest…"});

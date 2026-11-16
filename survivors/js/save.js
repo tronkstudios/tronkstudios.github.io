@@ -21,7 +21,7 @@ const Save = (() => {
       pulls: 0,
       freePull: true, // la primera tirada es gratis
       best: { time: 0, kills: 0, level: 0, wins: 0, streak:0 },
-      runs: 0,
+      runs: 0, history:[],
       settings: { music: true, sfx: true, musicVol: 0.7, sfxVol: 0.9, lang: "" },
       name: "",
       achievements: {},
@@ -34,6 +34,9 @@ const Save = (() => {
   }
 
   const integer = (value, fallback = 0) => Number.isFinite(Number(value)) ? Math.max(0, Math.floor(Number(value))) : fallback;
+  function unlockRoster(d){
+    for(const ch of TS.NEW_ROSTER || []){const {key,value}=ch.unlock,progress=key==="runs"?d.runs:key==="time"?d.best?.time:d.stats?.[key];if(progress>=value && !d.owned[ch.id])d.owned[ch.id]={stars:1};}
+  }
   function normalize(d) {
     const owned = {};
     for (const ch of TS.CHARACTERS) if (d.owned && d.owned[ch.id]) {
@@ -47,8 +50,19 @@ const Save = (() => {
     for (const section of ["best", "stats"]) {
       for (const key of Object.keys(fresh()[section])) d[section][key] = integer(d[section][key]);
     }
+    unlockRoster(d);
+    d.history=normalizeHistory(d.history);
     return d;
   }
+  function normalizeHistory(rows){
+    return (Array.isArray(rows)?rows:[]).filter(r=>r && TS.CHARACTERS.some(c=>c.id===r.charId)&&TS.MAPS[r.map]).map(r=>({
+      id:typeof r.id==="string"?r.id.slice(0,80):String(integer(r.at)),at:integer(r.at),charId:r.charId,map:r.map,
+      signature:TS.validRunSignature(r.signature),daily:typeof r.daily==="string"?r.daily.slice(0,30):null,coop:!!r.coop,seconds:integer(r.seconds),kills:integer(r.kills),level:integer(r.level),
+      dealt:integer(r.dealt),healed:integer(r.healed),taken:integer(r.taken),activePath:TS.ACTIVE_PATHS[r.activePath]?r.activePath:null,
+      techniques:Object.fromEntries(Object.entries(r.techniques || {}).filter(([id,n])=>TS.TECHNIQUES[r.charId]?.some(m=>m.id===id)&&Number.isFinite(n)).map(([id,n])=>[id,Math.min(5,integer(n))]))
+    })).sort((a,b)=>b.at-a.at).filter((r,i,arr)=>arr.findIndex(o=>o.id===r.id)===i).slice(0,30);
+  }
+
 
   function load() {
     data = fresh();
@@ -116,6 +130,7 @@ const Save = (() => {
       maps: maxObj(d.maps, remote.maps),
       selected: owned[newer.selected] ? newer.selected : d.selected,
       tutorial: !!(d.tutorial || remote.tutorial),
+      history:normalizeHistory([...(d.history || []),...(Array.isArray(remote.history)?remote.history:[])]),
       weekly: mergeWeekly(d.weekly, remote.weekly)
     });
     normalize(d);
@@ -227,9 +242,11 @@ const Save = (() => {
     return results;
   }
 
-  function recordRun(result) {
+  function recordRun(result,playerId=0) {
     const d = get();
     d.runs += 1;
+    const combat=result.combat?.[playerId] || {},at=Date.now();
+    d.history=normalizeHistory([{id:`${at}-${d.runs}-${result.charId}`,at,signature:result.signature,charId:result.charId,map:result.map,seconds:result.seconds,kills:result.kills,level:result.level,daily:result.daily,coop:result.coop,dealt:combat.dealt,healed:combat.healed,taken:combat.taken,activePath:result.activePaths?.[playerId],techniques:result.techniques?.[playerId]},...(d.history || [])]);
     d.best.time = Math.max(d.best.time, result.seconds);
     d.best.kills = Math.max(d.best.kills, result.kills);
     d.best.level = Math.max(d.best.level, result.level);
@@ -245,6 +262,7 @@ const Save = (() => {
     s.evolutions += result.evolutions || 0;
     if (result.daily) s.dailies += 1;
     if (result.coop) s.coop += 1;
+    unlockRoster(d);
     persist();
   }
 

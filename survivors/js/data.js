@@ -722,3 +722,150 @@ TS.TACTIC_NAMES={charge:"Carga",gaps:"Anillos con abertura",guards:"Refuerzos",v
 TS.SITE_NAMES={camp:"Campamento",altar:"Altar maldito",lamp:"Farola de refugio"};
 
 TS.SITE_HINTS={camp:"Cura durante 20 s",altar:"Derrota a 3 guardianes y gana un cofre",lamp:"Cura, revela y debilita enemigos"};
+
+// One specialization per stage; choices trade strengths rather than add weapons.
+TS.TALENT_STAGES=[{level:15,at:300},{level:30,at:720},{level:50,at:1200}];
+TS.TALENTS={
+ edge:{tier:0,name:"Dominio del arma",desc:"+16 puntos de potencia y −8 puntos de área.",stats:{might:.16,area:-.08}},
+ reach:{tier:0,name:"Cobertura",desc:"+20 puntos de área y +6 puntos de tiempo de recarga.",stats:{area:.2,cooldown:-.06}},
+ fleet:{tier:0,name:"Paso ligero",desc:"+15 puntos de movimiento y −10 de vida máxima.",stats:{speed:.15,maxHp:-.1}},
+ tempo:{tier:1,name:"Ritmo de combate",desc:"−10 puntos de tiempo de recarga y −8 puntos de potencia.",stats:{cooldown:.1,might:-.08}},
+ guarded:{tier:1,name:"Guardia firme",desc:"+1,5 de armadura y −8 puntos de movimiento.",stats:{armor:1.5,speed:-.08}},
+ recovery:{tier:1,name:"Recuperación",desc:"Regenera 0,5 de vida por segundo y pierde 8 puntos de área.",stats:{regen:.5,area:-.08}},
+ overdrive:{tier:2,name:"Sobrecarga ofensiva",desc:"+22 puntos de potencia y −15 de vida máxima.",stats:{might:.22,maxHp:-.15}},
+ perimeter:{tier:2,name:"Control del terreno",desc:"+28 puntos de área y +8 puntos de tiempo de recarga.",stats:{area:.28,cooldown:-.08}},
+ resolve:{tier:2,name:"Última resistencia",desc:"+20 de vida máxima y −10 puntos de potencia.",stats:{maxHp:.2,might:-.1}}
+};
+
+
+// Kits propios: cada técnica mantiene el arma y los requisitos existentes.
+TS.DISTINCT_KITS={
+ ranjay:{
+  burst:["Tres filos","Three edges","Encadena tres cortes de espada hacia el frente.","Chains three sword cuts in front of you."],
+  ring:["Rueda de acero","Steel wheel","Un giro completo de espada aparta a los enemigos cercanos.","A full sword spin pushes nearby enemies away."],
+  pierce:["Punta de acero","Steel point","Estocada de espada estrecha y larga que atraviesa una fila.","A narrow, long sword thrust pierces a line of enemies."],
+  guard:["Guardia de acero","Steel guard","Corte defensivo: bloquea un proyectil durante un segundo.","Defensive cut: blocks one projectile for one second."],
+  focus:["Corte decisivo","Decisive cut","Un corte frontal concentrado con más alcance y potencia.","A focused frontal cut with greater reach and power."],
+  surge:["Danza de Excalibur","Excalibur dance","Seis cortes sucesivos de espada despejan un círculo.","Six successive sword cuts clear a circle."]},
+ iria:{
+  burst:["Triple cuerda","Triple string","Tres flechas rápidas hacia el objetivo más cercano.","Three quick arrows at the nearest target."],
+  ring:["Abanico de flechas","Arrow fan","Abre un abanico frontal para alcanzar varios enemigos.","Opens a frontal fan to hit several enemies."],
+  pierce:["Flecha penetrante","Piercing arrow","Una flecha larga atraviesa una fila de enemigos.","One long arrow pierces a line of enemies."],
+  guard:["Flechas de sujeción","Pinning arrows","Flechas cortas frenan a los enemigos cercanos.","Short arrows slow nearby enemies."],
+  focus:["Ojo de halcón","Hawk eye","Una flecha precisa concentra la potencia en un objetivo.","One precise arrow concentrates power on a target."],
+  surge:["Horizonte de flechas","Arrow horizon","Tres salvas escalonadas cubren el frente con flechas.","Three staggered volleys cover the front with arrows."]},
+ duna:{
+  burst:["Viento de avance","Advancing wind","Un tornado estrecho avanza directamente hacia el objetivo.","A narrow tornado travels straight toward its target."],
+  ring:["Pozos de viento","Wind wells","Dos remolinos fijos reúnen enemigos delante del báculo.","Two fixed vortices gather enemies in front of the staff."],
+  pierce:["Tornado perforante","Piercing tornado","Tornados rápidos atraviesan el frente en línea recta.","Fast tornadoes cross the front in straight lines."],
+  guard:["Muralla de viento","Wind wall","Tres tornados orbitan alrededor del báculo para proteger el paso.","Three tornadoes orbit the staff to protect your path."],
+  focus:["Ojo del huracán","Eye of the Hurricane","Un gran remolino fijo concentra el daño en la posición del objetivo.","A large fixed vortex concentrates damage at the target's position."],
+  surge:["Tormenta total","Total storm","Seis tornados dibujan una espiral que reúne y golpea enemigos.","Six tornadoes trace a spiral that gathers and hits enemies."]}
+};
+for(const [charId,kit] of Object.entries(TS.DISTINCT_KITS))for(const move of TS.TECHNIQUES[charId]){
+ const [name,nameEn,desc,descEn]=kit[move.id];const hitScale=({ranjay:{burst:.65,ring:.65,guard:.6,surge:.7},iria:{burst:.65,ring:.7,guard:.55,focus:1.2,surge:.65}})[charId]?.[move.id] || 1;Object.assign(move,{name,nameEn,desc,descEn,hitScale,icon:`move:${charId}:${move.id}`});
+}
+TS.MAX_RELICS=2;
+TS.RELICS={
+ prisma:{name:"Prisma de desvío",desc:"Las flechas, virotes, kunais y copos rebotan una vez hacia otro enemigo, con la mitad de potencia.",icon:"relic-prisma",weapons:["arco","virote","kunai","copos"]},
+ pasos:{name:"Botas de resonancia",desc:"Recorrer 160 pasos crea una onda cercana. Como máximo una cada 3 segundos.",icon:"relic-pasos"},
+ semilla:{name:"Semilla de refugio",desc:"Recoger jensalada deja un círculo que cura 2 de vida por segundo durante 5 segundos. Un círculo por jugador.",icon:"relic-semilla"}
+};
+
+// Profundidad de combate: cada variante conserva el arma y la activa originales.
+TS.ACTIVE_PATHS={
+ precision:{name:"Activa concentrada",desc:"+35 % de daño y curación de la activa. Recarga un 20 % más lenta."},
+ echo:{name:"Eco de la activa",desc:"Repite la activa un segundo después al 45 % de daño y curación. Recarga un 25 % más lenta."}
+};
+TS.ENEMIES.nido={name:"Nido de refuerzos",hp:260,speed:0,dmg:0,r:22,prop:true,ai:"nest",sprite:"barril"};
+TS.SITE_NAMES.nest="Nido de refuerzos";
+TS.SITE_NAMES.grave="Sepulcro inquieto";
+
+TS.SITE_HINTS.nest="Destruye el origen para cortar sus refuerzos y conseguir un cofre.";
+TS.SITE_HINTS.grave="Destruye el sepulcro: los esqueletos cercanos pueden resucitar una vez.";
+
+TS.activePathName=(charId,id)=>charId==="duna"?({precision:"Tornado viajero",echo:"Ojo del vendaval"}[id] || ""):(TS.ACTIVE_PATHS[id]?.name || "");
+
+// Variantes nativas: los cambios de trayectoria y función no añaden otras armas.
+TS.ACTIVE_IDENTITIES={
+ ranjay:["Guardia del rey","Corona de acero","guard"],iria:["Flecha perforadora","Salvas del bosque","pierce"],
+ bruno:["Carga comprimida","Festival expansivo","blast"],lia:["Perfume protector","Jardín de aromas","support"],
+ toto:["Balones perforantes","Rebote prolongado","ball"],omogos:["Virotes veloces","Cerco de virotes","pierce"],
+ finillos:["Martillo quebrantador","Ondas expansivas","heavy"],chambas:["Hachas de largo alcance","Corona de hachas","axe"],
+ frosti:["Escarcha persistente","Invierno extenso","ice"],yant:["Estocada protegida","Eco de estocada","guard"],
+ eledemak:["Puños quebrantadores","Cerco de puños","heavy"],nova:["Impactos inmediatos","Lluvia persistente","meteor"],
+ sunk:["Puño demoledor","Onda expansiva","heavy"],quizo:["Descarga paralizante","Tormenta extensa","shock"],
+ kaito:["Paso protegido","Eco de sombras","guard"],zeta:["Láser de precisión","Barrido de drones","laser"],
+ duna:["Tornado viajero","Ojo del vendaval","wind"],lumen:["Auxilio concentrado","Luz compartida","healer"],
+ nix:["Discos de contención","Órbita extensa","shock"],savia:["Ácido inmediato","Jardín corrosivo","acid"],
+ brasa:["Llamas concentradas","Corona de fuego","fire"],boro:["Marea penetrante","Marea extensa","pierce"],
+ vega:["Abanico perforante","Brisa envolvente","pierce"],tala:["Pulso persistente","Cobertura extensa","ice"]
+};
+TS.ACTIVE_TRAIT_TEXT={
+ guard:["Bloquea un proyectil durante 1,5 segundos.","Amplía un 20 % la cobertura del eco."],
+ pierce:["Proyectiles un 20 % más rápidos y dos penetraciones adicionales.","Abre las trayectorias del eco."],
+ blast:["Reduce un 15 % el radio de la explosión.","Amplía un 20 % el radio del eco."],
+ heavy:["Acumula un 40 % más de postura con la activa.","Amplía un 20 % el alcance de las ondas del eco."],
+ axe:["Las hachas viajan un 50 % más lejos antes de volver.","Las hachas del eco vuelven tras recorrer un 25 % menos de distancia."],
+ ball:["Balones más rápidos con dos penetraciones adicionales.","Los balones del eco duran un 30 % más."],
+ ice:["Prolonga un 50 % las ralentizaciones de la activa.","Amplía un 20 % la zona de la activa y de su eco."],
+ meteor:["Reduce a la mitad el aviso de los meteoros.","Amplía un 20 % el radio de los impactos del eco."],
+ shock:["La activa también ralentiza un 65 % durante 1,5 segundos.","Amplía un 20 % el alcance de la activa y de su eco."],
+ laser:["Láseres un 25 % más largos en un abanico estrecho.","Abanico de láseres más abierto."],
+ acid:["El ácido de la activa empieza a golpear inmediatamente.","Los charcos del eco duran un 30 % más."],
+ fire:["Llamaradas un 20 % más largas y estrechas.","Amplía un 20 % el alcance de las llamaradas del eco."],
+ support:["La protección del perfume dura un segundo más.","El eco deja un refugio perfumado de cuatro segundos."],
+ healer:["Concentra la cura en el aliado más herido o adelanta su reanimación.","Amplía un 20 % el alcance de ambas curaciones."],wind:["",""]
+};
+TS.activePathName=(charId,id)=>TS.ACTIVE_IDENTITIES[charId]?.[id==="precision"?0:1] || TS.ACTIVE_PATHS[id]?.name || "";
+TS.activePathDescription=(charId,id)=>{
+ if(charId==="duna")return id==="precision"?"Tornado viajero: avanza en la dirección apuntada, con +35 % de daño y recarga un 20 % más lenta.":"Ojo del vendaval: tornado fijo más amplio que atrae enemigos durante 4 segundos. Recarga un 25 % más lenta.";
+ return (TS.ACTIVE_TRAIT_TEXT[TS.ACTIVE_IDENTITIES[charId]?.[2]] || ["",""])[id==="precision"?0:1];
+};
+TS.siteName=s=>s.kind==="nest"?({ciudad:"Antena de refuerzos",playa:"Nido de coral",bosque:"Nido de refuerzos"}[s.theme] || TS.SITE_NAMES.nest):TS.SITE_NAMES[s.kind];
+TS.runSignature=(setups,opts={})=>JSON.stringify({version:3,party:setups.map(p=>({charId:p.charId,stars:Math.max(1,Math.min(TS.GACHA.maxStars,Number(p.stars)||1)),meta:Object.fromEntries(Object.entries(p.meta || {}).filter(([k,v])=>["maxHp","speed","might","area","cooldown","magnet","armor","regen","growth","greed","amount","revive","reviveSpeed"].includes(k)&&Number.isFinite(v)).sort(([a],[b])=>a.localeCompare(b)))})).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))),rules:{map:opts.map || "bosque",mods:[...(opts.mods || [])].sort(),easy:!!opts.easy,daily:!!opts.daily,seed:opts.daily?opts.seed || 0:null}});
+
+TS.validRunSignature=value=>{
+ if(typeof value!=="string" || value.length>8192)return "";
+ try{const s=JSON.parse(value);return s.version===3 && Array.isArray(s.party) && s.party.length>0 && s.party.length<=4 && s.party.every(p=>p && TS.CHARACTERS.some(c=>c.id===p.charId)) && s.rules && TS.MAPS[s.rules.map] && Array.isArray(s.rules.mods) && s.rules.mods.every(m=>typeof m==="string") && TS.runSignature(s.party,s.rules)===value?value:"";}catch{return "";}
+};
+
+// Siluetas y equipamiento compartidos por retratos, 2D y 3D.
+TS.OUTFIT_TYPES={
+ knight:{width:1.4,limbs:1.45,armor:true,boots:true,trim:"#d8b973"},
+ ranger:{width:1.15,limbs:1.25,mantle:true,quiver:true,boots:true,trim:"#dbc690"},
+ engineer:{width:1.3,limbs:1.35,vest:true,pack:true,boots:true,trim:"#c2a271"},
+ mystic:{width:1.1,limbs:1.2,coat:true,mantle:true,trim:"#d2c39b"},
+ healer:{width:1.15,limbs:1.25,coat:true,satchel:true,trim:"#f0dec0"},
+ brawler:{width:1.55,limbs:1.7,vest:true,boots:true,trim:"#bd9673"},
+ scout:{width:1.1,limbs:1.25,scarf:true,boots:true,trim:"#aabcb4"},
+ automaton:{width:1.35,limbs:1.55,armor:true,pack:true,boots:true,trim:"#8cdddd"},
+ captain:{width:1.3,limbs:1.35,coat:true,armor:true,trim:"#e3c27e"},
+ botanist:{width:1.2,limbs:1.3,coat:true,satchel:true,pack:true,trim:"#b1c77e"}
+};
+TS.OUTFITS={ranjay:"knight",bruno:"engineer",lia:"healer",toto:"scout",omogos:"ranger",finillos:"brawler",chambas:"ranger",frosti:"mystic",yant:"captain",eledemak:"brawler",kaito:"scout",nova:"mystic",sunk:"brawler",quizo:"mystic",zeta:"automaton",duna:"mystic",lumen:"healer",nix:"automaton",savia:"botanist",brasa:"engineer",iria:"ranger",boro:"engineer",vega:"captain",tala:"brawler"};
+TS.NEW_ROSTER=[
+ {id:"mara",name:"Mara",rarity:"raro",weapon:"garfio",family:"estocada",skin:"dark",hair:"ponytail",hairColor:"#252736",shirt:"#286b74",pants:"#293443",acc:"#deb36d",outfit:"captain",perk:{armor:1},perkText:"+1 de armadura",desc:"Capitana de los canales. Su garfio encadena una estocada con un tirón que rompe las filas enemigas.",weaponName:"Garfio de abordaje",weaponDesc:"Alcanza a un enemigo y lo acerca; los jefes resisten el tirón.",active:"Abordaje",trait:"guard",unlock:{key:"kills",value:250}},
+ {id:"oriel",name:"Oriel",rarity:"epico",weapon:"prisma",family:"rayo",skin:"light",hair:"longCurly",hairColor:"#e1d6c2",shirt:"#4f456d",pants:"#252a40",acc:"#91e1e0",outfit:"mystic",perk:{area:.12},perkText:"+12 % de área",desc:"Cartógrafo de la luz. Lleva un prisma suspendido en un bastidor de metal y divide sus rayos entre objetivos.",weaponName:"Prisma de refracción",weaponDesc:"Proyecta haces que enlazan enemigos próximos.",active:"Constelación refractada",trait:"shock",unlock:{key:"kills",value:1000}},
+ {id:"cira",name:"Cira",rarity:"comun",weapon:"tijeras",family:"tajo",skin:"light",hair:"bob",hairColor:"#432949",shirt:"#a84f67",pants:"#302b3c",acc:"#e9c99a",outfit:"captain",perk:{speed:.08},perkText:"+8 % de velocidad",desc:"Sastre de las barricadas. Su abrigo asimétrico oculta unas tijeras de acero que cierran dos cortes sobre la horda.",weaponName:"Tijeras de acero",weaponDesc:"Cruza dos cortes frontales con las hojas de sus tijeras.",active:"Corte de patrón",trait:"guard",unlock:{key:"runs",value:1}},
+ {id:"yago",name:"Yago",rarity:"epico",weapon:"estandarte",family:"faro",skin:"dark",hair:"taper",hairColor:"#171e25",shirt:"#475d78",pants:"#293342",acc:"#e8c97c",outfit:"knight",perk:{maxHp:.2},perkText:"+20 % de vida",desc:"Guardián de la última plaza. Su estandarte emite pulsos y convierte el terreno cercano en una posición defendible.",weaponName:"Estandarte del refugio",weaponDesc:"Emite pulsos próximos y protege con su habilidad activa.",active:"Mantener la posición",trait:"healer",unlock:{key:"bosses",value:5}},
+ {id:"ada",name:"Ada",rarity:"raro",weapon:"diapason",family:"mazazo",skin:"light",hair:"beanie",hairColor:"#b56535",shirt:"#3b707c",pants:"#29384c",acc:"#d9b87c",outfit:"engineer",perk:{cooldown:.06},perkText:"+6 % de recarga",desc:"Afinadora de máquinas. Su diapasón industrial convierte cada golpe en ondas de resonancia que abren espacio.",weaponName:"Diapasón industrial",weaponDesc:"Golpea el suelo y expande ondas de resonancia.",active:"Frecuencia de ruptura",trait:"heavy",unlock:{key:"time",value:600}},
+ {id:"rook",name:"Rook",rarity:"legendario",weapon:"bumeran",family:"hacha",skin:"dark",hair:"wrapNinja",hairColor:"#405553",shirt:"#6c8054",pants:"#303a36",acc:"#d2b27a",outfit:"ranger",perk:{might:.1,speed:.05},perkText:"+10 % de daño, +5 % de velocidad",desc:"Rastreador de las dunas. Su capa corta y sus botas esconden el polvo de mil rutas; su bumerán siempre regresa.",weaponName:"Bumerán de rastreador",weaponDesc:"Vuela hacia delante y regresa atravesando enemigos.",active:"Viento de regreso",trait:"axe",unlock:{key:"time",value:1200}}
+];
+for(const spec of TS.NEW_ROSTER){
+ TS.CHARACTERS.push({...spec,from:"Nuevo"});TS.OUTFITS[spec.id]=spec.outfit;
+ TS.WEAPONS[spec.weapon]={family:spec.family,name:spec.weaponName,desc:spec.weaponDesc,levels:TS.WEAPONS[spec.family].levels.map(l=>({...l,dmg:l.dmg*.9}))};
+ TS.EVOLUTIONS[spec.weapon]={...TS.EVOLUTIONS[spec.family],name:`${spec.weaponName} · Obra maestra`,desc:"Amplía el comportamiento de su arma propia."};
+ TS.ABILITIES[spec.id]={name:spec.active,desc:spec.weaponDesc,cd:28};
+ const template=TS.TECHNIQUES[{estocada:"yant",rayo:"quizo",tajo:"ranjay",faro:"lumen",mazazo:"finillos",hacha:"chambas"}[spec.family]];
+ TS.TECHNIQUES[spec.id]=template.map((m,i)=>({...m,name:`${spec.weaponName} · ${["Cadencia","Cerco","Penetración","Cobertura","Concentración","Despliegue"][i]}`,nameEn:`${spec.weaponName} · ${["Cadence","Circle","Piercing","Coverage","Focus","Deployment"][i]}`,desc:`${["Ataques sucesivos","Cobertura circular","Mayor alcance","Defensa cercana","Potencia concentrada","Gran despliegue"][i]} con ${spec.weaponName}.`,descEn:`${["Successive attacks","Circular coverage","Long reach","Close defense","Focused power","Large deployment"][i]} with ${spec.weaponName}.`,icon:spec.weapon}));
+ TS.ACTIVE_IDENTITIES[spec.id]=[`${spec.active} preciso`,`${spec.active} extendido`,spec.trait];
+}
+TS.EXTRA_TECHNIQUES={
+ pursuit:{name:"Seguimiento",nameEn:"Follow-through",at:600,unlock:24,cd:450,desc:"Tu arma persigue al objetivo con dos ataques dirigidos sucesivos.",descEn:"Your weapon follows a target with two successive aimed attacks."},
+ rupture:{name:"Ruptura",nameEn:"Breakthrough",at:960,unlock:40,cd:660,desc:"Desata un ataque pesado de tu arma que acumula más postura.",descEn:"Unleashes a heavy native-weapon attack with extra posture pressure."}
+};
+for(const ch of TS.CHARACTERS)for(const [id,m] of Object.entries(TS.EXTRA_TECHNIQUES))TS.TECHNIQUES[ch.id].push({...m,id,max:5,name:`${m.name} · ${ch.name}`,nameEn:`${m.nameEn} · ${ch.name}`,icon:ch.weapon});
+TS.techniqueTotal=id=>(TS.TECHNIQUES[id] || []).reduce((n,m)=>n+m.max,0);
+
+for(const moves of Object.values(TS.TECHNIQUES))moves.sort((a,b)=>a.at-b.at);

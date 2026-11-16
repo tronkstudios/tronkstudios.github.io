@@ -114,9 +114,38 @@ const assert = require('node:assert/strict');
     await host.waitForFunction(()=>Game.state.choosing===null);
     await guest.waitForFunction(()=>Game.state.players[1].weapons[0].path==='dominion');
     assert.equal(await host.evaluate(()=>Game.state.players[0].weapons[0].path),'precision');
+    // Independent specialization choices travel through the real game protocol.
+    await host.evaluate(()=>{const st=Game.state;for(const p of st.players)p.iframes=999999;st.level=14;st.t=300*60;st.xp=st.xpNext;Game.step();});
+    await guest.waitForSelector('.up-card.is-talent:enabled');
+    assert.equal(await guest.locator('#levelup-reroll').isVisible(),false);
+    assert.equal(await guest.locator('.choice-stats .is-loss').count(),3);
+    await host.locator('.up-card').first().click();await guest.locator('.up-card').nth(2).click();
+    await guest.waitForFunction(()=>Game.state.players[1].talents?.[0]==='fleet');
+    assert.equal(await host.evaluate(()=>Game.state.players[0].talents[0]),'edge');
+    assert.equal(await guest.evaluate(()=>Game.state.players[0].talents[0]),'edge');
+    const guestStats=await guest.evaluate(()=>Game.hudData().stats);
+    assert.equal(guestStats.find(s=>s.label==='Vida máxima').value,90);
+    await guest.locator('#hud-pause').click();assert.match(await guest.locator('#pause-talents').textContent(),/Paso ligero/);await guest.locator('#pause-resume').click();
+    // Each player evolves their active independently; the guest receives the same map and nest state.
+    await host.evaluate(()=>{const st=Game.state;st.level=19;st.t=480*60;st.xp=st.xpNext;Game.step();});
+    await host.waitForSelector('.up-card:enabled');await guest.waitForSelector('.up-card:enabled');
+    assert.match(await guest.locator('#levelup-title').textContent(),/Evoluciona/);
+    await host.locator('.up-card').first().click();await guest.locator('.up-card').nth(1).click();
+    await guest.waitForFunction(()=>Game.state.players[0].activePath==='precision'&&Game.state.players[1].activePath==='echo');
+    assert.equal(await host.evaluate(()=>Game.state.players[1].activePath),'echo');
+    await guest.waitForFunction(()=>Game.state.sites.some(s=>s.nest));
+    await host.evaluate(()=>{const st=Game.state,p=st.players[1];st.chests=3;st.pickups=[{kind:'cofre',x:p.x,y:p.y,t:0}];Game.step();});
+    await host.waitForSelector('.up-card.is-relic:enabled');await guest.waitForSelector('.up-card.is-relic:enabled');
+    await host.locator('.up-card.is-relic').click();await guest.locator('.up-card').nth(2).click();
+    await guest.waitForFunction(()=>Game.state.players[0].relics?.length===1&&Game.state.players[1].relics?.length===0);
+    await guest.locator('#hud-pause').click();assert.match(await guest.locator('#pause-relics').textContent(),/0\/2/);await guest.locator('#pause-resume').click();
     await host.evaluate(()=>Game.finish(false));
     await guest.waitForSelector('#end:not([hidden])');
+    assert.equal(await guest.locator('#end-relics').isVisible(),false,'guest does not inherit host relics');
     assert.equal(await guest.evaluate(()=>Save.get().runs),1,'guest receives and saves the final result');
+    assert.equal(await guest.evaluate(()=>Save.get().history[0].activePath),'echo');
+    assert.match(await guest.locator('#end-talents').textContent(),/Ojo del vendaval/);
+    assert.equal(await guest.locator('#end-again').textContent(),'Volver a la sala online');
     await host.waitForFunction(()=>!TronkNet.active);
     for(const page of [host,guest]) {await page.locator('#end-menu').click();await page.locator('#menu [data-go="online"]').click();}
     await host.getByRole('button',{name:'Crear sala',exact:true}).click();await host.waitForSelector('.online-code');
@@ -140,6 +169,6 @@ const assert = require('node:assert/strict');
     const tick=await host.evaluate(()=>Game.state.t);
     await host.waitForFunction(t=>Game.state.t>t,tick,{timeout:5000});
     assert.deepEqual(errors,[]);
-    console.log(`Online (${process.env.RTC_TEST_MODE === 'mock' ? 'mock transport' : 'real local RTC'}): room, guest movement, final results, shared level up, chest reward, guest reroll and disconnect during choice passed`);
+    console.log(`Online (${process.env.RTC_TEST_MODE === 'mock' ? 'mock transport' : 'real local RTC'}): room, guest movement, final results, shared level up, chest reward, relic ownership, specializations, guest reroll and disconnect during choice passed`);
   } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

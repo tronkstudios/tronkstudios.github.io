@@ -888,3 +888,77 @@ img[data-icon], .pix { image-rendering: pixelated; }
 @media (max-width:600px) { .run-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 
 #end-title:focus { outline:none; }
+
+.up-card.is-talent { border-color:#77bcae; background:linear-gradient(115deg,#254b49,#203640); }
+.choice-stats { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:3px 10px; margin:8px 0 0; font-size:11px; text-align:left; }
+.choice-stats dt { color:#c4d8d3; }.choice-stats dd { margin:0; font-variant-numeric:tabular-nums; }
+.choice-stats .is-gain { color:#a9e7c6; }.choice-stats .is-loss { color:#f2b7a6; }
+.talent-summary { display:flex; flex-wrap:wrap; justify-content:center; gap:6px; }
+.talent-summary span { border:1px solid #80e3d055; border-radius:8px; padding:5px 8px; color:#b9e8d9; font-size:11px; }
+.talent-summary small { flex-basis:100%; color:#b8ccc8; font-size:11px; }
+.build-details { text-align:left; border:1px solid #87ada844; border-radius:10px; padding:10px 12px; color:#c1dcd1; }
+.build-details summary { cursor:pointer; font-size:13px; }
+.build-details dl { display:grid; grid-template-columns:1fr auto; gap:7px 12px; margin:12px 0 0; font-size:12px; }
+.build-details dd { margin:0; color:#f0cb82; font-variant-numeric:tabular-nums; }
+@media (max-width:600px) { .choice-stats { font-size:10px; gap:3px 6px; } }
+
+.up-card.is-relic { border-color:#d6b0f0; background:linear-gradient(115deg,#3c354c,#203640); }
+.relic-summary { display:grid; gap:6px; text-align:left; }
+.relic-summary>small { color:#b8ccc8; font-size:11px; text-align:center; }
+.relic-summary>div { display:grid; grid-template-columns:30px 1fr; gap:3px 8px; padding:8px; border:1px solid #d6b0f055; border-radius:8px; }
+.relic-summary img { width:28px; height:28px; grid-row:span 2; image-rendering:pixelated; }
+.relic-summary b { color:#e0c9ed; font-size:12px; }.relic-summary small { color:#bdd0cd; font-size:11px; }
+.char-moves .move-icon { float:left; width:32px; height:32px; margin:0 8px 4px 0; object-fit:contain; }
+
+
+/* Compact HUD columns stay separate with long names, loot and a full team. */
+.hud-me { max-width:min(260px,28vw); }
+.hud-hp,.hud-xp { max-width:100%; }
+.hud-center { max-width:40vw; }
+.hud-sub { max-width:100%; overflow:hidden; text-overflow:ellipsis; }
+.hud-team { width:min(280px,28vw); }
+.hud-team > div { min-width:0; }
+.hud-team b { min-width:0; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.hud-team span { flex-shrink:0; }
+.hud-me > b { display:block; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.hud-status:empty { display:none; }
+@media (any-pointer:coarse) {
+  .hud-me { width:min(180px,44vw); max-width:none; }
+  .hud-loot { max-width:100%; white-space:normal; line-height:1.2; }
+  .hud-center { max-width:calc(50vw - 30px); }
+  .hud-status { max-width:100%; }
+  .hud-boss > b { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; line-height:14px; }
+  .hud:not([hidden]) ~ .toasts .toast:not(:last-child) { display:none; }
+  .hud:not([hidden]) ~ .toasts .toast { font-size:11px; padding:7px 9px; }
+}
+@media (any-pointer:coarse) and (orientation:portrait) {
+  .hud-sub { top:calc(101px + env(safe-area-inset-top)); font-size:9px; line-height:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .hud-boss { top:calc(122px + env(safe-area-inset-top)); }
+  .hud-team { top:calc(170px + env(safe-area-inset-top)); width:44vw; max-width:44vw; }
+  .hud-streak { top:calc(170px + env(safe-area-inset-top)); }
+  .hud-compass { top:calc(210px + env(safe-area-inset-top)); max-width:45vw; }
+  .hud-tip { top:calc(242px + env(safe-area-inset-top)); }
+  .hud:not([hidden]) ~ .toasts { top:calc(250px + env(safe-area-inset-top)); bottom:auto; left:12px; right:auto; max-width:min(60vw,240px); }
+}
+@media (any-pointer:coarse) and (orientation:landscape) {
+  .hud-me { width:min(180px,25vw); }
+  .hud-hp,.hud-xp { max-width:100%; }
+  .hud-center { top:calc(8px + env(safe-area-inset-top)); left:50%; right:auto; transform:translateX(-50%); width:min(44vw,340px); max-width:none; display:flex; justify-content:center; align-items:baseline; flex-wrap:wrap; gap:2px 8px; }
+  .hud-time { font-size:22px; }.hud-phase { font-size:10px; }
+  .hud-sub { display:none; }
+  .hud-status { flex-basis:100%; font-size:10px; line-height:12px; }
+  .hud-boss { top:calc(76px + env(safe-area-inset-top)); }
+  .hud-team { top:calc(126px + env(safe-area-inset-top)); width:min(180px,25vw); max-width:25vw; }
+  .hud-compass { top:calc(126px + env(safe-area-inset-top)); max-width:24vw; font-size:10px; }
+  .hud:not([hidden]) ~ .toasts { top:calc(160px + env(safe-area-inset-top)); bottom:auto; max-width:32vw; }
+  .hud:not([hidden]) ~ .toasts .toast { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; }
+}
+
+@media (pointer:fine) and (max-width:1100px) {
+  .hud-center { top:8px; display:flex; justify-content:center; align-items:baseline; flex-wrap:wrap; gap:2px 8px; padding:4px 8px; }
+  .hud-time { font-size:22px; }.hud-phase { font-size:10px; }
+  .hud-sub,.hud-status { flex-basis:100%; max-width:100%; font-size:10px; line-height:12px; }
+  .hud-boss { top:98px; width:40vw; font-size:12px; }
+  .hud-team { top:134px; font-size:10px; }
+  .hud-team span { width:44px; }
+}

@@ -159,6 +159,9 @@ const Render3D = (() => {
     pool("ghostBox", box, ghost(), 1500, false);
     pool("ghostCone", cone, ghost(), 300, false);
     pool("invertedCone", cone.clone().rotateZ(Math.PI), ghost(), 300, false);
+    const foliage=(flatShading=false)=>new T.MeshLambertMaterial({color:0xffffff,transparent:true,opacity:.22,depthWrite:false,flatShading});
+    pool("leafSph",new T.IcosahedronGeometry(1,1),foliage(true),500,false);
+    pool("leafCone",cone,foliage(),500,false);
     pool("ring", torus, basic(), 600, false);
     pool("disc", disc, ghost(), 300, false);
     resize();
@@ -178,10 +181,11 @@ const Render3D = (() => {
 
   /* ---------- suelo ---------- */
   function ground(cx, cy, radius) {
-    if (api.mapId() !== lastMap) {
+    const mapKey=api.mapId()+":"+(api.mapRevision?.() || "");
+    if (mapKey !== lastMap) {
       for (const m of chunks.values()) { scene.remove(m); m.geometry.dispose(); m.material.map.dispose(); m.material.dispose(); }
       chunks.clear();
-      lastMap = api.mapId();
+      lastMap = mapKey;
     }
     const C = api.CHUNK;
     const x0 = Math.floor((cx - radius) / C);
@@ -219,7 +223,7 @@ const Render3D = (() => {
   /* ---------- obstáculos ---------- */
   const hashF = (x, y, k) => { const s = Math.sin(x * 12.9898 + y * 78.233 + k * 37.719) * 43758.5453; return s - Math.floor(s); };
 
-  function obstacle(ob, dark) {
+  function obstacle(ob, dark, fade=false) {
     const { x, y } = ob;
     const v = hashF(x, y, 1);
     const g = hashF(x, y, 2);
@@ -232,15 +236,15 @@ const Render3D = (() => {
           between("cyl",[x,2,y],[x+Math.cos(a)*13,1,y+Math.sin(a)*13],2.2,0x5e4935);
           between("cyl",[x,25,y],[x+Math.cos(a)*18,54,y+Math.sin(a)*14],2.8,0x775639);
         }
-        at("lowSph", x, 70, y, 30, 26, 30, leaf, v * 3);
-        at("lowSph", x-6,83,y-8,17,13,18,dark?0x426458:0x6a9168,v*4);
-        at("lowSph", x+20,69,y+3,14,16,16,dark?0x2b493f:0x47735a,v*2);
-        at("lowSph", x - 14, 58, y + 6, 20, 18, 20, leaf, v * 5);
-        at("lowSph", x + 15, 62, y - 4, 19, 17, 19, leaf, v * 7);
+        at(fade?"leafSph":"lowSph", x, 70, y, 30, 26, 30, leaf, v * 3);
+        at(fade?"leafSph":"lowSph", x-6,83,y-8,17,13,18,dark?0x426458:0x6a9168,v*4);
+        at(fade?"leafSph":"lowSph", x+20,69,y+3,14,16,16,dark?0x2b493f:0x47735a,v*2);
+        at(fade?"leafSph":"lowSph", x - 14, 58, y + 6, 20, 18, 20, leaf, v * 5);
+        at(fade?"leafSph":"lowSph", x + 15, 62, y - 4, 19, 17, 19, leaf, v * 7);
         break;
       case "pino":
         between("cyl", [x, 0, y], [x, 30, y], 4.5, 0x5a3a20);
-        for (let i = 0; i < 4; i++) at("cone", x, 34 + i * 19, y, 28 - i * 6, 36 - i * 3, 28 - i * 6, dark ? 0x29493f : [0x315a49,0x3b6851,0x47755b,0x568269][i]);
+        for (let i = 0; i < 4; i++) at(fade?"leafCone":"cone", x, 34 + i * 19, y, 28 - i * 6, 36 - i * 3, 28 - i * 6, dark ? 0x29493f : [0x315a49,0x3b6851,0x47755b,0x568269][i]);
         break;
       case "roca":
       case "rocaGrande": {
@@ -282,7 +286,7 @@ const Render3D = (() => {
         for (let i = 0; i < 3; i++) between("cyl", pts[i], pts[i + 1], 4.5 - i * 0.6, 0x9a6a3a);
         for (let i = 0; i < 6; i++) {
           const a = (i / 6) * TAU;
-          between("cone", [x + 18, 76, y], [x + 18 + Math.cos(a) * 32, 66, y + Math.sin(a) * 32], 5, 0x3f9a40);
+          between(fade?"leafCone":"cone", [x + 18, 76, y], [x + 18 + Math.cos(a) * 32, 66, y + Math.sin(a) * 32], 5, 0x3f9a40);
         }
         break;
       }
@@ -445,10 +449,16 @@ const Render3D = (() => {
   // Armas en coordenadas del arma: Y a lo largo, desde la mano; en unidades de Tronk Fight
   function weaponParts(type, len) {
     const P = [];
-    const b = (p, s, c, shape = "box") => P.push([shape, p, s, c]);
+    const b = (p, s, c, shape = "box",rotation=0) => P.push([shape, p, s, c,rotation]);
     const steel = 0xdfe6f0;
     const wood = 0x7a4a26;
     switch (type) {
+      case "garfio":b([0,25,0],[5,68,5],wood,"cyl");for(let i=0;i<7;i++){const a=-Math.PI/2+i*Math.PI*1.5/6;b([Math.cos(a)*15,65+Math.sin(a)*15,0],[6,9,5],steel);}break;
+      case "prisma":b([0,26,0],[5,65,5],0x727c91,"cyl");b([0,73,0],[17,25,13],0xa4e4de,"octa");break;
+      case "tijeras":for(const side of [-1,1]){b([side*8,27,0],[6,65,3],steel,"box",side*.25);b([side*8,-8,0],[8,12,3],0xa35f78,"ring");}break;
+      case "estandarte":b([0,38,0],[5,115,5],wood,"cyl");b([16,73,0],[31,39,2],0x526f9a);b([16,92,0],[32,3,3],0xe3c27e);break;
+      case "diapason":b([0,20,0],[6,55,6],steel,"cyl");for(const side of [-1,1])b([side*13,60,0],[6,37,6],steel,"cyl");b([0,42,0],[27,6,6],steel);break;
+      case "bumeran":for(const side of [-1,1])b([side*11,35,0],[23,10,5],0xca9d62,"box",side*.65);break;
       case "faro":b([0,32,0],[5,100,5],0x426b68,"cyl");b([0,80,0],[18,25,16],0x80e3d0,"glowBox");b([0,94,0],[22,5,20],0xf0cf8e);break;
       case "arco": b([0,18,0],[3,62,3],0xeee2be);for(let i=0;i<7;i++){const a=-1.3+i*2.6/6;b([Math.cos(a)*30-8,Math.sin(a)*30+18,0],[5,12,5],0x9d7249,"cyl");}break;
       case "bobina":b([0,0,0],[12,24,12],0x35434b);for(let i=0;i<4;i++)b([0,15+i*7,0],[12,3,12],0xdcb56b,"ring");b([0,42,0],[7,7,7],0x91ecff,"glow");break;
@@ -518,7 +528,7 @@ const Render3D = (() => {
     const dark = flash ? 0xe8e8ff : shade(o.color, -0.3);
     const legs = flash ? 0xffffff : o.legs || o.color;
     const legsDark = flash ? 0xe8e8ff : shade(o.legs || o.color, -0.3);
-    const th = o.thick || 1;
+    const d=o.design || {},th=(o.thick || 1);
     const r = (w) => w * 0.5 * S * 1.55 * th;
     const limb = (pts, color, w) => {
       const rr = r(w);
@@ -531,10 +541,10 @@ const Render3D = (() => {
     const hipB = W(J.hip, L.hipB), hipF = W(J.hip, L.hipF);
     const shB = W(J.sh, L.shB), shF = W(J.sh, L.shF);
     const bHand = W(J.bHand,o.weapon==="arco"?L.fHand:L.bHand), fHand = W(J.fHand,L.fHand);
-    limb([hipB, W(J.bKnee, L.bKnee), W(J.bFoot, L.bFoot)], legsDark, 7);
-    if (!o.robe) limb([hipF, W(J.fKnee, L.fKnee), W(J.fFoot, L.fFoot)], legs, 7);
-    limb([shB, W(J.bEl, L.bEl), bHand], dark, 6.5);
-    limb([shF, W(J.fEl, L.fEl), fHand], col, 7);
+    limb([hipB, W(J.bKnee, L.bKnee), W(J.bFoot, L.bFoot)], legsDark, o.design?10:7);
+    if (!o.robe) limb([hipF, W(J.fKnee, L.fKnee), W(J.fFoot, L.fFoot)], legs, o.design?10:7);
+    limb([shB, W(J.bEl, L.bEl), bHand], dark, o.design?8.5:6.5);
+    limb([shF, W(J.fEl, L.fEl), fHand], col, o.design?9:7);
     const hip = W(J.hip);
     const neck = W(J.neck);
     // tronco: hombros y caderas unidos y la columna
@@ -591,7 +601,7 @@ const Render3D = (() => {
       const WB = { o: fHand, X: X.multiplyScalar(S), Y: Y.multiplyScalar(S), Z: Z.multiplyScalar(S) };
       const wkey = `${type}:${len}`;
       const wp = WPN[wkey] || (WPN[wkey] = weaponParts(type, len));
-      for (const [shape, p, s, c] of wp) local(shape, WB, p, s, flash ? 0xffffff : c);
+      for (const [shape, p, s, c,rotation] of wp) local(shape, WB, p, s, flash ? 0xffffff : c,rotation?new T.Euler(0,0,rotation):null);
       if(o.evolution)local("glow",WB,[0,Math.max(10,len*.65),0],[4,4,4],o.evolution==="dominion"?0x80e3d0:0xf0cb82);
     }
     if (o.drone && !flash) {
@@ -611,6 +621,16 @@ const Render3D = (() => {
     const ca=Math.cos(ang),sa=Math.sin(ang);
     const B={o:W(J.hip),X:new T.Vector3(ca*S,0,sa*S),Y:new T.Vector3(0,S,0),Z:new T.Vector3(-sa*S,0,ca*S)};
     const piece=(shape,p,s,c)=>local(shape,B,p,s,flash?0xffffff:c);
+    if(o.design){
+      const d=o.design,trim=d.trim || o.acc || 0xd8c49c;
+      piece("box",[J.neck[0]*.35,25,0],[18,36,27*d.width],o.color);
+      if(d.coat)for(const side of [-1,1])piece("box",[-1,-9,side*11],[18,29,12],o.cape || shade(o.color,-.22));
+      if(d.mantle)piece("lowSph",[-3,43,0],[18,10,43],o.cape || shade(o.color,-.18));
+      if(d.armor || d.vest)for(const side of [-1,1]){piece("box",[4,27,side*10],[15,28,11],d.armor?0x758a91:shade(o.color,-.25));piece("lowSph",[0,43,side*18],[14,10,14],d.armor?0x82969a:o.color);}
+      if(d.pack || d.quiver || d.satchel){piece("box",[-16,26,0],[13,30,d.quiver?15:26],d.pack?0x586875:0x77583f);if(d.quiver)for(const offset of [-5,0,5])piece("cyl",[-17,48,offset],[2,25,2],0xdac796);}
+      if(d.scarf){piece("box",[4,49,0],[15,7,30],o.acc || trim);piece("box",[-13,34,9],[5,29,7],o.acc || trim);}
+      piece("box",[11,5,0],[3,5,7],trim);
+    }
     if(role==="guardian"){
       piece("box",[2,27,0],[17,31,27],0x374e60);
       for(const side of [-1,1])piece("lowSph",[2,40,side*16],[12,8,11],0x7794a4);
@@ -678,7 +698,7 @@ const Render3D = (() => {
   }
 
   function poseFor(o, moving, walkT, atk) {
-    const style = rig.styleOf(o);
+    const style=atk?.pose==="thrust" && o.role==="ranjay"?"thrust":rig.styleOf(o);
     if (atk && atk.t > 0) {
       const k = clamp(1 - atk.t / atk.total, 0, 1);
       return rig.pose(style, "attack", k * 5, 6);
@@ -829,7 +849,11 @@ const Render3D = (() => {
     scene.background = new T.Color(dark ? 0x080618 : 0x4a8a3a);
     const radius = Math.max(H * 1.4, 700);
     ground(d.cx, d.cy, radius);
-    api.obstaclesNear(d.cx, d.cy, radius * 0.9, (ob) => obstacle(ob, dark > 0));
+    const characters=d.actors.filter(a=>a.kind==="char");
+    api.obstaclesNear(d.cx,d.cy,radius*.9,ob=>{
+      const fade=["arbol","pino","palmera"].includes(ob.kind) && characters.some(a=>Math.abs(a.x-ob.x)<(ob.kind==="palmera"?65:46) && ob.y-a.y>-12 && ob.y-a.y<90);
+      obstacle(ob,dark>0,fade);
+    });
 
     for (const a of d.actors) {
       const k = a.scale || 1;
@@ -856,7 +880,20 @@ const Render3D = (() => {
       const active=s.activeUntil>d.t;
       const r=s.progress>0&&!s.activated?76:32;
       at("ring",s.x,1,s.y,r,1,r,s.kind==="altar"?0xa294b6:active?0xb6d8b1:0x8caa95);
-      if(s.kind==="lamp"){
+      if(s.nest){
+        const col=s.used?0x80b7a4:s.kind==="grave"?0xbc9cdd:0xdf997d;
+        at("lowSph",s.x,5,s.y,32,9,24,0x384350);
+        if(s.theme==="ciudad"){
+          at("box",s.x,10,s.y,38,20,27,0x455d6b);at("cyl",s.x,40,s.y,3,60,3,0x7d9da4);at("glow",s.x,68,s.y,5,5,5,s.used?0x80b7a4:0xffbc8c);
+          for(const side of [-1,1])for(const offset of [12,22])between("cyl",[s.x+side*offset,61,s.y],[s.x+side*offset*.75,49,s.y],1.8,col);
+        }else if(s.theme==="playa"){
+          for(let i=0;i<5;i++){const x=s.x+(i-2)*10,h=24+Math.sin(i*Math.PI/4)*15;between("cyl",[x,4,s.y],[x+(i-2)*3,h,s.y],3,i%2?0x80d9cf:0xe5b5a3);at("lowSph",x+(i-2)*3,h,s.y,4,5,4,0xf1c6b3);}
+          at("lowSph",s.x,8,s.y,25,12,21,col);at("lowSph",s.x,13,s.y,12,3,8,0x29444d);
+        }else if(s.kind==="grave"){
+          at("box",s.x,25,s.y,30,43,12,col);at("box",s.x,29,s.y+7,5,24,2,0x414553);at("box",s.x,32,s.y+7,18,5,2,0x414553);
+        }else{for(let i=0;i<5;i++){const a=i*Math.PI*2/5;at("lowSph",s.x+Math.cos(a)*18,13,s.y+Math.sin(a)*18,10,16,10,col);}at("lowSph",s.x,8,s.y,13,5,13,0x262735);}
+        if(!s.used){const h=s.theme==="ciudad"?86:64;at("box",s.x,h,s.y,48,4,3,0x15252b);at("box",s.x-24+24*(s.pct ?? 1),h,s.y+2,48*(s.pct ?? 1),4,3,col);}
+      } else if(s.kind==="lamp"){
         at("cyl",s.x,32,s.y,3,64,3,0x7f969c);at("box",s.x,70,s.y,19,14,16,active?0xffe7a2:0x526674);
       } else if(s.kind==="altar"){
         at("box",s.x,8,s.y,48,16,34,0x655275);at("octa",s.x,33,s.y,12,20,12,s.used?0x80e3d0:0xd7a1f4);
@@ -903,6 +940,7 @@ const Render3D = (() => {
     switch (s.type) {
       case "arrow":{
         const cx=Math.cos(ang),sz=Math.sin(ang),z=s.y+16;
+        if(s.style==="focus" || s.style==="guard")between("glowCyl",[s.x-cx*17,40,z-sz*17],[s.x,40,z],.9,s.style==="focus"?0xf0cb82:0x80e3d0);
         between("cyl",[s.x-cx*12,40,z-sz*12],[s.x+cx*12,40,z+sz*12],.65,0xcda470);
         at("octa",s.x+cx*14,40,z+sz*14,2,1.6,2,0xe1e8dc,-ang);
         at("box",s.x-cx*10,40,z-sz*10,5,1,4,0xeee2be,-ang);break;
@@ -910,7 +948,7 @@ const Render3D = (() => {
       case "bolt": at("box", s.x, h, s.y, 14, 1.6, 1.6, 0xe9d8b0, -ang); break;
       case "kunai": at("box", s.x, h, s.y, 10, 1.4, 3, 0x2a2a35, -ang); break;
       case "onda": at("ghost", s.x, h, s.y, s.r * 0.6, 6, s.r, 0xffb03b, -ang); break;
-      case "axe": at("box", s.x, h, s.y, 12, 3, 12, 0xcfd8e3, t * 0.4); break;
+      case "axe": if(s.style==="boomerang"){for(const side of [-1,1])at("box",s.x+Math.cos(ang+side*.6)*4,h,s.y+Math.sin(ang+side*.6)*4,9,2,3,0xca9d62,-ang-side*.6);}else at("box",s.x,h,s.y,12,3,12,0xcfd8e3,t*.4);break;
       case "ball": at("sph", s.x, 6 + Math.abs(Math.sin(t * 0.2 + s.x)) * 10, s.y, 5, 5, 5, 0xffffff); break;
       case "ice": at("octa", s.x, h, s.y, 3.5, 3.5, 6, 0x9fdcff, -ang); break;
       default: at("glow", s.x, h, s.y, 3, 3, 3, 0xffffff);
@@ -930,6 +968,14 @@ const Render3D = (() => {
     if (z.t < 0) return;
     const k = z.t / (z.life || 1);
     switch (z.type) {
+      case "tether":between("cyl",[z.x,18,z.y],[z.tx,18,z.ty],1.3,0xc5b38d);break;
+      case "resurrection": at("ring",z.x,2,z.y,z.r,1,z.r,0xbc9cdd);break;
+      case "nestSpawn": at("ring",z.x,2,z.y,z.r,1,z.r,0xdf997d);break;
+      case "pincer":
+        for(let i=0;i<30;i++){const a=i*TAU/30,b=(i+1)*TAU/30,gap=Math.abs(Math.atan2(Math.sin((a+b)/2-z.ang),Math.cos((a+b)/2-z.ang)))<z.opening;
+          between("glowCyl",[z.x+Math.cos(a)*z.r,2,z.y+Math.sin(a)*z.r],[z.x+Math.cos(b)*z.r,2,z.y+Math.sin(b)*z.r],gap?2.2:1.1,gap?0x80e3d0:0xed9b85);
+        }between("glowCyl",[z.x,2,z.y],[z.x+Math.cos(z.ang)*z.r,2,z.y+Math.sin(z.ang)*z.r],1,0x80e3d0);break;
+      case "refuge":at("ring",z.x,2,z.y,z.r,3,z.r,0x80e3d0);at("disc",z.x,1,z.y,z.r,1,z.r,0x3b7764);break;
       case "dangerLine":
         between("glowCyl",[z.x,2,z.y],[z.tx,2,z.ty],1.3,0xffab97);at("ring",z.tx,2,z.ty,12,2,12,0xffab97);break;
       case "dangerRing":
@@ -954,7 +1000,7 @@ const Render3D = (() => {
           if(i<3)at("glow",z.x+Math.cos(a)*z.len*t,15,z.y+Math.sin(a)*z.len*t,r*.45,r*.45,r*.45,0xffe5a0);
         }break;
       case "slash": {
-        const sweep = 2.7;
+        const sweep = z.spread || 2.7;
         const a0 = z.ang - (sweep / 2) * z.dirSign;
         const a1 = a0 + sweep * Math.min(1, k * 2.2) * z.dirSign;
         arc(z.x, z.y + 16, 18, z.R, Math.min(a0, a1), Math.max(a0, a1), z.gold ? 0xffd23f : 0xffffff);
@@ -964,6 +1010,7 @@ const Render3D = (() => {
       case "punch": at("ghost", z.x, 18, z.y + 18, z.r, z.r, z.r, z.glove ? 0xff6b6b : 0xffe9a8); break;
       case "thrust":
       case "laser": {
+        if(z.sword){const reach=z.len*Math.min(1,k*3),fade=1-k;between("glowCyl",[z.x+Math.cos(z.ang)*reach*.3,18,z.y+16+Math.sin(z.ang)*reach*.3],[z.x+Math.cos(z.ang)*reach,18,z.y+16+Math.sin(z.ang)*reach],Math.max(.1,fade),0xbfe6ff);at("octa",z.x+Math.cos(z.ang)*reach,18,z.y+16+Math.sin(z.ang)*reach,3*fade,1,3*fade,0xf0faff,-z.ang);break;}
         const L = z.len || 40;
         const c = z.type === "laser" ? 0xff3b6b : 0xffffff;
         at("glowBox", z.x + Math.cos(z.ang) * L / 2, 18, z.y + 16 + Math.sin(z.ang) * L / 2, L, z.type === "laser" ? 2 : 1.5, z.type === "laser" ? 2 : 4, c, -z.ang);

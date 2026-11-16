@@ -284,6 +284,9 @@ const Sprites = (() => {
   }
 
   const ICONS = {
+    "relic-prisma":p=>{p.line(7,1,1,11,"#a1edff");p.line(7,1,12,11,"#f0cb82");p.line(1,11,12,11,"#80e3d0");p.line(7,1,7,10,"#d6b0f0");p.P(7,5,"#ffffff");},
+    "relic-pasos":p=>{p.rect(2,2,4,7,"#b58f6d");p.rect(2,8,7,3,"#f0cb82");p.line(9,3,12,4,"#80e3d0");p.line(10,6,13,7,"#80e3d0");p.rect(2,11,7,1,"#73564b");},
+    "relic-semilla":p=>{p.ell(7,9,4,4,"#bd945e");p.line(7,10,7,3,"#80e3d0");p.ell(4,4,3,2,"#a9d78b");p.ell(10,2,3,2,"#80e3d0");p.P(5,8,"#ffe6a4");},
     faro:p=>{p.rect(6,5,2,8,"#426b68");p.rect(3,2,8,6,"#f0cf8e");p.rect(4,3,6,4,"#80e3d0");},
     arco:p=>{p.ell(4,7,6,6,"#9d7249");p.ell(2,7,5,5,"#10232b");p.rect(7,1,1,12,"#eee2be");},
     bobina:p=>{p.rect(5,5,4,8,"#35434b");for(let y=4;y<11;y+=2)p.rect(3,y,8,1,"#dcb56b");p.ell(7,3,3,3,"#91ecff");},
@@ -436,7 +439,7 @@ const Sprites = (() => {
       const ch = TS.CHARACTERS.find((c) => c.id === id);
       if (ch) cache[key] = Stick.set(Stick.characterOptions(ch));
     } else if (kind === "enemy" && Stick.ENEMIES[id]) {
-      cache[key] = Stick.set(Stick.ENEMIES[id]);
+      cache[key] = Stick.set({...Stick.ENEMIES[id],role:id});
     } else if (kind === "enemy" && People.ENEMIES[id]) {
       cache[key] = People.personSet(People.ENEMIES[id]);
     } else if (kind === "enemy" && ["slime", "slimito", "fantasma", "murcielago"].includes(id)) {
@@ -461,6 +464,29 @@ const Sprites = (() => {
     return scaled(silhouette(portraitCanvas(id), "#2a2350"), k).toDataURL();
   }
   function iconUrl(id, k = 3) {
+    if(id.startsWith("move:") && !cache[`icon:${id}`]){
+      const [,charId,move]=id.split(":"),ch=TS.CHARACTERS.find(c=>c.id===charId),base=ch && cache[`icon:${ch.weapon}`];
+      if(base){const c=canvas(20,20),g=c.getContext("2d");g.drawImage(base,0,0,16,16);g.fillStyle="#12252f";g.fillRect(10,10,10,10);g.strokeStyle="#80e3d0";g.lineWidth=1;g.strokeRect(10.5,10.5,9,9);g.strokeStyle=move==="surge"?"#f0cb82":"#b6e8df";
+        if(move==="burst")for(let i=0;i<3;i++){g.beginPath();g.moveTo(12,12+i*2);g.lineTo(17,12+i*2);g.stroke();}
+        if(move==="ring"){g.beginPath();g.arc(15,15,3,0,Math.PI*2);g.stroke();}
+        if(move==="pierce"){g.beginPath();g.moveTo(12,17);g.lineTo(17,12);g.lineTo(14,12);g.moveTo(17,12);g.lineTo(17,15);g.stroke();}
+        if(move==="guard"){g.beginPath();g.moveTo(12,12);g.lineTo(18,12);g.lineTo(17,16);g.lineTo(15,18);g.lineTo(13,16);g.closePath();g.stroke();}
+        if(move==="focus"){g.beginPath();g.arc(15,15,2,0,Math.PI*2);g.moveTo(15,11);g.lineTo(15,19);g.moveTo(11,15);g.lineTo(19,15);g.stroke();}
+        if(move==="surge"){g.beginPath();g.moveTo(12,17);g.lineTo(12,12);g.lineTo(15,15);g.lineTo(18,12);g.lineTo(18,17);g.closePath();g.stroke();}
+        cache[`icon:${id}`]=c;
+      }
+    }
+    if(!cache[`icon:${id}`] && TS.NEW_ROSTER?.some(c=>c.weapon===id)){
+      const c=canvas(20,20),g=c.getContext("2d");g.strokeStyle="#e5d4aa";g.lineWidth=2;g.lineCap="round";
+      g.beginPath();g.moveTo(6,17);g.lineTo(12,3);g.stroke();
+      if(id==="garfio"){g.beginPath();g.arc(12,6,5,-Math.PI,Math.PI/2);g.stroke();}
+      if(id==="prisma"){g.fillStyle="#91e1e0";g.beginPath();g.moveTo(10,2);g.lineTo(16,9);g.lineTo(10,16);g.lineTo(4,9);g.closePath();g.fill();}
+      if(id==="tijeras"){g.beginPath();g.moveTo(4,3);g.lineTo(15,17);g.moveTo(16,3);g.lineTo(5,17);g.stroke();}
+      if(id==="estandarte"){g.fillStyle="#577daf";g.fillRect(9,3,8,8);}
+      if(id==="diapason"){g.beginPath();g.moveTo(5,3);g.lineTo(5,10);g.quadraticCurveTo(10,16,15,10);g.lineTo(15,3);g.stroke();}
+      if(id==="bumeran"){g.beginPath();g.moveTo(3,16);g.lineTo(10,4);g.lineTo(17,16);g.stroke();}
+      cache[`icon:${id}`]=c;
+    }
     const s = cache[`icon:${id}`];
     return s ? scaled(s, k).toDataURL() : "";
   }
