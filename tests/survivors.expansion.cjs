@@ -9,7 +9,7 @@ const assert=require('node:assert/strict');const fs=require('node:fs');const pat
   await page.goto(`${process.env.BASE_URL||'http://127.0.0.1:8000'}/survivors/`);await page.waitForSelector('#menu.is-on',{timeout:90000});
   await page.evaluate(()=>{const d=Save.get();d.owned=Object.fromEntries(TS.CHARACTERS.map(ch=>[ch.id,{stars:1}]));d.selected='lumen';d.settings.reducedMotion=true;Save.persist();TronkUI.show('menu');});
   await shot('lumen-menu');await page.locator('#menu [data-go="chars"]').first().click();
-  assert.equal(await page.locator('.char-card').count(),24);
+  assert.equal(await page.locator('.char-card').count(),30);
   const portraits=await page.evaluate(()=>TS.CHARACTERS.map(ch=>{
     const c=Sprites.portraitCanvas(ch.id),p=c.getContext('2d').getImageData(0,0,c.width,c.height).data;
     let edge=false;for(let x=0;x<c.width;x++)if(p[x*4+3] || p[((c.height-1)*c.width+x)*4+3])edge=true;
@@ -30,10 +30,10 @@ const assert=require('node:assert/strict');const fs=require('node:fs');const pat
   await shot('breach-health-revival');
   await page.locator('#hud-pause').click();await page.locator('#pause-resume').click();
   await page.evaluate(()=>{const p=Game.state.players[0];p.techniques=Object.fromEntries(TS.TECHNIQUES[p.charId].map(m=>[m.id,5]));Game.setPaused(true);});
-  await page.waitForFunction(()=>document.querySelectorAll('#hud-slots .is-technique').length===6);
+  await page.waitForFunction(()=>document.querySelectorAll('#hud-slots .is-technique').length===8);
   assert.equal(await page.locator('#hud-slots [data-technique="VI"]').count(),1);await shot('six-techniques');
   await page.evaluate(()=>TronkUI.backToMenu());await page.locator('#menu [data-go="settings"]').click();await page.locator('#lang-select').selectOption('en');
   assert.equal(await page.locator('#opt-bars').locator('..').innerText(),'Enemy health bars\nWhen damaged\nAlways\nHidden');
-  assert.deepEqual(errors,[]);console.log(`${mobile?'Mobile':'Desktop'}: 24 illustrations, six moves, bars, objectives and cooperative revival passed`);await page.close();
+  assert.deepEqual(errors,[]);console.log(`${mobile?'Mobile':'Desktop'}: 30 illustrations, eight moves, bars, objectives and cooperative revival passed`);await page.close();
  }}finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

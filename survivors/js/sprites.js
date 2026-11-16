@@ -476,6 +476,17 @@ const Sprites = (() => {
         cache[`icon:${id}`]=c;
       }
     }
+    if(!cache[`icon:${id}`] && TS.NEW_ROSTER?.some(c=>c.weapon===id)){
+      const c=canvas(20,20),g=c.getContext("2d");g.strokeStyle="#e5d4aa";g.lineWidth=2;g.lineCap="round";
+      g.beginPath();g.moveTo(6,17);g.lineTo(12,3);g.stroke();
+      if(id==="garfio"){g.beginPath();g.arc(12,6,5,-Math.PI,Math.PI/2);g.stroke();}
+      if(id==="prisma"){g.fillStyle="#91e1e0";g.beginPath();g.moveTo(10,2);g.lineTo(16,9);g.lineTo(10,16);g.lineTo(4,9);g.closePath();g.fill();}
+      if(id==="tijeras"){g.beginPath();g.moveTo(4,3);g.lineTo(15,17);g.moveTo(16,3);g.lineTo(5,17);g.stroke();}
+      if(id==="estandarte"){g.fillStyle="#577daf";g.fillRect(9,3,8,8);}
+      if(id==="diapason"){g.beginPath();g.moveTo(5,3);g.lineTo(5,10);g.quadraticCurveTo(10,16,15,10);g.lineTo(15,3);g.stroke();}
+      if(id==="bumeran"){g.beginPath();g.moveTo(3,16);g.lineTo(10,4);g.lineTo(17,16);g.stroke();}
+      cache[`icon:${id}`]=c;
+    }
     const s = cache[`icon:${id}`];
     return s ? scaled(s, k).toDataURL() : "";
   }

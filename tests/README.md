@@ -3,11 +3,11 @@
 Las pruebas de simulación no requieren dependencias:
 
 ```sh
-node --test tests/survivors.test.cjs tests/survivors.depth.cjs tests/survivors.clarity.cjs
+node --test tests/survivors.test.cjs tests/survivors.depth.cjs tests/survivors.clarity.cjs tests/survivors.roster.cjs
 ```
 
-Las 86 pruebas cubren el cofre, pausa de efectos, desconexiones durante elecciones,
-instantáneas online, 24 personajes con su arma y técnicas propias, jefes finales de los cuatro
+Las 133 pruebas cubren el cofre, pausa de efectos, desconexiones durante elecciones,
+instantáneas online, 30 personajes con su arma y técnicas propias, jefes finales de los cuatro
 mapas y fases finales sucesivas, colisiones con enemigos grandes, ralentizaciones, recargas,
 fusión de progreso remoto, datos guardados incompletos y tickets de partidas que
 terminan mientras empieza otra. Añaden agua transitable con ralentización,
@@ -37,6 +37,7 @@ node tests/survivors.features.cjs
 node tests/survivors.polish.cjs
 node tests/survivors.expansion.cjs
 node tests/survivors.rewards.cjs
+node tests/survivors.gacha-theatre.cjs
 node tests/survivors.online.cjs
 node tests/survivors.strategy.cjs
 node tests/survivors.characters.cjs
@@ -57,13 +58,13 @@ Chromium no tiene su CA instalada; no modifica la configuración del juego.
   personajes, enemigos y jefes, con WebGL y con Three.js bloqueado para forzar
   2D. Detecta recortes y coordenadas de dibujo no finitas en todos los fotogramas
   normales; comprueba que sus destellos conservan las dimensiones, pies y alfa.
-- **Coherencia de personajes:** 1.800 fotogramas por dispositivo (24 personajes,
+- **Coherencia de personajes:** 2.250 fotogramas por dispositivo (30 personajes,
   cinco direcciones, reposo, ocho pasos y seis ataques), pantalones compartidos con
   el menú, contacto de los pies, retratos con cámara común, visor de Boro solo de
   frente y ausencia de ojos duplicados en máscaras. Verifica que el mazo no
   atraviese el suelo, que el arco tenga su propia postura y que la cuerda y el
   agarre coincidan con las manos y que los retratos de las cinco vistas no se recorten.
-- **Contenido nuevo:** los 24 personajes, sus seis técnicas y habilidad en 2D/3D,
+- **Contenido nuevo:** los 30 personajes, sus ocho técnicas y habilidad en 2D/3D,
   efectos de sus armas, HUD final al minuto 25 y vista cercana de enemigos 3D.
 - **Diseño y usabilidad:** menú, HUD con élites y brújula, recargas de técnicas,
   guía de evolución, métricas, cambios de opciones, foco de teclado dentro de
@@ -74,13 +75,13 @@ Chromium no tiene su CA instalada; no modifica la configuración del juego.
   pulsación doble sin gasto duplicado, orden por rareza sin alterar el reto diario,
   recogida desde cuatro direcciones y aviso de recompensa para invitados online.
 - **Ampliación de combate:** 24 ilustraciones sin recortes, iconos de todas las
-  armas, técnicas I–VI, barras de vida configurables, objetivo de brecha,
+  armas, técnicas I–VIII, barras de vida configurables, objetivo de brecha,
   reanimación cooperativa y traducción de los nuevos ajustes en móvil y escritorio.
   La simulación comprueba también los requisitos de nivel/tiempo, las recompensas
   de brechas y que superponer tornados no multiplique el daño de Duna.
 - **Móvil emulado:** entrar desde el menú, joystick, varios dedos, habilidad
   mientras te mueves, soltar el joystick, pausa, elección de mejora, rotación,
-  distribución con arma propia, seis técnicas y seis pasivas y reinicio. Se usa 2D por defecto
+  distribución con arma propia, ocho técnicas y seis pasivas y reinicio. Se usa 2D por defecto
   en dispositivos que solo tienen puntero táctil para reducir la carga gráfica.
 - **Estrategia y mapas:** dos evoluciones por arma, elecciones de cofre para cada
   jugador, señales de ataques y roles, combos y jensalada en 2D, 3D y móvil;
@@ -105,8 +106,8 @@ Chromium no tiene su CA instalada; no modifica la configuración del juego.
   conservación del resumen de un compañero caído hasta el fin del equipo.
 - **Especializaciones:** tres etapas con ventajas y costes, requisitos de nivel y
   tiempo, comparaciones numéricas, ficha de estadísticas en pausa y resumen final
-  en escritorio y móvil. Las 86 pruebas de simulación cubren las nueve opciones
-  en los 24 personajes, cofres, reinicio y recargas proporcionales de armas,
+  en escritorio y móvil. Las 133 pruebas de simulación cubren las nueve opciones
+  en los 30 personajes, cofres, reinicio y recargas proporcionales de armas,
   habilidad, técnicas, drones y contactos orbitales.
 - **Combate propio y reliquias:** dieciocho comportamientos para espada, arco y
   viento, iconos distintos, treinta fotogramas de estocada y sus destellos,
@@ -137,7 +138,7 @@ un teléfono físico requieren una comprobación adicional con esos servicios y
 dispositivos.
 
 - **Profundidad de combate:** 103 comprobaciones de simulación entre las dos suites.
-  Las 17 nuevas cubren variantes activas en los 24 personajes, daño diferido,
+  Las 17 nuevas cubren variantes activas en los 30 personajes, daño diferido,
   postura, esquivas, enlaces, escoltas, refuerzos y resurrección limitada,
   semillas e historial validado. La suite de navegador adicional recorre las
   192 demostraciones por dispositivo, elección activa, sepulcro 2D/3D, resultados,
@@ -161,3 +162,7 @@ dispositivos.
   personajes con `SCREENSHOTS_DIR`. Los recorridos de sprites mantienen la
   comprobación de recorte, animación y siluetas en ambos renderizadores. Véase
   `docs/survivors/presentacion-movil-y-arte-2d.md`.
+
+La ampliación actual y la apertura secuencial con luz dorada se documentan en
+[Plantel y cofre](../docs/survivors/plantel-y-cofre.md). Las 133 pruebas de simulación
+incluyen siete casos nuevos de contenido y ejecución real de ataques.

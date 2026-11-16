@@ -30,7 +30,7 @@
     if (current === "gacha" && pulling && id !== "gacha") return;
     for (const s of document.querySelectorAll(".screen")) s.classList.toggle("is-on", s.id === id);
     current = id;
-    const renders = { menu: renderMenu, chars: renderChars, gacha: renderGacha, shop: renderShop, maps: renderMaps, daily: renderDaily, achievements: renderAchievements, settings: renderSettings };
+    const renders = { menu: renderMenu, chars: renderChars, gacha: renderGacha, shop: renderShop, maps: renderMaps, daily: renderDaily, achievements: renderAchievements, settings: renderSettings, history:renderHistory };
     if (renders[id]) renders[id]();
     if (id === "online") TronkNet.render($("online-body"));
     if (id !== "game") {
@@ -370,6 +370,7 @@
     document.body.classList.toggle("reduce-motion", reduced);
     Game.options.reducedMotion = reduced;
     Game.options.contrast = save.settings.contrast === true;
+    Game.options.cameraLead=save.settings.cameraLead===true;document.body.classList.toggle("compact-hud",save.settings.compactHud===true);
     Game.options.zoom = [1,1.25,1.5].includes(Number(save.settings.zoom)) ? Number(save.settings.zoom) : 1.25;
     Game.options.shake = save.settings.shake !== false && !reduced;
     Game.resize();
@@ -389,7 +390,7 @@
     $("opt-fx").value = save.settings.fx || "auto";
     $("opt-bars").value=Game.options.healthBars;
     $("opt-motion").checked = Game.options.reducedMotion;
-    $("opt-contrast").checked = Game.options.contrast;
+    $("opt-contrast").checked = Game.options.contrast;$("opt-compact").checked=save.settings.compactHud===true;$("opt-lead").checked=save.settings.cameraLead===true;
     $("opt-zoom").value = Game.options.zoom;
     $("opt-tips").checked = !save.tutorial;
   }
@@ -406,6 +407,7 @@
   for (const [id,key] of [["opt-motion","reducedMotion"],["opt-contrast","contrast"],["opt-zoom","zoom"]]) {
     $(id).addEventListener("change",e=>{save.settings[key]=key==="zoom"?Number(e.target.value):e.target.checked;applySettings();Save.persist();});
   }
+  for(const [id,key]of [["opt-compact","compactHud"],["opt-lead","cameraLead"]])$(id).addEventListener("change",e=>{save.settings[key]=e.target.checked;applySettings();Save.persist();});
   $("opt-bars").addEventListener("change",e=>{save.settings.healthBars=e.target.value;applySettings();Save.persist();});
   $("opt-tips").addEventListener("change", (e) => { save.tutorial = !e.target.checked; Save.persist(); });
   $("lang-select").addEventListener("change", (e) => {
@@ -418,11 +420,25 @@
      PERSONAJES
      ======================================================= */
 
+  function renderHistory(){
+    for(const [id,items]of [["history-char",TS.CHARACTERS.map(c=>[c.id,c.name])],["history-map",Object.entries(TS.MAPS).map(([id,m])=>[id,L(m.name)])]]){
+      const select=$(id);if(!select.options.length){const any=el("option","",L("Todos"));any.value="";select.append(any);for(const [value,name]of items){const o=el("option","",name);o.value=value;select.append(o);}}
+    }
+    const list=$("history-list");list.textContent="";const rows=(save.history || []).filter(r=>(!$("history-char").value || r.charId===$("history-char").value) && (!$("history-map").value || r.map===$("history-map").value));
+    for(const r of rows){const row=el("li"),ch=charById(r.charId);row.append(el("b","",`${ch?.name || r.charId} · ${L(TS.MAPS[r.map].name)}`),el("span","",`${fmtTime(r.seconds)} · ${L("Nivel")} ${r.level} · ${new Date(r.at).toLocaleDateString(LANG)}`),el("small","",r.signature?L("Configuración registrada"):L("Partida antigua: sin equivalencia de reglas")));list.append(row);}
+    if(!rows.length)list.append(el("li","",L("Todavía no hay partidas para este filtro.")));
+  }
+  for(const id of ["history-char","history-map"])$(id).addEventListener("change",renderHistory);
+
   function renderChars() {
     const grid = $("chars-grid");
     grid.textContent = "";
     $("chars-count").textContent = `${Object.keys(save.owned).length} / ${TS.CHARACTERS.length}`;
-    const characters = [...TS.CHARACTERS].sort((a,b)=>TS.RARITY_ORDER.indexOf(a.rarity)-TS.RARITY_ORDER.indexOf(b.rarity));
+    const family=$("char-family");if(family.options.length===1)for(const id of [...new Set(TS.CHARACTERS.map(c=>TS.WEAPONS[c.weapon].family || c.weapon))]){const option=el("option","",L(TS.WEAPONS[id].name));option.value=id;family.append(option);}
+    const query=$("char-search").value.trim().toLocaleLowerCase();
+    const filtered=TS.CHARACTERS.filter(c=>(!query || c.name.toLocaleLowerCase().includes(query)) && ($("char-owned").value!=="owned" || save.owned[c.id]) && (family.value==="all" || (TS.WEAPONS[c.weapon].family || c.weapon)===family.value));
+    $("char-filter-count").textContent=`${filtered.length} ${L("resultados")}`;
+    const characters = [...filtered].sort((a,b)=>TS.RARITY_ORDER.indexOf(a.rarity)-TS.RARITY_ORDER.indexOf(b.rarity));
     for (const ch of characters) {
       const have = save.owned[ch.id];
       const card = el("button", `char-card${have ? "" : " is-locked"}${ch.id === save.selected ? " is-selected" : ""}`);
@@ -449,6 +465,8 @@
     }
     renderDetail(selectedView);
   }
+
+  for(const id of ["char-search","char-owned","char-family"])$(id).addEventListener(id==="char-search"?"input":"change",renderChars);
 
   function renderDetail(id) {
     clearTimeout(previewTimer);
@@ -521,7 +539,8 @@
     } else {
       const btn = el("button", "btn btn-gold", L("Ir al cofre"));
       btn.addEventListener("click", () => show("gacha"));
-      box.append(el("p", "", L("Consíguelo en el Cofre Tronk con las monedas que ganas jugando.")), btn);
+      const newcomer=TS.NEW_ROSTER.find(c=>c.id===id),keys={runs:"partidas",kills:"enemigos derrotados",bosses:"jefes derrotados",time:"segundos de supervivencia"};
+      box.append(el("p","",newcomer?`${L("También se desbloquea jugando")}: ${newcomer.unlock.value} ${L(keys[newcomer.unlock.key])}.`:L("Consíguelo en el Cofre Tronk con las monedas que ganas jugando.")),btn);
     }
   }
 
@@ -548,38 +567,47 @@
     }
   }
 
-  function pull(times) {
-    if (pulling || !$("gacha-reveal").hidden) return;
-    const results = Save.pull(times);
-    if (!results) return;
-    pulling = true;
-    $("pull-1").disabled = true; $("pull-10").disabled = true;
-    syncCoins();
-    const chest = $("gacha-chest");
-    chest.classList.add("is-shaking");
-    Sfx.play("gachaRoll");
-    setTimeout(() => {
-      chest.classList.remove("is-shaking");
-      const best = results.reduce((m, r) => Math.max(m, TS.RARITY_ORDER.indexOf(r.ch.rarity)), 0);
-      Sfx.play(best >= 3 ? "legend" : "reveal");
-      const cards = $("reveal-cards");
-      cards.textContent = "";
-      results.forEach((r, i) => {
-        const card = el("div", `reveal-card${r.kind === "new" ? " is-new" : ""}`);
-        card.style.setProperty("--rarity", TS.RARITIES[r.ch.rarity].color);
-        card.style.animationDelay = `${i * 0.12}s`;
-        const img = document.createElement("img");
-        img.src = Sprites.portrait(r.ch.id, 2);
-        img.alt = "";
-        card.append(img, el("b", "", r.ch.name), el("span", "tag", L(TS.RARITIES[r.ch.rarity].name)), el("small", "", r.kind === "star" ? LT("stars", { n: r.stars }) : r.kind === "coins" ? LT("plusCoins", { n: r.coins }) : ""));
-        cards.appendChild(card);
-      });
-      $("gacha-reveal").hidden = false;
-      $("gacha-reveal").scrollTop = 0;
-      $("reveal-ok").focus({preventScroll:true});
-      checkAchievements(null);
-    }, Game.options.reducedMotion ? 0 : 900);
+  let revealGeneration=0,revealTimer=0,revealResults=[],revealAnimations=[];
+  function rewardCard(r){
+    const card=el("div",`reveal-card${r.kind==="new"?" is-new":""}`);card.style.setProperty("--rarity",TS.RARITIES[r.ch.rarity].color);card.dataset.rewardCharacter=r.ch.id;
+    const img=document.createElement("img");img.src=Sprites.portrait(r.ch.id,2);img.alt="";
+    card.append(img,el("b","",r.ch.name),el("span","tag",L(TS.RARITIES[r.ch.rarity].name)),el("small","",r.kind==="star"?LT("stars",{n:r.stars}):r.kind==="coins"?LT("plusCoins",{n:r.coins}):L("¡NUEVO!")));return card;
   }
+  function finishReveal(){
+    revealGeneration++;clearTimeout(revealTimer);for(const a of revealAnimations)a.cancel();revealAnimations=[];
+    const cards=$("reveal-cards");cards.textContent="";for(const r of revealResults)cards.append(rewardCard(r));
+    $("reveal-theatre").classList.add("is-open");$("reveal-theatre").classList.remove("is-emerging");$("reveal-hero").classList.remove("is-emerging");
+    const last=revealResults.at(-1);if(last){$("reveal-hero").src=Sprites.portrait(last.ch.id,4);$("reveal-hero").style.opacity="1";}
+    $("reveal-skip").hidden=true;$("reveal-ok").hidden=false;$("gacha-reveal").setAttribute("aria-busy","false");$("reveal-identity").textContent=L("Tus personajes ya están guardados.");$("reveal-ok").focus({preventScroll:true});checkAchievements(null);
+  }
+  function pull(times){
+    if(pulling || !$("gacha-reveal").hidden)return;
+    const results=Save.pull(times);if(!results)return;
+    pulling=true;revealResults=results;const generation=++revealGeneration;clearTimeout(revealTimer);
+    $("pull-1").disabled=$("pull-10").disabled=true;syncCoins();
+    const overlay=$("gacha-reveal"),theatre=$("reveal-theatre"),cards=$("reveal-cards"),hero=$("reveal-hero");
+    overlay.hidden=false;overlay.classList.toggle("is-ten",times===10);overlay.scrollTop=0;overlay.setAttribute("aria-busy","true");
+    cards.textContent="";for(const [i]of results.entries()){const slot=el("div","reveal-slot");slot.dataset.slot=i;slot.setAttribute("aria-label",`${L("Premio")} ${i+1}`);cards.append(slot);}
+    theatre.classList.remove("is-open","is-emerging");hero.removeAttribute("src");hero.style.opacity="0";$("reveal-ok").hidden=true;$("reveal-skip").hidden=false;$("reveal-skip").focus({preventScroll:true});
+    $("reveal-identity").textContent=L("Abriendo el cofre…");Sfx.play("gachaRoll");
+    if(Game.options.reducedMotion || window.matchMedia("(prefers-reduced-motion: reduce)").matches){finishReveal();return;}
+    const later=(fn,ms)=>{revealTimer=setTimeout(()=>{if(generation===revealGeneration)fn();},ms);};
+    const showOne=i=>{
+      if(i>=results.length){finishReveal();return;}
+      const r=results[i],slot=cards.children[i];hero.src=Sprites.portrait(r.ch.id,4);hero.style.opacity="1";hero.style.setProperty("--rarity",TS.RARITIES[r.ch.rarity].color);
+      theatre.classList.add("is-open");hero.classList.remove("is-emerging");void hero.offsetWidth;hero.classList.add("is-emerging");
+      $("reveal-identity").textContent=`${i+1}/${results.length} · ${r.ch.name} · ${L(TS.RARITIES[r.ch.rarity].name)} · ${r.kind==="new"?L("¡NUEVO!"):r.kind==="star"?LT("stars",{n:r.stars}):LT("plusCoins",{n:r.coins})}`;
+      Sfx.play(r.ch.rarity==="legendario"?"legend":"reveal",.1);
+      later(()=>{
+        const from=hero.getBoundingClientRect(),to=slot.getBoundingClientRect();
+        const dx=to.x+to.width/2-from.x-from.width/2,dy=to.y+to.height/2-from.y-from.height/2;
+        const animation=hero.animate([{transform:"translate(-50%,0) scale(1)",opacity:1},{transform:`translate(calc(-50% + ${dx}px),${dy}px) scale(.23)`,opacity:.25}],{duration:380,easing:"cubic-bezier(.4,0,.2,1)",fill:"forwards"});revealAnimations=[animation];
+        later(()=>{animation.cancel();revealAnimations=[];slot.classList.add("is-filled");slot.append(rewardCard(r));hero.classList.remove("is-emerging");hero.style.opacity="0";later(()=>showOne(i+1),100);},390);
+      },results.length===1?1050:650);
+    };
+    later(()=>{theatre.classList.add("is-open");later(()=>showOne(0),420);},350);
+  }
+  $("reveal-skip").addEventListener("click",finishReveal);
 
   /* =======================================================
      TIENDA
@@ -678,7 +706,7 @@
     for (const it of items) {
       const slot = el("div", `hud-slot${it.kind === "t" ? " is-technique" : ""}${it.kind === "p" ? " is-passive" : ""}${it.evo ? " is-evo" : ""}`);
       if (it.kind === "t") {
-        slot.dataset.technique = ["I","II","III","IV","V","VI"][["burst","ring","pierce","guard","focus","surge"].indexOf(it.id)] || "";
+        slot.dataset.technique = ["I","II","III","IV","V","VI","VII","VIII"][["burst","ring","pierce","guard","pursuit","focus","rupture","surge"].indexOf(it.id)] || "";
         slot.dataset.move = it.id;
         slot.append(el("span","tech-cooldown"));if(it.id==="focus")slot.append(el("span","link-time"));
       }
@@ -730,7 +758,7 @@
     $("hud-time").textContent = fmtTime(d.seconds);
     $("hud-phase").textContent = d.finalPhase ? `${L("Fase")} ${d.finalRound}` : `${L("Final")} ${fmtTime(d.finalIn)}`;
     if(d.breach)$("hud-phase").textContent+=` · ${L("Brecha")} ${d.breach.total-d.breach.remaining}/${d.breach.total}`;
-    $("hud-milestone").textContent=d.nextTechnique?`${L("Próxima técnica")}: ${L(d.nextTechnique.name)} · ${L("Nivel")} ${d.nextTechnique.unlock} · ${fmtTime(d.nextTechnique.at || 0)}`:`${L("Rangos de técnicas")}: ${d.techniqueRanks}/30`;
+    $("hud-milestone").textContent=d.nextTechnique?`${L("Próxima técnica")}: ${L(d.nextTechnique.name)} · ${L("Nivel")} ${d.nextTechnique.unlock} · ${fmtTime(d.nextTechnique.at || 0)}`:`${L("Rangos de técnicas")}: ${d.techniqueRanks}/${d.techniqueTotal}`;
     if(d.talentNext?.ready)$("hud-milestone").textContent=L("Especialización disponible en tu próxima subida de nivel");
     $("hud-world").textContent=d.combo?d.combo:d.site?`${d.site.name} · ${d.site.used?`${L("Activo")} ${d.site.seconds}s`:d.site.nest?`${d.site.hint} · ${d.site.pct}%`:d.site.activated?`${L("Guardianes restantes")}: ${d.site.guards}`:`${d.site.hint} · ${L("Mantente en el círculo")}: ${d.site.progress}%`}`:Game.mapId==="playa" && d.inWater?L("Corriente: puedes moverte contra ella"):"";
     $("hud-sub").textContent = (d.finalPhase ? `${L("Supervivencia final")} · ` : Game.state && Game.state.endless ? `${L("Modo infinito")} · ` : "") + LT("hudSub", { map: L(TS.MAPS[Game.mapId].name), kills: d.kills, coins: d.coins });
@@ -1000,14 +1028,17 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     if(combat?.dodges)add("Esquivas precisas",combat.dodges);
     const details=$("end-insights");details.textContent="";
     details.append(el("h3","",L("Rendimiento por habilidad")));
-    const skills=Object.entries(combat?.bySkill || {}).sort((a,b)=>b[1].damage-a[1].damage);
-    if(!skills.length)details.append(el("p","",L("Sin impactos registrados")));
+    const sorting=el("select","skill-sorting");sorting.setAttribute("aria-label",L("Ordenar rendimiento"));for(const [value,label]of [["damage","Daño"],["healing","Curación"],["control","Aplicaciones de control"]]){const option=el("option","",L(label));option.value=value;sorting.append(option);}details.append(sorting);
+    const skillList=el("div");details.append(skillList);
+    const renderSkills=()=>{skillList.textContent="";const skills=Object.entries(combat?.bySkill || {}).sort((a,b)=>(b[1][sorting.value] || 0)-(a[1][sorting.value] || 0));
+    if(!skills.length)skillList.append(el("p","",L("Sin impactos registrados")));
     for(const [id,values] of skills){
       const ch=charById(r.charId),name=id==="weapon"?TS.WEAPONS[ch.weapon].name:id==="active"?TS.ABILITIES[ch.id].name:TS.TECHNIQUES[ch.id]?.find(m=>m.id===id)?.name || id;
       const row=el("div","skill-result"),meter=el("meter");meter.min=0;meter.max=Math.max(1,combat?.dealt || 0);meter.value=values.damage || 0;meter.setAttribute("aria-label",L(name));
       const seconds=(values.availableTicks || 0)/60,dps=seconds>0?((values.damage || 0)/seconds).toLocaleString(LANG,{maximumFractionDigits:1}):"—";
-      row.append(el("b","",L(name)),el("small","",`${L("Daño por segundo disponible")}: ${dps} · ${L("Tiempo disponible")}: ${seconds.toLocaleString(LANG,{maximumFractionDigits:1})} s`),el("span","",`${L("Daño")}: ${Math.round(values.damage || 0).toLocaleString(LANG)} · ${L("Curación")}: ${Math.round(values.healing || 0)} · ${L("Control")}: ${values.control || 0}`),meter);details.append(row);
+      row.append(el("b","",L(name)),el("small","",`${L("Daño por segundo disponible")}: ${dps} · ${L("Tiempo disponible")}: ${seconds.toLocaleString(LANG,{maximumFractionDigits:1})} s`),el("span","",`${L("Daño")}: ${Math.round(values.damage || 0).toLocaleString(LANG)} · ${L("Curación")}: ${Math.round(values.healing || 0)} · ${L("Aplicaciones de control")}: ${values.control || 0}`),meter);skillList.append(row);
     }
+    };sorting.addEventListener("change",renderSkills);renderSkills();
     details.append(el("h3","",L("Comparación con tu partida anterior")));
     if(previousRun){
       for(const [label,value,before,unit] of [["Tiempo",r.seconds,previousRun.seconds,"s"],["Daño causado",combat?.dealt || 0,previousRun.dealt,""],["Daño recibido",combat?.taken || 0,previousRun.taken,""]]){
@@ -1108,6 +1139,7 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
   $("pull-1").addEventListener("click", () => pull(1));
   $("pull-10").addEventListener("click", () => pull(10));
   $("reveal-ok").addEventListener("click", () => {
+    revealGeneration++;clearTimeout(revealTimer);for(const a of revealAnimations)a.cancel();revealAnimations=[];
     $("gacha-reveal").hidden = true;
     pulling = false;
     renderGacha();

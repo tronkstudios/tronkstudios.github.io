@@ -23,6 +23,8 @@ const fs=require('node:fs');const path=require('node:path');
         assert.equal(await page.evaluate(()=>Save.get().pulls),pulls+count,'rapid clicks spend once');
         if(!reduced){await page.evaluate(()=>document.querySelector('#gacha [data-go="menu"]').click());assert.ok(await page.locator('#gacha.is-on').count());}
         await page.waitForSelector('#gacha-reveal:not([hidden])');
+        if(!reduced)await page.evaluate(()=>{const skip=document.getElementById('reveal-skip');if(!skip.hidden)skip.click();});
+        await page.waitForSelector('#reveal-ok:visible');
         await page.waitForFunction(()=>[...document.querySelectorAll('.reveal-card')].every(c=>Number(getComputedStyle(c).opacity)>.99 && (getComputedStyle(c).transform==='none' || new DOMMatrixReadOnly(getComputedStyle(c).transform).isIdentity)),{},{timeout:10000}).catch(async error=>{
           console.error(await page.locator('.reveal-card').evaluateAll(cards=>cards.map(c=>({opacity:getComputedStyle(c).opacity,transform:getComputedStyle(c).transform}))));throw error;
         });

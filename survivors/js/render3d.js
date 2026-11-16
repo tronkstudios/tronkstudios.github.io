@@ -449,10 +449,16 @@ const Render3D = (() => {
   // Armas en coordenadas del arma: Y a lo largo, desde la mano; en unidades de Tronk Fight
   function weaponParts(type, len) {
     const P = [];
-    const b = (p, s, c, shape = "box") => P.push([shape, p, s, c]);
+    const b = (p, s, c, shape = "box",rotation=0) => P.push([shape, p, s, c,rotation]);
     const steel = 0xdfe6f0;
     const wood = 0x7a4a26;
     switch (type) {
+      case "garfio":b([0,25,0],[5,68,5],wood,"cyl");for(let i=0;i<7;i++){const a=-Math.PI/2+i*Math.PI*1.5/6;b([Math.cos(a)*15,65+Math.sin(a)*15,0],[6,9,5],steel);}break;
+      case "prisma":b([0,26,0],[5,65,5],0x727c91,"cyl");b([0,73,0],[17,25,13],0xa4e4de,"octa");break;
+      case "tijeras":for(const side of [-1,1]){b([side*8,27,0],[6,65,3],steel,"box",side*.25);b([side*8,-8,0],[8,12,3],0xa35f78,"ring");}break;
+      case "estandarte":b([0,38,0],[5,115,5],wood,"cyl");b([16,73,0],[31,39,2],0x526f9a);b([16,92,0],[32,3,3],0xe3c27e);break;
+      case "diapason":b([0,20,0],[6,55,6],steel,"cyl");for(const side of [-1,1])b([side*13,60,0],[6,37,6],steel,"cyl");b([0,42,0],[27,6,6],steel);break;
+      case "bumeran":for(const side of [-1,1])b([side*11,35,0],[23,10,5],0xca9d62,"box",side*.65);break;
       case "faro":b([0,32,0],[5,100,5],0x426b68,"cyl");b([0,80,0],[18,25,16],0x80e3d0,"glowBox");b([0,94,0],[22,5,20],0xf0cf8e);break;
       case "arco": b([0,18,0],[3,62,3],0xeee2be);for(let i=0;i<7;i++){const a=-1.3+i*2.6/6;b([Math.cos(a)*30-8,Math.sin(a)*30+18,0],[5,12,5],0x9d7249,"cyl");}break;
       case "bobina":b([0,0,0],[12,24,12],0x35434b);for(let i=0;i<4;i++)b([0,15+i*7,0],[12,3,12],0xdcb56b,"ring");b([0,42,0],[7,7,7],0x91ecff,"glow");break;
@@ -522,7 +528,7 @@ const Render3D = (() => {
     const dark = flash ? 0xe8e8ff : shade(o.color, -0.3);
     const legs = flash ? 0xffffff : o.legs || o.color;
     const legsDark = flash ? 0xe8e8ff : shade(o.legs || o.color, -0.3);
-    const th = o.thick || 1;
+    const d=o.design || {},th=(o.thick || 1);
     const r = (w) => w * 0.5 * S * 1.55 * th;
     const limb = (pts, color, w) => {
       const rr = r(w);
@@ -535,10 +541,10 @@ const Render3D = (() => {
     const hipB = W(J.hip, L.hipB), hipF = W(J.hip, L.hipF);
     const shB = W(J.sh, L.shB), shF = W(J.sh, L.shF);
     const bHand = W(J.bHand,o.weapon==="arco"?L.fHand:L.bHand), fHand = W(J.fHand,L.fHand);
-    limb([hipB, W(J.bKnee, L.bKnee), W(J.bFoot, L.bFoot)], legsDark, 7);
-    if (!o.robe) limb([hipF, W(J.fKnee, L.fKnee), W(J.fFoot, L.fFoot)], legs, 7);
-    limb([shB, W(J.bEl, L.bEl), bHand], dark, 6.5);
-    limb([shF, W(J.fEl, L.fEl), fHand], col, 7);
+    limb([hipB, W(J.bKnee, L.bKnee), W(J.bFoot, L.bFoot)], legsDark, o.design?10:7);
+    if (!o.robe) limb([hipF, W(J.fKnee, L.fKnee), W(J.fFoot, L.fFoot)], legs, o.design?10:7);
+    limb([shB, W(J.bEl, L.bEl), bHand], dark, o.design?8.5:6.5);
+    limb([shF, W(J.fEl, L.fEl), fHand], col, o.design?9:7);
     const hip = W(J.hip);
     const neck = W(J.neck);
     // tronco: hombros y caderas unidos y la columna
@@ -595,7 +601,7 @@ const Render3D = (() => {
       const WB = { o: fHand, X: X.multiplyScalar(S), Y: Y.multiplyScalar(S), Z: Z.multiplyScalar(S) };
       const wkey = `${type}:${len}`;
       const wp = WPN[wkey] || (WPN[wkey] = weaponParts(type, len));
-      for (const [shape, p, s, c] of wp) local(shape, WB, p, s, flash ? 0xffffff : c);
+      for (const [shape, p, s, c,rotation] of wp) local(shape, WB, p, s, flash ? 0xffffff : c,rotation?new T.Euler(0,0,rotation):null);
       if(o.evolution)local("glow",WB,[0,Math.max(10,len*.65),0],[4,4,4],o.evolution==="dominion"?0x80e3d0:0xf0cb82);
     }
     if (o.drone && !flash) {
@@ -615,6 +621,16 @@ const Render3D = (() => {
     const ca=Math.cos(ang),sa=Math.sin(ang);
     const B={o:W(J.hip),X:new T.Vector3(ca*S,0,sa*S),Y:new T.Vector3(0,S,0),Z:new T.Vector3(-sa*S,0,ca*S)};
     const piece=(shape,p,s,c)=>local(shape,B,p,s,flash?0xffffff:c);
+    if(o.design){
+      const d=o.design,trim=d.trim || o.acc || 0xd8c49c;
+      piece("box",[J.neck[0]*.35,25,0],[18,36,27*d.width],o.color);
+      if(d.coat)for(const side of [-1,1])piece("box",[-1,-9,side*11],[18,29,12],o.cape || shade(o.color,-.22));
+      if(d.mantle)piece("lowSph",[-3,43,0],[18,10,43],o.cape || shade(o.color,-.18));
+      if(d.armor || d.vest)for(const side of [-1,1]){piece("box",[4,27,side*10],[15,28,11],d.armor?0x758a91:shade(o.color,-.25));piece("lowSph",[0,43,side*18],[14,10,14],d.armor?0x82969a:o.color);}
+      if(d.pack || d.quiver || d.satchel){piece("box",[-16,26,0],[13,30,d.quiver?15:26],d.pack?0x586875:0x77583f);if(d.quiver)for(const offset of [-5,0,5])piece("cyl",[-17,48,offset],[2,25,2],0xdac796);}
+      if(d.scarf){piece("box",[4,49,0],[15,7,30],o.acc || trim);piece("box",[-13,34,9],[5,29,7],o.acc || trim);}
+      piece("box",[11,5,0],[3,5,7],trim);
+    }
     if(role==="guardian"){
       piece("box",[2,27,0],[17,31,27],0x374e60);
       for(const side of [-1,1])piece("lowSph",[2,40,side*16],[12,8,11],0x7794a4);
@@ -932,7 +948,7 @@ const Render3D = (() => {
       case "bolt": at("box", s.x, h, s.y, 14, 1.6, 1.6, 0xe9d8b0, -ang); break;
       case "kunai": at("box", s.x, h, s.y, 10, 1.4, 3, 0x2a2a35, -ang); break;
       case "onda": at("ghost", s.x, h, s.y, s.r * 0.6, 6, s.r, 0xffb03b, -ang); break;
-      case "axe": at("box", s.x, h, s.y, 12, 3, 12, 0xcfd8e3, t * 0.4); break;
+      case "axe": if(s.style==="boomerang"){for(const side of [-1,1])at("box",s.x+Math.cos(ang+side*.6)*4,h,s.y+Math.sin(ang+side*.6)*4,9,2,3,0xca9d62,-ang-side*.6);}else at("box",s.x,h,s.y,12,3,12,0xcfd8e3,t*.4);break;
       case "ball": at("sph", s.x, 6 + Math.abs(Math.sin(t * 0.2 + s.x)) * 10, s.y, 5, 5, 5, 0xffffff); break;
       case "ice": at("octa", s.x, h, s.y, 3.5, 3.5, 6, 0x9fdcff, -ang); break;
       default: at("glow", s.x, h, s.y, 3, 3, 3, 0xffffff);
@@ -952,6 +968,7 @@ const Render3D = (() => {
     if (z.t < 0) return;
     const k = z.t / (z.life || 1);
     switch (z.type) {
+      case "tether":between("cyl",[z.x,18,z.y],[z.tx,18,z.ty],1.3,0xc5b38d);break;
       case "resurrection": at("ring",z.x,2,z.y,z.r,1,z.r,0xbc9cdd);break;
       case "nestSpawn": at("ring",z.x,2,z.y,z.r,1,z.r,0xdf997d);break;
       case "pincer":

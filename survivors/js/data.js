@@ -823,9 +823,49 @@ TS.activePathDescription=(charId,id)=>{
  return (TS.ACTIVE_TRAIT_TEXT[TS.ACTIVE_IDENTITIES[charId]?.[2]] || ["",""])[id==="precision"?0:1];
 };
 TS.siteName=s=>s.kind==="nest"?({ciudad:"Antena de refuerzos",playa:"Nido de coral",bosque:"Nido de refuerzos"}[s.theme] || TS.SITE_NAMES.nest):TS.SITE_NAMES[s.kind];
-TS.runSignature=(setups,opts={})=>JSON.stringify({version:2,party:setups.map(p=>({charId:p.charId,stars:Math.max(1,Math.min(TS.GACHA.maxStars,Number(p.stars)||1)),meta:Object.fromEntries(Object.entries(p.meta || {}).filter(([k,v])=>["maxHp","speed","might","area","cooldown","magnet","armor","regen","growth","greed","amount","revive","reviveSpeed"].includes(k)&&Number.isFinite(v)).sort(([a],[b])=>a.localeCompare(b)))})).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))),rules:{map:opts.map || "bosque",mods:[...(opts.mods || [])].sort(),easy:!!opts.easy,daily:!!opts.daily,seed:opts.daily?opts.seed || 0:null}});
+TS.runSignature=(setups,opts={})=>JSON.stringify({version:3,party:setups.map(p=>({charId:p.charId,stars:Math.max(1,Math.min(TS.GACHA.maxStars,Number(p.stars)||1)),meta:Object.fromEntries(Object.entries(p.meta || {}).filter(([k,v])=>["maxHp","speed","might","area","cooldown","magnet","armor","regen","growth","greed","amount","revive","reviveSpeed"].includes(k)&&Number.isFinite(v)).sort(([a],[b])=>a.localeCompare(b)))})).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))),rules:{map:opts.map || "bosque",mods:[...(opts.mods || [])].sort(),easy:!!opts.easy,daily:!!opts.daily,seed:opts.daily?opts.seed || 0:null}});
 
 TS.validRunSignature=value=>{
  if(typeof value!=="string" || value.length>8192)return "";
- try{const s=JSON.parse(value);return s.version===2 && Array.isArray(s.party) && s.party.length>0 && s.party.length<=4 && s.party.every(p=>p && TS.CHARACTERS.some(c=>c.id===p.charId)) && s.rules && TS.MAPS[s.rules.map] && Array.isArray(s.rules.mods) && s.rules.mods.every(m=>typeof m==="string") && TS.runSignature(s.party,s.rules)===value?value:"";}catch{return "";}
+ try{const s=JSON.parse(value);return s.version===3 && Array.isArray(s.party) && s.party.length>0 && s.party.length<=4 && s.party.every(p=>p && TS.CHARACTERS.some(c=>c.id===p.charId)) && s.rules && TS.MAPS[s.rules.map] && Array.isArray(s.rules.mods) && s.rules.mods.every(m=>typeof m==="string") && TS.runSignature(s.party,s.rules)===value?value:"";}catch{return "";}
 };
+
+// Siluetas y equipamiento compartidos por retratos, 2D y 3D.
+TS.OUTFIT_TYPES={
+ knight:{width:1.4,limbs:1.45,armor:true,boots:true,trim:"#d8b973"},
+ ranger:{width:1.15,limbs:1.25,mantle:true,quiver:true,boots:true,trim:"#dbc690"},
+ engineer:{width:1.3,limbs:1.35,vest:true,pack:true,boots:true,trim:"#c2a271"},
+ mystic:{width:1.1,limbs:1.2,coat:true,mantle:true,trim:"#d2c39b"},
+ healer:{width:1.15,limbs:1.25,coat:true,satchel:true,trim:"#f0dec0"},
+ brawler:{width:1.55,limbs:1.7,vest:true,boots:true,trim:"#bd9673"},
+ scout:{width:1.1,limbs:1.25,scarf:true,boots:true,trim:"#aabcb4"},
+ automaton:{width:1.35,limbs:1.55,armor:true,pack:true,boots:true,trim:"#8cdddd"},
+ captain:{width:1.3,limbs:1.35,coat:true,armor:true,trim:"#e3c27e"},
+ botanist:{width:1.2,limbs:1.3,coat:true,satchel:true,pack:true,trim:"#b1c77e"}
+};
+TS.OUTFITS={ranjay:"knight",bruno:"engineer",lia:"healer",toto:"scout",omogos:"ranger",finillos:"brawler",chambas:"ranger",frosti:"mystic",yant:"captain",eledemak:"brawler",kaito:"scout",nova:"mystic",sunk:"brawler",quizo:"mystic",zeta:"automaton",duna:"mystic",lumen:"healer",nix:"automaton",savia:"botanist",brasa:"engineer",iria:"ranger",boro:"engineer",vega:"captain",tala:"brawler"};
+TS.NEW_ROSTER=[
+ {id:"mara",name:"Mara",rarity:"raro",weapon:"garfio",family:"estocada",skin:"dark",hair:"ponytail",hairColor:"#252736",shirt:"#286b74",pants:"#293443",acc:"#deb36d",outfit:"captain",perk:{armor:1},perkText:"+1 de armadura",desc:"Capitana de los canales. Su garfio encadena una estocada con un tirón que rompe las filas enemigas.",weaponName:"Garfio de abordaje",weaponDesc:"Alcanza a un enemigo y lo acerca; los jefes resisten el tirón.",active:"Abordaje",trait:"guard",unlock:{key:"kills",value:250}},
+ {id:"oriel",name:"Oriel",rarity:"epico",weapon:"prisma",family:"rayo",skin:"light",hair:"longCurly",hairColor:"#e1d6c2",shirt:"#4f456d",pants:"#252a40",acc:"#91e1e0",outfit:"mystic",perk:{area:.12},perkText:"+12 % de área",desc:"Cartógrafo de la luz. Lleva un prisma suspendido en un bastidor de metal y divide sus rayos entre objetivos.",weaponName:"Prisma de refracción",weaponDesc:"Proyecta haces que enlazan enemigos próximos.",active:"Constelación refractada",trait:"shock",unlock:{key:"kills",value:1000}},
+ {id:"cira",name:"Cira",rarity:"comun",weapon:"tijeras",family:"tajo",skin:"light",hair:"bob",hairColor:"#432949",shirt:"#a84f67",pants:"#302b3c",acc:"#e9c99a",outfit:"captain",perk:{speed:.08},perkText:"+8 % de velocidad",desc:"Sastre de las barricadas. Su abrigo asimétrico oculta unas tijeras de acero que cierran dos cortes sobre la horda.",weaponName:"Tijeras de acero",weaponDesc:"Cruza dos cortes frontales con las hojas de sus tijeras.",active:"Corte de patrón",trait:"guard",unlock:{key:"runs",value:1}},
+ {id:"yago",name:"Yago",rarity:"epico",weapon:"estandarte",family:"faro",skin:"dark",hair:"taper",hairColor:"#171e25",shirt:"#475d78",pants:"#293342",acc:"#e8c97c",outfit:"knight",perk:{maxHp:.2},perkText:"+20 % de vida",desc:"Guardián de la última plaza. Su estandarte emite pulsos y convierte el terreno cercano en una posición defendible.",weaponName:"Estandarte del refugio",weaponDesc:"Emite pulsos próximos y protege con su habilidad activa.",active:"Mantener la posición",trait:"healer",unlock:{key:"bosses",value:5}},
+ {id:"ada",name:"Ada",rarity:"raro",weapon:"diapason",family:"mazazo",skin:"light",hair:"beanie",hairColor:"#b56535",shirt:"#3b707c",pants:"#29384c",acc:"#d9b87c",outfit:"engineer",perk:{cooldown:.06},perkText:"+6 % de recarga",desc:"Afinadora de máquinas. Su diapasón industrial convierte cada golpe en ondas de resonancia que abren espacio.",weaponName:"Diapasón industrial",weaponDesc:"Golpea el suelo y expande ondas de resonancia.",active:"Frecuencia de ruptura",trait:"heavy",unlock:{key:"time",value:600}},
+ {id:"rook",name:"Rook",rarity:"legendario",weapon:"bumeran",family:"hacha",skin:"dark",hair:"wrapNinja",hairColor:"#405553",shirt:"#6c8054",pants:"#303a36",acc:"#d2b27a",outfit:"ranger",perk:{might:.1,speed:.05},perkText:"+10 % de daño, +5 % de velocidad",desc:"Rastreador de las dunas. Su capa corta y sus botas esconden el polvo de mil rutas; su bumerán siempre regresa.",weaponName:"Bumerán de rastreador",weaponDesc:"Vuela hacia delante y regresa atravesando enemigos.",active:"Viento de regreso",trait:"axe",unlock:{key:"time",value:1200}}
+];
+for(const spec of TS.NEW_ROSTER){
+ TS.CHARACTERS.push({...spec,from:"Nuevo"});TS.OUTFITS[spec.id]=spec.outfit;
+ TS.WEAPONS[spec.weapon]={family:spec.family,name:spec.weaponName,desc:spec.weaponDesc,levels:TS.WEAPONS[spec.family].levels.map(l=>({...l,dmg:l.dmg*.9}))};
+ TS.EVOLUTIONS[spec.weapon]={...TS.EVOLUTIONS[spec.family],name:`${spec.weaponName} · Obra maestra`,desc:"Amplía el comportamiento de su arma propia."};
+ TS.ABILITIES[spec.id]={name:spec.active,desc:spec.weaponDesc,cd:28};
+ const template=TS.TECHNIQUES[{estocada:"yant",rayo:"quizo",tajo:"ranjay",faro:"lumen",mazazo:"finillos",hacha:"chambas"}[spec.family]];
+ TS.TECHNIQUES[spec.id]=template.map((m,i)=>({...m,name:`${spec.weaponName} · ${["Cadencia","Cerco","Penetración","Cobertura","Concentración","Despliegue"][i]}`,nameEn:`${spec.weaponName} · ${["Cadence","Circle","Piercing","Coverage","Focus","Deployment"][i]}`,desc:`${["Ataques sucesivos","Cobertura circular","Mayor alcance","Defensa cercana","Potencia concentrada","Gran despliegue"][i]} con ${spec.weaponName}.`,descEn:`${["Successive attacks","Circular coverage","Long reach","Close defense","Focused power","Large deployment"][i]} with ${spec.weaponName}.`,icon:spec.weapon}));
+ TS.ACTIVE_IDENTITIES[spec.id]=[`${spec.active} preciso`,`${spec.active} extendido`,spec.trait];
+}
+TS.EXTRA_TECHNIQUES={
+ pursuit:{name:"Seguimiento",nameEn:"Follow-through",at:600,unlock:24,cd:450,desc:"Tu arma persigue al objetivo con dos ataques dirigidos sucesivos.",descEn:"Your weapon follows a target with two successive aimed attacks."},
+ rupture:{name:"Ruptura",nameEn:"Breakthrough",at:960,unlock:40,cd:660,desc:"Desata un ataque pesado de tu arma que acumula más postura.",descEn:"Unleashes a heavy native-weapon attack with extra posture pressure."}
+};
+for(const ch of TS.CHARACTERS)for(const [id,m] of Object.entries(TS.EXTRA_TECHNIQUES))TS.TECHNIQUES[ch.id].push({...m,id,max:5,name:`${m.name} · ${ch.name}`,nameEn:`${m.nameEn} · ${ch.name}`,icon:ch.weapon});
+TS.techniqueTotal=id=>(TS.TECHNIQUES[id] || []).reduce((n,m)=>n+m.max,0);
+
+for(const moves of Object.values(TS.TECHNIQUES))moves.sort((a,b)=>a.at-b.at);

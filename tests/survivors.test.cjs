@@ -228,11 +228,11 @@ test('the late final boss resists permanent slows and its projectiles scale with
   boss.ai='boss_king';boss.hp=boss.maxHp*.5;boss.tacticPhase=1;boss.state=1;boss.timer=1;boss.gap=0;Game.step();
   assert.ok(st.eshots.some(s=>s.kind==='orb'&&s.dmg>9));
 });
-test('every character learns only its own weapon and six personal techniques, including chest rewards', () => {
+test('every character learns only its own weapon and eight personal techniques, including chest rewards', () => {
   const {Game,TS}=engine();
   for(const ch of TS.CHARACTERS) {
-    Game.start([setup(ch.id)],{seed:31});const p=Game.state.players[0];
-    assert.equal(TS.TECHNIQUES[ch.id].length,6);
+    Game.start([setup(ch.id)],{seed:31});const p=Game.state.players[0];p.iframes=1e9;
+    assert.equal(TS.TECHNIQUES[ch.id].length,8);
     for(let level=0;level<90;level++) {
       Game.state.t=Math.min(TS.RUN_SECONDS-1,level*25)*60;
       Game.state.xp=Game.state.xpNext;Game.step();
@@ -270,7 +270,7 @@ test('all personal techniques execute with their own weapon and survive the gues
     assert.ok(p.techCds.burst>0&&p.techCds.ring>0,ch.id);
     for(const zone of Game.state.zones)for(const [key,value] of Object.entries(zone))if(typeof value==='number')assert.ok(Number.isFinite(value),ch.id+':'+key);
     const snap=Game.snapshot([p]);Game.startGuest({localId:0,players:[setup(ch.id)]});Game.applySnapshot(snap);
-    assert.equal(Game.state.players[0].techniques.burst,5,ch.id);assert.equal(Game.hudData().techniques.length,6);
+    assert.equal(Game.state.players[0].techniques.burst,5,ch.id);assert.equal(Game.hudData().techniques.length,8);
   }
 });
 test('the pre-final schedule covers twenty-five minutes without ending the increase in difficulty', () => {
@@ -411,11 +411,11 @@ test('gem attraction cannot overshoot the player and keeps all experience',()=>{
   Game.step();assert.equal(st.gems.length,0);assert.equal(st.xp,10);
 });
 
-test('all 24 characters have a native weapon, six staged techniques and an active ability',()=>{
-  const {TS,Game}=engine();assert.equal(TS.CHARACTERS.length,24);
+test('all 30 characters have a native weapon, eight staged techniques and an active ability',()=>{
+  const {TS,Game}=engine();assert.equal(TS.CHARACTERS.length,30);
   for(const ch of TS.CHARACTERS){
     assert.ok(TS.WEAPONS[ch.weapon] && TS.EVOLUTIONS[ch.weapon] && TS.ABILITIES[ch.id],ch.id);
-    const moves=TS.TECHNIQUES[ch.id];assert.equal(moves.length,6);assert.equal(new Set(moves.map(m=>m.id)).size,6);
+    const moves=TS.TECHNIQUES[ch.id];assert.equal(moves.length,8);assert.equal(new Set(moves.map(m=>m.id)).size,8);
     assert.equal(moves.at(-1).unlock,48);assert.ok(moves.every(m=>m.max===5));
     Game.start([setup(ch.id)],{seed:48});Game.state.xp=Game.state.xpNext;Game.step();
     assert.ok(Game.state.choosing[0].filter(o=>o.kind==='technique').every(o=>moves.find(m=>m.id===o.id).unlock<=2));
@@ -424,7 +424,7 @@ test('all 24 characters have a native weapon, six staged techniques and an activ
 test('Duna keeps unlocking new moves later and gains four distinct tornado patterns',()=>{
   const {Game}=engine();const patterns={pierce:'straight',guard:'orbit',focus:'stationary',surge:'spiral'};
   for(const [id,flag] of Object.entries(patterns)){
-    Game.start([setup('duna')],{seed:1});const p=Game.state.players[0];p.weapons[0].cd=999;
+    Game.start([setup('duna')],{seed:1});const p=Game.state.players[0];p.weapons[0].cd=999;Game.state.enemies=[combatEnemy(999,p.x+150,p.y)];
     p.techniques={[id]:4};p.techCds={[id]:0};Game.step();
     assert.ok(Game.state.zones.length>0,id);assert.ok(Game.state.zones.every(z=>z.type==='tornado'&&z[flag]),id);
     assert.equal(p.weapons.length,1);assert.equal(p.weapons[0].id,'tornado');
@@ -803,16 +803,16 @@ test('midgame pincer warns before spawning, leaves an opening and respects pause
 
 });
 test('relics, projectile variants and pincer warnings reach guest snapshots and results',()=>{
- const {Game}=engine();const st=combatRun(Game,'iria'),p=st.players[0];p.relics=['prisma','semilla'];p.techniques={focus:1};p.techCds={focus:0};Game.step();for(let i=0;i<13;i++)Game.step();
+ const {Game}=engine();const st=combatRun(Game,'iria'),p=st.players[0];p.relics=['prisma','semilla'];st.enemies=[combatEnemy(999,200,0)];p.techniques={focus:1};p.techCds={focus:0};Game.step();for(let i=0;i<13;i++)Game.step();
  st.zones.push({type:'pincer',x:0,y:0,ang:0,opening:1,r:170,spawnR:500,count:10,t:2,warn:90,life:91});st.nextPressure=40000;
  const snap=Game.snapshot([p]);assert.ok(snap.s.some(s=>s[6]==='focus'));let result;Game.on('end',r=>result=r);Game.finish(false);assert.deepEqual(Array.from(result.relics[0]),['prisma','semilla']);
  Game.startGuest({localId:0,players:[setup('iria')]});Game.applySnapshot(snap);assert.equal(Game.hudData().relics.length,2);assert.equal(Game.state.shots[0].style,'focus');assert.equal(Game.state.zones[0].type,'pincer');assert.equal(Game.state.nextPressure,40000);
 });
 test('all eighteen distinct technique cards preview the nominal power actually emitted',()=>{
- const {Game,TS}=engine();for(const charId of ['ranjay','iria','duna'])for(const def of TS.TECHNIQUES[charId]){
+ const {Game,TS}=engine();for(const charId of ['ranjay','iria','duna'])for(const def of TS.TECHNIQUES[charId].filter(m=>!['pursuit','rupture'].includes(m.id))){
   const st=combatRun(Game,charId),p=st.players[0];p.talents=['edge','tempo','resolve'];p.activePath='precision';st.level=def.unlock;st.t=def.at*60;st.nextPressure=st.nextBreach=st.nextElite=1e12;
   p.techniques=Object.fromEntries(TS.TECHNIQUES[charId].filter(d=>d.id!==def.id).map(d=>[d.id,5]));p.techCds=Object.fromEntries(Object.keys(p.techniques).map(id=>[id,1e9]));st.xp=st.xpNext;Game.step();
-  const choice=st.choosing[0].find(o=>o.id===def.id&&o.kind==='technique');assert.ok(choice,charId+':'+def.id);const nominal=choice.preview[0].to;Game.choose(0,st.choosing[0].indexOf(choice));p.techCds[def.id]=0;st.shots=[];st.zones=[];Game.step();
+  st.enemies=[combatEnemy(999,200,0)];const choice=st.choosing[0].find(o=>o.id===def.id&&o.kind==='technique');assert.ok(choice,charId+':'+def.id);const nominal=choice.preview[0].to;Game.choose(0,st.choosing[0].indexOf(choice));p.techCds[def.id]=0;st.shots=[];st.zones=[];Game.step();
   const emitted=st.shots.find(s=>s.dmg) || st.zones.find(z=>z.dmg);assert.ok(emitted);assert.equal(Math.round(emitted.dmg*p.stats.might*10)/10,nominal,charId+':'+def.id);
  }
 });

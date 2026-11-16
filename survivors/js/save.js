@@ -34,6 +34,9 @@ const Save = (() => {
   }
 
   const integer = (value, fallback = 0) => Number.isFinite(Number(value)) ? Math.max(0, Math.floor(Number(value))) : fallback;
+  function unlockRoster(d){
+    for(const ch of TS.NEW_ROSTER || []){const {key,value}=ch.unlock,progress=key==="runs"?d.runs:key==="time"?d.best?.time:d.stats?.[key];if(progress>=value && !d.owned[ch.id])d.owned[ch.id]={stars:1};}
+  }
   function normalize(d) {
     const owned = {};
     for (const ch of TS.CHARACTERS) if (d.owned && d.owned[ch.id]) {
@@ -47,6 +50,7 @@ const Save = (() => {
     for (const section of ["best", "stats"]) {
       for (const key of Object.keys(fresh()[section])) d[section][key] = integer(d[section][key]);
     }
+    unlockRoster(d);
     d.history=normalizeHistory(d.history);
     return d;
   }
@@ -258,6 +262,7 @@ const Save = (() => {
     s.evolutions += result.evolutions || 0;
     if (result.daily) s.dailies += 1;
     if (result.coop) s.coop += 1;
+    unlockRoster(d);
     persist();
   }
 
