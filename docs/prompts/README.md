@@ -24,6 +24,7 @@ Un archivo por tema, con el formato de `plantilla.md`:
 | `16-tronk-survivors.md` | 22/10 | El juego Tronk Survivors |
 | `17-arte-de-tronk-survivors.md` | 22/10 | Lo que probamos para los gráficos y descartamos |
 | `18-rendimiento-y-nota.md` | 27/10 | Imágenes, vídeo, Lighthouse y estilos por partes |
+| `19-la-cli-tareas-sobre-la-web.md` | 16/11 | Revisar la web con nuestra CLI `tareas` |
 
 Los números 01 a 04 eran las primeras fases (el Worker del soporte, la
 política de seguridad CSP, los joysticks de Stick Drill y dividir `script.js`

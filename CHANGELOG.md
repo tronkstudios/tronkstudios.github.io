@@ -9,6 +9,13 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.43 · Vídeo de Tronk Survivors más ligero
+
+#### Cambiado
+- El vídeo de Tronk Survivors pesa 258 KB en vez de 357 KB, sin cambio
+  visible, y cumple el límite de 300 KB de los vídeos de la web.
+- Caché de la app en la versión 7, para que todos reciban el vídeo nuevo.
+
 ### 6.42 · Tráiler de The Sundered Sky
 
 #### Añadido
