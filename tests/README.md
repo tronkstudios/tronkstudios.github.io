@@ -3,7 +3,7 @@
 Las pruebas de simulación no requieren dependencias:
 
 ```sh
-node --test tests/survivors.test.cjs tests/survivors.depth.cjs
+node --test tests/survivors.test.cjs tests/survivors.depth.cjs tests/survivors.clarity.cjs
 ```
 
 Las 86 pruebas cubren el cofre, pausa de efectos, desconexiones durante elecciones,
@@ -28,6 +28,7 @@ Las comprobaciones de navegador requieren Playwright y Chromium. Desde la raíz:
 ```sh
 python3 -m http.server 8000
 # En otra terminal, con Playwright disponible:
+node tests/survivors.clarity.browser.cjs
 node tests/survivors.depth.browser.cjs
 node tests/survivors.browser.cjs
 node tests/survivors.mobile.cjs
@@ -142,3 +143,13 @@ dispositivos.
   historial, traducción y repetición. Online comprueba ramas activas distintas,
   origen destructible compartido y resultado local mediante transporte simulado.
   Véase `docs/survivors/profundidad-de-combate.md` para reglas y límites.
+
+- **Claridad y uso de lo existente:** 126 pruebas de simulación entre las tres
+  suites. Las 23 nuevas cubren pulsación anticipada, cancelación local, marcas y
+  postura sincronizadas, las 48 ramas con nombres propios, trayectorias y control
+  nativos, posición seca y accesible de orígenes, avisos vinculados al sepulcro,
+  brújula fijada localmente, tiempo disponible por habilidad y firmas de reglas.
+  `survivors.clarity.browser.cjs` recorre variantes/rangos, cuenta atrás de enlace,
+  fijación de objetivo, tres diseños de origen, daño por segundo y comparación
+  estricta en 2D móvil y 3D de escritorio; también comprueba inglés.
+  Véase `docs/survivors/claridad-y-controles.md`.

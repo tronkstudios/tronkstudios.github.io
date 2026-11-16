@@ -867,10 +867,16 @@ const Render3D = (() => {
       if(s.nest){
         const col=s.used?0x80b7a4:s.kind==="grave"?0xbc9cdd:0xdf997d;
         at("lowSph",s.x,5,s.y,32,9,24,0x384350);
-        if(s.kind==="grave"){
+        if(s.theme==="ciudad"){
+          at("box",s.x,10,s.y,38,20,27,0x455d6b);at("cyl",s.x,40,s.y,3,60,3,0x7d9da4);at("glow",s.x,68,s.y,5,5,5,s.used?0x80b7a4:0xffbc8c);
+          for(const side of [-1,1])for(const offset of [12,22])between("cyl",[s.x+side*offset,61,s.y],[s.x+side*offset*.75,49,s.y],1.8,col);
+        }else if(s.theme==="playa"){
+          for(let i=0;i<5;i++){const x=s.x+(i-2)*10,h=24+Math.sin(i*Math.PI/4)*15;between("cyl",[x,4,s.y],[x+(i-2)*3,h,s.y],3,i%2?0x80d9cf:0xe5b5a3);at("lowSph",x+(i-2)*3,h,s.y,4,5,4,0xf1c6b3);}
+          at("lowSph",s.x,8,s.y,25,12,21,col);at("lowSph",s.x,13,s.y,12,3,8,0x29444d);
+        }else if(s.kind==="grave"){
           at("box",s.x,25,s.y,30,43,12,col);at("box",s.x,29,s.y+7,5,24,2,0x414553);at("box",s.x,32,s.y+7,18,5,2,0x414553);
         }else{for(let i=0;i<5;i++){const a=i*Math.PI*2/5;at("lowSph",s.x+Math.cos(a)*18,13,s.y+Math.sin(a)*18,10,16,10,col);}at("lowSph",s.x,8,s.y,13,5,13,0x262735);}
-        if(!s.used){at("box",s.x,64,s.y,48,4,3,0x15252b);at("box",s.x-24+24*(s.pct ?? 1),64,s.y+2,48*(s.pct ?? 1),4,3,col);}
+        if(!s.used){const h=s.theme==="ciudad"?86:64;at("box",s.x,h,s.y,48,4,3,0x15252b);at("box",s.x-24+24*(s.pct ?? 1),h,s.y+2,48*(s.pct ?? 1),4,3,col);}
       } else if(s.kind==="lamp"){
         at("cyl",s.x,32,s.y,3,64,3,0x7f969c);at("box",s.x,70,s.y,19,14,16,active?0xffe7a2:0x526674);
       } else if(s.kind==="altar"){
@@ -946,6 +952,7 @@ const Render3D = (() => {
     if (z.t < 0) return;
     const k = z.t / (z.life || 1);
     switch (z.type) {
+      case "resurrection": at("ring",z.x,2,z.y,z.r,1,z.r,0xbc9cdd);break;
       case "nestSpawn": at("ring",z.x,2,z.y,z.r,1,z.r,0xdf997d);break;
       case "pincer":
         for(let i=0;i<30;i++){const a=i*TAU/30,b=(i+1)*TAU/30,gap=Math.abs(Math.atan2(Math.sin((a+b)/2-z.ang),Math.cos((a+b)/2-z.ang)))<z.opening;

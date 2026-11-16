@@ -443,6 +443,7 @@
           Save.persist();
         }
         renderChars();
+        if(window.matchMedia("(max-width: 700px)").matches)$("char-detail").scrollIntoView({block:"start"});
       });
       grid.appendChild(card);
     }
@@ -455,6 +456,7 @@
     const have = save.owned[id];
     const box = $("char-detail");
     box.textContent = "";
+    if(window.matchMedia("(max-width: 700px)").matches){const back=el("button","btn btn-small",L("Volver al plantel"));back.type="button";back.addEventListener("click",()=>{const card=$("chars-grid").querySelector(`[data-char-id="${id}"]`);card?.scrollIntoView({block:"center"});card?.focus({preventScroll:true});});box.append(back);}
     const big = el("div", "big");
     for (const view of ["down"]) {
       const img = document.createElement("img");
@@ -482,21 +484,25 @@
         if (go) show("maps");
         else renderChars();
       });
-      const preview=el("section","character-preview"),canvas=el("canvas"),select=el("select"),replay=el("button","btn",L("Ver ataque"));
+      const preview=el("section","character-preview"),canvas=el("canvas"),select=el("select","preview-move"),rank=el("select","preview-rank"),previewDescription=el("p","preview-description"),replay=el("button","btn",L("Ver ataque"));
       canvas.width=600;canvas.height=260;canvas.setAttribute("role","img");canvas.setAttribute("aria-label",`${ch.name} · ${L("Demostración de ataques")}`);
       select.setAttribute("aria-label",L("Ataque de demostración"));replay.type="button";
-      for(const [value,name] of [["weapon",TS.WEAPONS[ch.weapon].name],...(TS.TECHNIQUES[id] || []).map(m=>[m.id,m.name]),["active",TS.ABILITIES[id].name]]){
+      for(const [value,name] of [["weapon",TS.WEAPONS[ch.weapon].name],...(TS.TECHNIQUES[id] || []).map(m=>[m.id,m.name]),["active",TS.ABILITIES[id].name],...["precision","echo"].map(path=>[`active:${path}`,TS.activePathName(id,path)])]){
         const option=el("option","",L(name));option.value=value;select.append(option);
       }
-      const controls=el("div","preview-controls");controls.append(select,replay);preview.append(canvas,controls);box.append(preview);
+      const rankLabel=el("label","preview-rank-label",L("Rango"));rank.setAttribute("aria-label",L("Rango del arma o técnica"));
+      for(let n=1;n<=5;n++){const option=el("option","",n);option.value=n;rank.append(option);}rank.value="3";rankLabel.append(rank);
+      const controls=el("div","preview-controls");controls.append(select,rankLabel,replay);preview.append(canvas,controls,previewDescription);box.append(preview);
       const runPreview=()=>{
         clearTimeout(previewTimer);let frame=0;
+        const [move,path]=select.value.split(":");rank.disabled=move==="active";
+        previewDescription.textContent=path?`${L(TS.activePathDescription(id,path))} ${id==="duna"?"":L(TS.ACTIVE_PATHS[path].desc)}`:move==="active"?L(TS.ABILITIES[id].desc):L(TS.TECHNIQUES[id].find(m=>m.id===move)?.desc || TS.WEAPONS[ch.weapon].desc);
         const tick=()=>{if(!canvas.isConnected || current!=="chars")return;
-          Game.characterPreview(canvas,id,select.value,Game.options.reducedMotion?12:frame);
+          Game.characterPreview(canvas,id,move,Game.options.reducedMotion?12:frame,{rank:rank.disabled?3:Number(rank.value),activePath:path});
           if(!Game.options.reducedMotion && frame<80){frame+=2;previewTimer=setTimeout(tick,1000/30);}
         };tick();
       };
-      select.addEventListener("change",runPreview);replay.addEventListener("click",runPreview);previewTimer=setTimeout(runPreview,0);
+      rank.addEventListener("change",runPreview);select.addEventListener("change",runPreview);replay.addEventListener("click",runPreview);previewTimer=setTimeout(runPreview,0);
       const moves = el("div","char-moves");
       moves.append(el("b","",L("Ataques del personaje")));
       const list = el("ul");
@@ -674,7 +680,7 @@
       if (it.kind === "t") {
         slot.dataset.technique = ["I","II","III","IV","V","VI"][["burst","ring","pierce","guard","focus","surge"].indexOf(it.id)] || "";
         slot.dataset.move = it.id;
-        slot.append(el("span","tech-cooldown"));
+        slot.append(el("span","tech-cooldown"));if(it.id==="focus")slot.append(el("span","link-time"));
       }
       const img = document.createElement("img");
       img.src = Sprites.iconUrl(it.icon || it.id, big ? 3 : 2);
@@ -742,17 +748,20 @@
       $("hud-ab-state").textContent = ready ? (isTouch ? L("¡Toca!") : L("Espacio")) : `${Math.round(d.ability.pct * 100)}%`;
       ab.classList.toggle("is-ready", ready);
     }
-    const key = JSON.stringify([d.weapons, d.techniques?.map(({ready,...move})=>move), d.passives]);
+    const key = JSON.stringify([d.weapons, d.techniques?.map(({ready,linkSeconds,...move})=>move), d.passives]);
     if (key !== slotKey) { slotKey = key; renderSlots($("hud-slots"), d); }
     for(const move of d.techniques || []) {
       const slot=$("hud-slots").querySelector(`[data-move="${move.id}"]`);
-      if(slot){slot.querySelector(".tech-cooldown").style.height=`${Math.round((1-move.ready)*100)}%`;slot.classList.toggle("is-ready",move.ready>=1);}
+      if(slot){slot.querySelector(".tech-cooldown").style.height=`${Math.round((1-move.ready)*100)}%`;slot.classList.toggle("is-ready",move.ready>=1);slot.classList.toggle("is-linked",move.linkSeconds>0);
+        const countdown=slot.querySelector(".link-time");if(countdown)countdown.textContent=move.linkSeconds>0?`${Math.ceil(move.linkSeconds)}s`:"";
+        slot.style.setProperty("--link-remaining",`${Math.min(100,Math.max(0,move.linkSeconds || 0)/3*100)}%`);
+        slot.title=move.linkSeconds>0?`${move.name} · ${L("Enlace disponible")}: ${move.linkSeconds.toFixed(1)} s · +35 %`:move.name;}
     }
     $("hud").classList.toggle("is-critical",!d.down && pct<.25);
     $("hud-status").textContent = d.down ? `${L("Reanimación")} ${Math.round((d.players[Game.localId]?.revivePct || 0)*100)}% · ${L(d.players[Game.localId]?.reviver!=null?"Mantén al compañero cerca":"Un compañero debe acercarse")}` : d.inWater ? L("Agua · movimiento al 58 %") : d.nextBossIn<=30 && !d.finalPhase ? `${L("Jefe en")} ${d.nextBossIn}s` : "";
     $("hud-compass").hidden=!d.compass;
     $("hud-compass").classList.toggle("is-help",["revive","heal"].includes(d.compass?.kind));
-    if(d.compass) $("hud-compass").textContent=`${d.compass.arrow} ${d.compass.label} · ${d.compass.distance}`;
+    if(d.compass) $("hud-compass").textContent=`${d.compass.pinned?"◆ ":""}${d.compass.arrow} ${d.compass.label} · ${d.compass.distance}`;
     const boss = $("hud-boss");
     boss.hidden = !d.boss;
     if (d.boss) { $("hud-boss-name").textContent = d.boss.name+(d.boss.tactic?` · ${d.boss.tactic}`:"");$("hud-boss-name").title=$("hud-boss-name").textContent; $("hud-boss-bar").style.width = `${d.boss.pct * 100}%`; }
@@ -906,6 +915,8 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
       $("pause-relics").append(el("small","",`${L("Reliquias de partida")} · ${(d.relics || []).length}/${TS.MAX_RELICS}`));
       for(const relic of d.relics || []){const item=el("div");const img=document.createElement("img");img.src=Sprites.iconUrl(relic.icon,2);img.alt="";item.append(img,el("b","",relic.name),el("small","",relic.desc));$("pause-relics").append(item);}
       if(!(d.relics || []).length)$("pause-relics").append(el("small","",L("En los cofres pares puede aparecer una reliquia. La evolución y su receta tienen prioridad.")));
+      const goals=$("pause-goal");goals.textContent="";const auto=el("option","",L("Automático"));auto.value="";goals.append(auto);
+      for(const goal of d.goals || []){const option=el("option","",`${goal.label} · ${goal.distance}`);option.value=goal.key;goals.append(option);}goals.value=d.pinnedGoal || "";
       $("pause-talents").textContent="";
       if(d.ability?.path)$("pause-talents").append(el("span","",L(TS.activePathName(Game.state.players[Game.localId].charId,d.ability.path))));
       for(const talent of d.talents || [])$("pause-talents").append(el("span","",talent.name));
@@ -920,6 +931,8 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
       $("pause-resume").focus();
     } else if(!$("levelup").hidden) $("levelup-cards").querySelector("button")?.focus();
   }
+  $("pause-goal").addEventListener("change",e=>{Game.setGoal(e.target.value);});
+  $("hud-compass").addEventListener("click",()=>{pause(true);$("pause-goal").focus();});
   $("hud-pause").addEventListener("click", () => pause(true));
   $("hud-ab").addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); Game.pressAbility(); });
   $("pause-fullscreen").addEventListener("click",async()=>{
@@ -944,7 +957,7 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
       r.coins += 100;
       scheduleNotice(() => toast(LT("dailyBonus")), 400);
     }
-    const previousRun=(save.history || []).find(h=>h.charId===r.charId && h.map===r.map && h.coop===!!r.coop && !!h.daily===!!r.daily);
+    const previousRun=(save.history || []).find(h=>h.charId===r.charId && h.map===r.map && h.coop===!!r.coop && !!h.daily===!!r.daily && !!r.signature && h.signature===r.signature);
     const localCombat=r.combat?.[Game.localId];
     r={...r,bestStreak:localCombat?.bestStreak ?? r.bestStreak ?? 0};
     const records=save.runs>0?[["Tiempo",r.seconds,save.best.time],["Enemigos",r.kills,save.best.kills],["Nivel",r.level,save.best.level],["Mejor racha",r.bestStreak,save.best.streak || 0]].filter(([,value,best])=>value>best).map(([name])=>L(name)):[];
@@ -992,7 +1005,8 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     for(const [id,values] of skills){
       const ch=charById(r.charId),name=id==="weapon"?TS.WEAPONS[ch.weapon].name:id==="active"?TS.ABILITIES[ch.id].name:TS.TECHNIQUES[ch.id]?.find(m=>m.id===id)?.name || id;
       const row=el("div","skill-result"),meter=el("meter");meter.min=0;meter.max=Math.max(1,combat?.dealt || 0);meter.value=values.damage || 0;meter.setAttribute("aria-label",L(name));
-      row.append(el("b","",L(name)),el("span","",`${L("Daño")}: ${Math.round(values.damage || 0).toLocaleString(LANG)} · ${L("Curación")}: ${Math.round(values.healing || 0)} · ${L("Control")}: ${values.control || 0}`),meter);details.append(row);
+      const seconds=(values.availableTicks || 0)/60,dps=seconds>0?((values.damage || 0)/seconds).toLocaleString(LANG,{maximumFractionDigits:1}):"—";
+      row.append(el("b","",L(name)),el("small","",`${L("Daño por segundo disponible")}: ${dps} · ${L("Tiempo disponible")}: ${seconds.toLocaleString(LANG,{maximumFractionDigits:1})} s`),el("span","",`${L("Daño")}: ${Math.round(values.damage || 0).toLocaleString(LANG)} · ${L("Curación")}: ${Math.round(values.healing || 0)} · ${L("Control")}: ${values.control || 0}`),meter);details.append(row);
     }
     details.append(el("h3","",L("Comparación con tu partida anterior")));
     if(previousRun){
@@ -1002,8 +1016,8 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
       const techniqueNames=h=>Object.keys(h || {}).map(id=>`${L(TS.TECHNIQUES[r.charId]?.find(m=>m.id===id)?.name || id)} ${h[id]}`).join(" · ");
       details.append(el("p","",`${L("Técnicas anteriores")}: ${techniqueNames(previousRun.techniques) || "—"}`));
       details.append(el("p","",`${L("Técnicas actuales")}: ${techniqueNames(r.techniques?.[Game.localId]) || "—"}`));
-    }else details.append(el("p","",L("Tu siguiente partida con este personaje y mapa tendrá una comparación.")));
-    const history=(save.history || []).filter(h=>h.charId===r.charId && h.map===r.map && h.coop===!!r.coop && !!h.daily===!!r.daily).slice(0,5);
+    }else details.append(el("p","",L("La comparación requiere las mismas estrellas, mejoras iniciales, equipo y reglas. Las partidas antiguas sin estos datos se conservan en el historial.")));
+    const history=(save.history || []).filter(h=>h.charId===r.charId && h.map===r.map && h.coop===!!r.coop && !!h.daily===!!r.daily && !!r.signature && h.signature===r.signature).slice(0,5);
     if(history.length){const list=el("ol","run-history");for(const h of history)list.append(el("li","",`${new Date(h.at).toLocaleDateString(LANG)} · ${fmtTime(h.seconds)} · ${L("Nivel")} ${h.level} · ${L("Enemigos")}: ${h.kills}`));details.append(el("h3","",L("Últimas partidas comparables")),list);}
     const online=lastRun?.guest || lastRun?.opts?.mode==="host";
     $("end-again").textContent=L(online?"Volver a la sala online":"Repetir configuración");

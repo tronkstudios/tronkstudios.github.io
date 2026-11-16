@@ -781,7 +781,51 @@ TS.ENEMIES.nido={name:"Nido de refuerzos",hp:260,speed:0,dmg:0,r:22,prop:true,ai
 TS.SITE_NAMES.nest="Nido de refuerzos";
 TS.SITE_NAMES.grave="Sepulcro inquieto";
 
-TS.SITE_HINTS.nest="Destruye el nido para cortar sus refuerzos y conseguir un cofre.";
+TS.SITE_HINTS.nest="Destruye el origen para cortar sus refuerzos y conseguir un cofre.";
 TS.SITE_HINTS.grave="Destruye el sepulcro: los esqueletos cercanos pueden resucitar una vez.";
 
 TS.activePathName=(charId,id)=>charId==="duna"?({precision:"Tornado viajero",echo:"Ojo del vendaval"}[id] || ""):(TS.ACTIVE_PATHS[id]?.name || "");
+
+// Variantes nativas: los cambios de trayectoria y función no añaden otras armas.
+TS.ACTIVE_IDENTITIES={
+ ranjay:["Guardia del rey","Corona de acero","guard"],iria:["Flecha perforadora","Salvas del bosque","pierce"],
+ bruno:["Carga comprimida","Festival expansivo","blast"],lia:["Perfume protector","Jardín de aromas","support"],
+ toto:["Balones perforantes","Rebote prolongado","ball"],omogos:["Virotes veloces","Cerco de virotes","pierce"],
+ finillos:["Martillo quebrantador","Ondas expansivas","heavy"],chambas:["Hachas de largo alcance","Corona de hachas","axe"],
+ frosti:["Escarcha persistente","Invierno extenso","ice"],yant:["Estocada protegida","Eco de estocada","guard"],
+ eledemak:["Puños quebrantadores","Cerco de puños","heavy"],nova:["Impactos inmediatos","Lluvia persistente","meteor"],
+ sunk:["Puño demoledor","Onda expansiva","heavy"],quizo:["Descarga paralizante","Tormenta extensa","shock"],
+ kaito:["Paso protegido","Eco de sombras","guard"],zeta:["Láser de precisión","Barrido de drones","laser"],
+ duna:["Tornado viajero","Ojo del vendaval","wind"],lumen:["Auxilio concentrado","Luz compartida","healer"],
+ nix:["Discos de contención","Órbita extensa","shock"],savia:["Ácido inmediato","Jardín corrosivo","acid"],
+ brasa:["Llamas concentradas","Corona de fuego","fire"],boro:["Marea penetrante","Marea extensa","pierce"],
+ vega:["Abanico perforante","Brisa envolvente","pierce"],tala:["Pulso persistente","Cobertura extensa","ice"]
+};
+TS.ACTIVE_TRAIT_TEXT={
+ guard:["Bloquea un proyectil durante 1,5 segundos.","Amplía un 20 % la cobertura del eco."],
+ pierce:["Proyectiles un 20 % más rápidos y dos penetraciones adicionales.","Abre las trayectorias del eco."],
+ blast:["Reduce un 15 % el radio de la explosión.","Amplía un 20 % el radio del eco."],
+ heavy:["Acumula un 40 % más de postura con la activa.","Amplía un 20 % el alcance de las ondas del eco."],
+ axe:["Las hachas viajan un 50 % más lejos antes de volver.","Las hachas del eco vuelven tras recorrer un 25 % menos de distancia."],
+ ball:["Balones más rápidos con dos penetraciones adicionales.","Los balones del eco duran un 30 % más."],
+ ice:["Prolonga un 50 % las ralentizaciones de la activa.","Amplía un 20 % la zona de la activa y de su eco."],
+ meteor:["Reduce a la mitad el aviso de los meteoros.","Amplía un 20 % el radio de los impactos del eco."],
+ shock:["La activa también ralentiza un 65 % durante 1,5 segundos.","Amplía un 20 % el alcance de la activa y de su eco."],
+ laser:["Láseres un 25 % más largos en un abanico estrecho.","Abanico de láseres más abierto."],
+ acid:["El ácido de la activa empieza a golpear inmediatamente.","Los charcos del eco duran un 30 % más."],
+ fire:["Llamaradas un 20 % más largas y estrechas.","Amplía un 20 % el alcance de las llamaradas del eco."],
+ support:["La protección del perfume dura un segundo más.","El eco deja un refugio perfumado de cuatro segundos."],
+ healer:["Concentra la cura en el aliado más herido o adelanta su reanimación.","Amplía un 20 % el alcance de ambas curaciones."],wind:["",""]
+};
+TS.activePathName=(charId,id)=>TS.ACTIVE_IDENTITIES[charId]?.[id==="precision"?0:1] || TS.ACTIVE_PATHS[id]?.name || "";
+TS.activePathDescription=(charId,id)=>{
+ if(charId==="duna")return id==="precision"?"Tornado viajero: avanza en la dirección apuntada, con +35 % de daño y recarga un 20 % más lenta.":"Ojo del vendaval: tornado fijo más amplio que atrae enemigos durante 4 segundos. Recarga un 25 % más lenta.";
+ return (TS.ACTIVE_TRAIT_TEXT[TS.ACTIVE_IDENTITIES[charId]?.[2]] || ["",""])[id==="precision"?0:1];
+};
+TS.siteName=s=>s.kind==="nest"?({ciudad:"Antena de refuerzos",playa:"Nido de coral",bosque:"Nido de refuerzos"}[s.theme] || TS.SITE_NAMES.nest):TS.SITE_NAMES[s.kind];
+TS.runSignature=(setups,opts={})=>JSON.stringify({version:2,party:setups.map(p=>({charId:p.charId,stars:Math.max(1,Math.min(TS.GACHA.maxStars,Number(p.stars)||1)),meta:Object.fromEntries(Object.entries(p.meta || {}).filter(([k,v])=>["maxHp","speed","might","area","cooldown","magnet","armor","regen","growth","greed","amount","revive","reviveSpeed"].includes(k)&&Number.isFinite(v)).sort(([a],[b])=>a.localeCompare(b)))})).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))),rules:{map:opts.map || "bosque",mods:[...(opts.mods || [])].sort(),easy:!!opts.easy,daily:!!opts.daily,seed:opts.daily?opts.seed || 0:null}});
+
+TS.validRunSignature=value=>{
+ if(typeof value!=="string" || value.length>8192)return "";
+ try{const s=JSON.parse(value);return s.version===2 && Array.isArray(s.party) && s.party.length>0 && s.party.length<=4 && s.party.every(p=>p && TS.CHARACTERS.some(c=>c.id===p.charId)) && s.rules && TS.MAPS[s.rules.map] && Array.isArray(s.rules.mods) && s.rules.mods.every(m=>typeof m==="string") && TS.runSignature(s.party,s.rules)===value?value:"";}catch{return "";}
+};

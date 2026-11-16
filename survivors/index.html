@@ -22,7 +22,7 @@
     content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://qjjnqhbtovjcbwgcwhgl.supabase.co wss://qjjnqhbtovjcbwgcwhgl.supabase.co https://tronkstudios-support.tronkstudios7.workers.dev; object-src 'none'; base-uri 'self'; form-action 'self'"
   />
   <link rel="stylesheet" href="survivors.css?v=17" />
-  <link rel="stylesheet" href="css/depth.css?v=1">
+  <link rel="stylesheet" href="css/depth.css?v=2">
 </head>
 <body>
   <canvas id="game" aria-label="Tronk Survivors"></canvas>
@@ -247,7 +247,7 @@
       <div id="hud-streak" class="hud-streak" hidden><b></b><span><i></i></span></div>
     <div class="hud-team" id="hud-team"></div>
     <div class="hud-tip" id="hud-tip" hidden></div>
-    <div class="hud-compass" id="hud-compass" hidden></div>
+    <button type="button" class="hud-compass" id="hud-compass" aria-label="Elegir objetivo de la brújula" hidden></button>
     <div class="hud-boss" id="hud-boss" hidden><b id="hud-boss-name"></b><span><i id="hud-boss-bar"></i></span></div>
     <div class="hud-bottom">
       <span class="hud-evo" id="hud-evo" hidden>¡Evolución disponible! Coge un cofre</span>
@@ -289,7 +289,9 @@
       <div id="pause-relics" class="relic-summary"></div>
       <div id="pause-talents" class="talent-summary"></div>
       <details class="build-details"><summary>Estadísticas del equipo</summary><dl id="pause-stats"></dl></details>
+      <details class="combat-guide"><summary>Señales de combate</summary><p>◇ La barra dorada muestra la postura acumulada. ! indica interrupción. × y la barra rayada indican resistencia temporal. El rombo de color marca un objetivo de Iria. La concentración iluminada muestra los segundos restantes del enlace.</p></details>
       <div class="run-metrics" id="pause-metrics"></div>
+      <label class="goal-picker" for="pause-goal">Objetivo de la brújula<select id="pause-goal"></select></label>
       <section class="encounter-plan" aria-labelledby="encounter-title"><h3 id="encounter-title">Próximos encuentros</h3><ol id="pause-encounters"></ol></section>
       <div class="modal-buttons">
         <button class="btn btn-big" id="pause-resume">Seguir</button>
@@ -328,19 +330,19 @@
     </div>
   </div>
 
-  <script src="js/data.js?v=13" defer></script>
+  <script src="js/data.js?v=14" defer></script>
   <script src="js/sprites.js?v=14" defer></script>
   <script src="js/people.js?v=4" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js" defer></script>
   <script src="js/stick.js?v=17" defer></script>
-  <script src="js/render3d.js?v=13" defer></script>
+  <script src="js/render3d.js?v=14" defer></script>
   <script src="js/audio.js?v=6" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-  <script src="js/lang.js?v=16" defer></script>
-  <script src="js/save.js?v=7" defer></script>
+  <script src="js/lang.js?v=17" defer></script>
+  <script src="js/save.js?v=8" defer></script>
   <script src="js/account.js?v=4" defer></script>
-  <script src="js/game.js?v=25" defer></script>
+  <script src="js/game.js?v=26" defer></script>
   <script src="js/net.js?v=9" defer></script>
-  <script src="js/ui.js?v=23" defer></script>
+  <script src="js/ui.js?v=24" defer></script>
 </body>
 </html>
