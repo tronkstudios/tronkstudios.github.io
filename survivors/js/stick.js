@@ -115,6 +115,9 @@ const Stick = (() => {
     for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
     ctx.lineWidth = w * LINE + 4.5; ctx.strokeStyle = INK; ctx.stroke();
     ctx.lineWidth = w * LINE; ctx.strokeStyle = color; ctx.stroke();
+    if(color!=="#ffffff" && color!=="#e8e8ff"){
+      ctx.save();ctx.beginPath();ctx.moveTo(pts[0][0]-w*.15,pts[0][1]-w*.1);for(const pt of pts.slice(1))ctx.lineTo(pt[0]-w*.15,pt[1]-w*.1);ctx.lineWidth=Math.max(1,w*.24);ctx.strokeStyle="rgba(239,255,246,.19)";ctx.stroke();ctx.restore();
+    }
   }
   const blob = (ctx, x, y, r) => { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); };
   const poly = (ctx, r, pts, fill) => { ctx.beginPath(); ctx.moveTo(pts[0][0] * r, pts[0][1] * r); for (const [x, y] of pts.slice(1)) ctx.lineTo(x * r, y * r); ctx.closePath(); if (fill) { ctx.fillStyle = fill; } ctx.fill(); };
@@ -638,12 +641,21 @@ const Stick = (() => {
     } else {
       add(hip[2] + 0.1, () => {
         bone(ctx, [hip, neck], col, 8 * k * (o.torso || 1));
-        if(o.outfit && !o.abs) {
+        const uniform=o.outfit || ["zombi","corredor","gordo","antitronk","supremo","general","ninja","maestro","casco","sanador","tirador"].includes(o.role);
+        if(uniform && !o.abs) {
           const sw=15*Math.max(.45,Math.abs(cy)),hw=10*Math.max(.45,Math.abs(cy));
-          ctx.fillStyle=col;ctx.strokeStyle=INK;ctx.lineWidth=2.5;
+          const cloth=ctx.createLinearGradient(sh[0]-sw,sh[1],hip[0]+hw,hip[1]);cloth.addColorStop(0,flash?"#ffffff":shade(o.color,.12));cloth.addColorStop(.4,col);cloth.addColorStop(1,flash?"#e8e8ff":shade(o.color,-.25));
+          ctx.fillStyle=cloth;ctx.strokeStyle=INK;ctx.lineWidth=2.5;
           ctx.beginPath();ctx.moveTo(sh[0]-sw,sh[1]-4);ctx.lineTo(sh[0]+sw,sh[1]-4);ctx.lineTo(hip[0]+hw,hip[1]+4);ctx.lineTo(hip[0]-hw,hip[1]+4);ctx.closePath();ctx.fill();ctx.stroke();
           ctx.strokeStyle=shade(o.color,-.3);ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(sh[0],sh[1]+4);ctx.lineTo(hip[0],hip[1]);ctx.stroke();
-          ctx.strokeStyle=o.acc || "#e9cf90";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(hip[0]-hw,hip[1]-3);ctx.lineTo(hip[0]+hw,hip[1]-3);ctx.stroke();
+          ctx.strokeStyle=o.acc || (o.outfit?"#c8b183":"#718a85");ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(hip[0]-hw,hip[1]-3);ctx.lineTo(hip[0]+hw,hip[1]-3);ctx.stroke();
+          if(!flash && Math.abs(cy)>.3){
+            ctx.strokeStyle=shade(o.color,-.4);ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(sh[0]-sw*.45,sh[1]+2);ctx.quadraticCurveTo(sh[0],sh[1]+9,sh[0]+sw*.45,sh[1]+2);ctx.stroke();
+            if(cy>.3){ctx.fillStyle="#d7c9a3";ctx.fillRect(hip[0]-2,hip[1]-5,4,4);}
+            if(cy>.3 && ["antitronk","supremo","general","casco","tirador"].includes(o.role)){
+              ctx.fillStyle=shade(o.color,-.32);for(const side of [-1,1]){ctx.fillRect(sh[0]+side*sw*.45-3,sh[1]+11,6,9);ctx.strokeStyle="#9aaca1";ctx.lineWidth=1;ctx.strokeRect(sh[0]+side*sw*.45-3,sh[1]+11,6,9);}
+            }
+          }
         }
         if (o.abs && !flash && cy > 0) {
           ctx.strokeStyle = shade(o.color, -0.3); ctx.lineWidth = 1.5;

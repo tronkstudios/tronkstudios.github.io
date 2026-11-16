@@ -519,7 +519,8 @@ const Game = (() => {
       const v = typeof hex==="number"?hex:parseInt(hex.slice(1),16);
       img.data[i * 4] = v >> 16; img.data[i * 4 + 1] = (v >> 8) & 255; img.data[i * 4 + 2] = v & 255; img.data[i * 4 + 3] = 255;
     };
-    const G=map.ground,colors=new Map();
+    const G=map.ground,colors=new Map(),details=new Map();
+    const detailAt=(x,y)=>{const dx=x>>3,dy=y>>3,key=`${dx},${dy}`;let value=details.get(key);if(!value){value=[vnoise(dx*8/75+18,dy*8/75-31),vnoise(dx/3,dy/3)];details.set(key,value);}return value;};
     const rgb=hex=>{if(!colors.has(hex))colors.set(hex,parseInt(hex.slice(1),16));return colors.get(hex);};
     const blend=(a,b,t)=>{a=rgb(a);b=rgb(b);return (Math.round((a>>16)+((b>>16)-(a>>16))*t)<<16)|(Math.round(((a>>8)&255)+(((b>>8)&255)-((a>>8)&255))*t)<<8)|Math.round((a&255)+((b&255)-(a&255))*t);};
     for (let py = 0; py < N; py++) {
@@ -547,20 +548,32 @@ const Game = (() => {
         if(nearWater){put(i,G.shore[0]);continue;}
         if(mapId==="ciudad"){
           const curb=Math.min(Math.abs(wrap(wx,640)),Math.abs(wrap(wy,640)))<60;
-          const seam=Math.abs(wrap(wx-1,32))<1.1 || Math.abs(wrap(wy-1,32))<1.1;
+          const seam=Math.abs(wrap(wx-1+(Math.floor(wy/32)%2)*16,32))<.9 || Math.abs(wrap(wy-1,32))<.9;
           const plaza=Math.abs(wrap(wx-320,640))<96 && Math.abs(wrap(wy-320,640))<96;
           put(i,curb?"#91a0a5":seam?"#4c606c":plaza?blend("#71858b","#798f95",h*.15):blend(G.grass[0],G.grass[2],.4+vnoise(wx/280,wy/280)*.16));continue;
         }
         if(mapId==="cementerio" && t===1){
-          const seam=Math.abs(wrap(wx,28))<1 || Math.abs(wrap(wy,36))<1;
-          put(i,seam?"#454b4d":blend("#747d79","#84908b",h*.16));continue;
+          const row=Math.floor(wy/36),sx=wx+(row%2)*14;
+          const seam=Math.abs(wrap(sx,28))<1 || Math.abs(wrap(wy,36))<1;
+          const tile=hash(Math.floor(sx/28),row),moss=vnoise(wx/23,wy/23)>.67;
+          put(i,seam?"#454f4e":moss?blend("#66796b","#7b8978",tile*.3):blend("#697772","#95a29a",.15+tile*.32+h*.04));continue;
         }
         const pal=t===1?G.dirt:G.grass;
-        const variation=.28+vnoise(wx/340,wy/340)*.3+(h-.5)*.035;
+        const [patches,fine]=detailAt(wx,wy);
+        const variation=.18+vnoise(wx/340,wy/340)*.32+patches*.16+(h-.5)*.045;
         let color=blend(pal[0],pal[2],variation);
+        if(mapId==="bosque" && t===0){
+          const d=Math.min(Math.abs(wx-Math.sin(wy/480)*95),Math.abs(wy-Math.sin(wx/650)*85));
+          if(d<35)color=blend(G.dirt[0],G.grass[0],clamp((d-23)/12,0,1));
+          else if(patches>.64)color=blend(pal[0],pal[2],.6+fine*.15);
+          else if(fine<.23)color=blend(pal[0],G.grassEdge,.09);
+        }
+        if(mapId==="cementerio" && t===0){
+          const moss=vnoise(wx/52,wy/52);color=blend(pal[0],pal[2],.15+moss*.42);
+        }
         if(mapId==="playa"){
           const wet=coastX(wy)-wx<44;
-          const ripple=Math.abs(Math.sin(wy*.08+Math.sin(wx/70)))>.985;
+          const ripple=Math.abs(Math.sin(wy*.065+Math.sin(wx/85)*1.4))>.97;
           color=wet?blend(G.dirt[0],G.shore[0],.32):ripple?blend(pal[0],pal[2],.1):color;
         }
         if(mapId==="bosque" && t===1){
@@ -573,13 +586,16 @@ const Game = (() => {
     g.putImageData(img, 0, 0);
     // Pequeños grupos de vegetación y piedras sobre manchas suaves, sin ruido blanco.
     for(let i=0;i<12;i++) {
-      const px=Math.floor(hash(cx*19+i,cy*17)*N),py=Math.floor(hash(cy*23+i,cx*31)*N);
+      const px=12+Math.floor(hash(cx*19+i,cy*17)*(N-24)),py=12+Math.floor(hash(cy*23+i,cx*31)*(N-24));
       const wx=cx*CHUNK+px*2,wy=cy*CHUNK+py*2;
       if(terrain(wx,wy)!==0)continue;
       if(mapId==="ciudad")continue;
       if(mapId==="playa"){
-        g.fillStyle=i%3===0?"#f6e8c1":"#c6ab79";g.globalAlpha=.7;g.fillRect(px,py,2,1);continue;
+        g.globalAlpha=.6;g.fillStyle="#b9a079";g.beginPath();g.ellipse(px,py+2,4,1.4,0,0,TAU);g.fill();
+        g.strokeStyle=i%3===0?"#fff0c9":"#d9c29b";g.lineWidth=1;g.beginPath();g.arc(px,py,2.5,Math.PI,TAU);g.lineTo(px+2,py+1);g.lineTo(px-2,py+1);g.closePath();g.stroke();continue;
       }
+      g.fillStyle=mapId==="cementerio"?"#243a32":"#244c39";g.globalAlpha=.12;g.beginPath();g.ellipse(px,py+2,7,3.5,0,0,TAU);g.fill();
+      if(mapId==="cementerio" && i%3===0){g.globalAlpha=.4;g.fillStyle="#8b9c91";g.fillRect(px-4,py,3,2);g.fillStyle="#40534c";g.fillRect(px-4,py+2,3,1);}
       g.fillStyle=map.ground.grassEdge;g.globalAlpha=.45;
       g.fillRect(px,py,1,3);g.fillRect(px-2,py+1,1,2);g.fillRect(px+2,py-1,1,3);
       if(i===0 && hash(cx,cy)>.6 && mapId!=="ciudad") {

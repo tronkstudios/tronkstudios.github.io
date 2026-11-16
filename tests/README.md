@@ -32,6 +32,7 @@ node tests/survivors.clarity.browser.cjs
 node tests/survivors.depth.browser.cjs
 node tests/survivors.browser.cjs
 node tests/survivors.mobile.cjs
+node tests/survivors.mobile-design.cjs
 node tests/survivors.features.cjs
 node tests/survivors.polish.cjs
 node tests/survivors.expansion.cjs
@@ -153,3 +154,10 @@ dispositivos.
   fijación de objetivo, tres diseños de origen, daño por segundo y comparación
   estricta en 2D móvil y 3D de escritorio; también comprueba inglés.
   Véase `docs/survivors/claridad-y-controles.md`.
+
+- **Presentación móvil y arte 2D:** el recorrido adicional valida los cuatro
+  terrenos, paneles legibles, plantel, ficha con demostración, pausa horizontal
+  y regreso al menú sin errores. Puede guardar capturas y una hoja de los 24
+  personajes con `SCREENSHOTS_DIR`. Los recorridos de sprites mantienen la
+  comprobación de recorte, animación y siluetas en ambos renderizadores. Véase
+  `docs/survivors/presentacion-movil-y-arte-2d.md`.

@@ -439,7 +439,7 @@ const Sprites = (() => {
       const ch = TS.CHARACTERS.find((c) => c.id === id);
       if (ch) cache[key] = Stick.set(Stick.characterOptions(ch));
     } else if (kind === "enemy" && Stick.ENEMIES[id]) {
-      cache[key] = Stick.set(Stick.ENEMIES[id]);
+      cache[key] = Stick.set({...Stick.ENEMIES[id],role:id});
     } else if (kind === "enemy" && People.ENEMIES[id]) {
       cache[key] = People.personSet(People.ENEMIES[id]);
     } else if (kind === "enemy" && ["slime", "slimito", "fantasma", "murcielago"].includes(id)) {
