@@ -228,11 +228,11 @@ test('the late final boss resists permanent slows and its projectiles scale with
   boss.ai='boss_king';boss.hp=boss.maxHp*.5;boss.tacticPhase=1;boss.state=1;boss.timer=1;boss.gap=0;Game.step();
   assert.ok(st.eshots.some(s=>s.kind==='orb'&&s.dmg>9));
 });
-test('every character learns only its own weapon and eight personal techniques, including chest rewards', () => {
+test('every character learns only its own weapon and ten personal techniques, including chest rewards', () => {
   const {Game,TS}=engine();
   for(const ch of TS.CHARACTERS) {
     Game.start([setup(ch.id)],{seed:31});const p=Game.state.players[0];p.iframes=1e9;
-    assert.equal(TS.TECHNIQUES[ch.id].length,8);
+    assert.equal(TS.TECHNIQUES[ch.id].length,10);
     for(let level=0;level<90;level++) {
       Game.state.t=Math.min(TS.RUN_SECONDS-1,level*25)*60;
       Game.state.xp=Game.state.xpNext;Game.step();
@@ -270,7 +270,7 @@ test('all personal techniques execute with their own weapon and survive the gues
     assert.ok(p.techCds.burst>0&&p.techCds.ring>0,ch.id);
     for(const zone of Game.state.zones)for(const [key,value] of Object.entries(zone))if(typeof value==='number')assert.ok(Number.isFinite(value),ch.id+':'+key);
     const snap=Game.snapshot([p]);Game.startGuest({localId:0,players:[setup(ch.id)]});Game.applySnapshot(snap);
-    assert.equal(Game.state.players[0].techniques.burst,5,ch.id);assert.equal(Game.hudData().techniques.length,8);
+    assert.equal(Game.state.players[0].techniques.burst,5,ch.id);assert.equal(Game.hudData().techniques.length,10);
   }
 });
 test('the pre-final schedule covers twenty-five minutes without ending the increase in difficulty', () => {
@@ -411,11 +411,11 @@ test('gem attraction cannot overshoot the player and keeps all experience',()=>{
   Game.step();assert.equal(st.gems.length,0);assert.equal(st.xp,10);
 });
 
-test('all 30 characters have a native weapon, eight staged techniques and an active ability',()=>{
+test('all 30 characters have a native weapon, ten staged techniques and an active ability',()=>{
   const {TS,Game}=engine();assert.equal(TS.CHARACTERS.length,30);
   for(const ch of TS.CHARACTERS){
     assert.ok(TS.WEAPONS[ch.weapon] && TS.EVOLUTIONS[ch.weapon] && TS.ABILITIES[ch.id],ch.id);
-    const moves=TS.TECHNIQUES[ch.id];assert.equal(moves.length,8);assert.equal(new Set(moves.map(m=>m.id)).size,8);
+    const moves=TS.TECHNIQUES[ch.id];assert.equal(moves.length,10);assert.equal(new Set(moves.map(m=>m.id)).size,10);
     assert.equal(moves.at(-1).unlock,48);assert.ok(moves.every(m=>m.max===5));
     Game.start([setup(ch.id)],{seed:48});Game.state.xp=Game.state.xpNext;Game.step();
     assert.ok(Game.state.choosing[0].filter(o=>o.kind==='technique').every(o=>moves.find(m=>m.id===o.id).unlock<=2));
@@ -809,7 +809,7 @@ test('relics, projectile variants and pincer warnings reach guest snapshots and 
  Game.startGuest({localId:0,players:[setup('iria')]});Game.applySnapshot(snap);assert.equal(Game.hudData().relics.length,2);assert.equal(Game.state.shots[0].style,'focus');assert.equal(Game.state.zones[0].type,'pincer');assert.equal(Game.state.nextPressure,40000);
 });
 test('all eighteen distinct technique cards preview the nominal power actually emitted',()=>{
- const {Game,TS}=engine();for(const charId of ['ranjay','iria','duna'])for(const def of TS.TECHNIQUES[charId].filter(m=>!['pursuit','rupture'].includes(m.id))){
+ const {Game,TS}=engine();for(const charId of ['ranjay','iria','duna'])for(const def of TS.TECHNIQUES[charId].filter(m=>!['pursuit','rupture','crossfire','bastion'].includes(m.id))){
   const st=combatRun(Game,charId),p=st.players[0];p.talents=['edge','tempo','resolve'];p.activePath='precision';st.level=def.unlock;st.t=def.at*60;st.nextPressure=st.nextBreach=st.nextElite=1e12;
   p.techniques=Object.fromEntries(TS.TECHNIQUES[charId].filter(d=>d.id!==def.id).map(d=>[d.id,5]));p.techCds=Object.fromEntries(Object.keys(p.techniques).map(id=>[id,1e9]));st.xp=st.xpNext;Game.step();
   st.enemies=[combatEnemy(999,200,0)];const choice=st.choosing[0].find(o=>o.id===def.id&&o.kind==='technique');assert.ok(choice,charId+':'+def.id);const nominal=choice.preview[0].to;Game.choose(0,st.choosing[0].indexOf(choice));p.techCds[def.id]=0;st.shots=[];st.zones=[];Game.step();

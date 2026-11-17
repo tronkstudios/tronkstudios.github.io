@@ -807,3 +807,6 @@ for(const [i,ch] of TS.NEW_ROSTER.entries()){
 }
 
 Object.assign(EN,{"Premio":"Reward","Abriendo el cofre…":"Opening the chest…"});
+
+Object.assign(EN,{"Impulso":"Dash","Impulso · Mayúsculas":"Dash · Shift","Mayúsculas":"Shift","Listo":"Ready","WASD o flechas · Mayúsculas impulso · Espacio habilidad · Esc pausa":"WASD or arrows · Shift dash · Space ability · Esc pause"});
+TEMPLATES.tipDash=["Pulsa {key} para un impulso en tu dirección. Recarga en 6 segundos y no te hace invulnerable.","Press {key} to dash in your direction. It recharges in 6 seconds and does not make you invulnerable."];

@@ -9,6 +9,16 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.44 · Impactos fiables y más presión en Tronk Survivors
+
+- Proyectiles con colisión entre posiciones, cortes con ventana de contacto y
+  corrección de técnicas con drones, discos, perfume y puños.
+- Dificultad creciente más intensa, tiradores con abanicos tardíos y límites
+  contra ralentizaciones permanentes. Se conserva el jefe final a 25:00.
+- Impulso manual con teclado, móvil y cooperativo; diez técnicas e iconos
+  diferenciados por personaje, con Fuego cruzado y Baluarte.
+- HUD compacto con equipo completo, arranque del invitado corregido y caché 8.
+
 ### 6.43 · Vídeo de Tronk Survivors más ligero
 
 #### Cambiado

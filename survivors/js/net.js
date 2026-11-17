@@ -258,7 +258,7 @@ const TronkNet = (() => {
       if (m.type === "in" && peer.index !== undefined) {
         peer.lastInput = performance.now();
         peer.ab = m.ab | 0;
-        Game.setInput(peer.index, { x: Math.max(-1, Math.min(1, +m.x || 0)), y: Math.max(-1, Math.min(1, +m.y || 0)), ab: peer.ab });
+        Game.setInput(peer.index, { x: Math.max(-1, Math.min(1, +m.x || 0)), y: Math.max(-1, Math.min(1, +m.y || 0)), ab: peer.ab,dash:m.dash | 0 });
       }
       else if (m.type === "reroll" && peer.index !== undefined) Game.reroll(peer.index);
       else if (m.type === "choose" && peer.index !== undefined) Game.choose(peer.index, Math.max(0, Math.min(3, m.i | 0)));
@@ -343,7 +343,7 @@ const TronkNet = (() => {
     if (now - lastInput < 40) return;
     lastInput = now;
     const host = peers.get(hostId);
-    if (host && host.game && host.game.readyState === "open") host.game.send(JSON.stringify({ type: "in", x: +inp.x.toFixed(2), y: +inp.y.toFixed(2), ab: inp.ab | 0 }));
+    if (host && host.game && host.game.readyState === "open") host.game.send(JSON.stringify({ type: "in", x: +inp.x.toFixed(2), y: +inp.y.toFixed(2), ab: inp.ab | 0,dash:inp.dash | 0 }));
   });
 
   function sendChoice(i) {

@@ -975,6 +975,7 @@ const Render3D = (() => {
         for(let i=0;i<30;i++){const a=i*TAU/30,b=(i+1)*TAU/30,gap=Math.abs(Math.atan2(Math.sin((a+b)/2-z.ang),Math.cos((a+b)/2-z.ang)))<z.opening;
           between("glowCyl",[z.x+Math.cos(a)*z.r,2,z.y+Math.sin(a)*z.r],[z.x+Math.cos(b)*z.r,2,z.y+Math.sin(b)*z.r],gap?2.2:1.1,gap?0x80e3d0:0xed9b85);
         }between("glowCyl",[z.x,2,z.y],[z.x+Math.cos(z.ang)*z.r,2,z.y+Math.sin(z.ang)*z.r],1,0x80e3d0);break;
+      case "bastion":at("ring",z.x,2,z.y,z.r,2,z.r,0xecc986);for(let i=0;i<4;i++)at("box",z.x-9+i*6,3,z.y,3,3,3,z.t<=i*30?0xffe4a7:0x6c7069);break;
       case "refuge":at("ring",z.x,2,z.y,z.r,3,z.r,0x80e3d0);at("disc",z.x,1,z.y,z.r,1,z.r,0x3b7764);break;
       case "dangerLine":
         between("glowCyl",[z.x,2,z.y],[z.tx,2,z.ty],1.3,0xffab97);at("ring",z.tx,2,z.ty,12,2,12,0xffab97);break;

@@ -465,7 +465,9 @@ const Sprites = (() => {
   }
   function iconUrl(id, k = 3) {
     if(id.startsWith("move:") && !cache[`icon:${id}`]){
-      const [,charId,move]=id.split(":"),ch=TS.CHARACTERS.find(c=>c.id===charId),base=ch && cache[`icon:${ch.weapon}`];
+      const [,charId,move]=id.split(":"),ch=TS.CHARACTERS.find(c=>c.id===charId);
+      if(ch&&!cache[`icon:${ch.weapon}`])iconUrl(ch.weapon,1);
+      const base=ch && cache[`icon:${ch.weapon}`];
       if(base){const c=canvas(20,20),g=c.getContext("2d");g.drawImage(base,0,0,16,16);g.fillStyle="#12252f";g.fillRect(10,10,10,10);g.strokeStyle="#80e3d0";g.lineWidth=1;g.strokeRect(10.5,10.5,9,9);g.strokeStyle=move==="surge"?"#f0cb82":"#b6e8df";
         if(move==="burst")for(let i=0;i<3;i++){g.beginPath();g.moveTo(12,12+i*2);g.lineTo(17,12+i*2);g.stroke();}
         if(move==="ring"){g.beginPath();g.arc(15,15,3,0,Math.PI*2);g.stroke();}
@@ -473,6 +475,10 @@ const Sprites = (() => {
         if(move==="guard"){g.beginPath();g.moveTo(12,12);g.lineTo(18,12);g.lineTo(17,16);g.lineTo(15,18);g.lineTo(13,16);g.closePath();g.stroke();}
         if(move==="focus"){g.beginPath();g.arc(15,15,2,0,Math.PI*2);g.moveTo(15,11);g.lineTo(15,19);g.moveTo(11,15);g.lineTo(19,15);g.stroke();}
         if(move==="surge"){g.beginPath();g.moveTo(12,17);g.lineTo(12,12);g.lineTo(15,15);g.lineTo(18,12);g.lineTo(18,17);g.closePath();g.stroke();}
+        if(move==="pursuit"){for(const y of [13,17]){g.beginPath();g.moveTo(12,y);g.lineTo(18,y);g.lineTo(16,y-2);g.stroke();}}
+        if(move==="rupture"){g.beginPath();g.moveTo(16,11);g.lineTo(13,15);g.lineTo(16,15);g.lineTo(13,19);g.stroke();}
+        if(move==="crossfire"){g.beginPath();g.moveTo(12,12);g.lineTo(18,18);g.moveTo(18,12);g.lineTo(12,18);g.moveTo(12,14);g.lineTo(12,12);g.lineTo(14,12);g.moveTo(16,12);g.lineTo(18,12);g.lineTo(18,14);g.stroke();}
+        if(move==="bastion"){g.strokeRect(12,13,6,5);g.beginPath();g.moveTo(12,15);g.lineTo(18,15);g.moveTo(15,11);g.lineTo(15,18);g.stroke();}
         cache[`icon:${id}`]=c;
       }
     }

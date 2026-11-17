@@ -706,7 +706,7 @@
     for (const it of items) {
       const slot = el("div", `hud-slot${it.kind === "t" ? " is-technique" : ""}${it.kind === "p" ? " is-passive" : ""}${it.evo ? " is-evo" : ""}`);
       if (it.kind === "t") {
-        slot.dataset.technique = ["I","II","III","IV","V","VI","VII","VIII"][["burst","ring","pierce","guard","pursuit","focus","rupture","surge"].indexOf(it.id)] || "";
+        slot.dataset.technique = ["I","II","III","IV","V","VI","VII","VIII","IX","X"][["burst","ring","pierce","crossfire","guard","pursuit","focus","bastion","rupture","surge"].indexOf(it.id)] || "";
         slot.dataset.move = it.id;
         slot.append(el("span","tech-cooldown"));if(it.id==="focus")slot.append(el("span","link-time"));
       }
@@ -723,6 +723,7 @@
   const TIPS = [
     { at: 1, text: "tipMove" },
     { at: 9, text: "tipGems" },
+    { at: 17,text:"tipDash" },
     { at: 22, text: "tipProps" },
     { at: 34, text: "tipAbility" },
     { at: 50, text: "tipRanged" }
@@ -738,7 +739,7 @@
     const tip = $("hud-tip");
     if (!tip.hidden && seconds >= tipUntil) tip.hidden = true;
     if (tipIdx < 0 || tipIdx >= TIPS.length || seconds < TIPS[tipIdx].at) return;
-    tip.textContent = LT(isTouch && TIPS[tipIdx].text === "tipMove" ? "tipMoveTouch" : TIPS[tipIdx].text, { key: isTouch ? L("el botón redondo") : L("Espacio") });
+    tip.textContent = LT(isTouch && TIPS[tipIdx].text === "tipMove" ? "tipMoveTouch" : TIPS[tipIdx].text, { key:TIPS[tipIdx].text==="tipDash"?(isTouch?L("Impulso"):L("Mayúsculas")):isTouch?L("el botón redondo"):L("Espacio") });
     tip.hidden = false;
     tipUntil = seconds + 7;
     tipIdx++;
@@ -767,6 +768,8 @@
     $("hud-hp-bar").classList.toggle("is-low", pct < 0.35);
     $("hud-hp").textContent = `${Math.ceil(Math.max(0, d.hp))} / ${d.maxHp}`;
     $("hud-evo").hidden = !d.canEvolve;
+    $("hud-dash").disabled=d.down;$("hud-dash").classList.toggle("is-ready",d.dash?.ready);
+    $("hud-dash-state").textContent=d.dash?.ready?(isTouch?L("Listo"):"⇧"):String(d.dash?.seconds || 0)+"s";
     const ab = $("hud-ab");
     ab.hidden = !d.ability;
     if (d.ability) {
@@ -962,6 +965,9 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
   $("pause-goal").addEventListener("change",e=>{Game.setGoal(e.target.value);});
   $("hud-compass").addEventListener("click",()=>{pause(true);$("pause-goal").focus();});
   $("hud-pause").addEventListener("click", () => pause(true));
+  $("hud-dash").addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation();Game.pressDash();});
+  $("hud-dash").addEventListener("keydown",e=>{if(e.code==="Space"||e.code==="Enter"){e.preventDefault();e.stopPropagation();if(!e.repeat)Game.pressDash();}});
+  $("hud-dash").addEventListener("click",e=>{if(e.detail===0)Game.pressDash();});
   $("hud-ab").addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); Game.pressAbility(); });
   $("pause-fullscreen").addEventListener("click",async()=>{
     try {if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}

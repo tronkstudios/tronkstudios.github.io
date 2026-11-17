@@ -75,3 +75,17 @@
 
 @media(max-width:600px){.gacha-reveal>h2{justify-self:start;max-width:calc(100% - 90px);font-size:19px}}
 @media(orientation:portrait) and (max-height:620px){.gacha-reveal{gap:6px;padding:12px}.gacha-reveal .reveal-theatre{height:150px}.gacha-reveal .reveal-hero{height:105px;width:92px;bottom:45px}.gacha-reveal .opening-chest{transform:translateX(-50%) scale(.7)}.gacha-reveal .reveal-identity{font-size:11px;min-height:30px}.gacha-reveal.is-ten .reveal-card img{width:34px;height:40px}.gacha-reveal.is-ten .reveal-card{padding:4px 2px;gap:1px;font-size:8px}.gacha-reveal.is-ten .reveal-card b{font-size:9px}.gacha-reveal.is-ten .reveal-slot{min-height:78px}.gacha-reveal.is-ten .reveal-card small{white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}}
+
+.hud-dash{position:absolute;right:126px;bottom:calc(42px + env(safe-area-inset-bottom));width:54px;height:54px;border:1px solid #8ab1b2;border-radius:16px;background:#17323df2;color:#d9e8e5;display:grid;place-content:center;gap:3px;pointer-events:auto;touch-action:none;cursor:pointer;font:inherit;box-shadow:0 3px 12px #0005}
+.hud-dash b{font-size:10px}.hud-dash small{font-size:12px}.hud-dash.is-ready{border-color:#f4d699;color:#ffe4a7}.hud-dash:disabled{opacity:.45}
+@media(orientation:landscape) and (max-height:500px){.hud-dash{left:120px;right:auto;bottom:calc(32px + env(safe-area-inset-bottom));width:44px;height:50px}.hud-bottom{width:min(42vw,380px)}}
+
+@media(any-pointer:coarse) and (orientation:portrait) and (max-height:650px){
+ .hud-bottom{bottom:calc(136px + env(safe-area-inset-bottom));gap:3px}
+ .hud-slots{gap:4px;padding:5px}.hud-slot{width:25px;height:28px}.hud-slot img{width:21px;height:21px}.hud-slot.is-passive{width:21px;height:24px}.hud-slot.is-passive img{width:17px;height:17px}
+ .hud-world,.hud-milestone,.hud-evo{font-size:9px;line-height:11px;padding:3px 6px}
+}
+
+@media(any-pointer:coarse) and (orientation:landscape){
+ #hud-slots{padding:5px;gap:3px}#hud-slots .hud-slot{width:25px;height:27px}#hud-slots .hud-slot img{width:21px;height:21px}#hud-slots .hud-slot.is-passive{width:19px;height:23px}#hud-slots .hud-slot.is-passive img{width:16px;height:16px}
+}

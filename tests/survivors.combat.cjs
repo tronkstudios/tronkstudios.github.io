@@ -14,7 +14,7 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
     if(edge||c.width!==f.width||c.height!==f.height||c.foot!==f.foot)out.push(`${dir}:${i}`);
    }return out;
   });assert.deepEqual(geometry,[]);
-  await page.locator('#menu [data-go="chars"]').first().click();for(const id of ['ranjay','iria','duna']){await page.locator(`[data-char-id="${id}"]`).click();assert.equal(await page.locator('.char-moves .move-icon').count(),6);assert.equal(await page.locator('.char-moves .move-icon').evaluateAll(imgs=>new Set(imgs.map(i=>i.src)).size),6);assert.equal(await page.locator('.char-moves').evaluate(el=>el.scrollWidth>el.clientWidth),false);}await shot('distinct-guide');
+  await page.locator('#menu [data-go="chars"]').first().click();for(const id of ['ranjay','iria','duna']){await page.locator(`[data-char-id="${id}"]`).click();assert.equal(await page.locator('.char-moves .move-icon').count(),10);assert.equal(await page.locator('.char-moves .move-icon').evaluateAll(imgs=>new Set(imgs.map(i=>i.src)).size),10);assert.equal(await page.locator('.char-moves').evaluate(el=>el.scrollWidth>el.clientWidth),false);}await shot('distinct-guide');
   const play=async charId=>{await page.evaluate(charId=>{window.oldCombatState=Game.state;TronkUI.play([{charId}],{seed:41});},charId);await page.waitForFunction(()=>Game.state&&Game.state!==window.oldCombatState&&Game.state.t>2);};
   for(const charId of ['ranjay','iria','duna']){
    await play(charId);await page.evaluate(charId=>{
@@ -28,6 +28,6 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
   await page.locator('#hud-pause').click();assert.match(await page.locator('#pause-relics').textContent(),/1\/2/);assert.equal(await page.locator('#pause-relics img').count(),1);await shot('relic-pause');await page.locator('#pause-resume').click();
   await page.evaluate(()=>{const st=Game.state;st.t=600*60;st.nextPressure=st.t;st.nextBreach=st.nextElite=1e12;st.bossIdx=3;st.boss=null;st.hordeIdx=99;st.spawnT=1e9;st.enemies=[];st.zones=[];Game.step();Game.setPaused(true);});assert.equal(await page.evaluate(()=>Game.state.zones.some(z=>z.type==='pincer')),true);await shot('pincer-warning');
   await page.evaluate(()=>{setLang('en');Game.finish(false);});await page.waitForSelector('#end:not([hidden])');assert.match(await page.locator('#end-relics').textContent(),/Relic:/);assert.doesNotMatch(await page.locator('#end-relics').textContent(),/undefined/);
-  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);console.log(`${mobile?'Mobile 2D':'Desktop 3D'}: 18 native technique icons, 30 sword thrust frames, relic rewards, local build and pincer warnings passed`);await page.close();
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);console.log(`${mobile?'Mobile 2D':'Desktop 3D'}: 30 native technique icons, 30 sword thrust frames, relic rewards, local build and pincer warnings passed`);await page.close();
  }}finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
