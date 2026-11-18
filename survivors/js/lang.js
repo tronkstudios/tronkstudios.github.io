@@ -829,3 +829,13 @@ Object.assign(EN, {
   "+50 monedas": "+50 coins",
   "No se completó ningún anuncio. Puedes volver a intentarlo.": "No ad was completed. You can try again."
 });
+
+Object.assign(EN, {
+  "Estadísticas de inicio": "Starting stats",
+  "Anuncios completados": "Ads completed",
+  "Ver anuncio · 5 aperturas gratis": "Watch an ad · 5 free pulls",
+  "Abrir 5 gratis": "Open 5 for free",
+  "Cinco aperturas guardadas": "Five free pulls saved",
+  "Cinco aperturas disponibles cada 24 h": "Five free pulls available every 24 hours",
+  "Buscando anuncio…": "Finding an ad…"
+});

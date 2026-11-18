@@ -4874,6 +4874,9 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     get localId() { return localId; },
     get view() { return view; },
     step,
+    characterStats(charId, stars, meta) {
+      return statRows(calculateStats({ charId, stars, meta, passives: {} }));
+    },
     difficultyAt,
     characterPreview,
     setGoal,

@@ -445,12 +445,12 @@
       card.type = "button";
       card.dataset.charId = ch.id;
       card.dataset.rarity = ch.rarity;
-      card.setAttribute("aria-label",`${have?ch.name:L("Personaje sin conseguir")} · ${L(TS.RARITIES[ch.rarity].name)}`);
+      card.setAttribute("aria-label",`${ch.name} · ${L(TS.RARITIES[ch.rarity].name)}${have ? "" : ` · ${L("Bloqueado")}`}`);
       card.style.setProperty("--rarity", TS.RARITIES[ch.rarity].color);
       const img = document.createElement("img");
       img.src = have ? Sprites.portrait(ch.id, 2) : Sprites.silhouettePortrait(ch.id, 2);
       img.alt = "";
-      card.append(img, el("span", "", have ? ch.name : "???"), el("small", "char-rarity", L(TS.RARITIES[ch.rarity].name)), el("span", "stars", have ? stars(have.stars) : ""));
+      card.append(img, el("span", "", ch.name), el("small", "char-rarity", L(TS.RARITIES[ch.rarity].name)), el("span", "stars", have ? stars(have.stars) : ""));
       card.addEventListener("click", () => {
         selectedView = ch.id;
         Sfx.play("click");
@@ -484,7 +484,14 @@
     }
     const rarity = el("span", "rarity", `${L(TS.RARITIES[ch.rarity].name)}${ch.from === "Tronk Fight" ? ` · ${L("de Tronk Fight")}` : ""}${have ? ` · ${stars(have.stars)}` : ""}`);
     rarity.style.color = TS.RARITIES[ch.rarity].color;
-    box.append(big, el("h3", "", have ? ch.name : L("Personaje sin conseguir")), rarity);
+    box.append(big, el("h3", "", ch.name), rarity);
+    const stats = el("dl", "profile-stats");
+    for (const { label, value, unit } of Game.characterStats(id, have?.stars || 1, Save.shopStats())) {
+      const row = el("div");
+      row.append(el("dt", "", L(label)), el("dd", "", value.toLocaleString(LANG) + unit));
+      stats.append(row);
+    }
+    box.append(el("h4", "profile-stats-title", L("Estadísticas de inicio")), stats);
     if (have) {
       const weapon = el("div", "weapon");
       const wi = document.createElement("img");
@@ -541,7 +548,15 @@
       btn.addEventListener("click", () => show("gacha"));
       const newcomer=TS.NEW_ROSTER.find(c=>c.id===id),keys={runs:"partidas",kills:"enemigos derrotados",bosses:"jefes derrotados",time:"segundos de supervivencia"};
       box.append(el("p","",newcomer?`${L("También se desbloquea jugando")}: ${newcomer.unlock.value} ${L(keys[newcomer.unlock.key])}.`:L("Consíguelo en el Cofre Tronk con las monedas que ganas jugando.")),btn);
-      if (newcomer?.rewardedUnlock && RewardedAds.configured) box.append(adButton(newcomer));
+      if (RewardedAds.configured) {
+        const { count, total } = Save.adUnlockProgress(id);
+        const progress = el("progress", "ad-unlock-progress");
+        progress.max = total;
+        progress.value = count;
+        progress.setAttribute("aria-label", L("Anuncios completados"));
+        const text = `${L("Anuncios completados")} · ${count}/${total}`;
+        box.append(el("small", "", text), progress, adButton("character", ch));
+      }
     }
   }
 
@@ -551,38 +566,45 @@
 
   const coinAdReady = () => Date.now() - save.lastCoinAd >= RewardedAds.cooldown;
 
-  function adButton(character) {
-    const button = el("button", "btn btn-small", character
+  function adButton(kind, character) {
+    const label = kind === "character"
       ? `${L("Ver anuncio para desbloquear a")} ${character.name}`
-      : L("Ver anuncio · +50 monedas"));
+      : kind === "chest" ? L("Ver anuncio · 5 aperturas gratis") : L("Ver anuncio · +50 monedas");
+    const button = el("button", "btn btn-small", label);
     button.type = "button";
-    const label = button.textContent;
+    const available = () => kind === "character" ? !save.owned[character.id]
+      : kind === "chest" ? Save.canEarnAdPulls() : coinAdReady();
     function refresh() {
-      const waiting = !character && !coinAdReady();
-      button.disabled = RewardedAds.pending || waiting;
-      button.textContent = waiting ? L("Vuelve más tarde para ganar monedas") : label;
+      button.disabled = pulling || RewardedAds.pending || !available();
+      button.textContent = available() ? label : kind === "chest" ? L("Cinco aperturas disponibles cada 24 h") : L("Vuelve más tarde para ganar monedas");
     }
     refresh();
-    if (!character && !coinAdReady()) {
-      setTimeout(() => { if (button.isConnected) refresh(); }, Math.min(RewardedAds.cooldown, save.lastCoinAd + RewardedAds.cooldown - Date.now()));
+    if (kind !== "character" && !available()) {
+      const cooldown = kind === "chest" ? Save.chestAdCooldown : RewardedAds.cooldown;
+      const last = kind === "chest" ? save.lastChestAd : save.lastCoinAd;
+      setTimeout(() => { if (button.isConnected) refresh(); }, Math.max(0, Math.min(cooldown, last + cooldown - Date.now())));
     }
     button.addEventListener("click", async () => {
-      if (button.disabled || RewardedAds.pending || (!character && !coinAdReady())) return;
+      if (pulling || button.disabled || RewardedAds.pending || !available()) return;
       button.disabled = true;
+      button.textContent = L("Buscando anuncio…");
       const screen = current;
       const granted = await RewardedAds.request(() => current === screen && button.isConnected);
-      if (granted) {
-        if (character && !save.owned[character.id]) {
-          save.owned[character.id] = { stars: 1 };
-          Save.persist();
-          toast(`${L("Personaje desbloqueado")} · ${character.name}`);
-        } else if (!character && coinAdReady()) {
-          save.lastCoinAd = Date.now();
-          Save.addCoins(RewardedAds.coins);
-          syncCoins();
-          toast(L("+50 monedas"));
-        }
-      } else if (current === screen) toast(L("No se completó ningún anuncio. Puedes volver a intentarlo."));
+      if (granted && kind === "character") {
+        const progress = Save.recordUnlockAd(character.id);
+        if (progress) toast(progress.unlocked
+          ? `${L("Personaje desbloqueado")} · ${character.name}`
+          : `${L("Anuncios completados")} · ${progress.count}/${progress.total}`);
+      } else if (granted && kind === "chest") {
+        if (Save.recordChestAd()) toast(L("Cinco aperturas guardadas"));
+      } else if (granted && coinAdReady()) {
+        save.lastCoinAd = Date.now();
+        Save.addCoins(RewardedAds.coins);
+        syncCoins();
+        toast(L("+50 monedas"));
+      } else if (!granted && current === screen) {
+        toast(L("No se completó ningún anuncio. Puedes volver a intentarlo."));
+      }
       if (current === "chars") renderChars();
       if (current === "gacha" && !pulling) renderGacha();
     });
@@ -593,8 +615,16 @@
     syncCoins();
     const rewards = $("gacha-rewarded");
     rewards.replaceChildren();
-    rewards.hidden = !RewardedAds.configured;
-    if (RewardedAds.configured) rewards.append(adButton());
+    const freeBatch = Save.hasAdPulls();
+    rewards.hidden = !RewardedAds.configured && !freeBatch;
+    if (freeBatch) {
+      const redeem = el("button", "btn btn-gold", L("Abrir 5 gratis"));
+      redeem.type = "button";
+      redeem.disabled = pulling || RewardedAds.pending;
+      redeem.addEventListener("click", () => pull(5));
+      rewards.append(redeem);
+    } else if (RewardedAds.configured) rewards.append(adButton("chest"));
+    if (RewardedAds.configured) rewards.append(adButton("coins"));
     $("gacha-chest").style.backgroundImage = `url(${Sprites.iconUrl("cofre", 12)})`;
     $("cost-1").textContent = save.freePull ? LT("free") : TS.GACHA.cost1;
     $("cost-10").textContent = TS.GACHA.cost10;
@@ -626,12 +656,12 @@
     $("reveal-skip").hidden=true;$("reveal-ok").hidden=false;$("gacha-reveal").setAttribute("aria-busy","false");$("reveal-identity").textContent=L("Tus personajes ya están guardados.");$("reveal-ok").focus({preventScroll:true});checkAchievements(null);
   }
   function pull(times){
-    if(pulling || !$("gacha-reveal").hidden)return;
+    if(pulling || RewardedAds.pending || !$("gacha-reveal").hidden)return;
     const results=Save.pull(times);if(!results)return;
     pulling=true;revealResults=results;const generation=++revealGeneration;clearTimeout(revealTimer);
     $("pull-1").disabled=$("pull-10").disabled=true;syncCoins();
     const overlay=$("gacha-reveal"),theatre=$("reveal-theatre"),cards=$("reveal-cards"),hero=$("reveal-hero");
-    overlay.hidden=false;overlay.classList.toggle("is-ten",times===10);overlay.scrollTop=0;overlay.setAttribute("aria-busy","true");
+    overlay.hidden=false;overlay.classList.toggle("is-ten",times>1);overlay.scrollTop=0;overlay.setAttribute("aria-busy","true");
     cards.textContent="";for(const [i]of results.entries()){const slot=el("div","reveal-slot");slot.dataset.slot=i;slot.setAttribute("aria-label",`${L("Premio")} ${i+1}`);cards.append(slot);}
     theatre.classList.remove("is-open","is-emerging");hero.removeAttribute("src");hero.style.opacity="0";$("reveal-ok").hidden=true;$("reveal-skip").hidden=false;$("reveal-skip").focus({preventScroll:true});
     $("reveal-identity").textContent=L("Abriendo el cofre…");Sfx.play("gachaRoll");
