@@ -881,6 +881,16 @@ const Render3D = (() => {
 
     for (const a of d.actors) {
       const k = a.scale || 1;
+      if (a.boss) {
+        const color = ({rey:0xf0c784,reyEsqueleto:0xcfb1ff,general:0xff9375,mocoRey:0xb2ee83})[a.role] || 0xe7bd83;
+        at("ring",a.x,1.8,a.y,29*k,3,29*k,color);
+        if (a.windup) at("ring",a.x,19*k,a.y,19*k,2,19*k,color);
+      }
+      if (a.eliteRole === "shield" && !a.exposed) {
+        const c=Math.cos(a.ang),s=Math.sin(a.ang);
+        at("glowBox",a.x+c*13,32*k,a.y+s*13,4,22,17,0x8ed9f0,-a.ang);
+      }
+      if (a.eliteRole === "link") at("ring",a.x,65*k,a.y,12,2,12,0xc7a5ff);
       if(a.elite)at("ring",a.x,1.6,a.y,22*k,3,22*k,a.breach?0x80e3d0:0xf5cb79);
       if(a.relentless)at("ring",a.x,1.4,a.y,24*k,4,24*k,0xff512f);
       if(a.wet)at("glow",a.x+9,57*k,a.y,2,3,2,0x91e9ff);
@@ -891,16 +901,18 @@ const Render3D = (() => {
       if (a.creature) { creature(a, k, a.flash); continue; }
       const base=optionsFor(a.kind,a.id);
       const o={...base,role:a.role || base.role,evolution:a.evolution};
-      if (a.role === "tronkAliado") {
+      if (a.ally) {
         at("ring",a.x,1,a.y,15,2,15,0x91eac9);
         at("glowBox",a.x,66,a.y,24,3,3,0x102630);
         if(a.pct>0)at("glowBox",a.x-11+11*a.pct,66,a.y+2,22*a.pct,2,2,0x91eac9);
       }
       const P = poseFor(o, a.moving, a.walkT || a.t || 0, a.atk);
       stickman(o, a.x, a.y, a.ang, P, k, a.flash, a.outline !== false);
+      if(a.mastered && a.atk?.t>0)at("octa",a.x+Math.cos(a.ang)*21,27,a.y+Math.sin(a.ang)*21,3,7,3,0xf2d397);
+
     }
     for(let i=0;i<siteLights.length;i++){
-      const s=d.sites?.[i],active=s && s.activeUntil>d.t;
+      const s=d.sites?.[i],active=s && (s.activeUntil>d.t || s.defenders?.some(defender=>defender.hp>0));
       siteLights[i].intensity=active&&!d.low?1.4:0;
       if(s)siteLights[i].position.set(s.x,40,s.y);
     }
@@ -931,6 +943,15 @@ const Render3D = (() => {
         for(const side of [-1,1]){
           between("cyl",[s.x+side*28,1,s.y+22],[s.x,38,s.y+22],.8,0x665a48);
           between("cyl",[s.x+side*38,1,s.y+29],[s.x+side*18,14,s.y+22],.5,0xe0d3ac);
+        }
+        const occupied = s.defenders?.some(defender=>defender.hp>0);
+        for (const side of [-1,1]) {
+          const x=s.x+side*43,y=s.y+17;
+          at("cyl",x,18,y,2.5,36,2.5,0x453d32);
+          at("box",x,37,y,10,10,10,0x514437);
+          at("glowBox",x,37,y+5,7,6,1,active || occupied ? 0xffdf95 : 0xb09162);
+          at("box",x,4,y,22,9,9,0x594c3d);
+          at("box",x,9,y,22,3,9,0xae8b60);
         }
         at("cyl",s.x+39,2,s.y+5,7,4,7,0x5b6055);
         if(active)at("glow",s.x+39,6,s.y+5,3,5,3,0xffcc80);
@@ -1031,7 +1052,7 @@ const Render3D = (() => {
     if (z.t < 0) return;
     const k = z.t / (z.life || 1);
     switch (z.type) {
-      case "tether":between("cyl",[z.x,18,z.y],[z.tx,18,z.ty],1.3,0xc5b38d);break;
+      case "tether":between("cyl",[z.x,18,z.y],[z.tx,18,z.ty],1.3,z.eliteLink===undefined?0xc5b38d:0xc7a5ff);break;
       case "resurrection": at("ring",z.x,2,z.y,z.r,1,z.r,0xbc9cdd);break;
       case "nestSpawn": at("ring",z.x,2,z.y,z.r,1,z.r,0xdf997d);break;
       case "pincer":

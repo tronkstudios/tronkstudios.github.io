@@ -258,7 +258,7 @@ const TronkNet = (() => {
       if (m.type === "in" && peer.index !== undefined) {
         peer.lastInput = performance.now();
         peer.ab = m.ab | 0;
-        Game.setInput(peer.index, { x: Math.max(-1, Math.min(1, +m.x || 0)), y: Math.max(-1, Math.min(1, +m.y || 0)), ab: peer.ab,dash:m.dash | 0 });
+        Game.setInput(peer.index, { x: Math.max(-1, Math.min(1, +m.x || 0)), y: Math.max(-1, Math.min(1, +m.y || 0)), ab: peer.ab,dash:m.dash | 0,abilityAim:m.aim,campMode:m.camp });
       }
       else if (m.type === "reroll" && peer.index !== undefined) Game.reroll(peer.index);
       else if (m.type === "choose" && peer.index !== undefined) Game.choose(peer.index, Math.max(0, Math.min(3, m.i | 0)));
@@ -282,7 +282,7 @@ const TronkNet = (() => {
   function startHost() {
     if (!room || !room.host || endPending || !readyToStart()) return;
     const order = lobby.filter((p) => p.id === myId || (peers.get(p.id) && peers.get(p.id).ctrl && peers.get(p.id).ctrl.readyState === "open"));
-    const setups = order.map((p) => ({ charId: p.charId, stars: p.stars, meta: p.meta, name: p.name }));
+    const setups = order.map((p) => ({ charId: p.charId, stars: p.stars, meta: p.meta, mastered:!!p.mastered, name: p.name }));
     const map = TronkUI.selectedMap ? TronkUI.selectedMap() : "bosque";
     order.forEach((p, i) => {
       const peer = peers.get(p.id);
@@ -343,7 +343,7 @@ const TronkNet = (() => {
     if (now - lastInput < 40) return;
     lastInput = now;
     const host = peers.get(hostId);
-    if (host && host.game && host.game.readyState === "open") host.game.send(JSON.stringify({ type: "in", x: +inp.x.toFixed(2), y: +inp.y.toFixed(2), ab: inp.ab | 0,dash:inp.dash | 0 }));
+    if (host && host.game && host.game.readyState === "open") host.game.send(JSON.stringify({ type: "in", x: +inp.x.toFixed(2), y: +inp.y.toFixed(2), ab: inp.ab | 0,dash:inp.dash | 0,aim:inp.abilityAim,camp:inp.campMode }));
   });
 
   function sendChoice(i) {

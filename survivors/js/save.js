@@ -26,6 +26,8 @@ const Save = (() => {
       freePull: true, // la primera tirada es gratis
       best: { time: 0, kills: 0, level: 0, wins: 0, streak:0 },
       bestVeteran: {time:0, kills:0, level:0, wins:0, streak:0},
+      bestSprint: {time:0, kills:0, level:0, wins:0, streak:0},
+      mastery: {},
       runs: 0, history:[],
       settings: { music: true, sfx: true, musicVol: 0.7, sfxVol: 0.9, lang: "" },
       name: "",
@@ -85,7 +87,9 @@ const Save = (() => {
     d.shop = Object.fromEntries(TS.SHOP.map(item => [item.id, Math.min(item.max, integer(d.shop && d.shop[item.id]))]));
     for (const key of ["coins", "pity", "pulls", "runs", "savedAt", "lastCoinAd", "lastChestAd", "redeemedChestAd"]) d[key] = integer(d[key]);
     d.bestVeteran = { ...fresh().bestVeteran, ...d.bestVeteran };
-    for (const section of ["best", "bestVeteran", "stats"]) {
+    d.bestSprint = { ...fresh().bestSprint, ...d.bestSprint };
+    d.mastery = Object.fromEntries(TS.CHARACTERS.filter(ch=>d.mastery?.[ch.id]===true).map(ch=>[ch.id,true]));
+    for (const section of ["best", "bestVeteran", "bestSprint", "stats"]) {
       for (const key of Object.keys(fresh()[section])) d[section][key] = integer(d[section][key]);
     }
     d.adUnlocks = Object.fromEntries(TS.CHARACTERS.flatMap(ch => {
@@ -101,7 +105,7 @@ const Save = (() => {
   function normalizeHistory(rows){
     return (Array.isArray(rows)?rows:[]).filter(r=>r && TS.CHARACTERS.some(c=>c.id===r.charId)&&TS.MAPS[r.map]).map(r=>({
       id:typeof r.id==="string"?r.id.slice(0,80):String(integer(r.at)),at:integer(r.at),charId:r.charId,map:r.map,
-      signature:TS.validRunSignature(r.signature),veteran:!!r.veteran,daily:typeof r.daily==="string"?r.daily.slice(0,30):null,coop:!!r.coop,seconds:integer(r.seconds),kills:integer(r.kills),level:integer(r.level),
+      signature:TS.validRunSignature(r.signature),veteran:!!r.veteran,sprint:!!r.sprint,daily:typeof r.daily==="string"?r.daily.slice(0,30):null,coop:!!r.coop,seconds:integer(r.seconds),kills:integer(r.kills),level:integer(r.level),
       dealt:integer(r.dealt),healed:integer(r.healed),taken:integer(r.taken),activePath:TS.ACTIVE_PATHS[r.activePath]?r.activePath:null,
       techniquePaths:Object.fromEntries(Object.entries(r.techniquePaths || {}).filter(([id,variant])=>["power","reach"].includes(variant) && TS.TECHNIQUES[r.charId]?.some(move=>move.id===id))),
       techniques:Object.fromEntries(Object.entries(r.techniques || {}).filter(([id,n])=>TS.TECHNIQUES[r.charId]?.some(m=>m.id===id)&&Number.isFinite(n)).map(([id,n])=>[id,Math.min(5,integer(n))]))
@@ -175,6 +179,8 @@ const Save = (() => {
       shop: maxObj(d.shop, remote.shop),
       best: maxObj(d.best, remote.best),
       bestVeteran: maxObj(d.bestVeteran, remote.bestVeteran),
+      bestSprint: maxObj(d.bestSprint,remote.bestSprint),
+      mastery:maxObj(d.mastery,remote.mastery),
       stats: maxObj(d.stats, remote.stats),
       achievements: maxObj(d.achievements, remote.achievements),
       maps: maxObj(d.maps, remote.maps),
@@ -297,8 +303,10 @@ const Save = (() => {
     const d = get();
     d.runs += 1;
     const combat=result.combat?.[playerId] || {},at=Date.now();
-    d.history=normalizeHistory([{id:`${at}-${d.runs}-${result.charId}`,at,signature:result.signature,charId:result.charId,map:result.map,seconds:result.seconds,kills:result.kills,level:result.level,daily:result.daily,veteran:result.veteran,coop:result.coop,dealt:combat.dealt,healed:combat.healed,taken:combat.taken,activePath:result.activePaths?.[playerId],techniques:result.techniques?.[playerId],techniquePaths:result.techniquePaths?.[playerId]},...(d.history || [])]);
-    const best = result.veteran ? d.bestVeteran : d.best;
+    d.history=normalizeHistory([{id:`${at}-${d.runs}-${result.charId}`,at,signature:result.signature,charId:result.charId,map:result.map,seconds:result.seconds,kills:result.kills,level:result.level,daily:result.daily,veteran:result.veteran,sprint:result.sprint,coop:result.coop,dealt:combat.dealt,healed:combat.healed,taken:combat.taken,activePath:result.activePaths?.[playerId],techniques:result.techniques?.[playerId],techniquePaths:result.techniquePaths?.[playerId]},...(d.history || [])]);
+    const mastery = TS.mastery(result.charId);
+    if (combat[mastery.key] >= mastery.count) d.mastery[result.charId] = true;
+    const best = result.sprint ? d.bestSprint : result.veteran ? d.bestVeteran : d.best;
     best.time = Math.max(best.time, result.seconds);
     best.kills = Math.max(best.kills, result.kills);
     best.level = Math.max(best.level, result.level);

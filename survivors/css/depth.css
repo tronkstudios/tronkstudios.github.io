@@ -60,3 +60,12 @@ button.hud-compass{pointer-events:auto;font-family:inherit;cursor:pointer;text-a
 
 .practice-controls { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
 .practice-controls select { max-width:100%; background:#102630; color:#e3efeb; border:1px solid #547278; border-radius:7px; padding:6px; }
+
+#hud-ab { touch-action:none; }
+#ability-aim { position:fixed; z-index:12; height:4px; background:#ffe7ac; border-radius:2px; transform-origin:0 50%; pointer-events:none; box-shadow:0 0 0 2px #152832; }
+#ability-aim::after { content:""; position:absolute; right:-2px; top:-4px; width:8px; height:8px; border-top:3px solid #ffe7ac; border-right:3px solid #ffe7ac; transform:rotate(45deg); }
+
+#hud-camp { display:flex; justify-content:center; flex-wrap:wrap; gap:4px; margin:4px 0; }
+#hud-camp button { pointer-events:auto; min-height:34px; }
+#hud-camp button[aria-pressed="true"] { border-color:#e8c789; color:#ffe2a8; }
+.profile-mastery { display:grid; gap:4px; padding:8px; border:1px solid #876d49; border-radius:8px; color:#ffe2a8; }

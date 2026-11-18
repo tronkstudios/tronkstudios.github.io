@@ -23,7 +23,7 @@
     content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://securepubads.g.doubleclick.net https://pagead2.googlesyndication.com; frame-src https://*.doubleclick.net https://*.googlesyndication.com https://*.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.doubleclick.net https://*.googlesyndication.com https://*.google.com; font-src 'self' data:; connect-src 'self' https://qjjnqhbtovjcbwgcwhgl.supabase.co wss://qjjnqhbtovjcbwgcwhgl.supabase.co https://tronkstudios-support.tronkstudios7.workers.dev https://*.doubleclick.net https://*.googlesyndication.com https://*.google.com; object-src 'none'; base-uri 'self'; form-action 'self'"
   />
   <link rel="stylesheet" href="survivors.css?v=17" />
-  <link rel="stylesheet" href="css/depth.css?v=6">
+  <link rel="stylesheet" href="css/depth.css?v=7">
   <link rel="stylesheet" href="css/mobile.css?v=3">
 </head>
 <body>
@@ -161,6 +161,7 @@
       </header>
       <label class="setting"><span>Modo Veterano</span><input type="checkbox" id="run-veteran" /></label>
       <p class="online-note">Oleadas antes, más enemigos y menos curación. Récord personal separado.</p>
+      <label class="setting"><span>Partida rápida · jefe al minuto 10</span><input type="checkbox" id="run-sprint" /></label>
       <p class="online-note" id="veteran-best"></p>
       <div class="maps-grid" id="maps-grid"></div>
       <h3 class="daily-title">Supervivencia: los que más aguantan</h3>
@@ -271,12 +272,17 @@
     <div class="hud-bottom">
       <span class="hud-evo" id="hud-evo" hidden>¡Evolución disponible! Coge un cofre</span>
       <div class="hud-world" id="hud-world"></div>
+      <div id="hud-camp" role="group" aria-label="Defensa del campamento" hidden>
+        <button class="btn btn-small" id="camp-guns" type="button" aria-pressed="true">Pistoleros</button>
+        <button class="btn btn-small" id="camp-medic" type="button" aria-pressed="false">Pistolero y sanitario</button>
+      </div>
       <div class="hud-slots" id="hud-slots"></div>
       <div class="hud-milestone" id="hud-milestone"></div>
       <p class="hud-hint">WASD o flechas · Mayúsculas impulso · Espacio habilidad · Esc pausa</p>
     </div>
     <div id="touch-pad" class="touch-pad" role="group" aria-label="Mover personaje"><span class="touch-stick"></span><small>Mover</small></div>
     <button class="hud-dash" id="hud-dash" type="button" aria-label="Impulso · Mayúsculas"><b>Impulso</b><small id="hud-dash-state">⇧</small></button>
+    <span id="ability-aim" hidden aria-hidden="true"></span>
     <button class="hud-ab" id="hud-ab" type="button">
       <i class="hud-ab-fill" id="hud-ab-fill"></i>
       <b id="hud-ab-name">Habilidad</b>
@@ -350,20 +356,20 @@
     </div>
   </div>
 
-  <script src="js/data.js?v=20" defer></script>
+  <script src="js/data.js?v=21" defer></script>
   <script src="js/sprites.js?v=19" defer></script>
   <script src="js/people.js?v=4" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js" defer></script>
-  <script src="js/stick.js?v=22" defer></script>
-  <script src="js/render3d.js?v=20" defer></script>
+  <script src="js/stick.js?v=23" defer></script>
+  <script src="js/render3d.js?v=21" defer></script>
   <script src="js/audio.js?v=6" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-  <script src="js/lang.js?v=23" defer></script>
-  <script src="js/save.js?v=12" defer></script>
+  <script src="js/lang.js?v=24" defer></script>
+  <script src="js/save.js?v=13" defer></script>
   <script src="js/account.js?v=4" defer></script>
-  <script src="js/game.js?v=35" defer></script>
-  <script src="js/net.js?v=10" defer></script>
+  <script src="js/game.js?v=36" defer></script>
+  <script src="js/net.js?v=11" defer></script>
   <script src="js/rewarded.js?v=1" defer></script>
-  <script src="js/ui.js?v=30" defer></script>
+  <script src="js/ui.js?v=31" defer></script>
 </body>
 </html>

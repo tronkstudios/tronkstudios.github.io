@@ -873,3 +873,24 @@ Object.assign(EN, {
   "+25 % de daño. El tornado se divide una vez al tocar un élite o jefe.": "+25% damage. The tornado splits once on hitting an elite or boss.",
   "+20 % de área. El tornado ralentiza a los enemigos que toca.": "+20% area. The tornado slows enemies it touches."
 });
+
+Object.assign(EN,{
+  "Toca o apunta": "Tap or aim",
+  "Defensa del campamento": "Camp defence",
+  "Pistoleros": "Gunners",
+  "Pistolero y sanitario": "Gunner and medic",
+  "Tronk sanitario": "Tronk medic",
+  "Rescate acelerado": "Revival sped up",
+  "Rescates cubiertos": "Revival assists",
+  "Partida rápida · jefe al minuto 10": "Quick run · boss at 10 minutes",
+  "Récord de partida rápida": "Quick-run record",
+  "Derrota al jefe para ganar": "Defeat the boss to win",
+  "¡Partida rápida superada!": "Quick run cleared!",
+  "Dominio del personaje": "Character mastery",
+  "Dominio conseguido": "Mastery unlocked",
+  "Dominio conseguido · destello dorado": "Mastery unlocked · gold glint",
+  "Destello dorado equipado.": "Gold glint equipped.",
+  "Bloquea 3 disparos en una partida.": "Block 3 shots in one run.",
+  "Derrota a un élite con un tornado dividido.": "Defeat an elite with a split tornado.",
+  "Derrota a 3 élites en una partida.": "Defeat 3 elites in one run."
+});

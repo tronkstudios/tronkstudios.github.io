@@ -873,6 +873,7 @@ const Stick = (() => {
     casco: { color: "#e07a1f", head: Z, hair: "hardhat", acc: "#f2c14e", eye: "#c1121f", weapon: "none" },
     bomba: { color: "#3a3a3a", head: Z, hair: "zombie", hairColor: "#2a2a22", eye: "#c1121f", weapon: "tnt" },
     gordo: { color: "#8a6f5a", head: Z, hair: "zombie", hairColor: "#2a2a22", eye: "#c1121f", weapon: "none", thick: 1.9, torso: 1.4, headK: 1.15 },
+    tronkSanitario: {color:"#74998a",legs:"#314751",hair:"beanie",hairColor:"#e2d8b5",weapon:"colonia",head:"#dbad91",acc:"#e5eed1"},
     tronkAliado: { color:"#437d72", legs:"#273f46", hair:"capBack", hairColor:"#3b5c54", weapon:"pistolaAliada", head:"#c89971", acc:"#9de2ca" },
     antitronk: { color: "#3a4232", hair: "balaclava", weapon: "rifle", noEye: true },
     supremo: { color: "#2b2f3a", hair: "balaclava", beret: "#a61b1b", weapon: "rifle", noEye: true },
