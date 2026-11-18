@@ -14,7 +14,7 @@
    Si algún día algo se queda «pegado» en una versión vieja, sube el
    número de CACHE_VERSION. */
 
-const CACHE_VERSION = 10;
+const CACHE_VERSION = 11;
 const CACHE_NAME = `tronkstudios-v${CACHE_VERSION}`;
 
 const AVATARS = [

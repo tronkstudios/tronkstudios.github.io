@@ -1752,8 +1752,10 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
       const directionLength = Math.hypot(x, y) || 1;
       p.moveX = x / directionLength;
       p.moveY = y / directionLength;
-      p.walkT++;
       collide(p, 7 * U);
+      const travelled=Math.hypot(p.x-oldX,p.y-oldY);
+      p.moving=travelled>.05;
+      if(p.moving)p.walkT+=Math.min(3,travelled/(1.25*U));
     }
     if(!p.moving && mapId==="playa") {blockWater(p,p.x,p.y);collide(p,7*U);}
     if(p.relics.includes("pasos")){
@@ -3509,6 +3511,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
   function personImage(set, dir, flash, moving, walkT, atk) {
     const s = set[flash ? `${dir}Flash` : dir];
     if (atk && atk.t > 0) {
+      if(moving){const blended=Stick.movingFrame(set,dir,walkT,atk,flash);if(blended)return blended;}
       const k = 1 - atk.t / atk.total;
       const frames=atk.pose==="thrust" && s.thrust?s.thrust:s.attack;
       const n = frames.length;

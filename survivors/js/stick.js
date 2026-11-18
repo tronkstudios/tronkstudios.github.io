@@ -85,11 +85,11 @@ const Stick = (() => {
     const base = { ...BASE[style] };
     if (kind === "walk") {
       const p = (i / n) * Math.PI * 2;
-      const fl = 26 * Math.sin(p), bl = -26 * Math.sin(p);
+      const fl = 32 * Math.sin(p), bl = -32 * Math.sin(p);
       const armSwing = style === "zombie" ? .2 : style==="bow"?.12:1;
       return over(base, {
-        ful: fl, fll: fl - 24 * (0.5 + 0.5 * Math.sin(p - 1.3)),
-        bul: bl, bll: bl - 24 * (0.5 + 0.5 * Math.sin(p + Math.PI - 1.3)),
+        ful: fl, fll: fl - 32 * (0.5 + 0.5 * Math.sin(p - 1.3)),
+        bul: bl, bll: bl - 32 * (0.5 + 0.5 * Math.sin(p + Math.PI - 1.3)),
         bu: base.bu - 16 * Math.sin(p) * armSwing, fu: base.fu + 6 * Math.sin(p) * armSwing, w: base.w + 3 * Math.sin(p),
         lean: base.lean + 4 + Math.abs(Math.sin(p)) * 2
       });
@@ -106,6 +106,28 @@ const Stick = (() => {
       return p;
     }
     return base;
+  }
+
+  // Keep the weapon/arms in their attack pose while the legs keep stepping.
+  function locomotion(style, walkT, atk) {
+    const walking=pose(style,"walk",(walkT/7)%8,8);
+    if(!atk || atk.t<=0)return walking;
+    const attack=pose(style,"attack",clamp(1-atk.t/atk.total,0,1)*5,6);
+    for(const key of ["ful","fll","bul","bll"])attack[key]=walking[key];
+    return attack;
+  }
+  const setOptions=new WeakMap(),movingFrames=new Map();let setId=0;
+  function movingFrame(set,dir,walkT,atk,flash){
+    const entry=setOptions.get(set);if(!entry)return null;
+    const step=Math.floor(walkT/7)%8,attack=Math.min(5,Math.max(0,Math.floor((1-atk.t/atk.total)*6)));
+    const style=atk.pose==="thrust" && entry.o.role==="ranjay"?"thrust":(WEAPON[entry.o.weapon] || WEAPON.none)[2];
+    const key=`${entry.id}:${dir}:${step}:${attack}:${style}:${!!flash}`;
+    if(movingFrames.has(key)){const cached=movingFrames.get(key);movingFrames.delete(key);movingFrames.set(key,cached);return cached;}
+    const P=locomotion(style,step*7,{t:Math.max(.001,5-attack),total:5});
+    const raw=frame(entry.o,P,false,VIEWS[dir] ?? 0),result=flash?Sprites.silhouette(raw):raw;
+    movingFrames.set(key,result);
+    if(movingFrames.size>96)movingFrames.delete(movingFrames.keys().next().value);
+    return result;
   }
 
   /* ---------- dibujo ---------- */
@@ -789,6 +811,7 @@ const Stick = (() => {
   function set(o) {
     const style = (WEAPON[o.weapon] || WEAPON.none)[2];
     const out = {};
+    setOptions.set(out,{o,id:++setId});
     for (const [v, yaw] of Object.entries(VIEWS)) {
       const frames = {
         idle: frame(o, pose(style, "idle"), false, yaw),
@@ -890,7 +913,7 @@ const Stick = (() => {
   }
 
   // El esqueleto, para el motor 3D (render3d.js)
-  const rig = { pose, joints, bowModel, LAT, WEAPON, styleOf: (o) => (WEAPON[o.weapon] || WEAPON.none)[2] };
+  const rig = { pose, locomotion, joints, bowModel, LAT, WEAPON, styleOf: (o) => (WEAPON[o.weapon] || WEAPON.none)[2] };
 
-  return { set, portrait, illustration, characterOptions, ENEMIES, RES, rig };
+  return { set, movingFrame, portrait, illustration, characterOptions, ENEMIES, RES, rig };
 })();

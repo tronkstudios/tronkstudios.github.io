@@ -187,3 +187,5 @@ verifica el impulso del invitado en el anfitrión y su HUD. Ver
   [Combate legible y equipo](../docs/survivors/combate-legible-y-equipo.md).
 
 `node tests/survivors.fist-preview.cjs` comprueba que las demostraciones de guantes y puños ejecuten el combo, golpeen al muñeco y terminen. Admite `BASE_URL`, `CHROMIUM_PATH` y `ALLOW_TEST_PROXY_CERT`.
+
+`node --test tests/survivors.walking.cjs` comprueba el apoyo de los pies, la conservación de brazos y armas al caminar atacando y el ritmo por distancia (agua, impulso y reposo). `survivors.characters.cjs` revisa también 120 fotogramas de ataques en movimiento por dispositivo.

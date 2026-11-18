@@ -701,11 +701,11 @@ const Render3D = (() => {
 
   function poseFor(o, moving, walkT, atk) {
     const style=atk?.pose==="thrust" && o.role==="ranjay"?"thrust":rig.styleOf(o);
+    if(moving)return rig.locomotion(style,walkT,atk);
     if (atk && atk.t > 0) {
       const k = clamp(1 - atk.t / atk.total, 0, 1);
       return rig.pose(style, "attack", k * 5, 6);
     }
-    if (moving) return rig.pose(style, "walk", (walkT / 7) % 8, 8);
     return rig.pose(style, "idle");
   }
 
