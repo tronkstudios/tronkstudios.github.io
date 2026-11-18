@@ -704,7 +704,7 @@
     box.textContent = "";
     const items = [...data.weapons.map((w) => ({ ...w, kind: "w" })), ...(data.techniques || []).map(m=>({...m,kind:"t"})), ...data.passives.map((p) => ({ ...p, kind: "p" }))];
     for (const it of items) {
-      const slot = el("div", `hud-slot${it.kind === "t" ? " is-technique" : ""}${it.kind === "p" ? " is-passive" : ""}${it.evo ? " is-evo" : ""}`);
+      const slot = el(big ? "button" : "div", `hud-slot${it.kind === "t" ? " is-technique" : ""}${it.kind === "p" ? " is-passive" : ""}${it.evo ? " is-evo" : ""}`);
       if (it.kind === "t") {
         slot.dataset.technique = ["I","II","III","IV","V","VI","VII","VIII","IX","X"][["burst","ring","pierce","crossfire","guard","pursuit","focus","bastion","rupture","surge"].indexOf(it.id)] || "";
         slot.dataset.move = it.id;
@@ -715,8 +715,51 @@
       img.alt = "";
       slot.title = it.kind === "t" ? it.name : it.evo ? Game.evolutionName(it.id,it.path) : L((TS.WEAPONS[it.id] || TS.PASSIVES[it.id] || {}).name || "");
       slot.append(img, el("i", "", it.evo ? "★" : it.lvl));
+      if(big){
+        slot.type="button";slot.dataset.item=`${it.kind}:${it.id}`;
+        slot.setAttribute("aria-label",`${slot.title} · ${L("Rango")} ${it.lvl}`);
+        slot.setAttribute("aria-pressed","false");slot.setAttribute("aria-controls","pause-item-detail");
+        slot.addEventListener("click",()=>inspectEquipment(it,data,box));
+      }
       box.appendChild(slot);
     }
+  }
+
+  function equipmentDefinition(it){
+    const player=Game.state?.players[Game.localId];
+    return it.kind==="t" ? TS.TECHNIQUES[player?.charId]?.find(move=>move.id===it.id) : (it.kind==="p"?TS.PASSIVES:TS.WEAPONS)[it.id];
+  }
+
+  function equipmentPanel(){
+    let panel=$("pause-item-detail");
+    if(!panel){panel=el("section","equipment-detail");panel.id="pause-item-detail";panel.setAttribute("aria-live","polite");$("pause-build").after(panel);}
+    return panel;
+  }
+
+  function inspectEquipment(it,data,box){
+    const def=equipmentDefinition(it);if(!def)return;
+    const panel=equipmentPanel(),player=Game.state.players[Game.localId];panel.textContent="";
+    for(const button of box.querySelectorAll("button"))button.setAttribute("aria-pressed",String(button.dataset.item===`${it.kind}:${it.id}`));
+    const name=it.evo?Game.evolutionName(it.id,it.path):L(def.name),max=def.max || def.levels?.length || 5;
+    const title=el("div","equipment-heading");title.append(el("b","",name),el("span","",`${L("Rango")} ${it.lvl}/${max}${it.lvl>=max?` · ${L("Rango máximo")}`:""}`));panel.append(title);
+    const evolution=it.evo?(TS.EVOLUTION_PATHS[it.id] || TS.EVOLUTION_PATHS)[it.path || "precision"]:null;
+    panel.append(el("p","",`${it.kind==="p"?`${L("Por rango")}: `:""}${L(evolution?.desc || def.desc)}`));
+    if(it.kind==="t")panel.append(el("small","",`${L("Recarga")}: ${(def.cd/60*player.stats.cdMul).toLocaleString(LANG,{maximumFractionDigits:1})} s`));
+    const values=it.kind==="p"?null:data.combat?.bySkill?.[it.kind==="w"?"weapon":it.id];
+    if(values)panel.append(el("small","equipment-performance",`${L("Daño causado")}: ${Math.round(values.damage || 0).toLocaleString(LANG)} · ${L("Curación")}: ${Math.round(values.healing || 0).toLocaleString(LANG)} · ${L("Aplicaciones de control")}: ${values.control || 0}`));
+  }
+
+  function upgradeRanks(option){
+    const player=Game.state?.players[Game.localId];if(!player)return null;
+    const def=option.kind==="technique"?TS.TECHNIQUES[player.charId]?.find(move=>move.id===option.id):option.kind==="weapon"?TS.WEAPONS[option.id]:option.kind==="passive"?TS.PASSIVES[option.id]:null;
+    if(!def || !Number.isInteger(option.lvl))return null;
+    // Choice packets can arrive before the guest snapshot; the offered rank is authoritative.
+    const before=Math.max(0,option.lvl-1);
+    const max=def.max || def.levels?.length || 5;
+    const track=el("span","upgrade-ranks");track.append(el("span","",`${L("Rango")} ${before} → ${option.lvl}/${max}${option.lvl>=max?` · ${L("Rango máximo")}`:""}`));
+    const steps=el("span","rank-steps");steps.setAttribute("aria-hidden","true");
+    for(let rank=1;rank<=max;rank++)steps.append(el("i",rank<=before?"is-owned":rank<=option.lvl?"is-next":""));
+    track.append(steps);return track;
   }
 
   /* ---------- consejos de la primera partida ---------- */
@@ -771,7 +814,7 @@
     $("hud-dash").disabled=d.down;$("hud-dash").classList.toggle("is-ready",d.dash?.ready);
     $("hud-dash-state").textContent=d.dash?.ready?(isTouch?L("Listo"):"⇧"):String(d.dash?.seconds || 0)+"s";
     const ab = $("hud-ab");
-    ab.hidden = !d.ability;
+    ab.hidden = !d.ability;ab.disabled=d.down;
     if (d.ability) {
       const ready = d.ability.pct >= 1;
       $("hud-ab-name").textContent = d.ability.name;
@@ -873,6 +916,7 @@
       if(o.kind==="technique" && o.cooldownSeconds!==undefined){const ch=Game.state?.players[Game.localId]?.charId,d=TS.TECHNIQUES[ch]?.find(m=>m.id===o.id);if(d){text.querySelector("b").textContent=o.lvl===1?L(d.name):LT("levelOf",{name:L(d.name),lvl:o.lvl});text.querySelector("small").textContent=`${L(d.desc)} · ${L("Recarga")}: ${o.cooldownSeconds.toLocaleString(LANG)} s`;}}
       if(o.kind==="relic"){text.querySelector("b").textContent=L(TS.RELICS[o.id].name);text.querySelector("small").textContent=L(TS.RELICS[o.id].desc);}
       if(o.kind==="talent"){text.querySelector("b").textContent=L(TS.TALENTS[o.id].name);text.querySelector("small").textContent=L(TS.TALENTS[o.id].desc);}
+      const ranks=upgradeRanks(o);if(ranks)text.append(ranks);
       if(o.preview?.length){const changes=el("dl","choice-stats");for(const row of o.preview){const value=el("dd",row.loss?"is-loss":"is-gain",`${row.from.toLocaleString(LANG)}${row.unit} → ${row.to.toLocaleString(LANG)}${row.unit}`);changes.append(el("dt","",L(row.label)),value);}text.append(changes);}
       if(o.synergy)text.append(el("span","synergy-note",L("Necesario para evolucionar")));
       card.append(img, text, el("kbd", "", i + 1));
@@ -880,6 +924,7 @@
       box.appendChild(card);
     });
     $("levelup").hidden = false;
+    $("levelup").querySelector(".modal-box").scrollTop=0;
     setTimeout(()=>{
       if(generation!==choiceGeneration || $("levelup").hidden)return;
       for(const card of box.children)card.disabled=false;
@@ -910,6 +955,9 @@
 
   function pickLevel(i) {
     if ($("levelup").hidden || !$("levelup-cards").children[i] || $("levelup-cards").children[i].disabled) return;
+    // A guest can wait several frames for the host; consume the local choice now.
+    for(const card of $("levelup-cards").children)card.disabled=true;
+    $("levelup-reroll").disabled=true;
     Sfx.play("pick");
     if (Game.mode === "guest") TronkNet.sendChoice(i);
     else Game.choose(Game.localId, i);
@@ -931,6 +979,7 @@
     $("pause-quit").hidden = Game.mode === "guest";
     if (on) {
       const d=Game.hudData();renderSlots($("pause-build"),d,true);
+      equipmentPanel().textContent=L("Toca una pieza para ver sus detalles");
       $("pause-title").textContent=L(Game.mode==="solo"?"Pausa":"Menú de partida");
       $("pause-live").hidden=Game.mode==="solo";
       $("pause-live").textContent=L("La partida cooperativa continúa mientras miras este menú.");
@@ -969,6 +1018,8 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
   $("hud-dash").addEventListener("keydown",e=>{if(e.code==="Space"||e.code==="Enter"){e.preventDefault();e.stopPropagation();if(!e.repeat)Game.pressDash();}});
   $("hud-dash").addEventListener("click",e=>{if(e.detail===0)Game.pressDash();});
   $("hud-ab").addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); Game.pressAbility(); });
+  $("hud-ab").addEventListener("keydown",e=>{if(e.code==="Space"||e.code==="Enter"){e.preventDefault();e.stopPropagation();if(!e.repeat)Game.pressAbility();}});
+  $("hud-ab").addEventListener("click",e=>{if(e.detail===0)Game.pressAbility();});
   $("pause-fullscreen").addEventListener("click",async()=>{
     try {if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}
     catch {toast(L("Pantalla completa no disponible"));}

@@ -21,6 +21,10 @@ let LANG = (() => {
 })();
 
 const EN = {
+  "Toca una pieza para ver sus detalles": "Tap an item to see its details",
+  "Rango máximo": "Maximum rank",
+  "Por rango": "Per rank",
+  "No quedan mejoras distintas para cambiar.": "There are no different upgrades left to reroll.",
   // Menú y pantallas
   "Cargando": "Loading",
   "Mover": "Move",

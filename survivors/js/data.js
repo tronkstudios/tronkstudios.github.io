@@ -823,11 +823,11 @@ TS.activePathDescription=(charId,id)=>{
  return (TS.ACTIVE_TRAIT_TEXT[TS.ACTIVE_IDENTITIES[charId]?.[2]] || ["",""])[id==="precision"?0:1];
 };
 TS.siteName=s=>s.kind==="nest"?({ciudad:"Antena de refuerzos",playa:"Nido de coral",bosque:"Nido de refuerzos"}[s.theme] || TS.SITE_NAMES.nest):TS.SITE_NAMES[s.kind];
-TS.runSignature=(setups,opts={})=>JSON.stringify({version:4,party:setups.map(p=>({charId:p.charId,stars:Math.max(1,Math.min(TS.GACHA.maxStars,Number(p.stars)||1)),meta:Object.fromEntries(Object.entries(p.meta || {}).filter(([k,v])=>["maxHp","speed","might","area","cooldown","magnet","armor","regen","growth","greed","amount","revive","reviveSpeed"].includes(k)&&Number.isFinite(v)).sort(([a],[b])=>a.localeCompare(b)))})).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))),rules:{map:opts.map || "bosque",mods:[...(opts.mods || [])].sort(),easy:!!opts.easy,daily:!!opts.daily,seed:opts.daily?opts.seed || 0:null}});
+TS.runSignature=(setups,opts={})=>JSON.stringify({version:5,party:setups.map(p=>({charId:p.charId,stars:Math.max(1,Math.min(TS.GACHA.maxStars,Number(p.stars)||1)),meta:Object.fromEntries(Object.entries(p.meta || {}).filter(([k,v])=>["maxHp","speed","might","area","cooldown","magnet","armor","regen","growth","greed","amount","revive","reviveSpeed"].includes(k)&&Number.isFinite(v)).sort(([a],[b])=>a.localeCompare(b)))})).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))),rules:{map:opts.map || "bosque",mods:[...(opts.mods || [])].sort(),easy:!!opts.easy,daily:!!opts.daily,seed:opts.daily?opts.seed || 0:null}});
 
 TS.validRunSignature=value=>{
  if(typeof value!=="string" || value.length>8192)return "";
- try{const s=JSON.parse(value);return s.version===4 && Array.isArray(s.party) && s.party.length>0 && s.party.length<=4 && s.party.every(p=>p && TS.CHARACTERS.some(c=>c.id===p.charId)) && s.rules && TS.MAPS[s.rules.map] && Array.isArray(s.rules.mods) && s.rules.mods.every(m=>typeof m==="string") && TS.runSignature(s.party,s.rules)===value?value:"";}catch{return "";}
+ try{const s=JSON.parse(value);return s.version===5 && Array.isArray(s.party) && s.party.length>0 && s.party.length<=4 && s.party.every(p=>p && TS.CHARACTERS.some(c=>c.id===p.charId)) && s.rules && TS.MAPS[s.rules.map] && Array.isArray(s.rules.mods) && s.rules.mods.every(m=>typeof m==="string") && TS.runSignature(s.party,s.rules)===value?value:"";}catch{return "";}
 };
 
 // Siluetas y equipamiento compartidos por retratos, 2D y 3D.

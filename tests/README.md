@@ -3,10 +3,10 @@
 Las pruebas de simulación no requieren dependencias:
 
 ```sh
-node --test tests/survivors.test.cjs tests/survivors.depth.cjs tests/survivors.clarity.cjs tests/survivors.roster.cjs tests/survivors.impacts.cjs
+node --test tests/survivors.test.cjs tests/survivors.depth.cjs tests/survivors.clarity.cjs tests/survivors.roster.cjs tests/survivors.impacts.cjs tests/survivors.audit.cjs tests/survivors.quality.cjs
 ```
 
-Las 150 pruebas cubren el cofre, pausa de efectos, desconexiones durante elecciones,
+Las 163 pruebas cubren el cofre, pausa de efectos, desconexiones durante elecciones,
 instantáneas online, 30 personajes con su arma y técnicas propias, jefes finales de los cuatro
 mapas y fases finales sucesivas, colisiones con enemigos grandes, ralentizaciones, recargas,
 fusión de progreso remoto, datos guardados incompletos y tickets de partidas que
@@ -47,6 +47,8 @@ node tests/survivors.specializations.cjs
 node tests/survivors.combat.cjs
 node tests/survivors.impacts.browser.cjs
 node tests/survivors.visual.cjs
+node tests/survivors.equipment.browser.cjs
+node tests/survivors.threats.browser.cjs
 # Probar el protocolo de juego con transporte simulado:
 RTC_TEST_MODE=mock node tests/survivors.online.cjs
 ```
@@ -107,7 +109,7 @@ Chromium no tiene su CA instalada; no modifica la configuración del juego.
   conservación del resumen de un compañero caído hasta el fin del equipo.
 - **Especializaciones:** tres etapas con ventajas y costes, requisitos de nivel y
   tiempo, comparaciones numéricas, ficha de estadísticas en pausa y resumen final
-  en escritorio y móvil. Las 150 pruebas de simulación cubren las nueve opciones
+  en escritorio y móvil. Las 163 pruebas de simulación cubren las nueve opciones
   en los 30 personajes, cofres, reinicio y recargas proporcionales de armas,
   habilidad, técnicas, drones y contactos orbitales.
 - **Combate propio y reliquias:** dieciocho comportamientos para espada, arco y
@@ -165,7 +167,7 @@ dispositivos.
   `docs/survivors/presentacion-movil-y-arte-2d.md`.
 
 La ampliación actual y la apertura secuencial con luz dorada se documentan en
-[Plantel y cofre](../docs/survivors/plantel-y-cofre.md). Las 150 pruebas de simulación
+[Plantel y cofre](../docs/survivors/plantel-y-cofre.md). Las 163 pruebas de simulación
 incluyen siete casos nuevos de contenido y ejecución real de ataques.
 
 La revisión de impactos y dificultad añade 17 regresiones de simulación en
@@ -174,3 +176,12 @@ iconos, 120 demostraciones de las cuatro técnicas ampliadas por dispositivo,
 impulso con teclado y dos dedos, recarga y traducción. La prueba cooperativa
 verifica el impulso del invitado en el anfitrión y su HUD. Ver
 [Impactos, presión y movimiento](../docs/survivors/impactos-presion-y-movimiento.md).
+
+- **Legibilidad y revisión de calidad:** siete regresiones de errores y seis
+  pruebas de progresión/avisos verifican orden de impacto entre compañeros,
+  llamas en el borde del torso, dirección vertical, corriente independiente de
+  los subpasos, invocaciones con límite y aviso, opciones distintas y recargas
+  de las 300 técnicas. Navegador verifica inspección del equipo con toque y
+  teclado, marcadores de rango, activación accesible, elección única del invitado,
+  cuatro siluetas hostiles, coordenadas 3D y movimiento reducido. Véase
+  [Combate legible y equipo](../docs/survivors/combate-legible-y-equipo.md).

@@ -512,7 +512,7 @@ test('horde medics restore nearby enemies without reviving dead ones or healing 
 test('snipers mark a fixed shot before firing and do not track the player during the warning',()=>{
  const {Game,TS}=engine();Game.start([setup('ranjay')]);const st=Game.state,p=st.players[0];p.weapons[0].cd=9999;p.x=0;p.y=0;
  const e=fixtureEnemy(TS,'tirador',130,0,{timer:1,dmg:12});st.enemies=[e];Game.step();assert.equal(st.eshots.length,0);assert.equal(st.zones[0].type,'dangerLine');
- p.x=50;p.y=100;for(let i=0;i<60;i++)Game.step();assert.ok(st.eshots.some(s=>s.vx<0 && Math.abs(s.vy)<.001));
+ const angle=e.lockAngle;p.x=50;p.y=100;for(let i=0;i<60;i++)Game.step();assert.ok(st.eshots.some(s=>s.vx<0 && Math.abs(Math.atan2(s.vy,s.vx)-angle)<.001));
 });
 test('all seven bosses change tactics with health and gapped rings leave a warned opening',()=>{
  const {Game,TS}=engine();for(const [id,patterns] of Object.entries(TS.BOSS_PATTERNS)){

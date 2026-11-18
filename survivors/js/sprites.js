@@ -419,7 +419,16 @@ const Sprites = (() => {
         p.line(7,2,4,6,light);p.line(4,6,7,10,light);p.line(4,6,10,6,light);p.P(7,3,light);
       });
     }
-    cache["fx:enemyShot"] = icon((p) => { p.ell(7, 7, 3, 3, (x, y) => ((x + y) % 2 ? "#ff3b6b" : "#ffb0c8")); });
+    // Dark silhouettes and pale cores remain legible against every biome.
+    // Shapes, not color alone, distinguish bullets, stars, slime and magic.
+    const hostile = {
+      bullet:p=>{p.rect(4,4,7,7,"#15232e");p.rect(5,5,5,5,"#e8ad50");p.rect(6,6,3,3,"#fff1c2");},
+      star:p=>{for(let i=0;i<5;i++){const span=4-i;p.rect(7-span,3+i,span*2+1,1,"#15232e");p.rect(7-span,11-i,span*2+1,1,"#15232e");}p.line(7,3,7,11,"#d4e4ee");p.line(3,7,11,7,"#d4e4ee");p.rect(6,6,3,3,"#fff7dc");},
+      goo:p=>{p.ell(7,7,4,3.4,"#152b27");p.ell(5,8,2.5,2.3,"#152b27");p.ell(7,6.6,3,2.4,"#82d969");p.P(5,6,"#e2f6ba");p.P(6,5,"#e2f6ba");p.P(8,8,"#4b9f61");},
+      orb:p=>{p.ell(7,7,4,4,"#25253a");p.ell(7,7,3,3,"#c98bdf");p.ell(6.5,6.5,1.7,1.7,"#fff0e5");}
+    };
+    for(const [kind,draw] of Object.entries(hostile))cache[`fx:enemyShot:${kind}`]=icon(draw);
+    cache["fx:enemyShot"]=cache["fx:enemyShot:orb"];
     cache.ground = groundTile();
     cache.tuft = (() => { const c = canvas(14, 16); const p = painter(c); const g = ["#2f6b2a", "#3a7a30", "#4a8a3a", "#5a9a44"]; for (const [bx, h, lean] of [[2, 11, -1], [4, 14, 0], [6, 12, 1], [8, 15, 0], [10, 11, 1], [11, 13, -1]]) for (let k = 0; k < h; k++) p.P(bx + Math.round((lean * k) / 6), 15 - k, g[Math.min(3, Math.floor((k / h) * 4))]); return ink(c); })();
     cache["patch:0"] = patch(3, ["#4a8044", "#55904c", "#ffe066", "#ffffff"]);
@@ -497,5 +506,7 @@ const Sprites = (() => {
     return s ? scaled(s, k).toDataURL() : "";
   }
 
-  return { build, get, portrait, portraitCanvas, silhouettePortrait, iconUrl, scaled, silhouette, ramp, mix, DECOR_IDS: Object.keys(DECOR) };
+  const enemyShot = kind => get(`fx:enemyShot:${kind}`) || get("fx:enemyShot");
+
+  return { build, get, enemyShot, portrait, portraitCanvas, silhouettePortrait, iconUrl, scaled, silhouette, ramp, mix, DECOR_IDS: Object.keys(DECOR) };
 })();
