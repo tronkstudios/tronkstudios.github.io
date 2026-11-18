@@ -14,6 +14,7 @@ const Save = (() => {
   function fresh() {
     return {
       coins: 0,
+      lastCoinAd: 0,
       owned: { [TS.STARTER]: { stars: 1 } },
       selected: TS.STARTER,
       shop: {},
@@ -46,7 +47,7 @@ const Save = (() => {
     d.owned = owned;
     if (!owned[d.selected]) d.selected = TS.STARTER;
     d.shop = Object.fromEntries(TS.SHOP.map(item => [item.id, Math.min(item.max, integer(d.shop && d.shop[item.id]))]));
-    for (const key of ["coins", "pity", "pulls", "runs", "savedAt"]) d[key] = integer(d[key]);
+    for (const key of ["coins", "pity", "pulls", "runs", "savedAt", "lastCoinAd"]) d[key] = integer(d[key]);
     for (const section of ["best", "stats"]) {
       for (const key of Object.keys(fresh()[section])) d[section][key] = integer(d[section][key]);
     }
@@ -118,6 +119,7 @@ const Save = (() => {
     Object.assign(d, {
       ...d,
       owned,
+      lastCoinAd: Math.max(integer(d.lastCoinAd), integer(remote.lastCoinAd)),
       coins: Math.max(0, Math.floor(Number(newer.coins) || 0)),
       pity: Number(newer.pity) || 0,
       pulls: Math.max(d.pulls || 0, Number(remote.pulls) || 0),

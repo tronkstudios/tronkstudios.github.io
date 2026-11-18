@@ -72,7 +72,7 @@ const fs=require('node:fs');const path=require('node:path');
     if(seen.size<6)failures.push(`${id}:${view}: frozen walking attack`);
    }
    return {failures,frames};
-  });assert.deepEqual(result.failures,[]);assert.equal(result.frames,30*5*15);assert.deepEqual(errors,[]);
+  });assert.deepEqual(result.failures,[]);assert.equal(result.frames,34*5*15);assert.deepEqual(errors,[]);
   if(process.env.SCREENSHOTS_DIR){fs.mkdirSync(process.env.SCREENSHOTS_DIR,{recursive:true});await page.screenshot({path:path.join(process.env.SCREENSHOTS_DIR,`characters-menu-${mobile?'mobile':'desktop'}.png`)});}
   console.log(`${mobile?'Mobile':'Desktop'}: ${result.frames} character frames, palettes, foot contact, five-view portraits and mask direction passed`);await page.close();
  }}finally{await browser.close();}

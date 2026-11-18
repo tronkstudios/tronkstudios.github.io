@@ -13,7 +13,7 @@ test('phased enemies never consume the hit ledger or the projectile',()=>{const 
 test('blade contact lasts through the visible swing and hits each enemy only once',()=>{const {Game,st,p,enemy}=run('ranjay');const e=enemy(100);Game._grid();Game._fire(p,p.weapons[0],{dmg:20,count:1},1,1,0,-18);Game._zones();Game._zones();assert.equal(e.hp,e.maxHp);Game._zones();e.x=35;Game._grid();Game._zones();assert.ok(e.hp<e.maxHp);const hp=e.hp;for(let i=0;i<5;i++)Game._zones();assert.equal(e.hp,hp);});
 test('sword sectors include an enemy body touching the outer edge and reject the opposite side',()=>{const {Game,enemy}=run();const edge=enemy(47,16),rear=enemy(-45,16);Game._grid();const hits=Game._sector(0,0,0,40,1);assert.ok(hits.includes(edge));assert.equal(hits.includes(rear),false);});
 test('a thrust includes body contact at the tip but does not extend without bounds',()=>{const {Game,enemy}=run();const edge=enemy(105,16),far=enemy(145,16);Game._grid();const hits=Game._line(0,0,0,100,5);assert.ok(hits.includes(edge));assert.equal(hits.includes(far),false);});
-test('all 30 heroes deal damage with all four extended native techniques and retain attribution',()=>{
+test('all 34 heroes deal damage with all four extended native techniques and retain attribution',()=>{
  for(const ch of run().TS.CHARACTERS)for(const skill of ['pursuit','rupture','crossfire','bastion']){
   const {Game,st,p,enemy}=run(ch.id);for(let i=0;i<12;i++)enemy(Math.cos(i*Math.PI/6)*34,Math.sin(i*Math.PI/6)*34);Game._grid();Game._tech(p,skill,3);
   for(let i=0;i<240;i++){st.t++;Game._shots();Game._zones();Game._grid();}

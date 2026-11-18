@@ -500,6 +500,10 @@ const Sprites = (() => {
       if(id==="estandarte"){g.fillStyle="#577daf";g.fillRect(9,3,8,8);}
       if(id==="diapason"){g.beginPath();g.moveTo(5,3);g.lineTo(5,10);g.quadraticCurveTo(10,16,15,10);g.lineTo(15,3);g.stroke();}
       if(id==="bumeran"){g.beginPath();g.moveTo(3,16);g.lineTo(10,4);g.lineTo(17,16);g.stroke();}
+      if(id==="sablelunar"){g.strokeStyle="#d4c4f2";g.beginPath();g.moveTo(6,17);g.quadraticCurveTo(2,8,16,3);g.stroke();}
+      if(id==="horquilla"){g.strokeStyle="#9de2ca";g.beginPath();g.moveTo(8,3);g.lineTo(8,8);g.lineTo(16,8);g.lineTo(16,3);g.stroke();}
+      if(id==="martilloforja"){g.fillStyle="#e89959";g.fillRect(7,3,11,6);}
+      if(id==="aro-retorno"){g.clearRect(0,0,20,20);g.strokeStyle="#e5d497";g.beginPath();g.arc(10,10,6,0,Math.PI*2);g.stroke();}
       cache[`icon:${id}`]=c;
     }
     const s = cache[`icon:${id}`];

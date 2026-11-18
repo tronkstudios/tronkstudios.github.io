@@ -480,6 +480,16 @@ const Stick = (() => {
     ctx.lineCap = "round"; ctx.lineJoin = "round";
     const wood = "#7a4a26", steel = "#dfe6f0", steelDk = "#5b6b80";
     switch (type) {
+      case "sablelunar":
+        ctx.strokeStyle="#d4c4f2";ctx.lineWidth=9;ctx.beginPath();ctx.moveTo(0,3);ctx.quadraticCurveTo(-18,tip*.65,11,tip);ctx.stroke();break;
+      case "horquilla":
+        ctx.strokeStyle=steel;ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(0,-7);ctx.lineTo(0,tip-25);ctx.stroke();
+        ctx.strokeStyle="#9de2ca";ctx.beginPath();ctx.moveTo(-13,tip);ctx.lineTo(-9,tip-23);ctx.lineTo(9,tip-23);ctx.lineTo(13,tip);ctx.stroke();break;
+      case "martilloforja":
+        ctx.fillStyle=wood;ctx.fillRect(-4,-10,8,tip);ctx.fillStyle="#464e57";ctx.fillRect(-22,tip-21,44,24);
+        ctx.fillStyle="#e89959";ctx.fillRect(-20,tip-17,40,5);break;
+      case "aro-retorno":
+        ctx.strokeStyle="#e5d497";ctx.lineWidth=8;ctx.beginPath();ctx.ellipse(0,24,19,24,0,0,Math.PI*2);ctx.stroke();break;
       case "garfio":ctx.strokeStyle=wood;ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(0,-8);ctx.lineTo(0,tip-22);ctx.stroke();ctx.strokeStyle=steel;ctx.lineWidth=7;ctx.beginPath();ctx.arc(0,tip-13,15,-Math.PI/2,Math.PI);ctx.stroke();break;
       case "prisma":ctx.strokeStyle="#727c91";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(0,-10);ctx.lineTo(0,tip-15);ctx.stroke();ctx.fillStyle="#a4e4de";ctx.beginPath();ctx.moveTo(0,tip+6);ctx.lineTo(14,tip-13);ctx.lineTo(0,tip-32);ctx.lineTo(-14,tip-13);ctx.closePath();ctx.fill();ctx.strokeStyle="#e5dcba";ctx.lineWidth=3;ctx.stroke();break;
       case "tijeras":for(const side of [-1,1]){ctx.strokeStyle=steel;ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(side*7,-8);ctx.lineTo(-side*15,tip);ctx.stroke();ctx.strokeStyle="#a35f78";ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(side*8,-8,7,10,0,0,Math.PI*2);ctx.stroke();}break;
@@ -596,6 +606,7 @@ const Stick = (() => {
 
   // Arma de Survivors → cómo se dibuja y cómo se mueve
   const WEAPON = {
+    sablelunar:["sablelunar",66,"slash"],horquilla:["horquilla",90,"cast"],martilloforja:["martilloforja",72,"smash"],"aro-retorno":["aro-retorno",45,"throw"],
     garfio:["garfio",90,"thrust"],prisma:["prisma",88,"cast"],tijeras:["tijeras",68,"slash"],estandarte:["estandarte",100,"cast"],diapason:["diapason",78,"smash"],bumeran:["bumeran",52,"throw"],
     faro:["faro",100,"cast"], arco:["arco",64,"bow"], bobina:["bobina",40,"cast"], abanico:["abanico",30,"throw"], tambor:["tambor",35,"smash"],
     discos: ["magnet", 0, "cast"], acido: ["vial", 0, "throw"], llamas: ["flamer", 40, "shoot"],

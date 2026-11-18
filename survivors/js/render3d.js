@@ -455,6 +455,18 @@ const Render3D = (() => {
     const steel = 0xdfe6f0;
     const wood = 0x7a4a26;
     switch (type) {
+      case "sablelunar":
+        for(let i=0;i<7;i++)b([-Math.sin(i/6*Math.PI)*10,13+i*8,0],[6,11,3],0xd4c4f2,"box",(i-3)*.14);
+        break;
+      case "horquilla":
+        b([0,28,0],[5,71,5],steel,"cyl");
+        for(const side of [-1,1])b([side*11,72,0],[6,31,5],0x9de2ca,"box",-side*.15);
+        b([0,59,0],[23,6,6],steel);break;
+      case "martilloforja":
+        b([0,24,0],[6,66,6],wood,"cyl");b([0,58,0],[44,22,19],0x464e57);b([0,62,0],[45,4,20],0xe89959);break;
+      case "aro-retorno":
+        for(let i=0;i<10;i++){const a=i*TAU/10;b([Math.cos(a)*18,24+Math.sin(a)*22,0],[12,7,5],0xe5d497,"box",a+Math.PI/2);}
+        break;
       case "garfio":b([0,25,0],[5,68,5],wood,"cyl");for(let i=0;i<7;i++){const a=-Math.PI/2+i*Math.PI*1.5/6;b([Math.cos(a)*15,65+Math.sin(a)*15,0],[6,9,5],steel);}break;
       case "prisma":b([0,26,0],[5,65,5],0x727c91,"cyl");b([0,73,0],[17,25,13],0xa4e4de,"octa");break;
       case "tijeras":for(const side of [-1,1]){b([side*8,27,0],[6,65,3],steel,"box",side*.25);b([side*8,-8,0],[8,12,3],0xa35f78,"ring");}break;
@@ -978,7 +990,7 @@ const Render3D = (() => {
       case "bolt": at("box", s.x, h, s.y, 14, 1.6, 1.6, 0xe9d8b0, -ang); break;
       case "kunai": at("box", s.x, h, s.y, 10, 1.4, 3, 0x2a2a35, -ang); break;
       case "onda": at("ghost", s.x, h, s.y, s.r * 0.6, 6, s.r, 0xffb03b, -ang); break;
-      case "axe": if(s.style==="boomerang"){for(const side of [-1,1])at("box",s.x+Math.cos(ang+side*.6)*4,h,s.y+Math.sin(ang+side*.6)*4,9,2,3,0xca9d62,-ang-side*.6);}else at("box",s.x,h,s.y,12,3,12,0xcfd8e3,t*.4);break;
+      case "axe": if(s.style==="returnRing")at("ring",s.x,h,s.y,9,3,8,0xe5d497);else if(s.style==="boomerang"){for(const side of [-1,1])at("box",s.x+Math.cos(ang+side*.6)*4,h,s.y+Math.sin(ang+side*.6)*4,9,2,3,0xca9d62,-ang-side*.6);}else at("box",s.x,h,s.y,12,3,12,0xcfd8e3,t*.4);break;
       case "ball": at("sph", s.x, 6 + Math.abs(Math.sin(t * 0.2 + s.x)) * 10, s.y, 5, 5, 5, 0xffffff); break;
       case "ice": at("octa", s.x, h, s.y, 3.5, 3.5, 6, 0x9fdcff, -ang); break;
       default: at("glow", s.x, h, s.y, 3, 3, 3, 0xffffff);

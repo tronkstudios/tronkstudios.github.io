@@ -541,6 +541,7 @@
       btn.addEventListener("click", () => show("gacha"));
       const newcomer=TS.NEW_ROSTER.find(c=>c.id===id),keys={runs:"partidas",kills:"enemigos derrotados",bosses:"jefes derrotados",time:"segundos de supervivencia"};
       box.append(el("p","",newcomer?`${L("También se desbloquea jugando")}: ${newcomer.unlock.value} ${L(keys[newcomer.unlock.key])}.`:L("Consíguelo en el Cofre Tronk con las monedas que ganas jugando.")),btn);
+      if (newcomer?.rewardedUnlock && RewardedAds.configured) box.append(adButton(newcomer));
     }
   }
 
@@ -548,8 +549,52 @@
      COFRE
      ======================================================= */
 
+  const coinAdReady = () => Date.now() - save.lastCoinAd >= RewardedAds.cooldown;
+
+  function adButton(character) {
+    const button = el("button", "btn btn-small", character
+      ? `${L("Ver anuncio para desbloquear a")} ${character.name}`
+      : L("Ver anuncio · +50 monedas"));
+    button.type = "button";
+    const label = button.textContent;
+    function refresh() {
+      const waiting = !character && !coinAdReady();
+      button.disabled = RewardedAds.pending || waiting;
+      button.textContent = waiting ? L("Vuelve más tarde para ganar monedas") : label;
+    }
+    refresh();
+    if (!character && !coinAdReady()) {
+      setTimeout(() => { if (button.isConnected) refresh(); }, Math.min(RewardedAds.cooldown, save.lastCoinAd + RewardedAds.cooldown - Date.now()));
+    }
+    button.addEventListener("click", async () => {
+      if (button.disabled || RewardedAds.pending || (!character && !coinAdReady())) return;
+      button.disabled = true;
+      const screen = current;
+      const granted = await RewardedAds.request(() => current === screen && button.isConnected);
+      if (granted) {
+        if (character && !save.owned[character.id]) {
+          save.owned[character.id] = { stars: 1 };
+          Save.persist();
+          toast(`${L("Personaje desbloqueado")} · ${character.name}`);
+        } else if (!character && coinAdReady()) {
+          save.lastCoinAd = Date.now();
+          Save.addCoins(RewardedAds.coins);
+          syncCoins();
+          toast(L("+50 monedas"));
+        }
+      } else if (current === screen) toast(L("No se completó ningún anuncio. Puedes volver a intentarlo."));
+      if (current === "chars") renderChars();
+      if (current === "gacha" && !pulling) renderGacha();
+    });
+    return button;
+  }
+
   function renderGacha() {
     syncCoins();
+    const rewards = $("gacha-rewarded");
+    rewards.replaceChildren();
+    rewards.hidden = !RewardedAds.configured;
+    if (RewardedAds.configured) rewards.append(adButton());
     $("gacha-chest").style.backgroundImage = `url(${Sprites.iconUrl("cofre", 12)})`;
     $("cost-1").textContent = save.freePull ? LT("free") : TS.GACHA.cost1;
     $("cost-10").textContent = TS.GACHA.cost10;
