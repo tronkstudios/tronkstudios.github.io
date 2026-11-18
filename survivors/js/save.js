@@ -25,6 +25,7 @@ const Save = (() => {
       pulls: 0,
       freePull: true, // la primera tirada es gratis
       best: { time: 0, kills: 0, level: 0, wins: 0, streak:0 },
+      bestVeteran: {time:0, kills:0, level:0, wins:0, streak:0},
       runs: 0, history:[],
       settings: { music: true, sfx: true, musicVol: 0.7, sfxVol: 0.9, lang: "" },
       name: "",
@@ -83,7 +84,8 @@ const Save = (() => {
     if (!owned[d.selected]) d.selected = TS.STARTER;
     d.shop = Object.fromEntries(TS.SHOP.map(item => [item.id, Math.min(item.max, integer(d.shop && d.shop[item.id]))]));
     for (const key of ["coins", "pity", "pulls", "runs", "savedAt", "lastCoinAd", "lastChestAd", "redeemedChestAd"]) d[key] = integer(d[key]);
-    for (const section of ["best", "stats"]) {
+    d.bestVeteran = { ...fresh().bestVeteran, ...d.bestVeteran };
+    for (const section of ["best", "bestVeteran", "stats"]) {
       for (const key of Object.keys(fresh()[section])) d[section][key] = integer(d[section][key]);
     }
     d.adUnlocks = Object.fromEntries(TS.CHARACTERS.flatMap(ch => {
@@ -99,8 +101,9 @@ const Save = (() => {
   function normalizeHistory(rows){
     return (Array.isArray(rows)?rows:[]).filter(r=>r && TS.CHARACTERS.some(c=>c.id===r.charId)&&TS.MAPS[r.map]).map(r=>({
       id:typeof r.id==="string"?r.id.slice(0,80):String(integer(r.at)),at:integer(r.at),charId:r.charId,map:r.map,
-      signature:TS.validRunSignature(r.signature),daily:typeof r.daily==="string"?r.daily.slice(0,30):null,coop:!!r.coop,seconds:integer(r.seconds),kills:integer(r.kills),level:integer(r.level),
+      signature:TS.validRunSignature(r.signature),veteran:!!r.veteran,daily:typeof r.daily==="string"?r.daily.slice(0,30):null,coop:!!r.coop,seconds:integer(r.seconds),kills:integer(r.kills),level:integer(r.level),
       dealt:integer(r.dealt),healed:integer(r.healed),taken:integer(r.taken),activePath:TS.ACTIVE_PATHS[r.activePath]?r.activePath:null,
+      techniquePaths:Object.fromEntries(Object.entries(r.techniquePaths || {}).filter(([id,variant])=>["power","reach"].includes(variant) && TS.TECHNIQUES[r.charId]?.some(move=>move.id===id))),
       techniques:Object.fromEntries(Object.entries(r.techniques || {}).filter(([id,n])=>TS.TECHNIQUES[r.charId]?.some(m=>m.id===id)&&Number.isFinite(n)).map(([id,n])=>[id,Math.min(5,integer(n))]))
     })).sort((a,b)=>b.at-a.at).filter((r,i,arr)=>arr.findIndex(o=>o.id===r.id)===i).slice(0,30);
   }
@@ -171,6 +174,7 @@ const Save = (() => {
       freePull: d.freePull && remote.freePull !== false,
       shop: maxObj(d.shop, remote.shop),
       best: maxObj(d.best, remote.best),
+      bestVeteran: maxObj(d.bestVeteran, remote.bestVeteran),
       stats: maxObj(d.stats, remote.stats),
       achievements: maxObj(d.achievements, remote.achievements),
       maps: maxObj(d.maps, remote.maps),
@@ -293,12 +297,13 @@ const Save = (() => {
     const d = get();
     d.runs += 1;
     const combat=result.combat?.[playerId] || {},at=Date.now();
-    d.history=normalizeHistory([{id:`${at}-${d.runs}-${result.charId}`,at,signature:result.signature,charId:result.charId,map:result.map,seconds:result.seconds,kills:result.kills,level:result.level,daily:result.daily,coop:result.coop,dealt:combat.dealt,healed:combat.healed,taken:combat.taken,activePath:result.activePaths?.[playerId],techniques:result.techniques?.[playerId]},...(d.history || [])]);
-    d.best.time = Math.max(d.best.time, result.seconds);
-    d.best.kills = Math.max(d.best.kills, result.kills);
-    d.best.level = Math.max(d.best.level, result.level);
-    d.best.streak=Math.max(Number.isFinite(d.best.streak)?Math.max(0,Math.floor(d.best.streak)):0,Number.isFinite(result.bestStreak)?Math.max(0,Math.floor(result.bestStreak)):0);
-    if (result.victory) d.best.wins += 1;
+    d.history=normalizeHistory([{id:`${at}-${d.runs}-${result.charId}`,at,signature:result.signature,charId:result.charId,map:result.map,seconds:result.seconds,kills:result.kills,level:result.level,daily:result.daily,veteran:result.veteran,coop:result.coop,dealt:combat.dealt,healed:combat.healed,taken:combat.taken,activePath:result.activePaths?.[playerId],techniques:result.techniques?.[playerId],techniquePaths:result.techniquePaths?.[playerId]},...(d.history || [])]);
+    const best = result.veteran ? d.bestVeteran : d.best;
+    best.time = Math.max(best.time, result.seconds);
+    best.kills = Math.max(best.kills, result.kills);
+    best.level = Math.max(best.level, result.level);
+    best.streak=Math.max(Number.isFinite(best.streak)?Math.max(0,Math.floor(best.streak)):0,Number.isFinite(result.bestStreak)?Math.max(0,Math.floor(result.bestStreak)):0);
+    if (result.victory) best.wins += 1;
     d.coins += result.coins;
     const s = d.stats;
     s.kills += result.kills;

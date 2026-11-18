@@ -57,3 +57,6 @@ button.hud-compass{pointer-events:auto;font-family:inherit;cursor:pointer;text-a
 .profile-stats dd { flex: none; margin: 0; color: #eccf99; font-variant-numeric: tabular-nums; }
 .ad-unlock-progress { display: block; width: 100%; accent-color: #eccf99; margin: 5px 0 9px; }
 #gacha-rewarded { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+
+.practice-controls { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+.practice-controls select { max-width:100%; background:#102630; color:#e3efeb; border:1px solid #547278; border-radius:7px; padding:6px; }

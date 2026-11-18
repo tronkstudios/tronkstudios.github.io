@@ -57,11 +57,12 @@ const Render3D = (() => {
     pools[name] = m;
   }
 
+  let effectBrightness = 1;
   function push(name, matrix, color) {
     const p = pools[name];
     if (p.count >= p.userData.cap) return;
     p.setMatrixAt(p.count, matrix);
-    p.setColorAt(p.count, tmpC.set(color));
+    p.setColorAt(p.count, tmpC.set(color).multiplyScalar(effectBrightness));
     p.count++;
   }
 
@@ -511,6 +512,7 @@ const Render3D = (() => {
         b([0, len * 0.7, 0], [28, 4, 4], 0xe0b84a);
         for (const x of [-13, 0, 13]) b([x, len * 0.7 + 12, 0], [3, x ? 20 : 26, 3], 0xe0b84a);
         break;
+      case "pistolaAliada": b([0,6,0],[8,25,8],0x90a8ad);b([5,-5,0],[10,10,8],0x394b51);break;
       case "rifle": b([0, len * 0.2, 0], [7, len, 7], 0x2a2a30); b([0, -len * 0.25, 0], [9, 18, 9], 0x5a4630); break;
       case "baston": b([0, len * 0.25, 0], [3, len, 3], wood, "cyl"); b([0, len * 0.76, 0], [7, 7, 7], 0xe9c46a, "glow"); break;
       case "petardo": b([0, 12, 0], [5, 24, 5], 0xd62828, "cyl"); b([0, 30, 0], [5, 5, 5], 0xffd23f, "glow"); break;
@@ -772,6 +774,14 @@ const Render3D = (() => {
   function prop(e, flash) {
     const w = flash ? 0xffffff : null;
     switch (e.type) {
+      case "obelisk":
+        at("box",e.x,13,e.y,20,26,20,0x31304b);
+        at("octa",e.x,35,e.y,12,18,12,w || 0xb6a4df);
+        at("glowBox",e.x,18,e.y+10,4,15,2,0xc8acff);
+        at("ring",e.x,2,e.y,18,2,18,0x9474c3);
+        at("glowBox",e.x,52,e.y,24,3,3,0x102630);
+        if(e.pct>0)at("glowBox",e.x-11+11*e.pct,52,e.y+2,22*e.pct,2,2,0xc8acff);
+        break;
       case "barril":
         at("cyl", e.x, 9, e.y, 8, 18, 8, w || 0x8a5a2b);
         at("cyl", e.x, 4, e.y, 8.3, 1.4, 8.3, 0x3a3f4a);
@@ -881,6 +891,11 @@ const Render3D = (() => {
       if (a.creature) { creature(a, k, a.flash); continue; }
       const base=optionsFor(a.kind,a.id);
       const o={...base,role:a.role || base.role,evolution:a.evolution};
+      if (a.role === "tronkAliado") {
+        at("ring",a.x,1,a.y,15,2,15,0x91eac9);
+        at("glowBox",a.x,66,a.y,24,3,3,0x102630);
+        if(a.pct>0)at("glowBox",a.x-11+11*a.pct,66,a.y+2,22*a.pct,2,2,0x91eac9);
+      }
       const P = poseFor(o, a.moving, a.walkT || a.t || 0, a.atk);
       stickman(o, a.x, a.y, a.ang, P, k, a.flash, a.outline !== false);
     }
@@ -933,9 +948,15 @@ const Render3D = (() => {
     for (const a of d.auras) at("disc", a.x, 0.8, a.y, a.r, 1, a.r, 0xb7f27b);
     for (const dr of d.drones) { at("box", dr.x, dr.h, dr.y, 9, 3, 6, 0x3d4451); at("glow", dr.x, dr.h, dr.y + 3, 1.5, 1.5, 1.5, 0x00e5ff); }
     // disparos
+    effectBrightness = d.softAttacks ? .46 : 1;
     for (const s of d.shots) shot(s, d.t);
+    effectBrightness = 1;
     for (const s of d.eshots) hostileShot(s,d);
-    for (const z of d.zones) zone(z, d.t, d.reducedMotion);
+    for (const z of d.zones) {
+      effectBrightness = d.softAttacks && d.playerEffects?.has(z.type) && !z.friendly ? .46 : 1;
+      zone(z, d.t, d.reducedMotion);
+    }
+    effectBrightness = 1;
     for (const f of d.fx) effect(f);
 
     for (const p of Object.values(pools)) {
@@ -1075,12 +1096,12 @@ const Render3D = (() => {
         // rayo: los puntos «por encima» del último (en la pantalla 2D) son altura
         if (!z.pts) break;
         const base = z.pts[z.pts.length - 1][1];
-        const P3 = ([px, py]) => (base - py > 30 ? [px, 16 + (base - py), base + 14] : [px, 18, py + 16]);
+        const P3 = ([px, py]) => (!z.friendly && base - py > 30 ? [px, 16 + (base - py), base + 14] : [px, 18, py + 16]);
         for (let i = 0; i < z.pts.length - 1; i++) {
           const a = P3(z.pts[i]);
           const b = P3(z.pts[i + 1]);
-          if(!reducedMotion)a[0] += (Math.random() - 0.5) * 6;
-          between("glowCyl", a, b, 1.6, 0xbfe6ff);
+          if(!reducedMotion && !z.friendly)a[0] += (Math.random() - 0.5) * 6;
+          between("glowCyl", a, b, z.friendly ? .8 : 1.6, z.friendly ? 0xffe6a0 : 0xbfe6ff);
         }
         break;
       }
@@ -1111,6 +1132,8 @@ const Render3D = (() => {
     switch (f.k) {
       case "pickup":
         at("ring",f.x,2+k*10,f.y,9+k*15,1.5,5+k*8,f.color || 0xf0cb82);break;
+      case "tracer":
+        between("glowCyl",[f.x,12,f.y],[f.tx,12,f.ty],2,0xffbb96);break;
       case "impact":{
         const r=(f.big?13:8)*(1+k),angle=f.ang || 0;
         for(const offset of [-.7,.7]){const a=angle+offset;between("glowCyl",[f.x-Math.cos(a)*r,18,f.y-Math.sin(a)*r],[f.x+Math.cos(a)*r,18,f.y+Math.sin(a)*r],f.big?1.7:1,f.color || 0xf8e8c8);}break;

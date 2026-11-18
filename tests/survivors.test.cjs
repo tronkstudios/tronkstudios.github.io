@@ -629,7 +629,7 @@ test('compass finds healing at critical health, keeps revive priority and explai
  st.pickups=[{kind:'cofre',x:p.x+20,y:p.y},{kind:'bocadillo',x:p.x+100,y:p.y}];
  assert.equal(Game.hudData().compass.label,'jensalada');ally.down=true;ally.hp=0;assert.equal(Game.hudData().compass.label,'Revivir');
  Game.dropPlayer(1);p.hp=p.stats.maxHp;assert.equal(Game.hudData().compass.label,'Cofre');st.pickups=[];
- assert.equal(Game.hudData().compass.label,'Campamento');const site=st.sites[0];p.x=site.x;p.y=site.y;assert.equal(Game.hudData().site.hint,'Cura durante 20 s');
+ assert.equal(Game.hudData().compass.label,'Campamento');const site=st.sites[0];p.x=site.x;p.y=site.y;assert.equal(Game.hudData().site.hint,'Recluta defensores y activa el refugio');
  const snap=Game.snapshot([p]);Game.startGuest({localId:0,players:[setup('ranjay'),setup('lia')]});Game.applySnapshot(snap);assert.equal(Game.hudData().compass.kind,'site');
 });
 
@@ -742,7 +742,7 @@ test('the three distinct kits retain six gated native techniques with different 
  for(const charId of ['ranjay','iria','duna']){
   const signatures=[];
   for(const id of ['burst','ring','pierce','guard','focus','surge']){
-   const st=combatRun(Game,charId),p=st.players[0];st.enemies=[combatEnemy(900,150,0)];p.techniques={[id]:3};p.techCds={[id]:0};Game.step();
+   const st=combatRun(Game,charId),p=st.players[0];st.enemies=[combatEnemy(900,55,0)];p.techniques={[id]:3};p.techCds={[id]:0};Game.step();
    assert.equal(p.weapons[0].id,TS.CHARACTERS.find(c=>c.id===charId).weapon);assert.ok(TS.TECHNIQUES[charId].find(m=>m.id===id).icon.startsWith('move:'));
    signatures.push(JSON.stringify({zones:st.zones.map(z=>[z.type,z.straight,z.stationary,z.orbit,z.spiral,z.R,z.len,z.ang,z.t,z.spread]),shots:st.shots.map(s=>[s.style,s.delay,s.pierce,s.slow,s.r,s.dmg]),parry:p.parryCharges}));
   }assert.equal(new Set(signatures).size,6,charId);
@@ -803,7 +803,7 @@ test('midgame pincer warns before spawning, leaves an opening and respects pause
 
 });
 test('relics, projectile variants and pincer warnings reach guest snapshots and results',()=>{
- const {Game}=engine();const st=combatRun(Game,'iria'),p=st.players[0];p.relics=['prisma','semilla'];st.enemies=[combatEnemy(999,200,0)];p.techniques={focus:1};p.techCds={focus:0};Game.step();for(let i=0;i<13;i++)Game.step();
+ const {Game}=engine();const st=combatRun(Game,'iria'),p=st.players[0];p.relics=['prisma','semilla'];st.enemies=[combatEnemy(999,55,0)];p.techniques={focus:1};p.techCds={focus:0};Game.step();for(let i=0;i<13;i++)Game.step();
  st.zones.push({type:'pincer',x:0,y:0,ang:0,opening:1,r:170,spawnR:500,count:10,t:2,warn:90,life:91});st.nextPressure=40000;
  const snap=Game.snapshot([p]);assert.ok(snap.s.some(s=>s[6]==='focus'));let result;Game.on('end',r=>result=r);Game.finish(false);assert.deepEqual(Array.from(result.relics[0]),['prisma','semilla']);
  Game.startGuest({localId:0,players:[setup('iria')]});Game.applySnapshot(snap);assert.equal(Game.hudData().relics.length,2);assert.equal(Game.state.shots[0].style,'focus');assert.equal(Game.state.zones[0].type,'pincer');assert.equal(Game.state.nextPressure,40000);
@@ -812,7 +812,7 @@ test('all eighteen distinct technique cards preview the nominal power actually e
  const {Game,TS}=engine();for(const charId of ['ranjay','iria','duna'])for(const def of TS.TECHNIQUES[charId].filter(m=>!['pursuit','rupture','crossfire','bastion'].includes(m.id))){
   const st=combatRun(Game,charId),p=st.players[0];p.talents=['edge','tempo','resolve'];p.activePath='precision';st.level=def.unlock;st.t=def.at*60;st.nextPressure=st.nextBreach=st.nextElite=1e12;
   p.techniques=Object.fromEntries(TS.TECHNIQUES[charId].filter(d=>d.id!==def.id).map(d=>[d.id,5]));p.techCds=Object.fromEntries(Object.keys(p.techniques).map(id=>[id,1e9]));st.xp=st.xpNext;Game.step();
-  st.enemies=[combatEnemy(999,200,0)];const choice=st.choosing[0].find(o=>o.id===def.id&&o.kind==='technique');assert.ok(choice,charId+':'+def.id);const nominal=choice.preview[0].to;Game.choose(0,st.choosing[0].indexOf(choice));p.techCds[def.id]=0;st.shots=[];st.zones=[];Game.step();
+  st.enemies=[combatEnemy(999,55,0)];const choice=st.choosing[0].find(o=>o.id===def.id&&o.kind==='technique');assert.ok(choice,charId+':'+def.id);const nominal=choice.preview[0].to;Game.choose(0,st.choosing[0].indexOf(choice));p.techCds[def.id]=0;st.shots=[];st.zones=[];Game.step();
   const emitted=st.shots.find(s=>s.dmg) || st.zones.find(z=>z.dmg);assert.ok(emitted);assert.equal(Math.round(emitted.dmg*p.stats.might*10)/10,nominal,charId+':'+def.id);
  }
 });
