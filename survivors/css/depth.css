@@ -21,3 +21,12 @@ button.hud-compass{pointer-events:auto;font-family:inherit;cursor:pointer;text-a
 
 .link-time{display:none}.is-linked .link-time{display:block;position:absolute;top:-5px;right:-2px;z-index:2;padding:1px 3px;border-radius:4px;background:#173442;color:#d9f7ff;font:bold 9px sans-serif}
 .combat-guide{text-align:left;margin:12px 0;border:1px solid #49616c;border-radius:10px;padding:10px}.combat-guide summary{cursor:pointer;font-weight:bold}.combat-guide p{font-size:.85rem;line-height:1.6;color:#c4d9dc}
+
+/* Equipment can be inspected without relying on hover, including on phones. */
+.pause-build button.hud-slot{border:0;padding:0;color:inherit;font:inherit;cursor:pointer;touch-action:manipulation;width:44px;height:44px;flex:0 0 44px}
+.pause-build button.hud-slot:focus-visible,.pause-build button.hud-slot[aria-pressed="true"]{outline:3px solid #f2d397;outline-offset:3px}
+.equipment-detail{text-align:left;font-size:12px;line-height:1.5;padding:10px 12px;border:1px solid #8fb3ad55;border-radius:10px;background:#102832;color:#c6dbd7;overflow-wrap:anywhere}
+.equipment-heading{display:flex;flex-wrap:wrap;justify-content:space-between;gap:3px 12px;color:#f3ddb5}.equipment-heading span{font-size:11px;color:#b6d9cb}.equipment-detail p{margin:6px 0}.equipment-detail small{font-size:11px}.equipment-performance{display:block;margin-top:6px;color:#9dd9d5}
+.upgrade-ranks{display:flex;align-items:center;flex-wrap:wrap;gap:5px 10px;margin:6px 0;color:#bad6d4;font-size:10px;line-height:1.4}.rank-steps{display:inline-flex;gap:3px}.rank-steps i{width:13px;height:4px;background:#0a1c28;border:1px solid #65828b;border-radius:2px}.rank-steps .is-owned{background:#96b9bc;border-color:#96b9bc}.rank-steps .is-next{background:#f4cf89;border-color:#ffe1a4;box-shadow:0 0 4px #f4cf8944}
+#hud-ab:disabled{opacity:.55}
+@media (any-pointer:coarse){.pause-build{gap:10px}.up-card .upgrade-ranks{font-size:10px}}

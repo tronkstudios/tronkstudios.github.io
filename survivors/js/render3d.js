@@ -154,6 +154,8 @@ const Render3D = (() => {
     pool("inkSph", sph, ink, 3000, false);
     pool("glow", sph, basic(), 2500, false);
     pool("glowCyl", cyl, basic(), 600, false);
+    // Countdown detail must never consume the budget for attack trajectories.
+    pool("warningCyl", cyl, basic(), 600, false);
     pool("glowBox", box, basic(), 2500, false);
     pool("ghost", sph, ghost(), 1500, false);
     pool("ghostBox", box, ghost(), 1500, false);
@@ -911,7 +913,8 @@ const Render3D = (() => {
     for (const g of d.gems) {
       const c = g.v >= 10 ? 0xff5a8a : g.v >= 3 ? 0x5fe36b : 0x6bd8ff;
       const s = g.v >= 10 ? 6 : g.v >= 3 ? 5 : 4;
-      at("octa", g.x, 10 + Math.sin((d.t + g.x) * 0.08) * 2, g.y, s * 0.8, s * 1.2, s * 0.8, c, d.t * 0.05 + g.x);
+      const phase=d.reducedMotion?0:d.t;
+      at("octa", g.x, 10 + (d.reducedMotion?0:Math.sin((phase + g.x) * 0.08) * 2), g.y, s * 0.8, s * 1.2, s * 0.8, c, phase * 0.05 + g.x);
     }
     for(const it of d.pickups)drawPickup(it,d);
     // aura de la colonia y drones
@@ -919,12 +922,8 @@ const Render3D = (() => {
     for (const dr of d.drones) { at("box", dr.x, dr.h, dr.y, 9, 3, 6, 0x3d4451); at("glow", dr.x, dr.h, dr.y + 3, 1.5, 1.5, 1.5, 0x00e5ff); }
     // disparos
     for (const s of d.shots) shot(s, d.t);
-    for (const s of d.eshots) {
-      if(d.contrast){at("glow",s.x,16,s.y,7,7,7,0x10212b);at("ring",s.x,16,s.y,8,2,8,0xfff1ca);}
-      const c = { bullet: 0xffb03b, star: 0xffe066, goo: 0x7cff6b }[s.kind] || 0xc77dff;
-      at("glow", s.x, d.contrast?22:16, s.y+(d.contrast?4:0), 3.5, 3.5, 3.5, c);
-    }
-    for (const z of d.zones) zone(z, d.t);
+    for (const s of d.eshots) hostileShot(s,d);
+    for (const z of d.zones) zone(z, d.t, d.reducedMotion);
     for (const f of d.fx) effect(f);
 
     for (const p of Object.values(pools)) {
@@ -932,6 +931,37 @@ const Render3D = (() => {
       if (p.instanceColor) p.instanceColor.needsUpdate = true;
     }
     renderer.render(scene, camera);
+  }
+
+  function hostileShot(s,d){
+    // Simulation shots use torso-space y; restore the ground coordinate just
+    // like slashes, thrusts and lightning before applying physical height.
+    const x=s.x,z=s.y+16,h=18;
+    if(d.contrast){at("glow",x,h,z,7,7,7,0x10212b);at("ring",x,h,z,8,2,8,0xfff1ca);}
+    if(s.kind==="star"){
+      at("octa",x,h,z,6,1.5,6,0x15232e);
+      at("glowBox",x,h+1.5,z,10,1.5,1.5,0xd4e4ee);
+      at("glowBox",x,h+1.5,z,1.5,1.5,10,0xd4e4ee);
+      at("glow",x,h+2,z,1.7,1.7,1.7,0xfff7dc);
+    }else if(s.kind==="goo"){
+      at("glow",x,h,z,4.8,3.8,4.8,0x152b27);
+      at("glow",x,h+1.5,z+.9,3.6,2.6,3.6,0x82d969);
+      at("glow",x-1.2,h+3,z+1,1,1,1,0xe2f6ba);
+    }else{
+      const bullet=s.kind==="bullet";
+      at("glow",x,h,z,4.5,4.5,4.5,bullet?0x15232e:0x25253a);
+      at("glow",x,h+1.1,z+1.4,3.3,3.3,3.3,bullet?0xe8ad50:0xc98bdf);
+      at("glow",x-.6,h+2.4,z+2.8,1.5,1.5,1.5,bullet?0xfff1c2:0xfff0e5);
+    }
+  }
+
+  // A shrinking amber arc communicates the remaining warning without flashes.
+  function warningClock(x,y,r,progress,color=0xffd3a3){
+    const n=12,remaining=1-clamp(progress,0,1);
+    for(let i=0;i<n && i/n<remaining;i++){
+      const a=-Math.PI/2+i*TAU/n,b=-Math.PI/2+Math.min((i+1)/n,remaining)*TAU;
+      between("warningCyl",[x+Math.cos(a)*r,2.8,y+Math.sin(a)*r],[x+Math.cos(b)*r,2.8,y+Math.sin(b)*r],1.2,color);
+    }
   }
 
   function shot(s, t) {
@@ -964,7 +994,7 @@ const Render3D = (() => {
     }
   }
 
-  function zone(z, t) {
+  function zone(z, t, reducedMotion = false) {
     if (z.t < 0) return;
     const k = z.t / (z.life || 1);
     switch (z.type) {
@@ -975,17 +1005,30 @@ const Render3D = (() => {
         for(let i=0;i<30;i++){const a=i*TAU/30,b=(i+1)*TAU/30,gap=Math.abs(Math.atan2(Math.sin((a+b)/2-z.ang),Math.cos((a+b)/2-z.ang)))<z.opening;
           between("glowCyl",[z.x+Math.cos(a)*z.r,2,z.y+Math.sin(a)*z.r],[z.x+Math.cos(b)*z.r,2,z.y+Math.sin(b)*z.r],gap?2.2:1.1,gap?0x80e3d0:0xed9b85);
         }between("glowCyl",[z.x,2,z.y],[z.x+Math.cos(z.ang)*z.r,2,z.y+Math.sin(z.ang)*z.r],1,0x80e3d0);break;
+      case "bastion":at("ring",z.x,2,z.y,z.r,2,z.r,0xecc986);for(let i=0;i<4;i++)at("box",z.x-9+i*6,3,z.y,3,3,3,z.t<=i*30?0xffe4a7:0x6c7069);break;
       case "refuge":at("ring",z.x,2,z.y,z.r,3,z.r,0x80e3d0);at("disc",z.x,1,z.y,z.r,1,z.r,0x3b7764);break;
-      case "dangerLine":
-        between("glowCyl",[z.x,2,z.y],[z.tx,2,z.ty],1.3,0xffab97);at("ring",z.tx,2,z.ty,12,2,12,0xffab97);break;
+      case "dangerLine": {
+        between("glowCyl",[z.x,2,z.y],[z.tx,2,z.ty],1.3,0xffab97);
+        at("ring",z.tx,2,z.ty,12,2,12,0xffab97);
+        warningClock(z.tx,z.ty,8,k);
+        break;
+      }
       case "dangerRing":
         for(let i=0;i<36;i++){const a=i*TAU/36,b=(i+1)*TAU/36;
           const gap=Math.abs(Math.atan2(Math.sin((a+b)/2-z.gap),Math.cos((a+b)/2-z.gap)))<z.width/2;
           between("glowCyl",[z.x+Math.cos(a)*z.r,2,z.y+Math.sin(a)*z.r],[z.x+Math.cos(b)*z.r,2,z.y+Math.sin(b)*z.r],1.8,gap?0x90e9c2:0xffab97);
         }break;
-      case "hazard":case "summon":
-        at("ring",z.x,2,z.y,z.r || 18,3,z.r || 18,0xff9c85);
-        at("disc",z.x,1,z.y,z.r || 18,1,z.r || 18,z.theme==="pools"?0x74ae65:0xb88bdf);break;
+      case "hazard":case "summon": {
+        const r=z.r || 18,ready=z.type==="hazard" && z.t>=z.warn;
+        at("ring",z.x,2,z.y,r,3,r,ready?0xff6e68:0xffb99a);
+        at("disc",z.x,1,z.y,r,1,r,z.theme==="pools"?0x74ae65:0xb88bdf);
+        if(!ready)warningClock(z.x,z.y,r*.78,z.t/(z.warn || z.life || 1));
+        else for(const a of [Math.PI/4,Math.PI*3/4]){
+          const dx=Math.cos(a)*r*.18,dy=Math.sin(a)*r*.18;
+          between("glowCyl",[z.x-dx,2.8,z.y-dy],[z.x+dx,2.8,z.y+dy],1.4,0xffc2ab);
+        }
+        break;
+      }
       case "disc":
         at("ring",z.x,14,z.y,z.r,20,z.r,z.gold?0xffd23f:0x64f5ff);break;
       case "perfume":
@@ -1024,7 +1067,7 @@ const Render3D = (() => {
         for (let i = 0; i < z.pts.length - 1; i++) {
           const a = P3(z.pts[i]);
           const b = P3(z.pts[i + 1]);
-          a[0] += (Math.random() - 0.5) * 6;
+          if(!reducedMotion)a[0] += (Math.random() - 0.5) * 6;
           between("glowCyl", a, b, 1.6, 0xbfe6ff);
         }
         break;

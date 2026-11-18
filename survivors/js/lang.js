@@ -21,6 +21,10 @@ let LANG = (() => {
 })();
 
 const EN = {
+  "Toca una pieza para ver sus detalles": "Tap an item to see its details",
+  "Rango máximo": "Maximum rank",
+  "Por rango": "Per rank",
+  "No quedan mejoras distintas para cambiar.": "There are no different upgrades left to reroll.",
   // Menú y pantallas
   "Cargando": "Loading",
   "Mover": "Move",
@@ -807,3 +811,6 @@ for(const [i,ch] of TS.NEW_ROSTER.entries()){
 }
 
 Object.assign(EN,{"Premio":"Reward","Abriendo el cofre…":"Opening the chest…"});
+
+Object.assign(EN,{"Impulso":"Dash","Impulso · Mayúsculas":"Dash · Shift","Mayúsculas":"Shift","Listo":"Ready","WASD o flechas · Mayúsculas impulso · Espacio habilidad · Esc pausa":"WASD or arrows · Shift dash · Space ability · Esc pause"});
+TEMPLATES.tipDash=["Pulsa {key} para un impulso en tu dirección. Recarga en 6 segundos y no te hace invulnerable.","Press {key} to dash in your direction. It recharges in 6 seconds and does not make you invulnerable."];

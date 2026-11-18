@@ -9,6 +9,30 @@ La mayor actualización de la web: portada nueva, perfiles, comunidad con panel
 del equipo, app instalable, versión en inglés y diseño que se adapta a cualquier
 pantalla. Estas son sus partes, de la más reciente a la primera.
 
+### 6.45 · Combate legible y equipo consultable en Tronk Survivors
+
+- Tiradores con trayectoria fijada y aviso previo; brujos con invocaciones
+  anunciadas, límite por origen y presupuesto global de enemigos.
+- Correcciones de colisión de llamas, orden de impacto cooperativo, apuntado
+  vertical y corriente durante el impulso.
+- Proyectiles enemigos diferenciados en 2D/3D, altura corregida, cuenta atrás
+  en zonas peligrosas y mejor respeto del movimiento reducido.
+- Equipo consultable por toque o teclado, rangos visibles y recargas coherentes
+  en las 300 técnicas. Cambiar opciones busca alternativas y conserva la carga
+  cuando no existen.
+- Activación accesible de la habilidad y protección frente a elecciones dobles
+  del invitado. Firma de reglas 5 y caché 9.
+
+### 6.44 · Impactos fiables y más presión en Tronk Survivors
+
+- Proyectiles con colisión entre posiciones, cortes con ventana de contacto y
+  corrección de técnicas con drones, discos, perfume y puños.
+- Dificultad creciente más intensa, tiradores con abanicos tardíos y límites
+  contra ralentizaciones permanentes. Se conserva el jefe final a 25:00.
+- Impulso manual con teclado, móvil y cooperativo; diez técnicas e iconos
+  diferenciados por personaje, con Fuego cruzado y Baluarte.
+- HUD compacto con equipo completo, arranque del invitado corregido y caché 8.
+
 ### 6.43 · Vídeo de Tronk Survivors más ligero
 
 #### Cambiado

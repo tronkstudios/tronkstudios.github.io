@@ -823,11 +823,11 @@ TS.activePathDescription=(charId,id)=>{
  return (TS.ACTIVE_TRAIT_TEXT[TS.ACTIVE_IDENTITIES[charId]?.[2]] || ["",""])[id==="precision"?0:1];
 };
 TS.siteName=s=>s.kind==="nest"?({ciudad:"Antena de refuerzos",playa:"Nido de coral",bosque:"Nido de refuerzos"}[s.theme] || TS.SITE_NAMES.nest):TS.SITE_NAMES[s.kind];
-TS.runSignature=(setups,opts={})=>JSON.stringify({version:3,party:setups.map(p=>({charId:p.charId,stars:Math.max(1,Math.min(TS.GACHA.maxStars,Number(p.stars)||1)),meta:Object.fromEntries(Object.entries(p.meta || {}).filter(([k,v])=>["maxHp","speed","might","area","cooldown","magnet","armor","regen","growth","greed","amount","revive","reviveSpeed"].includes(k)&&Number.isFinite(v)).sort(([a],[b])=>a.localeCompare(b)))})).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))),rules:{map:opts.map || "bosque",mods:[...(opts.mods || [])].sort(),easy:!!opts.easy,daily:!!opts.daily,seed:opts.daily?opts.seed || 0:null}});
+TS.runSignature=(setups,opts={})=>JSON.stringify({version:5,party:setups.map(p=>({charId:p.charId,stars:Math.max(1,Math.min(TS.GACHA.maxStars,Number(p.stars)||1)),meta:Object.fromEntries(Object.entries(p.meta || {}).filter(([k,v])=>["maxHp","speed","might","area","cooldown","magnet","armor","regen","growth","greed","amount","revive","reviveSpeed"].includes(k)&&Number.isFinite(v)).sort(([a],[b])=>a.localeCompare(b)))})).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))),rules:{map:opts.map || "bosque",mods:[...(opts.mods || [])].sort(),easy:!!opts.easy,daily:!!opts.daily,seed:opts.daily?opts.seed || 0:null}});
 
 TS.validRunSignature=value=>{
  if(typeof value!=="string" || value.length>8192)return "";
- try{const s=JSON.parse(value);return s.version===3 && Array.isArray(s.party) && s.party.length>0 && s.party.length<=4 && s.party.every(p=>p && TS.CHARACTERS.some(c=>c.id===p.charId)) && s.rules && TS.MAPS[s.rules.map] && Array.isArray(s.rules.mods) && s.rules.mods.every(m=>typeof m==="string") && TS.runSignature(s.party,s.rules)===value?value:"";}catch{return "";}
+ try{const s=JSON.parse(value);return s.version===5 && Array.isArray(s.party) && s.party.length>0 && s.party.length<=4 && s.party.every(p=>p && TS.CHARACTERS.some(c=>c.id===p.charId)) && s.rules && TS.MAPS[s.rules.map] && Array.isArray(s.rules.mods) && s.rules.mods.every(m=>typeof m==="string") && TS.runSignature(s.party,s.rules)===value?value:"";}catch{return "";}
 };
 
 // Siluetas y equipamiento compartidos por retratos, 2D y 3D.
@@ -869,3 +869,10 @@ for(const ch of TS.CHARACTERS)for(const [id,m] of Object.entries(TS.EXTRA_TECHNI
 TS.techniqueTotal=id=>(TS.TECHNIQUES[id] || []).reduce((n,m)=>n+m.max,0);
 
 for(const moves of Object.values(TS.TECHNIQUES))moves.sort((a,b)=>a.at-b.at);
+
+TS.EXTRA_TECHNIQUES.crossfire={name:"Fuego cruzado",nameEn:"Crossfire",at:300,unlock:16,cd:540,max:5,desc:"Dos ataques de tu arma desde los flancos: cubren trayectorias distintas.",descEn:"Two native-weapon attacks from the flanks cover different trajectories."};
+TS.EXTRA_TECHNIQUES.bastion={name:"Baluarte",nameEn:"Bastion",at:840,unlock:34,cd:840,max:5,desc:"Deja una posición de tu arma que ataca cuatro veces durante dos segundos mientras te mueves.",descEn:"Leaves a native-weapon position that attacks four times over two seconds while you move."};
+for(const ch of TS.CHARACTERS)for(const id of ["crossfire","bastion"]){const m=TS.EXTRA_TECHNIQUES[id];TS.TECHNIQUES[ch.id].push({...m,id,name:`${m.name} · ${ch.name}`,nameEn:`${m.nameEn} · ${ch.name}`,icon:ch.weapon});}
+for(const moves of Object.values(TS.TECHNIQUES))moves.sort((a,b)=>a.at-b.at);
+
+for(const ch of TS.CHARACTERS)for(const move of TS.TECHNIQUES[ch.id])move.icon=`move:${ch.id}:${move.id}`;

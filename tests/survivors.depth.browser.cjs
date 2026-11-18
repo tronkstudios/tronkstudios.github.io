@@ -5,7 +5,7 @@ for(const mobile of [false,true]){const page=await browser.newPage({viewport:mob
  await page.addInitScript(()=>{localStorage.setItem('tronk-lang','es');localStorage.setItem('tronk-survivors',JSON.stringify({runs:10,tutorial:true,settings:{fx:'high'},owned:{ranjay:{stars:1},iria:{stars:1},duna:{stars:1}}}));});
  await page.goto(`${process.env.BASE_URL||'http://127.0.0.1:8769'}/survivors/`);await page.waitForSelector('#menu.is-on');
  const shot=async name=>{if(process.env.SCREENSHOTS_DIR){fs.mkdirSync(process.env.SCREENSHOTS_DIR,{recursive:true});await page.screenshot({path:path.join(process.env.SCREENSHOTS_DIR,name+'.png')});}};
- await page.evaluate(()=>TronkUI.show('chars'));await page.locator('[data-char-id="iria"]').click();await page.waitForSelector('.character-preview canvas');await page.locator('.preview-move').selectOption('focus');await page.waitForTimeout(200);assert.equal(await page.locator('.preview-move option').count(),12);await shot(`depth-preview-${mobile?'mobile':'desktop'}`);
+ await page.evaluate(()=>TronkUI.show('chars'));await page.locator('[data-char-id="iria"]').click();await page.waitForSelector('.character-preview canvas');await page.locator('.preview-move').selectOption('focus');await page.waitForTimeout(200);assert.equal(await page.locator('.preview-move option').count(),14);await shot(`depth-preview-${mobile?'mobile':'desktop'}`);
  const previews=await page.evaluate(()=>{const before=Game.state,c=document.createElement('canvas');c.width=600;c.height=260;for(const ch of TS.CHARACTERS)for(const move of ['weapon','active',...TS.TECHNIQUES[ch.id].map(m=>m.id)])Game.characterPreview(c,ch.id,move,24);return before===Game.state;});assert.equal(previews,true);
  await page.evaluate(()=>TronkUI.play([{charId:'duna',name:'Duna'}],{seed:77,map:'cementerio'}));await page.waitForFunction(()=>Game.state?.players[0]?.charId==='duna'&&Game.state.t>1);
  await page.evaluate(()=>{const st=Game.state,p=st.players[0];p.iframes=999999;p.talents=['edge'];st.level=19;st.t=480*60;st.xp=st.xpNext;Game.step();});await page.waitForSelector('.up-card:enabled');assert.match(await page.locator('#levelup-title').textContent(),/Evoluciona/);assert.equal(await page.locator('.up-card').count(),2);assert.equal(await page.locator('#levelup-reroll').isVisible(),false);await shot(`depth-active-${mobile?'mobile':'desktop'}`);await page.locator('.up-card').nth(1).click();
@@ -21,6 +21,6 @@ for(const mobile of [false,true]){const page=await browser.newPage({viewport:mob
   const count=await page.evaluate(()=>window.testGroundRefreshes);
   await page.evaluate(()=>TronkUI.play([{charId:'ranjay'}],{seed:988,map:'bosque'}));await page.waitForFunction(key=>window.testGroundKey!==key,key);assert.ok(await page.evaluate(n=>window.testGroundRefreshes>n,count));
  }
- assert.deepEqual(errors,[]);console.log(`${mobile?'Mobile 2D':'Desktop 3D'}: 300 attack previews, active choice, tomb, results, comparable history and exact replay passed`);await page.close();
+ assert.deepEqual(errors,[]);console.log(`${mobile?'Mobile 2D':'Desktop 3D'}: 360 attack previews, active choice, tomb, results, comparable history and exact replay passed`);await page.close();
 }
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

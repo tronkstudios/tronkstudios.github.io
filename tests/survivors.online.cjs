@@ -8,7 +8,7 @@ const assert = require('node:assert/strict');
     const context=await browser.newContext({ignoreHTTPSErrors:process.env.ALLOW_TEST_PROXY_CERT==='1',locale:'es-ES'});
     const pages=[];const errors=[];
     async function player() {
-      const page=await context.newPage();pages.push(page);page.on('pageerror',e=>errors.push(e.message));
+      const page=await context.newPage();pages.push(page);page.on('pageerror',e=>errors.push(e.stack));
       await page.exposeBinding('mockRtcMessage', async (_source, message) => {
         for (const other of pages) if (!other.isClosed()) {
           await other.evaluate(message => {
@@ -101,6 +101,11 @@ const assert = require('node:assert/strict');
     await guest.keyboard.down('d');
     await host.waitForFunction(x=>Game.state.players[1].x>x+5,before,{timeout:5000});
     await guest.keyboard.up('d');
+    await guest.keyboard.press('Shift');
+    await host.waitForFunction(()=>Game.state.players[1].dashCd>0);
+    await guest.waitForFunction(()=>Game.state.players[1].dashCd>0 && !Game.hudData().dash.ready);
+    await guest.waitForFunction(()=>/s/.test(document.getElementById('hud-dash-state').textContent));
+
     await host.evaluate(()=>{Game.state.t=120*60-1;Game.step();const p=Game.state.players[1];p.techniques.surge=1;const e=Game.state.enemies.find(e=>e.breach);e.x=p.x+90;e.y=p.y;e.hp=e.maxHp*.45;});
     await guest.waitForFunction(()=>Game.state.breach?.remaining===4 && Game.hudData().techniques.some(m=>m.id==='surge'));
     assert.ok(await guest.evaluate(()=>Game.state.enemies.some(e=>e.breach&&e.hp<1)));
@@ -169,6 +174,6 @@ const assert = require('node:assert/strict');
     const tick=await host.evaluate(()=>Game.state.t);
     await host.waitForFunction(t=>Game.state.t>t,tick,{timeout:5000});
     assert.deepEqual(errors,[]);
-    console.log(`Online (${process.env.RTC_TEST_MODE === 'mock' ? 'mock transport' : 'real local RTC'}): room, guest movement, final results, shared level up, chest reward, relic ownership, specializations, guest reroll and disconnect during choice passed`);
+    console.log(`Online (${process.env.RTC_TEST_MODE === 'mock' ? 'mock transport' : 'real local RTC'}): room, guest movement and dash, final results, shared level up, chest reward, relic ownership, specializations, guest reroll and disconnect during choice passed`);
   } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

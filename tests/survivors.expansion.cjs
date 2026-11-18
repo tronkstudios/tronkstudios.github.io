@@ -30,7 +30,7 @@ const assert=require('node:assert/strict');const fs=require('node:fs');const pat
   await shot('breach-health-revival');
   await page.locator('#hud-pause').click();await page.locator('#pause-resume').click();
   await page.evaluate(()=>{const p=Game.state.players[0];p.techniques=Object.fromEntries(TS.TECHNIQUES[p.charId].map(m=>[m.id,5]));Game.setPaused(true);});
-  await page.waitForFunction(()=>document.querySelectorAll('#hud-slots .is-technique').length===8);
+  await page.waitForFunction(()=>document.querySelectorAll('#hud-slots .is-technique').length===10);
   assert.equal(await page.locator('#hud-slots [data-technique="VI"]').count(),1);await shot('six-techniques');
   await page.evaluate(()=>TronkUI.backToMenu());await page.locator('#menu [data-go="settings"]').click();await page.locator('#lang-select').selectOption('en');
   assert.equal(await page.locator('#opt-bars').locator('..').innerText(),'Enemy health bars\nWhen damaged\nAlways\nHidden');
