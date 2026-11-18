@@ -148,15 +148,24 @@
   }
 
   const previews = {};
-  $("run-veteran").addEventListener("change", event => {
-    save.settings.veteran = event.target.checked;
-    Save.persist();
-  });
+  for (const [control,key,other] of [["run-veteran","veteran","sprint"],["run-sprint","sprint","veteran"]]) {
+    $(control).addEventListener("change", event => {
+      save.settings[key] = event.target.checked;
+      if(save.settings[key]) save.settings[other] = false;
+      Save.persist();
+      renderMaps();
+      $(control).focus({preventScroll:true});
+    });
+  }
   function renderMaps() {
     const grid = $("maps-grid");
     $("run-veteran").checked = !!save.settings.veteran;
-    $("veteran-best").textContent = save.bestVeteran.time
-      ? `${L("Récord Veterano")} · ${fmtTime(save.bestVeteran.time)} · ${save.bestVeteran.kills} ${L("enemigos derrotados")}` : "";
+    $("run-sprint").checked = !!save.settings.sprint;
+    const records = [
+      [L("Récord Veterano"),save.bestVeteran],
+      [L("Récord de partida rápida"),save.bestSprint]
+    ].filter(([,record])=>record.time).map(([label,record])=>`${label} · ${fmtTime(record.time)}`);
+    $("veteran-best").textContent = records.join(" / ");
     grid.textContent = "";
     for (const [id, m] of Object.entries(TS.MAPS)) {
       const open = mapUnlocked(id);
@@ -175,7 +184,7 @@
       card.addEventListener("click", () => {
         save.settings.map = id;
         Save.persist();
-        play(null, { mode: "solo", localId: 0, map: id, veteran: !!save.settings.veteran });
+        play(null, { mode: "solo", localId: 0, map: id, veteran: !!save.settings.veteran, sprint:!!save.settings.sprint });
       });
       grid.appendChild(card);
     }
@@ -501,6 +510,13 @@
       stats.append(row);
     }
     box.append(el("h4", "profile-stats-title", L("Estadísticas de inicio")), stats);
+    if (have) {
+      const mastered = save.mastery[id];
+      const mastery = el("div", "profile-mastery");
+      mastery.append(el("strong","",L(mastered?"Dominio conseguido":"Dominio del personaje")),
+        el("small","",L(mastered?"Destello dorado equipado.":TS.mastery(id).text)));
+      box.append(mastery);
+    }
     const practice = el("div", "practice-controls");
     const target = el("select");
     target.setAttribute("aria-label", L("Objetivo de práctica"));
@@ -509,7 +525,7 @@
     }
     const practiceButton = el("button", "btn btn-small", L("Campo de pruebas"));
     practiceButton.type = "button";
-    practiceButton.addEventListener("click", () => play([{charId:id,stars:have?.stars || 1,meta:Save.shopStats()}], {map:"bosque",training:target.value}));
+    practiceButton.addEventListener("click", () => play([{charId:id,stars:have?.stars || 1,meta:Save.shopStats(),mastered:!!save.mastery[id]}], {map:"bosque",training:target.value}));
     practice.append(target,practiceButton);
     box.append(practice);
     if (have) {
@@ -743,7 +759,7 @@
 
   function localSetup() {
     const own = save.owned[save.selected] || { stars: 1 };
-    return { charId: save.selected, stars: own.stars, meta: Save.shopStats(), name: Account.name || charById(save.selected).name };
+    return { charId: save.selected, stars: own.stars, meta: Save.shopStats(), mastered:!!save.mastery[save.selected], name: Account.name || charById(save.selected).name };
   }
 
   const isTouch = window.matchMedia("(any-pointer: coarse)").matches;
@@ -776,12 +792,13 @@
     const s = setups || [localSetup()];
     const o = { mode: "solo", localId: 0, map: save.settings.map || "bosque", ...(opts || {}) };
     // en las 3 primeras partidas los enemigos pegan menos
-    if (o.mode === "solo" && !o.daily && !o.veteran && !o.training && save.runs < 3) o.easy = true;
+    if (o.mode === "solo" && !o.daily && !o.veteran && !o.sprint && !o.training && save.runs < 3) o.easy = true;
     lastRun = { setups:structuredClone(s), opts:structuredClone(o) };
     for (const x of s) Sprites.get(`char:${x.charId}`);
-    if (!o.training && !o.veteran) Account.startRun();
+    if (!o.training && !o.veteran && !o.sprint) Account.startRun();
     enterGame(() => {
       Game.start(s, o);
+      chooseCampMode("guns");
       if (!o.training) startTips(o.easy);
     });
   }
@@ -791,6 +808,7 @@
     Account.startRun();
     enterGame(() => {
       Game.startGuest(info);
+      chooseCampMode("guns");
       startTips(false);
     });
   }
@@ -897,9 +915,10 @@
     $("hud-time").textContent = fmtTime(d.seconds);
     $("hud-phase").textContent = d.finalPhase ? `${L("Fase")} ${d.finalRound}` : `${L("Final")} ${fmtTime(d.finalIn)}`;
     if(d.breach)$("hud-phase").textContent+=` · ${L("Brecha")} ${d.breach.total-d.breach.remaining}/${d.breach.total}`;
-    $("hud-milestone").textContent=d.nextTechnique?`${L("Próxima técnica")}: ${L(d.nextTechnique.name)} · ${L("Nivel")} ${d.nextTechnique.unlock} · ${fmtTime(d.nextTechnique.at || 0)}`:`${L("Rangos de técnicas")}: ${d.techniqueRanks}/${d.techniqueTotal}`;
+    $("hud-milestone").textContent=d.nextTechnique?`${L("Próxima técnica")}: ${L(d.nextTechnique.name)} · ${L("Nivel")} ${d.nextTechnique.unlock} · ${fmtTime(Math.ceil((d.nextTechnique.at || 0)*(d.runSeconds || TS.RUN_SECONDS)/TS.RUN_SECONDS))}`:`${L("Rangos de técnicas")}: ${d.techniqueRanks}/${d.techniqueTotal}`;
     if(d.talentNext?.ready)$("hud-milestone").textContent=L("Especialización disponible en tu próxima subida de nivel");
     const site = d.site;
+    $("hud-camp").hidden = !site?.campChoice || d.down;
     const defence = site?.used && site.kind==="camp"
       ? `${site.name} · ${L("Defensores")}: ${site.defenders || 0}${site.seconds?` · ${site.seconds}s`:""}`
       : site?.used && site.kind==="lamp" ? `${site.name} · ${Math.min(8,site.lampKills)}/8 · ${site.seconds}s` : "";
@@ -920,7 +939,7 @@
       const ready = d.ability.pct >= 1;
       $("hud-ab-name").textContent = d.ability.name;
       $("hud-ab-fill").style.height = `${Math.min(1, d.ability.pct) * 100}%`;
-      $("hud-ab-state").textContent = ready ? (isTouch ? L("¡Toca!") : L("Espacio")) : `${Math.round(d.ability.pct * 100)}%`;
+      $("hud-ab-state").textContent = ready ? (isTouch ? L("Toca o apunta") : L("Espacio")) : `${Math.round(d.ability.pct * 100)}%`;
       ab.classList.toggle("is-ready", ready);
     }
     const key = JSON.stringify([d.weapons, d.techniques?.map(({ready,linkSeconds,...move})=>move), d.passives]);
@@ -979,7 +998,7 @@
 
   Game.on("toast", (d) => toast(d.text));
   Game.on("lowFx", () => toast(L("Efectos reducidos para que el juego vaya más fluido.")));
-  Game.on("finalPhase", d => banner(L(d.round === 1 ? "¡JEFE FINAL!" : "¡NUEVA FASE!"), `${L("Fase")} ${d.round} · ${L("Aguanta todo lo que puedas")}`));
+  Game.on("finalPhase", d => banner(L(d.round === 1 ? "¡JEFE FINAL!" : "¡NUEVA FASE!"), `${L("Fase")} ${d.round} · ${L(Game.state?.sprint ? "Derrota al jefe para ganar" : "Aguanta todo lo que puedas")}`));
   Game.on("boss", (d) => banner(L("¡JEFE!"), d.name));
   Game.on("bossDown", (d) => toast(LT("bossDown", { name: d.name })));
   function showChest(d) { toast(L("¡Cofre! +40 monedas")); for (const line of d.lines) toast(line); }
@@ -991,6 +1010,7 @@
 
   let choiceGeneration=0;
   function showLevelUp(d) {
+    cancelAim();
     const generation=++choiceGeneration;
     const activeEvolution=d.options.length>0&&d.options.every(o=>o.kind==="activePath");
     const specializing=d.options.length>0&&d.options.every(o=>o.kind==="talent");
@@ -1073,6 +1093,7 @@
   /* ---------- pausa ---------- */
 
   function pause(on) {
+    cancelAim();
     if (current !== "game" || !Game.state || Game.state.over) return;
     Game.setControlsEnabled(!on && $("levelup").hidden);
     if (Game.mode === "solo") Game.setPaused(on);
@@ -1118,7 +1139,48 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
   $("hud-dash").addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation();Game.pressDash();});
   $("hud-dash").addEventListener("keydown",e=>{if(e.code==="Space"||e.code==="Enter"){e.preventDefault();e.stopPropagation();if(!e.repeat)Game.pressDash();}});
   $("hud-dash").addEventListener("click",e=>{if(e.detail===0)Game.pressDash();});
-  $("hud-ab").addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); Game.pressAbility(); });
+  function chooseCampMode(value) {
+    Game.setCampMode(value);
+    $("camp-guns").setAttribute("aria-pressed",String(value === "guns"));
+    $("camp-medic").setAttribute("aria-pressed",String(value === "medic"));
+  }
+  $("camp-guns").addEventListener("click", () => chooseCampMode("guns"));
+  $("camp-medic").addEventListener("click", () => chooseCampMode("medic"));
+
+  const abilityButton = $("hud-ab");
+  const aimGuide = $("ability-aim");
+  let aimDrag = null;
+  function cancelAim(event) {
+    if (event && aimDrag?.id !== event.pointerId) return;
+    aimGuide.hidden = true;
+    aimDrag = null;
+  }
+  abilityButton.addEventListener("pointerdown", event => {
+    if (aimDrag || event.button !== 0 || abilityButton.disabled) return;
+    event.preventDefault();
+    event.stopPropagation();
+    aimDrag = {id:event.pointerId, x:event.clientX, y:event.clientY};
+    abilityButton.setPointerCapture(event.pointerId);
+  });
+  abilityButton.addEventListener("pointermove", event => {
+    if (aimDrag?.id !== event.pointerId) return;
+    const dx = event.clientX-aimDrag.x, dy = event.clientY-aimDrag.y;
+    const length = Math.hypot(dx,dy);
+    aimGuide.hidden = length < 12;
+    aimGuide.style.left = `${aimDrag.x}px`;
+    aimGuide.style.top = `${aimDrag.y}px`;
+    aimGuide.style.width = `${Math.min(length,110)}px`;
+    aimGuide.style.rotate = `${Math.atan2(dy,dx)}rad`;
+  });
+  abilityButton.addEventListener("pointerup", event => {
+    if (aimDrag?.id !== event.pointerId) return;
+    const dx = event.clientX-aimDrag.x, dy = event.clientY-aimDrag.y;
+    cancelAim();
+    Game.pressAbility(Math.hypot(dx,dy) >= 12 ? [dx,dy] : null);
+  });
+  abilityButton.addEventListener("pointercancel", cancelAim);
+  abilityButton.addEventListener("lostpointercapture", cancelAim);
+  window.addEventListener("blur", () => cancelAim());
   $("hud-ab").addEventListener("keydown",e=>{if(e.code==="Space"||e.code==="Enter"){e.preventDefault();e.stopPropagation();if(!e.repeat)Game.pressAbility();}});
   $("hud-ab").addEventListener("click",e=>{if(e.detail===0)Game.pressAbility();});
   $("pause-fullscreen").addEventListener("click",async()=>{
@@ -1146,16 +1208,18 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     const previousRun=(save.history || []).find(h=>h.charId===r.charId && h.map===r.map && h.coop===!!r.coop && !!h.daily===!!r.daily && !!r.signature && h.signature===r.signature);
     const localCombat=r.combat?.[Game.localId];
     r={...r,bestStreak:localCombat?.bestStreak ?? r.bestStreak ?? 0};
-    const best = r.veteran ? save.bestVeteran : save.best;
+    const best = r.sprint ? save.bestSprint : r.veteran ? save.bestVeteran : save.best;
     const records=save.runs>0?[["Tiempo",r.seconds,best.time],["Enemigos",r.kills,best.kills],["Nivel",r.level,best.level],["Mejor racha",r.bestStreak,best.streak || 0]].filter(([,value,best])=>value>best).map(([name])=>L(name)):[];
     $("end-records").hidden=!records.length;$("end-records").textContent=records.length?`${L("Nuevo récord")}: ${records.join(" · ")}`:"";
     updateWeekly(r);
+    const alreadyMastered = !!save.mastery[r.charId];
     Save.recordRun(r,Game.localId);
+    if (!alreadyMastered && save.mastery[r.charId]) scheduleNotice(() => toast(L("Dominio conseguido · destello dorado")), 1400);
     for (const id of checkMapUnlocks()) scheduleNotice(() => toast(LT("mapUnlocked", { name: L(TS.MAPS[id].name) })), 1200);
     checkAchievements(r);
     TronkNet.leave();
     const points = Account.points(r);
-    $("end-title").textContent = r.finalPhase ? L("Fin de supervivencia") : r.endless ? L("¡Fin del modo infinito!") : r.victory ? L("¡VICTORIA!") : L("¡Has caído!");
+    $("end-title").textContent = r.sprint && r.victory ? L("¡Partida rápida superada!") : r.finalPhase ? L("Fin de supervivencia") : r.endless ? L("¡Fin del modo infinito!") : r.victory ? L("¡VICTORIA!") : L("¡Has caído!");
     const stats = $("end-stats");
     stats.textContent = "";
     const add = (label, value, cls) => {
@@ -1176,6 +1240,7 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     const combat=r.combat?.[Game.localId];
     if(combat){add("Daño causado",Math.round(combat.dealt || 0).toLocaleString(LANG));add("Daño recibido",Math.round(combat.taken || 0).toLocaleString(LANG));add("Vida recuperada",Math.round(combat.healed || 0).toLocaleString(LANG));add("Élites",combat.elites || 0);}
     add("Mejor racha",r.bestStreak);if(combat?.revives)add("Reanimaciones",combat.revives);
+    if(combat?.rescueAssists)add("Rescates cubiertos",combat.rescueAssists);
     const recap=r.recaps?.[Game.localId];$("end-recap").hidden=!recap?.fatal;$("recap-hits").textContent="";
     if(recap?.fatal){
       const kinds={contact:"Contacto",charge:"Carga",projectile:"Proyectil",bombardment:"Bombardeo",zone:"Zona peligrosa",explosion:"Explosión"};
@@ -1226,7 +1291,7 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
       $("end").hidden=false;$("end").querySelector(".modal-box").scrollTop=0;
       $("end-title").focus({preventScroll:true});
     },900);
-    if (!r.veteran) Account.submitRun(r);
+    if (!r.veteran && !r.sprint) Account.submitRun(r);
   }
   Game.on("end", showEnd);
   Game.on("trainingEnd", () => { backToMenu(); show("chars"); });
@@ -1244,6 +1309,7 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
   $("victory-end").addEventListener("click", () => { $("victory").hidden = true; Game.endWin(); });
 
   function backToMenu() {
+    cancelAim();
     clearTransientUI();
     gameGeneration++;
     for (const id of ["end", "levelup", "pause", "victory"]) $(id).hidden = true;

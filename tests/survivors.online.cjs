@@ -106,6 +106,10 @@ const assert = require('node:assert/strict');
     await guest.waitForFunction(()=>Game.state.players[1].dashCd>0 && !Game.hudData().dash.ready);
     await guest.waitForFunction(()=>/s/.test(document.getElementById('hud-dash-state').textContent));
 
+    await host.evaluate(()=>{Game.state.players[1].abCd=0;});
+    await guest.evaluate(()=>Game.pressAbility([0,-1]));
+    await host.waitForFunction(()=>Game.state.players[1].echoDirection?.[1]===-1);
+    assert.ok(await host.evaluate(()=>Game.state.players[1].abCd>0));
     await host.evaluate(()=>{Game.state.t=120*60-1;Game.step();const p=Game.state.players[1];p.techniques.surge=1;const e=Game.state.enemies.find(e=>e.breach);e.x=p.x+90;e.y=p.y;e.hp=e.maxHp*.45;});
     await guest.waitForFunction(()=>Game.state.breach?.remaining===4 && Game.hudData().techniques.some(m=>m.id==='surge'));
     assert.ok(await guest.evaluate(()=>Game.state.enemies.some(e=>e.breach&&e.hp<1)));
