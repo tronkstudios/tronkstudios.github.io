@@ -156,7 +156,7 @@ const Game = (() => {
       stats: null,
       weapons: [],
       passives: {},
-      techniques: {}, techCds: {}, talents:[], relics:[], relicWalk:0, relicPulseAt:0,parryUntil:0,parryCharges:0,rerolls: 3,
+      techniques: {}, techniquePaths: {}, techCds: {}, talents:[], relics:[], relicWalk:0, relicPulseAt:0,parryUntil:0,parryCharges:0,rerolls: 3,
       combat: { dealt: 0, taken: 0, healed: 0, elites: 0, revives:0, dodges:0, bySkill:{} },
       activePath:null,activeEchoAt:0,lastNearMiss:-9999,synergyReady:0,
       damageHistory:[],fatalHit:null,
@@ -276,6 +276,63 @@ const Game = (() => {
     st.respawns=st.respawns.filter(e=>!e.done);
   }
 
+  function campDefenders() {
+    return st.sites.flatMap(site => (site.defenders || []).filter(defender => defender.hp > 0));
+  }
+
+  function recruitDefenders(site, owner) {
+    site.defenders = [];
+    // Look for dry firing positions that do not overlap scenery or each other.
+    for (let i = 0; i < 16 && site.defenders.length < 2; i++) {
+      const angle = i * TAU / 16, radius = 40 * U;
+      const x = site.x + Math.cos(angle) * radius, y = site.y + Math.sin(angle) * radius;
+      if (!clearFootprint(x, y, 10) || site.defenders.some(defender => dist2(defender, {x, y}) < 36 ** 2)) continue;
+      const hp = 90 + st.t / 1800;
+      site.defenders.push({
+        id: -st.nextId++, type: "tronkAliado", x, y, hp, maxHp: hp,
+        owner: owner.id, r: 9 * U, dir: "down", face: 1, t: 0, atk: 0,
+        vx: 0, vy: 0, flash: 0, reload: 12, hitAt: 0
+      });
+    }
+  }
+
+  function hurtDefender(defender, damage) {
+    if (defender.hp <= 0 || st.t < defender.hitAt || !(damage > 0)) return;
+    defender.hitAt = st.t + 30;
+    defender.hp = Math.max(0, defender.hp - damage);
+    defender.flash = 8;
+    if (!defender.hp) {
+      fx({k:"puff", x:defender.x, y:defender.y-14, color:"#86beae", life:24});
+      sound("hurt", .2, defender.x, defender.y);
+    }
+  }
+
+  function updateDefenders(defenders) {
+    for (const defender of defenders) {
+      defender.t++;
+      defender.atk = Math.max(0, defender.atk - 1);
+      defender.flash = Math.max(0, defender.flash - 1);
+      near(defender.x, defender.y, defender.r + maxEnemyRadius, enemy => {
+        if (!enemy.prop && !enemy.phased && !(enemy.staggerUntil > st.t) &&
+            dist2(enemy, defender) < (enemy.r + defender.r) ** 2) hurtDefender(defender, enemy.dmg * .65);
+      });
+      if (defender.hp <= 0 || --defender.reload > 0) continue;
+      const enemy = nearestEnemy(defender.x, defender.y, 165 * U);
+      if (!enemy || enemy.prop) continue;
+      const dx = enemy.x - defender.x, dy = enemy.y - defender.y;
+      [defender.dir, defender.face] = dirOf(dx, dy);
+      defender.atk = 16;
+      defender.reload = 48;
+      const owner = st.players[defender.owner];
+      const damage = 11 + st.t / 2700;
+      const strike = () => hitEnemy(enemy, damage, owner, {kb:1.2, kx:dx, ky:dy});
+      if (owner && !owner.disconnected && !owner.down) duringAttack(owner, "camp", strike);
+      else hitEnemy(enemy, damage, null, {kb:1.2, kx:dx, ky:dy});
+      st.zones.push({type:"bolt", pts:[[defender.x,defender.y-16],[enemy.x,enemy.y-16]], life:6, t:0, friendly:true});
+      sound("shoot", .16, defender.x, defender.y);
+    }
+  }
+
   function updateSites(){
     for(const site of st.sites){
       if(site.nest)continue;
@@ -286,14 +343,33 @@ const Game = (() => {
         }
       }
       if(!site.activated){
-        const near=alivePlayers().some(p=>dist2(p,site)<(45*U)**2);
-        site.progress=near?site.progress+1:Math.max(0,site.progress-2);
+        const occupant=alivePlayers().find(p=>dist2(p,site)<(45*U)**2);
+        site.progress=occupant?site.progress+1:Math.max(0,site.progress-2);
         if(site.progress>=120){
           site.activated=true;
           if(site.kind==="altar"){
             for(const type of ["guardian","sanador","esqueleto"]){const e=spawnAround(type,site,80*U);e.siteId=site.id;site.guards.push(e.id);}
             emit("toast",{text:L("Altar activado: derrota a sus guardianes"),kind:"site"});
-          } else {site.used=true;site.activeUntil=st.t+1200;emit("toast",{text:L("Refugio activo durante 20 segundos"),kind:"site"});}
+          } else {
+            site.used = true;
+            site.activeUntil = st.t + 1200;
+            if (site.kind === "camp") recruitDefenders(site, occupant);
+            emit("toast", {text:L(site.kind === "camp" ? "Campamento activo. Protege a sus defensores." : "Refugio activo durante 20 segundos"), kind:"site"});
+          }
+        }
+      }
+      if (site.activated && site.kind !== "altar" && !site.rewarded && site.activeUntil <= st.t) {
+        site.rewarded = true;
+        const defended = site.kind === "camp" && site.defenders?.some(guard => guard.hp > 0);
+        if (defended || site.kind === "lamp" && (site.lampKills || 0) >= 8) {
+          st.pickups.push({kind:"cofre", x:site.x, y:site.y, t:0});
+          if (mapId === "playa") {
+            const supply = {x:site.x, y:site.y + 105*U};
+            collide(supply, 15*U);
+            st.pickups.push({kind:"iman", ...supply, t:0, expires:st.t + 12*60});
+            emit("toast", {text:L("Suministro en la playa. Recógelo antes de 12 s."),kind:"site"});
+          }
+          emit("toast", {text:L("Posición defendida. Recoge tu recompensa."), kind:"site"});
         }
       }
       if(site.activeUntil>st.t){
@@ -314,9 +390,11 @@ const Game = (() => {
     layout={sx:.9+R()*.3,sy:.9+R()*.3,bend:R()*TAU};
     if(mapId==="ciudad")layout.sx=layout.sy=1;
     chunks.clear();obstacles.clear();
-    const mods = opts.mods || [];
+    const mods = [...(opts.mods || [])];
+    if (opts.veteran && !mods.includes("veterano")) mods.push("veterano");
+    const veteran = mods.includes("veterano");
     st = {
-      mapId,signature:TS.runSignature(setups,{...opts,map:mapId}),
+      mapId, signature:TS.runSignature(setups,{...opts,mods,map:mapId}), training:opts.training || null,
       mods,
       daily: opts.daily || null,
       evolutions: 0,
@@ -341,7 +419,7 @@ const Game = (() => {
       nextId: 1,
       spawnT: 0,
       bossIdx: 0,
-      hordeIdx: 0, nextPressure:600*60, nextBreach: 120 * 60, breach: null, nextElite: 300 * 60, chests: 0,
+      hordeIdx: 0, pressureWave:0, nextPressure:(veteran?145:180)*60, nextBreach: 120 * 60, breach: null, nextElite: 300 * 60, chests: 0,
       boss: null,
       pendingLevels: 0, rewardQueue: [], choiceKind: "level", comboTicks: {}, comboLabel:null, comboUntil:0,
       choosing: null,
@@ -356,11 +434,12 @@ const Game = (() => {
       enemySpeed: mods.includes("turbo") ? 1.35 : 1,
       enemyHp: mods.includes("gigantes") ? 1.7 : 1,
       xp: (mods.includes("gigantes") ? 1.7 : 1) * (mods.includes("horda") ? 1.25 : 1),
-      spawn: mods.includes("horda") ? 1.6 : 1,
+      spawn: (mods.includes("horda") ? 1.6 : 1) * (veteran ? 1.2 : 1),
       coins: mods.includes("oro") ? 3 : 1,
       bossTime: mods.includes("jefes") ? 0.55 : 1,
       // ayuda en las primeras partidas: los enemigos pegan menos
-      enemyDmg: opts.easy ? 0.75 : 1
+      enemyDmg: veteran ? 1.22 : opts.easy ? 0.75 : 1,
+      healing: veteran ? .7 : 1
     };
     for (const p of st.players) {
       if (mods.includes("cristal")) { p.meta = { ...p.meta, maxHp: (p.meta.maxHp || 0) - 0.5, might: (p.meta.might || 0) + 0.6 }; }
@@ -369,6 +448,18 @@ const Game = (() => {
       p.stats = null;
       computeStats(p);
       p.hp = p.stats.maxHp;
+    }
+    if (st.training) {
+      st.sites = [];
+      const player = st.players[0];
+      const target = spawnEnemy(st.training === "shield" ? "guardian" : "zombi", player.x + 72, player.y);
+      target.hp = target.maxHp = 1e9;
+      target.guardAngle = Math.PI;
+      target.baseMaxHp = undefined;
+      target.vx = target.vy = 0;
+      player.abCd = 0;
+      player.weapons[0].lvl = 4;
+      player.techniques = Object.fromEntries(TS.TECHNIQUES[player.charId].map(move => [move.id, 3]));
     }
     cam.x = st.players[localId].x;
     cam.y = st.players[localId].y;
@@ -430,16 +521,21 @@ const Game = (() => {
     }
   }
 
-  function nearestEnemy(x, y, maxR, skip) {
-    let best = null;
+  function nearestEnemy(x, y, maxR, skip, allowCrates = false) {
+    let best = null, crate = null, crateDist = maxR * maxR;
     let bd = maxR * maxR;
     near(x, y, maxR, (e) => {
       if (skip && skip.has(e.id)) return;
-      if (e.phased || e.prop && e.type!=="nido") return;
+      if (e.phased) return;
       const d = (e.x - x) ** 2 + (e.y - y) ** 2;
+      if (allowCrates && e.type === "caja") {
+        if (d < crateDist) { crate = e; crateDist = d; }
+        return;
+      }
+      if (e.prop && e.type !== "nido") return;
       if (d < bd) { bd = d; best = e; }
     });
-    return best;
+    return best || crate;
   }
 
   function enemiesInRadius(x, y, r) {
@@ -749,7 +845,7 @@ const Game = (() => {
     sound(cue,2,e.x,e.y);
   }
 
-  const options = { numbers: true, shake: true, fx: "auto", reducedMotion: false, contrast: false, zoom: 1.25, healthBars: "damaged" };
+  const options = { numbers: true, shake: true, fx: "auto", reducedMotion: false, contrast: false, softAttacks:false, zoom: 1.25, healthBars: "damaged" };
   // Efectos reducidos: menos partículas y menos resolución (móviles lentos)
   let lowFx = false;
   let autoLow = false;
@@ -861,7 +957,18 @@ const Game = (() => {
     if (e.finalRound === 2) { st.bossesKilled++; st.kills++; }
     st.won = true;
     e.hp = e.maxHp; scaleEnemy(e); e.hp = e.maxHp;
-    e.flash = 24; e.timer = 80; e.state = 0; e.t = 0;
+    e.flash = 24; e.timer = 80; e.state = 0; e.t = 0; e.tacticPhase = -1;
+    st.zones = st.zones.filter(zone => zone.bossPhaseId !== e.id);
+    for (const obelisk of st.enemies) if (obelisk.phaseObelisk === e.id) obelisk.dead = true;
+    if (e.type === "reyEsqueleto" && e.finalRound % 2 === 0) {
+      for (const side of [-1, 1]) {
+        const obelisk = spawnEnemy("nido", e.x + side*65*U, e.y + 28*U);
+        collide(obelisk, obelisk.r);
+        obelisk.hp = obelisk.maxHp = 260 + e.finalRound*90;
+        obelisk.phaseObelisk = e.id;
+      }
+      emit("toast", {text:L("Destruye los obeliscos para debilitar al Rey Esqueleto"),kind:"boss"});
+    }
     e.cloned = false; e.called = false; e.splits = []; e.hops = 0;
     st.pickups.push({ x: e.x, y: e.y, kind: "cofre", t: 0 });
     for (const p of alivePlayers()) { healPlayer(p, p.stats.maxHp * .15); p.iframes = Math.max(p.iframes, 60); }
@@ -876,6 +983,22 @@ const Game = (() => {
     for (const p of alivePlayers()) {
       fx({ k: "warn", x: p.x, y: p.y, r: 26 * U, life: 60 });
       st.strikes.push({ x: p.x, y: p.y, t: 60, dmg:e.dmg*.8,source:e.type});
+    }
+    if (e.type === "general" && st.finalRound > 1) {
+      const horizontal = Math.floor(st.t / 240) % 2 === 0;
+      for (const p of alivePlayers()) for (const offset of [-58, 58]) {
+        const x = p.x + (horizontal ? 0 : offset*U), y = p.y + (horizontal ? offset*U : 0);
+        st.zones.push({type:"dangerLine", x:x-(horizontal?250*U:0), y:y-(horizontal?0:250*U),
+          tx:x+(horizontal?250*U:0), ty:y+(horizontal?0:250*U), t:0, life:61,
+          bossPhaseId:e.id, barrageDamage:e.dmg*.65, source:e.type});
+      }
+      return;
+    }
+    if (e.type === "mocoRey" && st.finalRound > 1) {
+      for (const p of alivePlayers()) {
+        st.zones.push({type:"hazard",x:p.x,y:p.y,r:41*U,warn:60,t:0,life:211,dmg:e.dmg*.38,source:e.type,theme:"pools",bossPhaseId:e.id});
+      }
+      return;
     }
     if(e.tactic==="gaps")return;
     const n = Math.min(24, 8 + st.finalRound * 2);
@@ -937,8 +1060,11 @@ const Game = (() => {
     if(st.breach || st.nextBreach-st.t<=90 || st.boss && !st.boss.dead || st.enemies.filter(e=>!e.prop&&!e.dead).length>fighterCap()-6){st.nextPressure=st.t+30*60;return;}
     st.nextPressure=st.t+Math.max(40,90-st.t/3600*2)*60;
     const target=pick(alivePlayers()),ang=target.moving?Math.atan2(target.moveY,target.moveX):rand(0,TAU);
-    st.zones.push({type:"pincer",x:target.x,y:target.y,ang,opening:1.05,r:100*U,spawnR:Math.max(210*U,spawnRadius()*.9),count:Math.min(20,8+Math.floor(st.t/3600)),warn:90,t:0,life:91});
-    emit("toast",{text:L("¡Pinza! Busca la abertura turquesa"),kind:"horde"});sound("radio",.5,target.x,target.y);
+    const formation = ["escort", "shooters", "rush"][(st.pressureWave || 0) % 3];
+    st.pressureWave = (st.pressureWave || 0) + 1;
+    const notices = {escort:"Escolta de escudos. Busca la abertura.",shooters:"Tiradores en formación. Busca la abertura.",rush:"Carga de corredores. Busca la abertura."};
+    st.zones.push({type:"pincer",x:target.x,y:target.y,ang,formation,opening:1.05,r:100*U,spawnR:Math.max(210*U,spawnRadius()*.9),count:Math.min(20,8+Math.floor(st.t/3600)),warn:90,t:0,life:91});
+    emit("toast",{text:L(notices[formation]),kind:"horde"});sound("radio",.5,target.x,target.y);
   }
 
   function spawning() {
@@ -1058,7 +1184,11 @@ const Game = (() => {
     if (e.slow > 0) e.slow--;
     if (e.dodgeCd > 0) e.dodgeCd--;
     if (e.atk > 0) e.atk--;
-    const target = nearestPlayer(e.x, e.y);
+    let target = nearestPlayer(e.x, e.y);
+    if (!e.boss) for (const defender of st.activeDefenders || []) {
+      const distance = dist2(e, defender);
+      if (defender.hp > 0 && distance < (130 * U) ** 2 && (!target || distance < dist2(e, target))) target = defender;
+    }
     let mx = 0;
     let my = 0;
     let sp = e.speed;
@@ -1212,7 +1342,7 @@ const Game = (() => {
 
   function bossTactics(e,target,ux,uy,dist){
     const phase=e.hp/e.maxHp>2/3?0:e.hp/e.maxHp>1/3?1:2;
-    const pattern=TS.BOSS_PATTERNS[e.type][phase];
+    const pattern=TS.BOSS_PATTERNS[e.type][(phase + (e.relentless ? e.finalRound-1 : 0)) % 3];
     if(e.tacticPhase!==phase){e.tacticPhase=phase;e.state=0;e.timer=60;e.volley=null;sound("roar",4,e.x,e.y);}
     e.tactic=pattern;e.mx=ux;e.my=uy;e.sp=e.speed;e.timer--;
     if(pattern==="charge"){
@@ -1515,10 +1645,12 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     if(pl && family==="copos"){e.wetBy=pl.id;e.wetUntil=st.t+180;}
     const conductor=combo && pl && family==="rayo" && e.wetUntil>(st?.t ?? 0) && e.wetBy!==pl.id;
     if(conductor){dmg*=1.25;}
+    if (e.relentless && e.type === "reyEsqueleto" && e.finalRound % 2 === 0 &&
+        st.enemies.some(obelisk => !obelisk.dead && obelisk.phaseObelisk === e.id)) dmg *= .42;
     if(e.type==="guardian" && !(e.exposedUntil>st.t) && pl){
       const incoming=projectile && (kx || ky)?Math.atan2(-ky,-kx):Math.atan2(pl.y-e.y,pl.x-e.x);
       const front=e.guardAngle ?? Math.atan2(pl.y-e.y,pl.x-e.x);
-      if(Math.cos(incoming-front)>.6){dmg*=.22;if(st.t-(e.blockTick ?? -999)>40){e.blockTick=st.t;sound("guard",.3,e.x,e.y);fx({k:"text",x:e.x,y:e.y-52,text:L("Bloqueado"),color:"#a9d9ff",life:30});}}
+      if(Math.cos(incoming-front)>.6){dmg*=.22;if(st.t-(e.blockTick ?? -999)>40){e.blockTick=st.t;sound("guard",.3,e.x,e.y);fx({k:"text",x:e.x,y:e.y-52,text:L("Bloqueado"),color:"#a9d9ff",life:30});fx({k:"ring",x:e.x,y:e.y-14,r:22,color:"#91e9ff",life:18});}}
     }
     if(e.elite){kb*=.4;slow=Math.min(slow,.25);}
     const might = pl ? pl.stats.might : 1;
@@ -1532,6 +1664,8 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
         e.posture=0;e.staggerUntil=st.t+(e.boss?20:45);e.postureImmuneUntil=st.t+(e.boss?600:240);
         if(!e.boss){e.state=0;e.timer=Math.max(e.timer,45);}
         skillRecord(pl,attack?.source || "weapon").control++;
+        sound("wave", .25, e.x, e.y);
+        fx({k:"ring",x:e.x,y:e.y,r:35,color:"#f0cb82",life:25});
         fx({k:"text",x:e.x,y:e.y-65,text:L("¡Postura rota!"),color:"#f0cb82",life:40});
       }
     }
@@ -1571,6 +1705,15 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     if (e.dead) return;
     e.dead = true;
     const d = TS.ENEMIES[e.type];
+    if (e.phaseObelisk !== undefined) {
+      fx({k:"ring",x:e.x,y:e.y,r:45*U,color:"#91e9ff",life:28});
+      const boss = st.enemies.find(enemy => enemy.id === e.phaseObelisk);
+      if (boss && !st.enemies.some(other => !other.dead && other.phaseObelisk === boss.id)) {
+        boss.staggerUntil = st.t + 100;
+        emit("toast", {text:L("Obeliscos destruidos. El rey está expuesto."),kind:"boss"});
+      }
+      return;
+    }
     if(e.type==="nido"){
       const site=st.sites.find(s=>s.id===e.siteId);if(site){site.used=true;site.pct=0;site.activeUntil=st.t+600;}
       st.respawns=st.respawns.filter(r=>r.siteId!==e.siteId);
@@ -1607,6 +1750,9 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
       }
     }
     st.kills++;
+    for (const site of st.sites) {
+      if (site.kind === "lamp" && site.activeUntil > st.t && dist2(site, e) < (100 * U) ** 2) site.lampKills = (site.lampKills || 0) + 1;
+    }
     if (!silent) registerKill(e.lastHit);
     if (!silent) sound("kill", 0.05);
     fx({ k: "puff", x: e.x, y: e.y - 16, color: e.boss ? "#ffd23f" : "#c9d1dc", life: 16, big: e.boss });
@@ -1663,7 +1809,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
   function healPlayer(p, amount, show = false) {
     if (p.down) return 0;
     if(attackContext?.source==="active")amount*=attackContext.power;
-    const healed = Math.max(0, Math.min(amount, p.stats.maxHp-p.hp));
+    const healed = Math.max(0, Math.min(amount * (st.mod?.healing ?? 1), p.stats.maxHp-p.hp));
     p.hp += healed;
     if (p.combat) p.combat.healed += healed;
     const healer=st.players[attackContext?.owner];
@@ -1977,13 +2123,20 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
         st.zones.push({ type: "punch", x: cx + ax * 14, y: cy + ay * 10, r: 22, life: 12, t: 0, big: true });
         shake(8);
         break;
-      case "quizo":
-        for (const e of near(14, 400*(p.activePath==="echo"?1.2:1))) {
+      case "quizo": {
+        const range = 400*(p.activePath==="echo"?1.2:1);
+        const targets = near(14, range);
+        if (!targets.length) {
+          const crate = nearestEnemy(cx, cy, range, null, true);
+          if (crate?.type === "caja") targets.push(crate);
+        }
+        for (const e of targets) {
           st.zones.push({ type: "bolt", pts: [[e.x + rand(-20, 20), e.y - 220], [e.x + rand(-8, 8), e.y - 110], [e.x, e.y - 14]], life: 14, t: 0 });
           hitEnemy(e, 55 * lvl, p, { kb: 2, kx: e.x - p.x, ky: e.y - p.y, crit: true });
         }
         sound("zap"); shake(4);
         break;
+      }
       case "zeta": {
         const ang = Math.atan2(ay, ax);
         const beamLength=p.activePath==="precision"?325:260,spread=p.activePath==="precision"?.25:p.activePath==="echo"?.7:.5;
@@ -2049,11 +2202,17 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
         if(distance>=s.r+9 && distance<s.r+21)s.grazes[key]=true;
         else if(s.grazes[key] && distance>=s.r+21){delete s.grazes[key];nearMiss(p,s);}
       }
+      for (const defender of st.activeDefenders || []) {
+        if (defender.hp <= 0) continue;
+        const at = segmentEntry(oldX,oldY,s.x,s.y,defender.x,defender.y-18,s.r+9);
+        if (at !== null) contacts.push({p:defender, at});
+      }
       contacts.sort((a,b)=>a.at-b.at || a.p.id-b.p.id);
       const first=contacts[0];
       if(first){
         const p=first.p;
-        if(p.parryUntil>=st.t && p.parryCharges>0){
+        if(p.type === "tronkAliado") hurtDefender(p, s.dmg);
+        else if(p.parryUntil>=st.t && p.parryCharges>0){
           p.parryCharges--;sound("guard",.2,p.x,p.y);fx({k:"ring",x:p.x,y:p.y,r:30*U,color:"#91e9ff",life:18});
         }else hurtPlayer(p,s.dmg,s.source,"projectile");
         s.life=0;
@@ -2145,10 +2304,11 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
         dr.y = p.y - 50 + Math.sin(dr.a + (i / amount) * TAU) * 14;
         dr.cd--;
         if (dr.cd <= 0) {
-          const target = nearestEnemy(dr.x, dr.y, 230);
+          const target = nearestEnemy(dr.x, dr.y, 230, null, true);
           if (target) {
             dr.cd = L.cd * p.stats.cdMul;
-            const ang = Math.atan2(target.y - 16 - dr.y, target.x - dr.x);
+            const aimY = target.y - (target.type === "caja" ? 8 : 16);
+            const ang = Math.atan2(aimY - dr.y, target.x - dr.x);
             // atraviesa a todos los de la línea, pero se corta tras el último que toca
             const reach = 240 * area;
             const hits = enemiesOnLine(dr.x, dr.y, ang, reach, 6);
@@ -2226,13 +2386,22 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     const inherited=attackContext?.owner===p.id && attackContext.source==="active";
     const source=inherited?"active":id;
     const power=inherited?attackContext.power:1;
+    const variant = !inherited && p.techniquePaths?.[id];
+    const stats = p.stats;
     return duringAttack(p,source,()=>{
       // Guard prepares a short opening; focus consumes it, once per technique cast.
       if(id==="guard" && !inherited){p.synergyReady=st.t+180;fx({k:"ring",x:p.x,y:p.y,r:32,color:"#91e9ff",life:20});}
       const boosted=id==="focus" && p.synergyReady>st.t;
       if(boosted){p.synergyReady=0;fx({k:"text",x:p.x,y:p.y-58,text:L("¡Técnicas enlazadas!"),color:"#91e9ff",life:45});}
-      return techniqueAttackRaw(p,id,lvl);
-    },power*(id==="focus" && p.synergyReady>st.t?1.35:1));
+      if (variant === "reach") p.stats = {...stats, area:stats.area*1.2};
+      try { const zoneCount = st.zones.length;
+        const result = techniqueAttackRaw(p,id,lvl);
+        if (variant && p.charId === "duna" && id === "pierce") {
+          for (const zone of st.zones.slice(zoneCount)) if (zone.type === "tornado") zone.windMastery = variant;
+        }
+        return result; }
+      finally { p.stats = stats; }
+    },power*(variant === "power" ? 1.25 : 1)*(id==="focus" && p.synergyReady>st.t?1.35:1));
   }
 
   function characterPreview(canvas,charId,move="weapon",frame=0,previewOptions={}){
@@ -2272,6 +2441,24 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     }
   }
 
+  function techniqueReach(player, id, rank) {
+    const weapon = player.weapons[0];
+    const family = TS.WEAPONS[weapon.id].family || weapon.id;
+    const base = levelStats(weapon);
+    const area = (base.area || 1)*player.stats.area*(player.techniquePaths?.[id] === "reach" ? 1.2 : 1);
+    const native = ["pursuit","rupture","crossfire","bastion"].includes(id);
+    const spread = native ? 1 : (1+.06*rank)*(id==="guard"?1.25:id==="surge"?1.4:1);
+    const close = {tajo:65, estocada:95, mazazo:90, guantes:55, punos:90, faro:105, colonia:65, discos:73, acido:77, llamas:90};
+    if (family === "rayo" && (native || id === "burst" || id === "focus" || id === "pierce")) return 190*(player.techniquePaths?.[id] === "reach" ? 1.2 : 1);
+    if (player.charId === "ranjay" && !native) {
+      return ({burst:48,ring:55,pierce:105,guard:42,focus:76,surge:78}[id] || 65)*area*spread+18;
+    }
+    if (native && family === "guantes") return 33*area+14;
+    if (native && family === "punos") return 110*U;
+    const limit = close[family];
+    return limit ? limit*area*spread+18 : family === "dron" ? 210*area : 260*U;
+  }
+
   function updateTechniques(p) {
     if (!p.techniques) return;
     if (!p.techCds) p.techCds = {};
@@ -2281,10 +2468,12 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
       p.techCds[id]=(p.techCds[id] ?? 30)-1;
       if(p.techCds[id]<=0)ready.push({id,lvl,move});
     }
-    if(st.t<(p.nextTechniqueAt || 0))return;
-    const target=nearestEnemy(p.x,p.y,530*U),danger=st.eshots.some(s=>dist2(s,p)<(180*U)**2);
+    if(!ready.length || !p.weapons[0] || st.t<(p.nextTechniqueAt || 0))return;
+    const danger=st.eshots.some(s=>dist2(s,p)<(180*U)**2);
+    const family=TS.WEAPONS[p.weapons[0].id].family || p.weapons[0].id;
     ready.sort((a,b)=>(a.id==="focus"&&p.synergyReady>st.t?-1:0)-(b.id==="focus"&&p.synergyReady>st.t?-1:0) || p.techCds[a.id]-p.techCds[b.id]);
-    const next=ready.find(o=>target || o.id==="guard"&&danger);
+    const next=ready.find(option => option.id==="guard" && danger ||
+      nearestEnemy(p.x, p.y-16, techniqueReach(p,option.id,option.lvl), null, ["rayo","dron"].includes(family)));
     if(!next)return;
     p.nextTechniqueAt=st.t+12;p.techCds[next.id]=next.move.cd*p.stats.cdMul;techniqueAttack(p,next.id,next.lvl);
   }
@@ -2296,7 +2485,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
   function fireNativeTechniqueRaw(p,w,L,area,amount,cx,cy){
     const family=TS.WEAPONS[w.id].family || w.id,caster={...p,x:cx,y:cy+18};
     if(family==="dron"){
-      const target=nearestEnemy(cx,cy,300*U),[ax,ay]=dirTo(caster,target),ang=Math.atan2(ay,ax);
+      const target=nearestEnemy(cx,cy,300*U,null,true),[ax,ay]=dirTo(caster,target),ang=Math.atan2(ay,ax);
       st.zones.push({type:"laser",x:cx,y:cy,ang,len:210*area,t:0,life:12,impact:2,dmg:L.dmg,owner:p.id});sound("laser",.15,cx,cy);
     }else if(family==="colonia")st.zones.push({type:"perfume",x:cx,y:cy+18,r:55*area,t:0,warn:1,life:62,dmg:L.dmg*.5,owner:p.id});
     else if(family==="discos")for(let i=0;i<Math.min(3,amount);i++)st.zones.push({type:"disc",x:cx,y:cy,ang:i*TAU/amount,a:i*TAU/amount,orbit:true,orbitRadius:40*area,r:12*area,t:0,life:62,dmg:L.dmg,owner:p.id});
@@ -2318,12 +2507,12 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     }
     if(id==="bastion"){
       st.zones=st.zones.filter(z=>!(z.type==="bastion"&&z.owner===p.id));
-      st.zones.push({type:"bastion",x:p.x,y:p.y,r:32*p.stats.area,t:0,life:121,level:lvl,owner:p.id});return;
+      st.zones.push({type:"bastion",x:p.x,y:p.y,r:32*p.stats.area,t:0,life:121,level:lvl,castArea:p.stats.area,owner:p.id});return;
     }
     if(id==="pursuit" || id==="rupture"){
       const L={...base,dmg:base.dmg*(1+.16*lvl)*(id==="rupture"?1.6:.62)};
       fireNativeTechnique(p,w,L,(L.area || 1)*p.stats.area,id==="rupture"?1:Math.max(1,Math.min(3,(L.count || 1)+p.stats.amount)),p.x,p.y-18);
-      if(id==="pursuit")st.zones.push({type:"followup",x:p.x,y:p.y,owner:p.id,t:-12,life:1,level:lvl});
+      if(id==="pursuit")st.zones.push({type:"followup",x:p.x,y:p.y,owner:p.id,t:-12,life:1,level:lvl,castArea:p.stats.area});
       return;
     }
     const L={...base,dmg:base.dmg*(1+.2*lvl)*(id==="focus"?1.8:id==="surge"?1.45:1),pierce:(base.pierce || 1)+lvl+(id==="pierce"?4:0)};
@@ -2381,15 +2570,15 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
         ring(a=>st.zones.push({type:"meteor",x:cx+Math.cos(a)*70*area,y:p.y+Math.sin(a)*70*area,
           warn:28,life:45,t:0,r:25*area,dmg:L.dmg,owner:p.id}));break;
       case "rayo":
-        st.enemies.filter(e=>!e.dead&&!e.prop&&!e.phased&&dist2(e,p)<(250*area)**2).sort((a,b)=>dist2(a,p)-dist2(b,p)).slice(0,n).forEach(e=>{
+        st.enemies.filter(e=>!e.dead&&(!e.prop || e.type==="caja")&&!e.phased&&dist2(e,p)<(250*area)**2).sort((a,b)=>dist2(a,p)-dist2(b,p)).slice(0,n).forEach(e=>{
           st.zones.push({type:"bolt",pts:[[e.x,e.y-180],[e.x+8,e.y-70],[e.x,e.y-14]],life:14,t:0});
           hitEnemy(e,L.dmg,p);
         });sound("zap");break;
       case "dron": {
         const dr=w.drones && w.drones[0];
         const x=dr?.x ?? cx,y=dr?.y ?? cy;
-        const target=nearestEnemy(x,y,300*area);
-        const angle=target?Math.atan2(target.y-16-y,target.x-x):Math.atan2(ay,ax);
+        const target=nearestEnemy(x,y,300*area,null,true);
+        const angle=target?Math.atan2(target.y-(target.type==="caja"?8:16)-y,target.x-x):Math.atan2(ay,ax);
         const shoot=a=>{
           st.zones.push({type:"laser",x,y,ang:a,len:260*area,life:12,t:0});
           for(const e of enemiesOnLine(x,y,a,260*area,8))hitEnemy(e,L.dmg,p);
@@ -2554,7 +2743,8 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
         break;
       }
       case "rayo": { // el tridente lanza rayos que saltan
-        const first = nearestEnemy(cx, cy, 190);
+        const reach = p.techniquePaths?.[attackContext?.source] === "reach" ? 1.2 : 1;
+        const first = nearestEnemy(cx, cy, 190*reach, null, true);
         if (!first) { w.cd = 20; return; }
         const [ax, ay] = dirTo(p, first);
         attackAnim(p, w.id, ax, ay, 16);
@@ -2569,7 +2759,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
           pts.push([cur.x, cur.y - 10]);
           hitEnemy(cur, L.dmg * (i === 0 ? 1.2 : 1), p, { kx: 0, ky: 0, kb: 0 });
           fx({ k: "spark", x: cur.x, y: cur.y - 10, life: 10 });
-          cur = nearestEnemy(cur.x, cur.y, 90, hit);
+          cur = nearestEnemy(cur.x, cur.y, 90*reach, hit, true);
         }
         st.zones.push({ type: "bolt", pts, life: 12, t: 0 });
         sound("zap");
@@ -2663,7 +2853,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     const cx = Math.cos(ang);
     const cy = Math.sin(ang);
     near(x + cx * len / 2, y + cy * len / 2, len / 2 + w + maxEnemyRadius + 16, (e) => {
-      if(!e.phased && segmentEntry(x,y,x+cx*len,y+cy*len,e.x,e.y-16,w+e.r)!==null)out.push(e);
+      if(!e.phased && segmentEntry(x,y,x+cx*len,y+cy*len,e.x,e.y-(e.type==="caja"?8:16),w+e.r)!==null)out.push(e);
     });
     return out;
   }
@@ -2749,6 +2939,13 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
       if (z.t < 0) continue;
       switch (z.type) {
         case "dangerLine":{
+          if (z.barrageDamage && z.t === 60) {
+            for (const p of alivePlayers()) {
+              if (segmentEntry(z.x,z.y,z.tx,z.ty,p.x,p.y,13*U) !== null) hurtPlayer(p,z.barrageDamage,z.source,"zone");
+            }
+            fx({k:"tracer",x:z.x,y:z.y,tx:z.tx,ty:z.ty,color:"#ffbb96",life:9});
+            sound("eshot", .12, z.x, z.y);
+          }
           if(z.sourceEnemy!==undefined){
             const source=st.enemies.find(e=>e.id===z.sourceEnemy && !e.dead);
             if(!source || source.state!==1 || source.staggerUntil>st.t){z.life=0;break;}
@@ -2766,7 +2963,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
           }break;
         case "bastion":{
           const p=st.players[z.owner];if(!p || p.down || p.disconnected)break;
-          if(z.t%30===1){const w=p.weapons[0],base=levelStats(w);fireNativeTechnique(p,w,{...base,dmg:base.dmg*(.35+.07*z.level)},(base.area || 1)*p.stats.area,1,z.x,z.y-18);}
+          if(z.t%30===1){const w=p.weapons[0],base=levelStats(w);fireNativeTechnique(p,w,{...base,dmg:base.dmg*(.35+.07*z.level)},(base.area || 1)*(z.castArea || p.stats.area),1,z.x,z.y-18);}
           break;
         }
         case "laser":{
@@ -2774,7 +2971,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
           break;
         }
         case "followup":{
-          const owner=st.players[z.owner];if(z.t===0&&owner&&!owner.down&&!owner.disconnected){const weapon=owner.weapons[0],base=levelStats(weapon);duringAttack(owner,z.skill || "pursuit",()=>fireNativeTechnique(owner,weapon,{...base,dmg:base.dmg*(1+.16*z.level)*.62},(base.area || 1)*owner.stats.area,Math.max(1,Math.min(3,(base.count || 1)+owner.stats.amount)),owner.x,owner.y-18),z.skillPower || 1);}
+          const owner=st.players[z.owner];if(z.t===0&&owner&&!owner.down&&!owner.disconnected){const weapon=owner.weapons[0],base=levelStats(weapon);duringAttack(owner,z.skill || "pursuit",()=>fireNativeTechnique(owner,weapon,{...base,dmg:base.dmg*(1+.16*z.level)*.62},(base.area || 1)*(z.castArea || owner.stats.area),Math.max(1,Math.min(3,(base.count || 1)+owner.stats.amount)),owner.x,owner.y-18),z.skillPower || 1);}
           break;
         }
         case "nestSpawn":
@@ -2790,7 +2987,14 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
         case "pincer":
           if(z.t===z.warn && !st.finalPhase){
             const count=Math.min(z.count,Math.max(0,fighterCap()-st.enemies.filter(e=>!e.prop&&!e.dead).length));
-            for(let i=0;i<count;i++){const a=z.ang+z.opening+(TAU-z.opening*2)*(i+.5)/Math.max(1,count);const e=spawnEnemy(["casco","antitronk","corredor","esqueleto"][i%4],z.x+Math.cos(a)*z.spawnR,z.y+Math.sin(a)*z.spawnR);collide(e,e.r);}
+            const formations = {escort:["guardian","sanador","guardian","casco"],shooters:["antitronk","casco","tirador","esqueleto"],rush:["corredor","corredor","ninja","zombi"]};
+            const types = formations[z.formation] || formations.shooters;
+            for (let i = 0; i < count; i++) {
+              const angle = z.ang + z.opening + (TAU - z.opening * 2) * (i + .5) / count;
+              const radius = z.formation === "escort" && types[i % 4] === "sanador" ? z.spawnR + 36 : z.spawnR;
+              const enemy = spawnEnemy(types[i % 4], z.x + Math.cos(angle)*radius, z.y+Math.sin(angle)*radius);
+              collide(enemy, enemy.r);
+            }
           }break;
         case "summon":
           if(z.t===60){
@@ -2884,6 +3088,18 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
             }
           }
           if(z.t%14===0)for(const e of enemiesInRadius(z.x,z.y,z.r)){
+            if (z.windMastery === "power" && !z.split && (e.elite || e.boss)) {
+              z.split = true;
+              const angle = Math.atan2(z.vy || 0, z.vx || 1);
+              for (const offset of [-.5,.5]) {
+                st.zones.push({type:"tornado",x:z.x,y:z.y,vx:Math.cos(angle+offset)*2*U,vy:Math.sin(angle+offset)*2*U,
+                  stationary:false,straight:true,r:z.r*.7,dmg:z.dmg*.45,life:48,t:0,owner:z.owner,skill:z.skill,skillPower:z.skillPower});
+              }
+            }
+            if (z.windMastery === "reach") {
+              e.slow = Math.max(e.slow || 0, 30);
+              e.slowAmt = Math.max(e.slowAmt || 0, .28);
+            }
             if(!e.windHits)e.windHits={};
             const windDamage=z.dmg*(z.ignited?1.3:1)*(attackContext?.power ?? 1);
             const last=e.windHits[z.owner];
@@ -2911,6 +3127,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
 
   function updatePickups() {
     const alive = alivePlayers();
+    st.pickups = st.pickups.filter(item => !item.expires || item.expires > st.t);
     // Los objetos están anclados al suelo: usar los pies en ambos renderizadores.
     // Elegir un único receptor evita tirones opuestos en cooperativo.
     const nearest = (item, candidates=alive) => candidates.reduce((best, p) => !best || dist2(item, p) < dist2(item, best) ? p : best, null);
@@ -3078,7 +3295,25 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
       if (support && !out.some(o=>o.id===support.id && o.kind===support.kind)) out[Math.max(0,out.length-1)] = support;
     }
     if (!out.length) out.push({ kind: "heal" }, { kind: "coins" });
-    return out.map((o) => describe(pl, o));
+    const mastery = allowTalents && out.find(option => option.kind === "technique" &&
+      option.lvl === TS.TECHNIQUES[pl.charId].find(move => move.id === option.id)?.max);
+    if (mastery) {
+      return ["power", "reach"].map(variant => describeMastery(pl, mastery, variant))
+        .concat(out.filter(option => option !== mastery).slice(0, n-2).map(option => describe(pl, option)));
+    }
+    return out.map(option => describe(pl, option));
+  }
+
+  function describeMastery(player, option, variant) {
+    const move = TS.TECHNIQUES[player.charId].find(technique => technique.id === option.id);
+    const focused = variant === "power";
+    return {
+      ...option, variant, icon:move.icon, title:`${L(move.name)} · ${L(focused ? "Impacto" : "Cobertura")}`,
+      desc:L(player.charId === "duna" && move.id === "pierce"
+        ? focused ? "+25 % de daño. El tornado se divide una vez al tocar un élite o jefe." : "+20 % de área. El tornado ralentiza a los enemigos que toca."
+        : focused ? "+25 % de daño de esta técnica." : "+20 % de alcance y área de esta técnica."),
+      isNew:false
+    };
   }
 
   function describe(pl, o) {
@@ -3164,6 +3399,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
       if (!pl.techCds) pl.techCds = {};
       skillRecord(pl,o.id);
       pl.techniques[o.id] = Math.min(d.max,(pl.techniques[o.id] || 0)+1);
+      if (pl.techniques[o.id] === d.max && ["power","reach"].includes(o.variant)) pl.techniquePaths[o.id] = o.variant;
       pl.techCds[o.id] = Math.min(pl.techCds[o.id] ?? 30,30);
     } else if (o.kind === "passive") {
       pl.passives[o.id] = (pl.passives[o.id] || 0) + 1;
@@ -3180,7 +3416,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     const p = st.players[playerId];
     if(!p || p.disconnected || !(p.rerolls>0) || st.choosing[playerId].every(o=>o.kind==="talent" || o.kind==="activePath"))return false;
     const previous=st.choosing[playerId],choices=buildOptions(p,3,true,previous);
-    const same=list=>JSON.stringify(list.map(o=>[o.kind,o.id,o.lvl]).sort());
+    const same=list=>JSON.stringify(list.map(o=>[o.kind,o.id,o.lvl,o.variant]).sort());
     if(same(choices)===same(previous)){
       if(playerId===localId)emit("toast",{text:L("No quedan mejoras distintas para cambiar."),kind:"info"});
       if(mode==="host")emit("netChoices",{[playerId]:previous});
@@ -3228,7 +3464,13 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     if (st.finalPhase) finalPressure();
     buildGrid();
     for (const p of st.players) updatePlayer(p);
+    if (st.training) {
+      updateShots();
+      updateZones();
+      return;
+    }
     spawning();
+    st.activeDefenders = campDefenders();
     for (const e of st.enemies) if (!e.dead) updateEnemy(e);
     monsterVoices();
     separate();
@@ -3251,6 +3493,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     buildGrid();
     updateShots();
     updateZones();
+    updateDefenders(st.activeDefenders);
     contact();
     updateStrikes();
     updateNests();
@@ -3270,11 +3513,12 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     if (!st || st.over) return;
     st.over = true;
     Sfx.stopMusic();
+    if (st.training) { emit("trainingEnd", {}); return; }
     Sfx.play(victory ? "win" : "die");
     const seconds = Math.floor(st.t / 60);
     const greed = st.players[localId].stats.greed;
     const coins = Math.round((st.coins + st.kills / 8 + seconds / 6 + st.bossesKilled * 60 + (victory || st.won ? 300 : 0)) * greed);
-    emit("end", { signature:st.signature,victory: victory || !!st.won, finalPhase: !!st.finalPhase, finalRound: st.finalRound || 0, endless: !!st.endless && !!st.won, endlessSeconds: st.endless ? Math.floor((st.t - st.endlessStart) / 60) : 0, seconds, kills: st.kills, level: st.level, coins, bosses: st.bossesKilled, evolutions: st.evolutions, abilities: st.abilitiesUsed || 0, props: st.propsBroken, combat:st.players.map(p=>({...p.combat,bestStreak:p.streak?.best || 0})),recaps:st.players.map(p=>({fatal:p.down?p.fatalHit:null,hits:(p.damageHistory || []).filter(h=>(p.down&&p.fatalHit?p.fatalHit.at:st.t)-h.at<=600)})),activePaths:st.players.map(p=>p.activePath),techniques:st.players.map(p=>({...p.techniques})),relics:st.players.map(p=>[...(p.relics || [])]),talents:st.players.map(p=>[...(p.talents || [])]),bestStreak:st.players[localId].streak?.best || 0, chests: st.chests || 0, charId: st.players[localId].charId, map: st.mapId, daily: st.daily, coop: st.players.length > 1 });
+    emit("end", { veteran:st.mods.includes("veterano"), signature:st.signature,victory: victory || !!st.won, finalPhase: !!st.finalPhase, finalRound: st.finalRound || 0, endless: !!st.endless && !!st.won, endlessSeconds: st.endless ? Math.floor((st.t - st.endlessStart) / 60) : 0, seconds, kills: st.kills, level: st.level, coins, bosses: st.bossesKilled, evolutions: st.evolutions, abilities: st.abilitiesUsed || 0, props: st.propsBroken, combat:st.players.map(p=>({...p.combat,bestStreak:p.streak?.best || 0})),recaps:st.players.map(p=>({fatal:p.down?p.fatalHit:null,hits:(p.damageHistory || []).filter(h=>(p.down&&p.fatalHit?p.fatalHit.at:st.t)-h.at<=600)})),activePaths:st.players.map(p=>p.activePath),techniques:st.players.map(p=>({...p.techniques})),techniquePaths:st.players.map(p=>({...p.techniquePaths})),relics:st.players.map(p=>[...(p.relics || [])]),talents:st.players.map(p=>[...(p.talents || [])]),bestStreak:st.players[localId].streak?.best || 0, chests: st.chests || 0, charId: st.players[localId].charId, map: st.mapId, daily: st.daily, coop: st.players.length > 1 });
   }
 
   function readInput() {
@@ -3360,7 +3604,8 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     if(!st || !p)return [];
     const chests=st.pickups.filter(it=>it.kind==="cofre"&&!it.taken).map(it=>({key:`chest:${Math.round(it.x*10)}:${Math.round(it.y*10)}`,kind:"chest",label:L("Cofre"),x:it.x,y:it.y}));
     const sites=st.sites.filter(s=>!s.used || s.activeUntil>st.t).map(s=>({key:`site:${s.id}`,kind:"site",label:L(TS.siteName(s)),x:s.x,y:s.y}));
-    return [...chests,...sites].sort((a,b)=>dist2(a,p)-dist2(b,p));
+    const supplies=st.pickups.filter(it=>it.expires && !it.taken).map(it=>({key:`supply:${it.x}:${it.y}`,kind:"supply",label:L("Suministro de marea"),x:it.x,y:it.y}));
+    return [...chests,...supplies,...sites].sort((a,b)=>dist2(a,p)-dist2(b,p));
   }
   function setGoal(key){
     const p=st?.players[localId];if(!p)return false;
@@ -3377,6 +3622,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     let kind=pinned?.kind || "revive",target=pinned || nearest(st.players.filter(o=>o.down&&!o.disconnected&&o.id!==p.id));
     if(!target && p.hp/p.stats.maxHp<.35){kind="heal";target=nearest(st.pickups.filter(it=>it.kind==="bocadillo"&&!it.taken&&dist2(it,p)<(700*U)**2));}
     if(!target){kind="chest";target=nearest(st.pickups.filter(it=>it.kind==="cofre"&&!it.taken));}
+    if(!target){kind="supply";target=nearest(goalCandidates(p).filter(g=>g.kind==="supply"));}
     if(!target){kind="site";target=nearest((st.sites || []).filter(s=>(!s.used || s.activeUntil>st.t&&p.hp<p.stats.maxHp) && !(s.kind==="altar"&&p.hp/p.stats.maxHp<.35)));}
     if(!target)return null;
     const label=target.label || (kind==="revive"?L("Revivir"):kind==="heal"?L("jensalada"):kind==="chest"?L("Cofre"):L(TS.siteName(target)));
@@ -3397,11 +3643,12 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
 
   function hudData() {
     const p = st.players[localId];
-    const site=(st.sites || []).filter(s=>!s.used || s.activeUntil>st.t).filter(s=>dist2(s,p)<(180*U)**2).sort((a,b)=>dist2(a,p)-dist2(b,p))[0];
+    const site=(st.sites || []).filter(s=>!s.used || s.activeUntil>st.t || s.defenders?.some(defender=>defender.hp>0)).filter(s=>dist2(s,p)<(180*U)**2).sort((a,b)=>dist2(a,p)-dist2(b,p))[0];
     const abDef = TS.ABILITIES[p.charId],compass=compassTarget(p);
     return {
+      training:st.training ? Math.round(p.combat.dealt) : null,
       goals:goalCandidates(p).filter((g,i)=>i<20 || g.key===pinnedGoal).map(g=>({...g,distance:Math.round(Math.sqrt(dist2(g,p))/U)})),pinnedGoal,
-      site:site?{name:L(TS.siteName(site)),hint:L(TS.SITE_HINTS[site.kind]),kind:site.kind,nest:!!site.nest,pct:Math.round((site.pct ?? 1)*100),progress:Math.min(100,Math.round(site.progress/120*100)),activated:site.activated,used:site.used,seconds:Math.ceil(Math.max(0,site.activeUntil-st.t)/60),guards:st.guest?site.remaining:site.guards.filter(id=>st.enemies.some(e=>e.id===id&&!e.dead)).length}:null,
+      site:site?{defenders:site.defenders?.filter(defender=>defender.hp>0).length,lampKills:site.lampKills || 0,name:L(TS.siteName(site)),hint:L(TS.SITE_HINTS[site.kind]),kind:site.kind,nest:!!site.nest,pct:Math.round((site.pct ?? 1)*100),progress:Math.min(100,Math.round(site.progress/120*100)),activated:site.activated,used:site.used,seconds:Math.ceil(Math.max(0,site.activeUntil-st.t)/60),guards:st.guest?site.remaining:site.guards.filter(id=>st.enemies.some(e=>e.id===id&&!e.dead)).length}:null,
       breach:st.breach?{remaining:st.breach.remaining,total:st.breach.total}:null,
       nextTechnique:(TS.TECHNIQUES[p.charId] || []).find(m=>m.unlock>st.level || m.at>st.t/60) || null,
       techniqueRanks:Object.values(p.techniques || {}).reduce((n,v)=>n+v,0),techniqueTotal:TS.techniqueTotal(p.charId),
@@ -3428,7 +3675,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
       weapons: p.weapons.map((w) => ({ id: w.id, lvl: w.lvl, evo: !!w.evo, path:w.path || null })),
       techniques: Object.entries(p.techniques || {}).map(([id,lvl]) => {
         const move=TS.TECHNIQUES[p.charId].find(m=>m.id===id);
-        return {id,lvl,name:L(move.name),icon:move.icon || charById(p.charId).weapon,linkSeconds:id==="focus"?Math.max(0,(p.synergyReady-st.t)/60):0,ready:st.guest ? p.techReady?.[id] ?? 0 : clamp(1-(p.techCds?.[id] || 0)/(move.cd*p.stats.cdMul),0,1)};
+        return {id,lvl,name:L(move.name)+(p.techniquePaths?.[id]?` · ${L(p.techniquePaths[id]==="power"?"Impacto":"Cobertura")}`:""),icon:move.icon || charById(p.charId).weapon,linkSeconds:id==="focus"?Math.max(0,(p.synergyReady-st.t)/60):0,ready:st.guest ? p.techReady?.[id] ?? 0 : clamp(1-(p.techCds?.[id] || 0)/(move.cd*p.stats.cdMul),0,1)};
       }),
       canEvolve: !!evolvable(p),
       passives: Object.entries(p.passives).map(([id, lvl]) => ({ id, lvl })),
@@ -3642,16 +3889,25 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
   }
 
   function drawEnemyHealth(e,x,y) {
-    if(e.boss || e.elite || e.prop || !Number.isFinite(e.hp) || options.healthBars==="off")return;
+    if(e.boss || e.elite || e.prop || !Number.isFinite(e.hp) || options.healthBars==="off" && e.type!=="tronkAliado")return;
     const pct=clamp(e.hp/e.maxHp,0,1);
-    if(options.healthBars!=="always" && pct>=.999)return;
+    if(options.healthBars!=="always" && pct>=.999 && e.type!=="tronkAliado")return;
     ctx.fillStyle="#10212b";ctx.fillRect(Math.round(x-14),Math.round(y),28,5);
     ctx.fillStyle="#fff2cf";ctx.fillRect(Math.round(x-13),Math.round(y+1),26*pct,3);
-    ctx.fillStyle="#df7f65";ctx.fillRect(Math.round(x-13),Math.round(y+2),26*pct,2);
+    ctx.fillStyle=e.type==="tronkAliado"?"#91eac9":"#df7f65";ctx.fillRect(Math.round(x-13),Math.round(y+2),26*pct,2);
   }
 
   function drawEnemy(e) {
-    if(e.type==="nido")return;
+    if (e.type === "nido") {
+      if (e.phaseObelisk === undefined) return;
+      shadow(e.x,e.y,16);
+      ctx.fillStyle="#31304b";ctx.fillRect(e.x-10,e.y-30,20,30);
+      ctx.fillStyle="#b6a4df";ctx.beginPath();ctx.moveTo(e.x-10,e.y-30);ctx.lineTo(e.x,e.y-52);ctx.lineTo(e.x+10,e.y-30);ctx.fill();
+      ctx.fillStyle="#c8acff";ctx.fillRect(e.x-2,e.y-28,4,19);
+      ctx.fillStyle="#10212b";ctx.fillRect(e.x-16,e.y-60,32,4);
+      ctx.fillStyle="#c8acff";ctx.fillRect(e.x-15,e.y-59,30*e.hp/e.maxHp,2);
+      return;
+    }
     const d = TS.ENEMIES[e.type];
     if (e.prop) {
       const img = x2(`prop:${e.type}`);
@@ -3667,6 +3923,10 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     if(e.elite) drawEliteBadge(e.x,e.y,e.hp/e.maxHp,true,!!e.breach);
     if(e.relentless){ctx.strokeStyle="#ff512f";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(e.x,e.y,18*(d.scale||1),7*(d.scale||1),0,0,TAU);ctx.stroke();}
     if(e.wetUntil>(st?.t ?? 0)){ctx.fillStyle="#91e9ff";ctx.beginPath();ctx.arc(e.x+12,e.y-48,3,0,TAU);ctx.fill();}
+    if (e.type === "tronkAliado") {
+      ctx.strokeStyle = "#91eac9"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(e.x,e.y,15,7,0,0,TAU); ctx.stroke();
+    }
     if(e.type==="guardian"){
       const a=e.guardAngle ?? Math.atan2(e.vy || 0,e.vx || 1);ctx.strokeStyle="#9bcee7";ctx.lineWidth=4;
       ctx.beginPath();ctx.arc(e.x,e.y-20,19,a-.9,a+.9);ctx.stroke();
@@ -3781,6 +4041,15 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
         break;
       }
     }
+    ctx.restore();
+  }
+
+  const playerEffects = new Set(["slash","thrust","bastion","laser","perfume","acid","disc","flame","wave","bomb","meteor","tornado","bolt","punch"]);
+  function drawPlayerEffect(draw, zone) {
+    if (!options.softAttacks || !playerEffects.has(zone.type) || zone.friendly) return draw(zone);
+    ctx.save();
+    ctx.globalAlpha *= .42;
+    draw(zone);
     ctx.restore();
   }
 
@@ -3917,6 +4186,10 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
         break;
       }
       case "bolt": { // rayo del tridente
+        if (z.friendly) {
+          ctx.strokeStyle="#ffe6a0";ctx.lineWidth=1.4;ctx.beginPath();
+          ctx.moveTo(...z.pts[0]);ctx.lineTo(...z.pts[1]);ctx.stroke();break;
+        }
         const a = 1 - z.t / z.life;
         for (const [w, color] of [[4, `rgba(120,180,255,${a * 0.5})`], [2, `rgba(220,240,255,${a})`], [1, `rgba(255,255,255,${a})`]]) {
           ctx.strokeStyle = color;
@@ -3993,6 +4266,9 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
   function drawFx(f) {
     const k = f.t / f.life;
     switch (f.k) {
+      case "tracer":
+        ctx.save();ctx.strokeStyle=f.color;ctx.globalAlpha=1-k;ctx.lineWidth=4;
+        ctx.beginPath();ctx.moveTo(f.x,f.y);ctx.lineTo(f.tx,f.ty);ctx.stroke();ctx.restore();break;
       case "warn": {
         ctx.strokeStyle = "rgba(255,60,60,.9)";
         ctx.lineWidth = 1.5;
@@ -4215,7 +4491,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
 
     drawGround(left, top, wW, wH);
     drawSites();drawResurrectionSignals((x,y,h)=>[x,y-h]);
-    for (const z of st.zones) drawZoneUnder(z);
+    for (const z of st.zones) drawPlayerEffect(drawZoneUnder,z);
     for (const p of st.players) drawAura(p);
 
     // gemas y objetos
@@ -4243,6 +4519,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
       if (e.x < left - 60 || e.x > left + wW + 60 || e.y < top - 20 || e.y > top + wH + 90) continue;
       actors.push({ y: e.y, e });
     }
+    for (const defender of campDefenders()) actors.push({y:defender.y,e:defender});
     for (const p of st.players) actors.push({ y: p.y, p });
     obstaclesNear(left + wW / 2, top + wH / 2, Math.max(wW, wH) / 2 + 140, (ob) => {
       if (ob.x < left - 80 || ob.x > left + wW + 80 || ob.y < top - 20 || ob.y > top + wH + 140) return;
@@ -4255,8 +4532,10 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
       else drawObstacle(a.ob, me);
     }
 
+    ctx.save();if(options.softAttacks)ctx.globalAlpha=.48;
     for (const s of st.shots) drawShot(s);
-    for (const z of st.zones) drawZoneOver(z);
+    ctx.restore();
+    for (const z of st.zones) drawPlayerEffect(drawZoneOver,z);
     for (const p of st.players) drawDrones(p);
     for (const s of st.eshots) drawEnemyShot(s);
     for (const f of st.fx) drawFx(f);
@@ -4392,13 +4671,13 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
   function actorOfEnemy(e) {
     const d = TS.ENEMIES[e.type];
     if (!d) return null;
-    if (d.prop) return { prop: true, type: e.type, x: e.x, y: e.y, t: e.t, flash: e.flash > 0 };
+    if (d.prop) return { prop: true, type: e.phaseObelisk===undefined?e.type:"obelisk", pct:e.hp/e.maxHp, x: e.x, y: e.y, t: e.t, flash: e.flash > 0 };
     const sprite = d.sprite || e.type;
     const scale = (d.scale || 1) * (e.elite ? 1.18 : 1);
     const relentless = !!e.relentless;
     const flash = !options.reducedMotion && (e.flash > 3 || ((e.ai === "dash" || e.ai === "kamikaze") && e.state === 1 && e.t % 6 < 3));
     if (["slime", "slimito", "fantasma", "murcielago"].includes(sprite)) return { creature: true, type: sprite, x: e.x, y: e.y, t: e.t, flash, phased: e.phased, scale, relentless, elite:!!e.elite, breach:!!e.breach, ang: Render3D.angleOf(e.dir || "down", e.face) };
-    return { kind: "enemy", role:e.type, wet:e.wetUntil>(st?.t ?? 0), relentless, elite:!!e.elite, breach:!!e.breach, id: sprite, x: e.x, y: e.y, ang: e.type==="guardian"?(e.guardAngle ?? 0):Render3D.angleOf(e.dir || "side", e.face), moving: Math.hypot(e.vx || 0, e.vy || 0) > 0.1, walkT: e.t, atk: e.atk > 0 ? { t: e.atk, total: 18 } : null, flash, scale };
+    return { kind: "enemy", pct:e.hp/e.maxHp, role:e.type, wet:e.wetUntil>(st?.t ?? 0), relentless, elite:!!e.elite, breach:!!e.breach, id: sprite, x: e.x, y: e.y, ang: e.type==="guardian"?(e.guardAngle ?? 0):Render3D.angleOf(e.dir || "side", e.face), moving: Math.hypot(e.vx || 0, e.vy || 0) > 0.1, walkT: e.t, atk: e.atk > 0 ? { t: e.atk, total: 18 } : null, flash, scale };
   }
 
   function render3D() {
@@ -4412,10 +4691,11 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     const R2 = (Math.max(view.w, view.h) / view.k) ** 2;
     for (const e of st.enemies) {
       if ((e.x - cam.x) ** 2 + (e.y - cam.y) ** 2 > R2) continue;
-      if(e.type==="nido")continue;
+      if(e.type==="nido" && e.phaseObelisk===undefined)continue;
       const a = actorOfEnemy(e);
       if (a) actors.push(a);
     }
+    for (const defender of campDefenders()) if (dist2(defender, cam) <= R2) actors.push(actorOfEnemy(defender));
     for (const p of st.players) if (!p.down || st.t % 20 < 14) actors.push(actorOfPlayer(p));
     const auras = [];
     const drones = [];
@@ -4429,7 +4709,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     const visible = item => (item.x-cam.x)**2+(item.y-cam.y)**2<R2*1.5;
     Render3D.draw({
       cx: cam.x, cy: cam.y, wH, shake: shakeNow, dark: map.dark || 0, t: st.t,
-      sites:st.sites, actors, gems: st.gems.filter(visible), pickups: st.pickups.filter(visible), shots: st.shots.filter((x) => !(x.delay > 0) && visible(x)), eshots: st.eshots.filter(visible),
+      softAttacks:options.softAttacks, playerEffects, sites:st.sites, actors, gems: st.gems.filter(visible), pickups: st.pickups.filter(visible), shots: st.shots.filter((x) => !(x.delay > 0) && visible(x)), eshots: st.eshots.filter(visible),
       zones: st.zones, fx: st.fx, auras, drones, contrast: options.contrast, low: lowFx, reducedMotion:options.reducedMotion
     });
     // capa 2D: números, nombres, barras de vida, flecha del jefe y joystick
@@ -4547,14 +4827,14 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
       p.weapons.map((w) => [w.id, w.lvl, w.evo ? 1 : 0, (w.drones || []).map((d) => [r1(d.x || 0), r1(d.y || 0)]),w.path || null]),
       Object.entries(p.passives), r1(p.stats.area), Math.round((1 - p.abCd / abilityMax(p)) * 100) / 100,
       p.moveX, p.moveY, p.atk ? p.atk.ax : null, p.atk ? p.atk.ay : null, Object.entries(p.techniques || {}), {
-        dashCd:p.dashCd || 0,dashT:p.dashT || 0,synergyReady:p.synergyReady || 0,activePath:p.activePath,attackPose:p.atk?.pose || null,relics:p.relics,parry:p.parryUntil>st.t && p.parryCharges>0,talents:p.talents,stats:STAT_KEYS.map(k=>p.stats[k]),rerolls:p.rerolls, combat:p.combat, streak:p.streak,loot:p.loot, disconnected:!!p.disconnected, reviver:p.reviver ?? null,
+        dashCd:p.dashCd || 0,dashT:p.dashT || 0,techniquePaths:p.techniquePaths,synergyReady:p.synergyReady || 0,activePath:p.activePath,attackPose:p.atk?.pose || null,relics:p.relics,parry:p.parryUntil>st.t && p.parryCharges>0,talents:p.talents,stats:STAT_KEYS.map(k=>p.stats[k]),rerolls:p.rerolls, combat:p.combat, streak:p.streak,loot:p.loot, disconnected:!!p.disconnected, reviver:p.reviver ?? null,
         ready:Object.fromEntries((TS.TECHNIQUES[p.charId] || []).map(m=>[m.id,clamp(1-(p.techCds?.[m.id] || 0)/(m.cd*p.stats.cdMul),0,1)]))
       }
     ]);
     const enemies = [];
     for (const e of st.enemies) {
       if (!near2(e.x, e.y)) continue;
-      enemies.push([e.id, ENEMY_IDS.indexOf(e.type), r1(e.x), r1(e.y), DIRS.indexOf(e.dir || "side"), e.face, Math.hypot(e.vx, e.vy) > 0.1 ? 1 : 0, e.t & 1023, e.flash, (e.phased ? 1 : 0) | (e.state === 1 ? 2 : 0) | (e.state === 2 ? 4 : 0) | (e.relentless ? 8 : 0) | (e.elite ? 16 : 0) | (e.breach ? 32 : 0) | (e.wetUntil>(st?.t ?? 0)?64:0), e.atk, !e.prop ? Math.max(e.hp > 0 ? .01 : 0,Math.round(e.hp/e.maxHp*100)/100) : 0,{guardAngle:e.guardAngle ?? 0,posture:e.posture || 0,postureImmuneUntil:e.postureImmuneUntil || 0,staggerUntil:e.staggerUntil || 0,markUntil:e.markUntil || 0,markBy:e.markBy ?? -1}]);
+      enemies.push([e.id, ENEMY_IDS.indexOf(e.type), r1(e.x), r1(e.y), DIRS.indexOf(e.dir || "side"), e.face, Math.hypot(e.vx, e.vy) > 0.1 ? 1 : 0, e.t & 1023, e.flash, (e.phased ? 1 : 0) | (e.state === 1 ? 2 : 0) | (e.state === 2 ? 4 : 0) | (e.relentless ? 8 : 0) | (e.elite ? 16 : 0) | (e.breach ? 32 : 0) | (e.wetUntil>(st?.t ?? 0)?64:0), e.atk, (!e.prop || e.phaseObelisk!==undefined) ? Math.max(e.hp > 0 ? .01 : 0,Math.round(e.hp/e.maxHp*100)/100) : 0,{guardAngle:e.guardAngle ?? 0,posture:e.posture || 0,postureImmuneUntil:e.postureImmuneUntil || 0,staggerUntil:e.staggerUntil || 0,markUntil:e.markUntil || 0,markBy:e.markBy ?? -1,phaseObelisk:e.phaseObelisk}]);
     }
     const shots = st.shots.filter((x) => near2(x.x, x.y) && !(x.delay > 0)).map((x) => [x.type, r1(x.x), r1(x.y), r1(x.ang || 0), r1(x.r), x.life,x.style || null]);
     const eshots = st.eshots.filter((x) => near2(x.x, x.y)).map((x) => [r1(x.x), r1(x.y), x.kind]);
@@ -4565,7 +4845,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
       return out;
     });
     const gems = st.gems.filter((g) => near2(g.x, g.y)).slice(0, 500).map((g) => [r1(g.x), r1(g.y), g.v]);
-    const pickups = st.pickups.filter((it) => it.kind === "cofre" || near2(it.x, it.y)).map((it) => [r1(it.x), r1(it.y), it.kind]);
+    const pickups = st.pickups.filter((it) => it.kind === "cofre" || near2(it.x, it.y)).map((it) => [r1(it.x), r1(it.y), it.kind, it.expires || 0]);
     const events = st.events.splice(0, st.events.length).slice(-120);
     return {
       t: st.t, lv: st.level, xp: Math.round(st.xp), xn: st.xpNext, k: st.kills, c: st.coins,
@@ -4633,6 +4913,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
       p.talents=(a[23]?.talents || []).filter(id=>TS.TALENTS[id]);
       STAT_KEYS.forEach((key,i)=>{if(Number.isFinite(a[23]?.stats?.[i]))p.stats[key]=a[23].stats[i];});
       p.streak=a[23]?.streak || {count:0,best:0,until:0,flashUntil:0};p.loot=a[23]?.loot || null;
+      p.techniquePaths=a[23]?.techniquePaths || {};
       p.reviver=a[23]?.reviver ?? null; p.disconnected=!!a[23]?.disconnected; p.rerolls=a[23]?.rerolls ?? 0; p.combat=a[23]?.combat || {}; p.techReady=a[23]?.ready || {};
       p.hp = a[8]; p.stats.maxHp = a[9]; p.down = !!a[10]; p.reviveT = a[11]; p.iframes = a[12]; p.flash = a[13];
       p.weapons = a[14].filter(([id]) => id === charById(p.charId).weapon).map(([id, lvl, evo, drones, path]) => ({ id, lvl, evo: !!evo, path, drones: drones.map(([x, y]) => ({ x, y })) }));
@@ -4654,6 +4935,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
       e.tx = x; e.ty = y; e.dir = DIRS[di] || "side"; e.face = face; e.vx = moving ? 1 : 0; e.vy = 0; e.t = t; e.flash = flash;
       e.wetUntil=flags&64?st.t+30:0;
       e.guardAngle=a[12]?.guardAngle ?? 0;
+      e.phaseObelisk=a[12]?.phaseObelisk;
       for(const key of ["posture","postureImmuneUntil","staggerUntil","markUntil","markBy"])e[key]=a[12]?.[key] ?? 0;
       e.breach=!!(flags & 32); e.elite=!!(flags & 16); e.hp=a[11] ?? 1; e.maxHp=1;
       e.relentless = !!(flags & 8); e.phased = !!(flags & 1); e.state = flags & 2 ? 1 : flags & 4 ? 2 : 0; e.atk = atk;
@@ -4667,7 +4949,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     st.eshots = snap.es.map(([x, y, kind]) => ({ x, y, kind }));
     st.zones = snap.z;
     st.gems = snap.g.map(([x, y, v]) => ({ x, y, v, t: 0 }));
-    st.pickups = snap.pk.map(([x, y, kind]) => ({ x, y, kind, t: 0 }));
+    st.pickups = snap.pk.map(([x, y, kind, expires]) => ({ x, y, kind, expires, t: 0 }));
     for (const ev of snap.ev) {
       if (ev.k === "snd") playWorldSound(ev.n,.03,ev.x,ev.y);
       else { ev.t = 0; st.fx.push(ev); }

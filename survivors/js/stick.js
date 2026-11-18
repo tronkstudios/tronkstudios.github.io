@@ -563,6 +563,11 @@ const Stick = (() => {
         ctx.stroke(); ctx.fillStyle = "#e0b84a";
         for (const x of [-13, 0, 13]) { const e = tip + (x ? 20 : 26); ctx.beginPath(); ctx.moveTo(x - 4, e - 4); ctx.lineTo(x, e + 7); ctx.lineTo(x + 4, e - 4); ctx.fill(); }
         break;
+      case "pistolaAliada":
+        ctx.fillStyle="#273342";ctx.fillRect(-4,-9,8,26);
+        ctx.fillStyle="#90a8ad";ctx.fillRect(-4,3,8,14);
+        ctx.fillStyle="#394b51";ctx.fillRect(3,-9,7,10);
+        break;
       case "rifle":
         ctx.fillStyle = "#2a2a30"; ctx.fillRect(-4, back, 8, len); ctx.fillStyle = "#5a4630"; ctx.fillRect(-5, back - 4, 10, 18); ctx.fillStyle = "#14141a"; ctx.fillRect(-2, tip - 6, 4, 16);
         break;
@@ -615,7 +620,7 @@ const Stick = (() => {
     petardo: ["petardo", 0, "throw"], colonia: ["perfume", 0, "cast"], balon: ["balon", 0, "throw"], copos: ["hielo", 0, "cast"],
     kunai: ["kunai", 0, "throw"], meteoro: ["estrella", 0, "cast"], dron: [null, 0, "cast", "drone"], tornado: ["baston", 110, "cast"],
     // enemigos
-    katana: ["katana", 70, "slash"], rifle: ["rifle", 60, "shoot"], rusty: ["espada", 60, "slash"], baston: ["baston", 100, "robe"], tnt: ["tnt", 0, "zombie"], none: [null, 0, "zombie"]
+    katana: ["katana", 70, "slash"], rifle: ["rifle", 60, "shoot"], pistolaAliada:["pistolaAliada",26,"shoot"], rusty: ["espada", 60, "slash"], baston: ["baston", 100, "robe"], tnt: ["tnt", 0, "zombie"], none: [null, 0, "zombie"]
   };
 
   /* El esqueleto de Tronk Fight es de perfil (x hacia delante, y hacia abajo).
@@ -868,6 +873,7 @@ const Stick = (() => {
     casco: { color: "#e07a1f", head: Z, hair: "hardhat", acc: "#f2c14e", eye: "#c1121f", weapon: "none" },
     bomba: { color: "#3a3a3a", head: Z, hair: "zombie", hairColor: "#2a2a22", eye: "#c1121f", weapon: "tnt" },
     gordo: { color: "#8a6f5a", head: Z, hair: "zombie", hairColor: "#2a2a22", eye: "#c1121f", weapon: "none", thick: 1.9, torso: 1.4, headK: 1.15 },
+    tronkAliado: { color:"#437d72", legs:"#273f46", hair:"capBack", hairColor:"#3b5c54", weapon:"pistolaAliada", head:"#c89971", acc:"#9de2ca" },
     antitronk: { color: "#3a4232", hair: "balaclava", weapon: "rifle", noEye: true },
     supremo: { color: "#2b2f3a", hair: "balaclava", beret: "#a61b1b", weapon: "rifle", noEye: true },
     general: { color: "#3a4232", hair: "balaclava", beret: "#1a1a1f", weapon: "rifle", cape: "#1a1a1f", noEye: true },

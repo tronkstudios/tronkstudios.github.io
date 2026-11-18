@@ -839,3 +839,37 @@ Object.assign(EN, {
   "Cinco aperturas disponibles cada 24 h": "Five free pulls available every 24 hours",
   "Buscando anuncio…": "Finding an ad…"
 });
+
+Object.assign(EN, {
+  "Tronk defensor": "Tronk defender",
+  "Defensores": "Defenders",
+  "Campamento activo. Protege a sus defensores.": "Camp activated. Protect its defenders.",
+  "Recluta defensores y activa el refugio": "Recruit defenders and activate the refuge",
+  "Derrota a 8 enemigos bajo la farola": "Defeat 8 enemies under the lamp",
+  "Posición defendida. Recoge tu recompensa.": "Position defended. Collect your reward.",
+  "Escolta de escudos. Busca la abertura.": "Shield escort. Find the opening.",
+  "Tiradores en formación. Busca la abertura.": "Ranged formation. Find the opening.",
+  "Carga de corredores. Busca la abertura.": "Runner charge. Find the opening.",
+  "Destruye los obeliscos para debilitar al Rey Esqueleto": "Destroy the obelisks to weaken the Skeleton King",
+  "Obeliscos destruidos. El rey está expuesto.": "Obelisks destroyed. The king is exposed.",
+  "Impacto": "Impact",
+  "Cobertura": "Coverage",
+  "+25 % de daño de esta técnica.": "+25% damage for this technique.",
+  "+20 % de alcance y área de esta técnica.": "+20% range and area for this technique.",
+  "Campo de pruebas": "Training ground",
+  "Salir del campo de pruebas": "Leave training",
+  "Objetivo de práctica": "Practice target",
+  "Muñeco": "Dummy",
+  "Guardián con escudo": "Shield guardian",
+  "Modo Veterano": "Veteran mode",
+  "Récord Veterano": "Veteran record",
+  "Oleadas antes, más enemigos y menos curación. Récord personal separado.": "Earlier waves, more enemies and less healing. Separate personal record.",
+  "Atenuar efectos de tus ataques": "Soften your attack effects"
+});
+
+Object.assign(EN, {
+  "Suministro en la playa. Recógelo antes de 12 s.": "Beach supply. Pick it up within 12 seconds.",
+  "Suministro de marea": "Tidal supply",
+  "+25 % de daño. El tornado se divide una vez al tocar un élite o jefe.": "+25% damage. The tornado splits once on hitting an elite or boss.",
+  "+20 % de área. El tornado ralentiza a los enemigos que toca.": "+20% area. The tornado slows enemies it touches."
+});
