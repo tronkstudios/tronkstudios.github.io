@@ -185,3 +185,5 @@ verifica el impulso del invitado en el anfitrión y su HUD. Ver
   teclado, marcadores de rango, activación accesible, elección única del invitado,
   cuatro siluetas hostiles, coordenadas 3D y movimiento reducido. Véase
   [Combate legible y equipo](../docs/survivors/combate-legible-y-equipo.md).
+
+`node tests/survivors.fist-preview.cjs` comprueba que las demostraciones de guantes y puños ejecuten el combo, golpeen al muñeco y terminen. Admite `BASE_URL`, `CHROMIUM_PATH` y `ALLOW_TEST_PROXY_CERT`.

@@ -30,3 +30,22 @@ button.hud-compass{pointer-events:auto;font-family:inherit;cursor:pointer;text-a
 .upgrade-ranks{display:flex;align-items:center;flex-wrap:wrap;gap:5px 10px;margin:6px 0;color:#bad6d4;font-size:10px;line-height:1.4}.rank-steps{display:inline-flex;gap:3px}.rank-steps i{width:13px;height:4px;background:#0a1c28;border:1px solid #65828b;border-radius:2px}.rank-steps .is-owned{background:#96b9bc;border-color:#96b9bc}.rank-steps .is-next{background:#f4cf89;border-color:#ffe1a4;box-shadow:0 0 4px #f4cf8944}
 #hud-ab:disabled{opacity:.55}
 @media (any-pointer:coarse){.pause-build{gap:10px}.up-card .upgrade-ranks{font-size:10px}}
+
+/* Keep native scrolling, with the same teal and gold as the game panels. */
+:root { color-scheme: dark; }
+* { scrollbar-color: #bfa16b #102630; scrollbar-width: thin; }
+@supports selector(::-webkit-scrollbar) {
+  * { scrollbar-color: auto; scrollbar-width: auto; }
+  ::-webkit-scrollbar { width: 12px; height: 12px; }
+  ::-webkit-scrollbar-track { background: #102630; border-radius: 10px; }
+  ::-webkit-scrollbar-thumb { background: #bfa16b; border: 3px solid #102630; border-radius: 10px; min-height: 36px; }
+  ::-webkit-scrollbar-thumb:hover { background: #f2d397; }
+  ::-webkit-scrollbar-thumb:active { background: #ffe5af; }
+  ::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+  ::-webkit-scrollbar-corner { background: #102630; }
+}
+@media (forced-colors: active) {
+  * { scrollbar-color: auto; scrollbar-width: auto; }
+  ::-webkit-scrollbar-thumb { background: ButtonText; border-color: Canvas; }
+  ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: Canvas; }
+}

@@ -2236,6 +2236,8 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
       const rank=clamp(Math.floor(previewOptions.rank || 3),1,5);
       const p=newPlayer(0,{charId});st.players=[p];p.weapons[0].lvl=rank;p.activePath=TS.ACTIVE_PATHS[previewOptions.activePath]?previewOptions.activePath:null;p.x=-72;p.y=20;p.aimX=1;p.aimY=0;
       const dummy={id:500,type:"esqueleto",x:95,y:20,hp:1e9,maxHp:1e9,r:12*U,slow:0,kx:0,ky:0,t:0,flash:0,face:-1,dir:"side",state:0,hits:{}};
+      const family=TS.WEAPONS[p.weapons[0].id].family || p.weapons[0].id;
+      if(["guantes","punos"].includes(family)){p.x=-42;dummy.x=28;}
       st.enemies=[dummy];buildGrid();
       if(move==="active")useAbility(p);
       else if(move!=="weapon")techniqueAttack(p,move,rank);
@@ -2243,7 +2245,10 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
       const steps=Math.min(80,Math.max(0,frame));
       for(let i=0;i<steps;i++){
         st.t++;if(p.activeEchoAt && st.t>=p.activeEchoAt){p.activeEchoAt=0;useAbility(p,true);}
-        if(p.atk)p.atk.t=Math.max(0,p.atk.t-1);updateShots();updateZones();
+        if(p.atk)p.atk.t=Math.max(0,p.atk.t-1);
+        // Fist attacks queue a combo; previews must advance it just like a run.
+        if(p.weapons[0].combo>0)duringAttack(p,move==="weapon"?"weapon":move,()=>updateWeapon(p,p.weapons[0]));
+        updateShots();updateZones();
         st.fx.forEach(f=>f.t++);st.fx=st.fx.filter(f=>f.t<f.life);
       }
       ctx.save();ctx.clearRect(0,0,canvas.width,canvas.height);ctx.fillStyle="#152832";ctx.fillRect(0,0,canvas.width,canvas.height);
