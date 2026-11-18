@@ -1752,8 +1752,10 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
       const directionLength = Math.hypot(x, y) || 1;
       p.moveX = x / directionLength;
       p.moveY = y / directionLength;
-      p.walkT++;
       collide(p, 7 * U);
+      const travelled=Math.hypot(p.x-oldX,p.y-oldY);
+      p.moving=travelled>.05;
+      if(p.moving)p.walkT+=Math.min(3,travelled/(1.25*U));
     }
     if(!p.moving && mapId==="playa") {blockWater(p,p.x,p.y);collide(p,7*U);}
     if(p.relics.includes("pasos")){
@@ -1854,7 +1856,12 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     emit("ability", { id: p.id, name: L(ab.name) });
     const ring = (n, make) => { const off = rand(0, TAU); for (let i = 0; i < n; i++) make(off + (i / n) * TAU); };
     const near = (n, r) => st.enemies.filter((e) => !e.prop && !e.dead && Math.hypot(e.x - p.x, e.y - p.y) < r).sort((a, b) => dist2(a, p) - dist2(b, p)).slice(0, n);
-    if(TS.NEW_ROSTER.some(ch=>ch.id===p.charId)){
+    const newcomer=TS.NEW_ROSTER.find(ch=>ch.id===p.charId);
+    if(newcomer){
+      if(newcomer.activeMoves){
+        for(const move of newcomer.activeMoves)techniqueAttack(p,move,3);
+        return;
+      }
       if(p.charId==="yago"){
         for(const ally of alivePlayers())if(dist2(ally,p)<(120*area)**2){healPlayer(ally,12,true);ally.parryUntil=st.t+90;ally.parryCharges=1;}
         techniqueAttack(p,"guard",3);
@@ -2199,7 +2206,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     attackContext={owner:p.id,source,power};
     try{return fn();}finally{
       for(const list of [st.shots.slice(shotStart),st.zones.slice(zoneStart)])for(const item of list){
-        if(item.owner===p.id && p.charId==="rook" && item.type==="axe")item.style="boomerang";
+        if(item.owner===p.id && ["rook","siro"].includes(p.charId) && item.type==="axe")item.style=p.charId==="siro"?"returnRing":"boomerang";
         if(item.owner===p.id && !item.skill){item.skill=source;item.skillPower=power;}
       }
       attackContext=previous;
@@ -3509,6 +3516,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
   function personImage(set, dir, flash, moving, walkT, atk) {
     const s = set[flash ? `${dir}Flash` : dir];
     if (atk && atk.t > 0) {
+      if(moving){const blended=Stick.movingFrame(set,dir,walkT,atk,flash);if(blended)return blended;}
       const k = 1 - atk.t / atk.total;
       const frames=atk.pose==="thrust" && s.thrust?s.thrust:s.attack;
       const n = frames.length;
@@ -3749,6 +3757,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
         break;
       case "axe":
         ctx.rotate(s.ang);
+        if(s.style==="returnRing"){ctx.strokeStyle="#e5d497";ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(0,0,7,5,0,0,TAU);ctx.stroke();break;}
         if(s.style==="boomerang"){ctx.strokeStyle="#ca9d62";ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-6,4);ctx.lineTo(0,-5);ctx.lineTo(6,4);ctx.stroke();break;}
         ctx.fillStyle = "#8a5a2b"; ctx.fillRect(-1, -6, 2, 12);
         ctx.fillStyle = "#cfd8e3"; ctx.fillRect(1, -6, 4, 5);
@@ -4865,6 +4874,9 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     get localId() { return localId; },
     get view() { return view; },
     step,
+    characterStats(charId, stars, meta) {
+      return statRows(calculateStats({ charId, stars, meta, passives: {} }));
+    },
     difficultyAt,
     characterPreview,
     setGoal,

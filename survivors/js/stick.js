@@ -85,11 +85,11 @@ const Stick = (() => {
     const base = { ...BASE[style] };
     if (kind === "walk") {
       const p = (i / n) * Math.PI * 2;
-      const fl = 26 * Math.sin(p), bl = -26 * Math.sin(p);
+      const fl = 32 * Math.sin(p), bl = -32 * Math.sin(p);
       const armSwing = style === "zombie" ? .2 : style==="bow"?.12:1;
       return over(base, {
-        ful: fl, fll: fl - 24 * (0.5 + 0.5 * Math.sin(p - 1.3)),
-        bul: bl, bll: bl - 24 * (0.5 + 0.5 * Math.sin(p + Math.PI - 1.3)),
+        ful: fl, fll: fl - 32 * (0.5 + 0.5 * Math.sin(p - 1.3)),
+        bul: bl, bll: bl - 32 * (0.5 + 0.5 * Math.sin(p + Math.PI - 1.3)),
         bu: base.bu - 16 * Math.sin(p) * armSwing, fu: base.fu + 6 * Math.sin(p) * armSwing, w: base.w + 3 * Math.sin(p),
         lean: base.lean + 4 + Math.abs(Math.sin(p)) * 2
       });
@@ -106,6 +106,28 @@ const Stick = (() => {
       return p;
     }
     return base;
+  }
+
+  // Keep the weapon/arms in their attack pose while the legs keep stepping.
+  function locomotion(style, walkT, atk) {
+    const walking=pose(style,"walk",(walkT/7)%8,8);
+    if(!atk || atk.t<=0)return walking;
+    const attack=pose(style,"attack",clamp(1-atk.t/atk.total,0,1)*5,6);
+    for(const key of ["ful","fll","bul","bll"])attack[key]=walking[key];
+    return attack;
+  }
+  const setOptions=new WeakMap(),movingFrames=new Map();let setId=0;
+  function movingFrame(set,dir,walkT,atk,flash){
+    const entry=setOptions.get(set);if(!entry)return null;
+    const step=Math.floor(walkT/7)%8,attack=Math.min(5,Math.max(0,Math.floor((1-atk.t/atk.total)*6)));
+    const style=atk.pose==="thrust" && entry.o.role==="ranjay"?"thrust":(WEAPON[entry.o.weapon] || WEAPON.none)[2];
+    const key=`${entry.id}:${dir}:${step}:${attack}:${style}:${!!flash}`;
+    if(movingFrames.has(key)){const cached=movingFrames.get(key);movingFrames.delete(key);movingFrames.set(key,cached);return cached;}
+    const P=locomotion(style,step*7,{t:Math.max(.001,5-attack),total:5});
+    const raw=frame(entry.o,P,false,VIEWS[dir] ?? 0),result=flash?Sprites.silhouette(raw):raw;
+    movingFrames.set(key,result);
+    if(movingFrames.size>96)movingFrames.delete(movingFrames.keys().next().value);
+    return result;
   }
 
   /* ---------- dibujo ---------- */
@@ -458,6 +480,16 @@ const Stick = (() => {
     ctx.lineCap = "round"; ctx.lineJoin = "round";
     const wood = "#7a4a26", steel = "#dfe6f0", steelDk = "#5b6b80";
     switch (type) {
+      case "sablelunar":
+        ctx.strokeStyle="#d4c4f2";ctx.lineWidth=9;ctx.beginPath();ctx.moveTo(0,3);ctx.quadraticCurveTo(-18,tip*.65,11,tip);ctx.stroke();break;
+      case "horquilla":
+        ctx.strokeStyle=steel;ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(0,-7);ctx.lineTo(0,tip-25);ctx.stroke();
+        ctx.strokeStyle="#9de2ca";ctx.beginPath();ctx.moveTo(-13,tip);ctx.lineTo(-9,tip-23);ctx.lineTo(9,tip-23);ctx.lineTo(13,tip);ctx.stroke();break;
+      case "martilloforja":
+        ctx.fillStyle=wood;ctx.fillRect(-4,-10,8,tip);ctx.fillStyle="#464e57";ctx.fillRect(-22,tip-21,44,24);
+        ctx.fillStyle="#e89959";ctx.fillRect(-20,tip-17,40,5);break;
+      case "aro-retorno":
+        ctx.strokeStyle="#e5d497";ctx.lineWidth=8;ctx.beginPath();ctx.ellipse(0,24,19,24,0,0,Math.PI*2);ctx.stroke();break;
       case "garfio":ctx.strokeStyle=wood;ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(0,-8);ctx.lineTo(0,tip-22);ctx.stroke();ctx.strokeStyle=steel;ctx.lineWidth=7;ctx.beginPath();ctx.arc(0,tip-13,15,-Math.PI/2,Math.PI);ctx.stroke();break;
       case "prisma":ctx.strokeStyle="#727c91";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(0,-10);ctx.lineTo(0,tip-15);ctx.stroke();ctx.fillStyle="#a4e4de";ctx.beginPath();ctx.moveTo(0,tip+6);ctx.lineTo(14,tip-13);ctx.lineTo(0,tip-32);ctx.lineTo(-14,tip-13);ctx.closePath();ctx.fill();ctx.strokeStyle="#e5dcba";ctx.lineWidth=3;ctx.stroke();break;
       case "tijeras":for(const side of [-1,1]){ctx.strokeStyle=steel;ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(side*7,-8);ctx.lineTo(-side*15,tip);ctx.stroke();ctx.strokeStyle="#a35f78";ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(side*8,-8,7,10,0,0,Math.PI*2);ctx.stroke();}break;
@@ -574,6 +606,7 @@ const Stick = (() => {
 
   // Arma de Survivors → cómo se dibuja y cómo se mueve
   const WEAPON = {
+    sablelunar:["sablelunar",66,"slash"],horquilla:["horquilla",90,"cast"],martilloforja:["martilloforja",72,"smash"],"aro-retorno":["aro-retorno",45,"throw"],
     garfio:["garfio",90,"thrust"],prisma:["prisma",88,"cast"],tijeras:["tijeras",68,"slash"],estandarte:["estandarte",100,"cast"],diapason:["diapason",78,"smash"],bumeran:["bumeran",52,"throw"],
     faro:["faro",100,"cast"], arco:["arco",64,"bow"], bobina:["bobina",40,"cast"], abanico:["abanico",30,"throw"], tambor:["tambor",35,"smash"],
     discos: ["magnet", 0, "cast"], acido: ["vial", 0, "throw"], llamas: ["flamer", 40, "shoot"],
@@ -789,6 +822,7 @@ const Stick = (() => {
   function set(o) {
     const style = (WEAPON[o.weapon] || WEAPON.none)[2];
     const out = {};
+    setOptions.set(out,{o,id:++setId});
     for (const [v, yaw] of Object.entries(VIEWS)) {
       const frames = {
         idle: frame(o, pose(style, "idle"), false, yaw),
@@ -890,7 +924,7 @@ const Stick = (() => {
   }
 
   // El esqueleto, para el motor 3D (render3d.js)
-  const rig = { pose, joints, bowModel, LAT, WEAPON, styleOf: (o) => (WEAPON[o.weapon] || WEAPON.none)[2] };
+  const rig = { pose, locomotion, joints, bowModel, LAT, WEAPON, styleOf: (o) => (WEAPON[o.weapon] || WEAPON.none)[2] };
 
-  return { set, portrait, illustration, characterOptions, ENEMIES, RES, rig };
+  return { set, movingFrame, portrait, illustration, characterOptions, ENEMIES, RES, rig };
 })();

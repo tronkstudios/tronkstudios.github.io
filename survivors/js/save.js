@@ -14,6 +14,10 @@ const Save = (() => {
   function fresh() {
     return {
       coins: 0,
+      lastCoinAd: 0,
+      adUnlocks: {},
+      lastChestAd: 0,
+      redeemedChestAd: 0,
       owned: { [TS.STARTER]: { stars: 1 } },
       selected: TS.STARTER,
       shop: {},
@@ -37,6 +41,38 @@ const Save = (() => {
   function unlockRoster(d){
     for(const ch of TS.NEW_ROSTER || []){const {key,value}=ch.unlock,progress=key==="runs"?d.runs:key==="time"?d.best?.time:d.stats?.[key];if(progress>=value && !d.owned[ch.id])d.owned[ch.id]={stars:1};}
   }
+  const adsByRarity = { comun: 1, raro: 2, epico: 3, legendario: 5 };
+  const chestAdCooldown = 24 * 60 * 60 * 1000;
+
+  function adUnlockProgress(id) {
+    const character = TS.CHARACTERS.find(ch => ch.id === id);
+    if (!character) return null;
+    const total = adsByRarity[character.rarity];
+    return { count: Math.min(total, integer(get().adUnlocks[id])), total };
+  }
+
+  function recordUnlockAd(id) {
+    const d = get();
+    const progress = adUnlockProgress(id);
+    if (!progress || d.owned[id]) return null;
+    const count = Math.min(progress.total, progress.count + 1);
+    d.adUnlocks[id] = count;
+    const unlocked = count === progress.total;
+    if (unlocked) d.owned[id] = { stars: 1 };
+    persist();
+    return { ...progress, count, unlocked };
+  }
+
+  const hasAdPulls = () => get().lastChestAd > get().redeemedChestAd;
+  const canEarnAdPulls = () => !hasAdPulls() && Date.now() - get().lastChestAd >= chestAdCooldown;
+
+  function recordChestAd() {
+    if (!canEarnAdPulls()) return false;
+    get().lastChestAd = Date.now();
+    persist();
+    return true;
+  }
+
   function normalize(d) {
     const owned = {};
     for (const ch of TS.CHARACTERS) if (d.owned && d.owned[ch.id]) {
@@ -46,10 +82,16 @@ const Save = (() => {
     d.owned = owned;
     if (!owned[d.selected]) d.selected = TS.STARTER;
     d.shop = Object.fromEntries(TS.SHOP.map(item => [item.id, Math.min(item.max, integer(d.shop && d.shop[item.id]))]));
-    for (const key of ["coins", "pity", "pulls", "runs", "savedAt"]) d[key] = integer(d[key]);
+    for (const key of ["coins", "pity", "pulls", "runs", "savedAt", "lastCoinAd", "lastChestAd", "redeemedChestAd"]) d[key] = integer(d[key]);
     for (const section of ["best", "stats"]) {
       for (const key of Object.keys(fresh()[section])) d[section][key] = integer(d[section][key]);
     }
+    d.adUnlocks = Object.fromEntries(TS.CHARACTERS.flatMap(ch => {
+      const count = Math.min(adsByRarity[ch.rarity], integer(d.adUnlocks?.[ch.id]));
+      // Recover a completed unlock from older or partially synced saves.
+      if (count === adsByRarity[ch.rarity] && !d.owned[ch.id]) d.owned[ch.id] = { stars: 1 };
+      return count ? [[ch.id, count]] : [];
+    }));
     unlockRoster(d);
     d.history=normalizeHistory(d.history);
     return d;
@@ -118,6 +160,10 @@ const Save = (() => {
     Object.assign(d, {
       ...d,
       owned,
+      lastCoinAd: Math.max(integer(d.lastCoinAd), integer(remote.lastCoinAd)),
+      lastChestAd: Math.max(integer(d.lastChestAd), integer(remote.lastChestAd)),
+      redeemedChestAd: Math.max(integer(d.redeemedChestAd), integer(remote.redeemedChestAd)),
+      adUnlocks: maxObj(d.adUnlocks, remote.adUnlocks),
       coins: Math.max(0, Math.floor(Number(newer.coins) || 0)),
       pity: Number(newer.pity) || 0,
       pulls: Math.max(d.pulls || 0, Number(remote.pulls) || 0),
@@ -203,13 +249,14 @@ const Save = (() => {
 
   // Devuelve null si no hay monedas; si no, la lista de premios
   function pull(times) {
-    if (times !== 1 && times !== 10) return null;
+    if (times !== 1 && times !== 10 && !(times === 5 && hasAdPulls())) return null;
     const d = get();
     const free = times === 1 && d.freePull;
-    const cost = free ? 0 : times === 10 ? TS.GACHA.cost10 : TS.GACHA.cost1 * times;
+    const cost = free || times === 5 ? 0 : times === 10 ? TS.GACHA.cost10 : TS.GACHA.cost1 * times;
     if (d.coins < cost) return null;
     d.coins -= cost;
     if (free) d.freePull = false;
+    if (times === 5) d.redeemedChestAd = d.lastChestAd;
 
     const rarities = [];
     for (let i = 0; i < times; i++) {
@@ -266,5 +313,5 @@ const Save = (() => {
     persist();
   }
 
-  return { load, get, exportData, mergeRemote, setOnChange: (fn) => (onChange = fn), persist, addCoins, shopLevel, shopCost, buy, shopStats, pull, recordRun };
+  return { load, get, exportData, mergeRemote, setOnChange: (fn) => (onChange = fn), persist, addCoins, adUnlockProgress, recordUnlockAd, hasAdPulls, canEarnAdPulls, recordChestAd, chestAdCooldown, shopLevel, shopCost, buy, shopStats, pull, recordRun };
 })();

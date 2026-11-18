@@ -23,7 +23,7 @@ test('reroll uses the remaining new upgrade before filling from old cards in a s
  const {Game,TS,st,p}=run();p.weapons[0].lvl=5;const passives=Object.entries(TS.PASSIVES).slice(0,TS.MAX_PASSIVES);p.passives=Object.fromEntries(passives.map(([id,d],i)=>[id,i<3?d.max-1:d.max]));p.techniques=Object.fromEntries(TS.TECHNIQUES[p.charId].map(m=>[m.id,m.max]));
  const all=Game._options(p,30),missing=all[3];assert.equal(all.length,4);st.choosing={0:all.slice(0,3)};assert.equal(Game.reroll(0),true);assert.ok(st.choosing[0].some(o=>key(o)===key(missing)));assert.equal(new Set(st.choosing[0].map(key)).size,3);
 });
-test('all 300 technique cards show their own native icon and actual cooldown',()=>{
+test('all 340 technique cards show their own native icon and actual cooldown',()=>{
  const chars=run().TS.CHARACTERS;
  for(const ch of chars){const {Game,TS,p}=run(ch.id);p.stats.cdMul=.65;for(const move of TS.TECHNIQUES[ch.id]){const card=Game._describe(p,{kind:'technique',id:move.id,lvl:2});assert.equal(card.icon,move.icon || ch.weapon,`${ch.id}:${move.id}`);assert.equal(card.cooldownSeconds,Math.round(move.cd*.65/60*10)/10);}}
 });

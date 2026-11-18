@@ -49,3 +49,11 @@ button.hud-compass{pointer-events:auto;font-family:inherit;cursor:pointer;text-a
   ::-webkit-scrollbar-thumb { background: ButtonText; border-color: Canvas; }
   ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: Canvas; }
 }
+
+.profile-stats-title { margin: 10px 0 0; color: #eccf99; }
+.profile-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 8px; margin: 8px 0 12px; text-align: left; }
+.profile-stats div { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; padding: 5px 7px; background: #102630; border-radius: 6px; font-size: .76rem; }
+.profile-stats dt { overflow-wrap: anywhere; }
+.profile-stats dd { flex: none; margin: 0; color: #eccf99; font-variant-numeric: tabular-nums; }
+.ad-unlock-progress { display: block; width: 100%; accent-color: #eccf99; margin: 5px 0 9px; }
+#gacha-rewarded { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }

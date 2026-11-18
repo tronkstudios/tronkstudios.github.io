@@ -59,8 +59,20 @@ const fs=require('node:fs');const path=require('node:path');
    const front=faceColor('boro','down','#7ce8ff'),rear=faceColor('boro','up','#7ce8ff');
    if(front<5||rear>0)failures.push(`Boro: visor front=${front}, rear=${rear}`);
    for(const id of ['nix','brasa'])if(faceColor(id,'down','#14112b')>0)failures.push(`${id}: duplicate eyes over mask`);
+   // Moving attacks must animate in every view while retaining a usable foot anchor.
+   for(const id of ['ranjay','iria','eledemak'])for(const view of Object.keys(views)){
+    const set=Sprites.get(`char:${id}`),seen=new Set();
+    for(let step=0;step<8;step++){
+     const atk={t:3,total:6},c=Stick.movingFrame(set,view,step*7,atk,false),flash=Stick.movingFrame(set,view,step*7,atk,true);
+     if(!c || c.foot<0 || c.foot>c.height || c.width!==flash.width || c.height!==flash.height || c.foot!==flash.foot)failures.push(`${id}:${view}: invalid moving attack anchor`);
+     const pixels=c.getContext('2d').getImageData(0,0,c.width,c.height).data;
+     if(!pixels.some((v,i)=>i%4===3&&v>0))failures.push(`${id}:${view}: empty moving attack`);
+     seen.add(c.toDataURL());
+    }
+    if(seen.size<6)failures.push(`${id}:${view}: frozen walking attack`);
+   }
    return {failures,frames};
-  });assert.deepEqual(result.failures,[]);assert.equal(result.frames,30*5*15);assert.deepEqual(errors,[]);
+  });assert.deepEqual(result.failures,[]);assert.equal(result.frames,34*5*15);assert.deepEqual(errors,[]);
   if(process.env.SCREENSHOTS_DIR){fs.mkdirSync(process.env.SCREENSHOTS_DIR,{recursive:true});await page.screenshot({path:path.join(process.env.SCREENSHOTS_DIR,`characters-menu-${mobile?'mobile':'desktop'}.png`)});}
   console.log(`${mobile?'Mobile':'Desktop'}: ${result.frames} character frames, palettes, foot contact, five-view portraits and mask direction passed`);await page.close();
  }}finally{await browser.close();}

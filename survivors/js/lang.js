@@ -800,8 +800,14 @@ Object.assign(EN,{"Amplía un 20 % la cobertura del eco.": "Increases echo cover
 
 Object.assign(EN,{"Volver al plantel":"Back to roster"});
 
-Object.assign(EN,{"30 personajes": "30 characters", "30 armas": "30 weapons", "Historial": "Run history", "Buscar personaje": "Find character", "Nombre": "Name", "Disponibilidad": "Availability", "Todos": "All", "Todas": "All", "Conseguidos": "Unlocked", "Arma": "Weapon", "Personaje": "Character", "Mapa": "Map", "HUD discreto": "Compact HUD", "Anticipar cámara al caminar": "Look ahead while walking", "Ordenar rendimiento": "Sort performance", "Aplicaciones de control": "Control applications", "Configuración registrada": "Starting setup recorded", "Partida antigua: sin equivalencia de reglas": "Older run: different or unknown rules", "Todavía no hay partidas para este filtro.": "No runs match this filter yet.", "Ver todos": "Reveal all", "Tus personajes ya están guardados.": "Your characters have been saved.", "También se desbloquea jugando": "Also unlocked by playing", "partidas": "runs", "enemigos derrotados": "enemies defeated", "jefes derrotados": "bosses defeated", "segundos de supervivencia": "survival seconds", "Amplía el comportamiento de su arma propia.": "Expands the behavior of the native weapon."});
+Object.assign(EN,{"34 personajes": "34 characters", "34 armas": "34 weapons", "Historial": "Run history", "Buscar personaje": "Find character", "Nombre": "Name", "Disponibilidad": "Availability", "Todos": "All", "Todas": "All", "Conseguidos": "Unlocked", "Arma": "Weapon", "Personaje": "Character", "Mapa": "Map", "HUD discreto": "Compact HUD", "Anticipar cámara al caminar": "Look ahead while walking", "Ordenar rendimiento": "Sort performance", "Aplicaciones de control": "Control applications", "Configuración registrada": "Starting setup recorded", "Partida antigua: sin equivalencia de reglas": "Older run: different or unknown rules", "Todavía no hay partidas para este filtro.": "No runs match this filter yet.", "Ver todos": "Reveal all", "Tus personajes ya están guardados.": "Your characters have been saved.", "También se desbloquea jugando": "Also unlocked by playing", "partidas": "runs", "enemigos derrotados": "enemies defeated", "jefes derrotados": "bosses defeated", "segundos de supervivencia": "survival seconds", "Amplía el comportamiento de su arma propia.": "Expands the behavior of the native weapon."});
 const newcomerEnglish=[["Boarding hook", "Boarding action", "A canal captain whose hook thrusts and pulls enemies out of formation.", "Hits an enemy and pulls it closer; bosses resist the pull."], ["Refracting prism", "Refracted constellation", "A light cartographer whose suspended prism links beams between targets.", "Projects beams that link nearby enemies."], ["Steel shears", "Hold the pattern", "A barricade tailor whose steel shears deliver two crossing cuts.", "Crosses two frontal cuts with the shears."], ["Refuge banner", "Hold the line", "The last plaza guardian whose banner sends defensive pulses.", "Emits nearby pulses and protects allies with the active ability."], ["Industrial tuning fork", "Breaking frequency", "A machine tuner whose industrial fork creates resonant shockwaves.", "Strikes the ground and releases resonant shockwaves."], ["Tracker boomerang", "Returning wind", "A dune tracker whose returning boomerang pierces enemy ranks.", "Flies forward and returns through enemies."]];
+newcomerEnglish.push(
+ ["Lunar saber","Crescent sweep","A night sentinel whose curved saber cuts a path through the horde.","Sweeps in an arc and opens a path forward."],
+ ["Voltaic fork","Storm grid","A city engineer whose electric fork chains between targets.","Arcs electricity between nearby enemies."],
+ ["Forge hammer","Quarry fracture","A wall smith whose heavy hammer sends the horde reeling.","Strikes the ground and releases shockwaves."],
+ ["Returning ring","Salt orbit","A coastal messenger with a ring that cuts through the horde and returns to his hand.","Pierces enemies on the way out and back."]
+);
 for(const [i,ch] of TS.NEW_ROSTER.entries()){
  const [weapon,active,description,weaponDescription]=newcomerEnglish[i];
  EN[ch.weaponName]=weapon;EN[ch.active]=active;EN[ch.desc]=description;EN[ch.weaponDesc]=weaponDescription;
@@ -814,3 +820,22 @@ Object.assign(EN,{"Premio":"Reward","Abriendo el cofre…":"Opening the chest…
 
 Object.assign(EN,{"Impulso":"Dash","Impulso · Mayúsculas":"Dash · Shift","Mayúsculas":"Shift","Listo":"Ready","WASD o flechas · Mayúsculas impulso · Espacio habilidad · Esc pausa":"WASD or arrows · Shift dash · Space ability · Esc pause"});
 TEMPLATES.tipDash=["Pulsa {key} para un impulso en tu dirección. Recarga en 6 segundos y no te hace invulnerable.","Press {key} to dash in your direction. It recharges in 6 seconds and does not make you invulnerable."];
+
+Object.assign(EN, {
+  "Ver anuncio para desbloquear a": "Watch an ad to unlock",
+  "Ver anuncio · +50 monedas": "Watch an ad · +50 coins",
+  "Vuelve más tarde para ganar monedas": "Come back later to earn coins",
+  "Personaje desbloqueado": "Character unlocked",
+  "+50 monedas": "+50 coins",
+  "No se completó ningún anuncio. Puedes volver a intentarlo.": "No ad was completed. You can try again."
+});
+
+Object.assign(EN, {
+  "Estadísticas de inicio": "Starting stats",
+  "Anuncios completados": "Ads completed",
+  "Ver anuncio · 5 aperturas gratis": "Watch an ad · 5 free pulls",
+  "Abrir 5 gratis": "Open 5 for free",
+  "Cinco aperturas guardadas": "Five free pulls saved",
+  "Cinco aperturas disponibles cada 24 h": "Five free pulls available every 24 hours",
+  "Buscando anuncio…": "Finding an ad…"
+});

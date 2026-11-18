@@ -12,8 +12,8 @@ test('posture, stagger recovery and Iria marks reach guest snapshots in simulati
  const {Game,p,st}=run('iria');const e=Game._spawn('guardian',80,0);e.posture=70;e.postureImmuneUntil=240;e.staggerUntil=30;e.markUntil=180;e.markBy=0;p.synergyReady=180;p.techniques={focus:1};const snap=Game.snapshot([p]);
  Game.startGuest({localId:0,players:[{charId:'iria'}]});Game.applySnapshot(snap);const enemy=Game.state.enemies[0];assert.equal(enemy.posture,70);assert.equal(enemy.postureImmuneUntil,240);assert.equal(enemy.staggerUntil,30);assert.equal(enemy.markUntil,180);assert.equal(enemy.markBy,0);assert.equal(Game.hudData().techniques[0].linkSeconds,3);
 });
-test('all 30 characters have two named, documented native active branches',()=>{
- const {TS}=engine();assert.equal(TS.CHARACTERS.length,30);const names=[];for(const ch of TS.CHARACTERS)for(const path of ['precision','echo']){assert.ok(TS.ACTIVE_IDENTITIES[ch.id],ch.id);const name=TS.activePathName(ch.id,path);assert.ok(name.length>3);assert.ok(TS.activePathDescription(ch.id,path).length>15);names.push(name);}assert.equal(new Set(names).size,60);
+test('all 34 characters have two named, documented native active branches',()=>{
+ const {TS}=engine();assert.equal(TS.CHARACTERS.length,34);const names=[];for(const ch of TS.CHARACTERS)for(const path of ['precision','echo']){assert.ok(TS.ACTIVE_IDENTITIES[ch.id],ch.id);const name=TS.activePathName(ch.id,path);assert.ok(name.length>3);assert.ok(TS.activePathDescription(ch.id,path).length>15);names.push(name);}assert.equal(new Set(names).size,68);
 });
 test('sword guard blocks one projectile and perfume extends its native protection',()=>{
  for(const id of ['ranjay','kaito','yant']){const {Game,p,st}=run(id);p.activePath='precision';Game._ability(p);assert.equal(p.parryUntil,st.t+90);assert.equal(p.parryCharges,1);assert.equal(p.weapons.length,1);}

@@ -4,25 +4,26 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Tronk Survivors · Juego de sobrevivir a hordas gratis | TronkStudios</title>
-  <meta name="description" content="Tronk Survivors: sobrevive a hordas de zombis, Antitronks y ninjas con 30 personajes con armas propias. Consigue personajes en el cofre, mejora tus armas y juega con tus amigos. Gratis en el navegador para ordenador, móvil y tablet." />
+  <meta name="description" content="Tronk Survivors: sobrevive a hordas de zombis, Antitronks y ninjas con 34 personajes con armas propias. Consigue personajes en el cofre, mejora tus armas y juega con tus amigos. Gratis en el navegador para ordenador, móvil y tablet." />
   <meta name="robots" content="index, follow, max-image-preview:large" />
   <link rel="canonical" href="https://tronkstudios.github.io/survivors/" />
+  <meta name="rewarded-ad-unit" content="" />
   <meta name="theme-color" content="#120c24" />
   <link rel="icon" href="/favicon.png" type="image/png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="TronkStudios" />
   <meta property="og:title" content="Tronk Survivors · Sobrevive a las hordas" />
-  <meta property="og:description" content="30 personajes con armas propias, zombis, Antitronks, ninjas y 7 jefes. Gratis en el navegador." />
+  <meta property="og:description" content="34 personajes con armas propias, zombis, Antitronks, ninjas y 7 jefes. Gratis en el navegador." />
   <meta property="og:url" content="https://tronkstudios.github.io/survivors/" />
   <meta property="og:image" content="https://tronkstudios.github.io/img/juegos/tronk-survivors.webp" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta
     http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://qjjnqhbtovjcbwgcwhgl.supabase.co wss://qjjnqhbtovjcbwgcwhgl.supabase.co https://tronkstudios-support.tronkstudios7.workers.dev; object-src 'none'; base-uri 'self'; form-action 'self'"
+    content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://securepubads.g.doubleclick.net https://pagead2.googlesyndication.com; frame-src https://*.doubleclick.net https://*.googlesyndication.com https://*.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.doubleclick.net https://*.googlesyndication.com https://*.google.com; font-src 'self' data:; connect-src 'self' https://qjjnqhbtovjcbwgcwhgl.supabase.co wss://qjjnqhbtovjcbwgcwhgl.supabase.co https://tronkstudios-support.tronkstudios7.workers.dev https://*.doubleclick.net https://*.googlesyndication.com https://*.google.com; object-src 'none'; base-uri 'self'; form-action 'self'"
   />
   <link rel="stylesheet" href="survivors.css?v=17" />
-  <link rel="stylesheet" href="css/depth.css?v=4">
+  <link rel="stylesheet" href="css/depth.css?v=5">
   <link rel="stylesheet" href="css/mobile.css?v=3">
 </head>
 <body>
@@ -43,7 +44,7 @@
         <p class="menu-eyebrow">SUPERVIVENCIA · COOPERATIVO</p>
         <h1 class="logo">TRONK<br /><span>SURVIVORS</span></h1>
         <p class="menu-intro">Domina tu arma. Resiste la horda.</p>
-        <div class="menu-chips"><span>30 personajes</span><span>30 armas</span><span>7 jefes</span><span>Online</span></div>
+        <div class="menu-chips"><span>34 personajes</span><span>34 armas</span><span>7 jefes</span><span>Online</span></div>
         <div class="menu-buttons">
           <button class="btn btn-big" data-go="maps"><img data-icon="tajo" alt="" loading="lazy" decoding="async" /> Jugar</button>
           <button class="btn btn-daily" data-go="daily"><img data-icon="reloj" alt="" loading="lazy" decoding="async" /> Reto diario <span id="menu-daily" class="badge" hidden>¡Nuevo!</span></button>
@@ -117,6 +118,7 @@
         <button class="btn btn-gold btn-big" id="pull-10">Abrir 10 · <img data-icon="moneda" alt="" loading="lazy" decoding="async" /> <span id="cost-10">1350</span></button>
       </div>
       <p class="gacha-pity" id="gacha-pity"></p>
+      <div id="gacha-rewarded" hidden></div>
       <details class="gacha-rates">
         <summary>Probabilidades</summary>
         <ul id="gacha-rates"></ul>
@@ -344,19 +346,20 @@
     </div>
   </div>
 
-  <script src="js/data.js?v=17" defer></script>
-  <script src="js/sprites.js?v=18" defer></script>
+  <script src="js/data.js?v=19" defer></script>
+  <script src="js/sprites.js?v=19" defer></script>
   <script src="js/people.js?v=4" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js" defer></script>
-  <script src="js/stick.js?v=19" defer></script>
-  <script src="js/render3d.js?v=17" defer></script>
+  <script src="js/stick.js?v=21" defer></script>
+  <script src="js/render3d.js?v=19" defer></script>
   <script src="js/audio.js?v=6" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-  <script src="js/lang.js?v=20" defer></script>
-  <script src="js/save.js?v=9" defer></script>
+  <script src="js/lang.js?v=22" defer></script>
+  <script src="js/save.js?v=11" defer></script>
   <script src="js/account.js?v=4" defer></script>
-  <script src="js/game.js?v=31" defer></script>
+  <script src="js/game.js?v=34" defer></script>
   <script src="js/net.js?v=10" defer></script>
-  <script src="js/ui.js?v=27" defer></script>
+  <script src="js/rewarded.js?v=1" defer></script>
+  <script src="js/ui.js?v=29" defer></script>
 </body>
 </html>

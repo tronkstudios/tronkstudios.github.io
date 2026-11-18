@@ -411,8 +411,8 @@ test('gem attraction cannot overshoot the player and keeps all experience',()=>{
   Game.step();assert.equal(st.gems.length,0);assert.equal(st.xp,10);
 });
 
-test('all 30 characters have a native weapon, ten staged techniques and an active ability',()=>{
-  const {TS,Game}=engine();assert.equal(TS.CHARACTERS.length,30);
+test('all 34 characters have a native weapon, ten staged techniques and an active ability',()=>{
+  const {TS,Game}=engine();assert.equal(TS.CHARACTERS.length,34);
   for(const ch of TS.CHARACTERS){
     assert.ok(TS.WEAPONS[ch.weapon] && TS.EVOLUTIONS[ch.weapon] && TS.ABILITIES[ch.id],ch.id);
     const moves=TS.TECHNIQUES[ch.id];assert.equal(moves.length,10);assert.equal(new Set(moves.map(m=>m.id)).size,10);
