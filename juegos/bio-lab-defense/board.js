@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT } from "./engine.js?v=2";
+import { WIDTH, HEIGHT } from "./engine.js?v=3";
 
 function trace(ctx, points) {
   ctx.beginPath();
@@ -96,6 +96,18 @@ function background(map, routes) {
   ctx.strokeStyle = map.accent + "80";
   ctx.stroke();
   ctx.setLineDash([]);
+  if (routes.length > 1) {
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "bold 18px system-ui";
+    for (let i = 0; i < routes.length; i++) {
+      const [, y] = routes[i].points[0];
+      const color = i === 0 ? map.accent : "#caa0ff";
+      circle(ctx, 34, y - 35, 15, "#131d30", color, 2);
+      ctx.fillStyle = color;
+      ctx.fillText(i === 0 ? "A" : "B", 34, y - 35);
+    }
+  }
   const [sx, sy] = map.points[0];
   const [ex, ey] = map.points.at(-1);
   circle(ctx, sx + 6, sy, 28, "#251a38", "#e38cff", 3);

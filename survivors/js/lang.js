@@ -898,9 +898,8 @@ Object.assign(EN,{
 
 Object.assign(EN, {
   "Rapidez de recarga": "Recharge speed",
-  "Completa el vídeo para avanzar el desbloqueo de": "Complete the video to make unlock progress on",
-  "Completa el vídeo para ganar 5 aperturas gratis.": "Complete the video to earn 5 free pulls.",
-  "Completa el vídeo para ganar 50 monedas.": "Complete the video to earn 50 coins.",
+  "Preparando anuncio…": "Preparing ad…",
+  "Reintentar preparación": "Retry ad setup",
   "Sin conexión. Vuelve a intentarlo al conectarte.": "You are offline. Try again when connected.",
   "No se pudo cargar el servicio de anuncios. Puede estar bloqueado en el navegador.": "The ad service could not load. Your browser may be blocking it.",
   "El servicio no se ha activado. Puede que la cuenta o el sitio aún estén en revisión.": "The ad service did not start. The account or site may still be under review.",

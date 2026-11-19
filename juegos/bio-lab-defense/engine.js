@@ -522,6 +522,9 @@ export class Match {
     this.charge = 43;
     this.grossATP = 0;
     this.preview = this.planWave(1);
+    this.lastBuild = null;
+    this.waveStart = null;
+    this.debrief = null;
   }
 
   planWave(wave) {
@@ -577,7 +580,9 @@ export class Match {
       theme,
       count: order.length,
       final,
-      split: order.some((e) => e.lane > 0),
+      lanes: this.routes.map((_, lane) =>
+        order.reduce((sum, e) => sum + Number(e.lane === lane), 0),
+      ),
       bossTip: final ? BOSS_TIP : "",
     };
   }
@@ -645,7 +650,25 @@ export class Match {
       targeting: "first",
     };
     this.towers.push(tower);
+    if (this.state === "build") this.lastBuild = tower;
     this.effect(x, y, type.color, 32);
+    return tower;
+  }
+
+  get undoable() {
+    return (
+      this.state === "build" &&
+      this.lastBuild?.rank === 1 &&
+      this.towers.includes(this.lastBuild)
+    );
+  }
+
+  undoPlacement() {
+    if (!this.undoable) return null;
+    const tower = this.lastBuild;
+    this.towers.splice(this.towers.indexOf(tower), 1);
+    this.atp += tower.cost;
+    this.lastBuild = null;
     return tower;
   }
 
@@ -682,6 +705,9 @@ export class Match {
     if (this.state !== "build") return false;
     this.state = "wave";
     this.wave++;
+    this.lastBuild = null;
+    this.waveStart = { hp: this.hp, kills: this.kills, atp: this.grossATP };
+    this.debrief = null;
     this.queue = [...this.preview.order];
     this.interval =
       this.preview.theme === SWARM ? 24 : this.preview.theme === RUSH ? 31 : 39;
@@ -955,6 +981,11 @@ export class Match {
         25 + 5 * this.wave + (this.daily ? 0 : Math.max(0, this.level - 4) * 4),
       );
       this.charge = Math.min(100, this.charge + 20);
+      this.debrief = {
+        kills: this.kills - this.waveStart.kills,
+        damage: this.waveStart.hp - this.hp,
+        atp: this.grossATP - this.waveStart.atp,
+      };
       this.state = this.wave === this.maxWaves ? "won" : "build";
     }
   }

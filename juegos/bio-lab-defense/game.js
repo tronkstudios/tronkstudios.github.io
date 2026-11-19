@@ -8,10 +8,10 @@ import {
   specializations,
   TARGETING,
   dailySetup,
-} from "./engine.js?v=2";
-import { Board } from "./board.js?v=2";
+} from "./engine.js?v=3";
+import { Board } from "./board.js?v=3";
 import { Profile, dayKey } from "./profile.js?v=2";
-import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=1";
+import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=2";
 
 const $ = (id) => document.getElementById(id);
 const panels = ["home", "campaign", "field"];
@@ -29,6 +29,8 @@ let match,
   speed,
   screen,
   adBusy = false;
+let adPreparing = false,
+  adError = "";
 let aiming = false,
   challengeDay = null;
 let atpBought,
@@ -119,6 +121,8 @@ function start(level, day = null) {
   view("field");
   message("Elige una torre y toca fuera del conducto para colocarla.");
   $("supplies").hidden = !!day;
+  adError = "";
+  if (!day) prepareAd();
   renderHUD();
   board.draw(match, blueprint, selected, cursor, reduced.matches, aiming);
 }
@@ -305,13 +309,31 @@ function renderHUD() {
   }
   $("wave-preview").hidden = !waiting;
   if (waiting) {
-    const { count, theme, final, split, bossTip } = match.preview;
+    const { count, theme, final, lanes, bossTip } = match.preview;
+    const split = lanes[1] > 0;
+    $("lane-brief").hidden = !split;
+    if (split) {
+      updateText("lane-a", `Entrada A · ${lanes[0]}`);
+      updateText("lane-b", `Entrada B · ${lanes[1]}`);
+    }
     updateText(
       "wave-preview-title",
       `${theme.name} · ${count} enemigos${split ? " · Dos entradas" : ""}${final ? " · Jefe" : ""}`,
     );
     updateText("wave-preview-tip", `${theme.tip} ${bossTip}`.trim());
   }
+  const { debrief } = match;
+  $("wave-debrief").hidden = !waiting || !debrief;
+  if (waiting && debrief) {
+    const core = debrief.damage
+      ? `núcleo −${debrief.damage} %`
+      : "núcleo intacto";
+    updateText(
+      "wave-debrief",
+      `Oleada ${match.wave}: ${debrief.kills} abatidos · +${debrief.atp} ATP · ${core}.`,
+    );
+  }
+  $("undo-build").hidden = !match.undoable;
   if (match.state !== "wave") aiming = false;
   $("pulse").disabled = match.state !== "wave" || match.charge < 100;
   $("pulse").setAttribute("aria-pressed", String(aiming));
@@ -324,16 +346,28 @@ function renderHUD() {
         : "Oleada en curso"
       : "Partida terminada";
   updateText("phase", `${match.map.name} · ${phase}`);
-  $("next").disabled = !waiting;
+  $("next").disabled = !waiting || adBusy;
   updateText(
     "next",
     waiting ? `Iniciar oleada ${match.wave + 1}` : "Oleada en curso",
   );
   $("speed").setAttribute("aria-pressed", String(speed === 2));
   updateText("speed", `Velocidad ×${speed}`);
-  $("boost").hidden = !ad || !waiting || match.adUsed;
-  $("boost").disabled = adBusy;
-  updateText("boost", adBusy ? "Buscando anuncio…" : "Ver anuncio · +75 ATP");
+  const canRequestAd = ad && waiting && !match.daily && !match.adUsed;
+  $("boost").hidden = !canRequestAd;
+  $("boost").disabled = adBusy || adPreparing;
+  updateText(
+    "boost",
+    adBusy
+      ? "Abriendo anuncio…"
+      : adPreparing && !ad.prepared
+        ? "Preparando anuncio…"
+        : ad.prepared
+          ? "Ver anuncio · +75 ATP"
+          : "Reintentar preparación",
+  );
+  $("boost-status").hidden = !canRequestAd || !adError;
+  updateText("boost-status", adError);
   $("buy-atp").disabled = !waiting || atpBought || profile.data.atpBank < 100;
   $("heal").disabled =
     !waiting || repaired || match.hp === 100 || profile.data.bioGems < 5;
@@ -492,7 +526,19 @@ $("daily-button").onclick = () => {
   ]);
 };
 $("next").onclick = () => {
+  if (adBusy) return;
   if (match.startWave()) message(`Oleada ${match.wave} iniciada.`);
+  renderHUD();
+};
+$("undo-build").onclick = () => {
+  const tower = match.undoPlacement();
+  if (!tower) return;
+  if (selected === tower) {
+    selected = null;
+    blueprint = BLUEPRINTS.find((type) => type.id === tower.id);
+    highlightDock();
+  }
+  message(`${tower.name} retirada. Recuperas ${tower.cost} ATP.`);
   renderHUD();
 };
 $("pulse").onclick = () => {
@@ -549,41 +595,70 @@ $("heal").onclick = () => {
   message("Núcleo reparado.");
   renderHUD();
 };
+function prepareAd() {
+  if (!ad || adPreparing || ad.prepared) return;
+  adPreparing = true;
+  adError = "";
+  void ad
+    .prepare()
+    .catch((reason) => {
+      adError = adMessage(reason);
+    })
+    .finally(() => {
+      adPreparing = false;
+      if (screen === "field") renderHUD();
+    });
+}
+
 $("boost").onclick = () => {
-  if (!ad || adBusy || match.daily || match.adUsed || match.state !== "build")
+  if (
+    !ad ||
+    adBusy ||
+    adPreparing ||
+    match.daily ||
+    match.adUsed ||
+    match.state !== "build"
+  )
     return;
+  if (!ad.prepared) {
+    prepareAd();
+    renderHUD();
+    return;
+  }
+  if ($("boost").textContent !== "Ver anuncio · +75 ATP") {
+    renderHUD();
+    return;
+  }
   const run = match;
   const canShow = () =>
-    screen === "field" &&
-    match === run &&
-    match.state === "build" &&
-    !modal.open;
-  const close = (text) => {
+    screen === "field" && match === run && run.state === "build" && !modal.open;
+  const close = (reason = "") => {
     adBusy = false;
-    let aiming = false,
-      challengeDay = null;
+    $("field").inert = false;
     if (screen === "field" && match === run) {
-      message(text);
+      adError = reason;
       renderHUD();
     }
   };
   adBusy = true;
+  adError = "";
   renderHUD();
-  void ad
-    .showRewardedAd({
-      placementName: "bio-lab-defense-atp_supply",
-      reward: "Completa el vídeo para recibir +75 ATP en esta partida.",
-      canShow,
-      onReward() {
-        if (screen !== "field" || match !== run || run.adUsed) return close("");
-        run.adUsed = true;
-        run.atp += 75;
-        close("Suministro publicitario recibido: +75 ATP.");
-      },
-      onCancel: () => close("Anuncio cancelado. Puedes volver a intentarlo."),
-      onError: (reason) => close(adMessage(reason)),
-    })
-    .catch(() => close("No se pudo cargar el anuncio."));
+  ad.showPreparedReward({
+    placementName: "bio-lab-defense-atp_supply",
+    canShow,
+    onShow() {
+      $("field").inert = true;
+    },
+    onReward() {
+      if (screen !== "field" || match !== run || run.adUsed) return close();
+      run.adUsed = true;
+      run.atp += 75;
+      message("Suministro publicitario recibido: +75 ATP.");
+      close();
+    },
+    onCancel: () => close("Anuncio cancelado. Puedes volver a intentarlo."),
+    onError: (reason) => close(adMessage(reason)),
+  });
 };
 modal.addEventListener("cancel", (e) => {
   if (screen === "field" && ["won", "lost"].includes(match.state))
