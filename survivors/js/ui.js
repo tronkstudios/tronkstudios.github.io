@@ -486,6 +486,20 @@
 
   for(const id of ["char-search","char-owned","char-family"])$(id).addEventListener(id==="char-search"?"input":"change",renderChars);
 
+  let profileStatMax;
+  function statScale() {
+    if (profileStatMax) return profileStatMax;
+    const meta = Object.fromEntries(TS.SHOP.map(item => [item.stat, item.max * item.per]));
+    profileStatMax = new Map();
+    for (const character of TS.CHARACTERS) {
+      for (const { label, value, lower } of Game.characterStats(character.id, TS.GACHA.maxStars, meta)) {
+        const magnitude = lower ? 10000 / value : value;
+        profileStatMax.set(label, Math.max(profileStatMax.get(label) || 0, magnitude));
+      }
+    }
+    return profileStatMax;
+  }
+
   function renderDetail(id) {
     clearTimeout(previewTimer);
     const ch = charById(id);
@@ -504,9 +518,25 @@
     rarity.style.color = TS.RARITIES[ch.rarity].color;
     box.append(big, el("h3", "", ch.name), rarity);
     const stats = el("dl", "profile-stats");
-    for (const { label, value, unit } of Game.characterStats(id, have?.stars || 1, Save.shopStats())) {
+    const maxima = statScale();
+    for (const { label, value, unit, lower } of Game.characterStats(id, have?.stars || 1, Save.shopStats())) {
       const row = el("div");
-      row.append(el("dt", "", L(label)), el("dd", "", value.toLocaleString(LANG) + unit));
+      const name = L(lower ? "Rapidez de recarga" : label);
+      const bar = el("dd", "profile-stat-track");
+      const fill = el("span", "profile-stat-fill");
+      const magnitude = lower ? 10000 / value : value;
+      const min = unit === "%" ? 65 : 0;
+      const max = Math.max(min + 1, maxima.get(label) || 0);
+      const ratio = Math.min(1, Math.max(0, (magnitude - min) / (max - min)));
+      fill.style.width = `${ratio * 100}%`;
+      bar.setAttribute("role", "meter");
+      bar.setAttribute("aria-label", name);
+      bar.setAttribute("aria-valuemin", "0");
+      bar.setAttribute("aria-valuemax", "100");
+      bar.setAttribute("aria-valuenow", String(Math.round(ratio * 100)));
+      bar.setAttribute("aria-valuetext", (Math.round(magnitude * 10) / 10).toLocaleString(LANG) + unit);
+      bar.append(fill);
+      row.append(el("dt", "", name), bar);
       stats.append(row);
     }
     box.append(el("h4", "profile-stats-title", L("Estadísticas de inicio")), stats);
@@ -625,7 +655,13 @@
       button.disabled = true;
       button.textContent = L("Buscando anuncio…");
       const screen = current;
-      const granted = await RewardedAds.request(() => current === screen && button.isConnected);
+      const reward = kind === "character"
+        ? `${L("Completa el vídeo para avanzar el desbloqueo de")} ${character.name}.`
+        : kind === "chest" ? L("Completa el vídeo para ganar 5 aperturas gratis.") : L("Completa el vídeo para ganar 50 monedas.");
+      let adShown = false;
+      const granted = await RewardedAds.request(() => current === screen && button.isConnected,
+        kind, reward, () => { adShown = true; Sfx.stopMusic(); });
+      if (adShown && current !== "game") Sfx.startMusic("menu");
       if (granted && kind === "character") {
         const progress = Save.recordUnlockAd(character.id);
         if (progress) toast(progress.unlocked
@@ -639,7 +675,7 @@
         syncCoins();
         toast(L("+50 monedas"));
       } else if (!granted && current === screen) {
-        toast(L("No se completó ningún anuncio. Puedes volver a intentarlo."));
+        toast(L(RewardedAds.lastError || "No se completó ningún anuncio. Puedes volver a intentarlo."));
       }
       if (current === "chars") renderChars();
       if (current === "gacha" && !pulling) renderGacha();

@@ -2,6 +2,16 @@ const KEY = "biolab_save_v1";
 const bounded = (value, max, fallback = 0) =>
   Number.isInteger(value) ? Math.min(max, Math.max(0, value)) : fallback;
 
+function dailyRecords(value) {
+  const entries = Object.entries(value || {}).filter(
+    ([key, score]) =>
+      /^\d{4}-\d{2}-\d{2}$/.test(key) && Number.isInteger(score) && score > 0,
+  );
+  return Object.fromEntries(
+    entries.sort(([a], [b]) => b.localeCompare(a)).slice(0, 21),
+  );
+}
+
 export function normalize(data = {}) {
   return {
     unlockedLevel: Math.max(1, bounded(data?.unlockedLevel, 10, 1)),
@@ -10,6 +20,7 @@ export function normalize(data = {}) {
     lastDaily: /^\d{4}-\d{2}-\d{2}$/.test(data?.lastDaily || "")
       ? data.lastDaily
       : "",
+    dailyRecords: dailyRecords(data?.dailyRecords),
     stars: Array.from({ length: 10 }, (_, i) => bounded(data?.stars?.[i], 3)),
   };
 }
@@ -112,6 +123,11 @@ export class Profile {
         Math.max(stars, this.data.stars[i]),
       );
       next.lastDaily = [next.lastDaily, this.data.lastDaily].sort().at(-1);
+      const shared = { ...next.dailyRecords };
+      for (const [day, points] of Object.entries(this.data.dailyRecords)) {
+        shared[day] = Math.max(shared[day] || 0, points);
+      }
+      next.dailyRecords = dailyRecords(shared);
     }
     // Keep one wallet when two devices have spent or earned from the same version.
     Object.assign(this.data, next);
@@ -128,6 +144,16 @@ export class Profile {
       : write(KEY, this.data);
     if (!stored)
       this.status = "El navegador impide guardar en este dispositivo.";
+  }
+
+  recordDaily(day, score) {
+    if (score <= (this.data.dailyRecords[day] || 0)) return false;
+    this.data.dailyRecords = dailyRecords({
+      ...this.data.dailyRecords,
+      [day]: score,
+    });
+    this.commit();
+    return true;
   }
 
   commit() {

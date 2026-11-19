@@ -52,9 +52,10 @@ button.hud-compass{pointer-events:auto;font-family:inherit;cursor:pointer;text-a
 
 .profile-stats-title { margin: 10px 0 0; color: #eccf99; }
 .profile-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 8px; margin: 8px 0 12px; text-align: left; }
-.profile-stats div { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; padding: 5px 7px; background: #102630; border-radius: 6px; font-size: .76rem; }
+.profile-stats div { display: grid; align-content: center; gap: 5px; min-width: 0; padding: 6px 7px; background: #102630; border-radius: 6px; font-size: .76rem; }
 .profile-stats dt { overflow-wrap: anywhere; }
-.profile-stats dd { flex: none; margin: 0; color: #eccf99; font-variant-numeric: tabular-nums; }
+.profile-stat-track { height: 7px; padding: 1px; margin: 0; border-radius: 5px; background: #081821; box-shadow: inset 0 0 0 1px #345363; }
+.profile-stat-fill { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #56b8b1, #9ae7c1); }
 .ad-unlock-progress { display: block; width: 100%; accent-color: #eccf99; margin: 5px 0 9px; }
 #gacha-rewarded { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 
