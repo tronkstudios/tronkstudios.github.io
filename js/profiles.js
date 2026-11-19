@@ -93,6 +93,10 @@ const SCORE_GAMES = {
   survivors: {
     title: "Tronk Survivors",
     unit: "puntos"
+  },
+  "gravity-runners": {
+    title: "Tronk GravityRunners",
+    unit: "puntos"
   }
 };
 
@@ -189,7 +193,8 @@ let myWishlist = new Map();
 // Mis récords guardados en la cuenta: juego → puntuación
 let myScores = {};
 
-let currentLeaderboardGame = "antitronks";
+const runnerRankingLink = new URLSearchParams(location.search).get("ranking") === "gravity-runners";
+let currentLeaderboardGame = runnerRankingLink ? "gravity-runners" : "antitronks";
 
 /* =========================================================
    UTILIDADES
@@ -1345,7 +1350,7 @@ function initializeLeaderboardToggle() {
     saved = false;
   }
 
-  set(saved);
+  set(saved || runnerRankingLink);
   toggle.addEventListener("click", () => set(body.hidden));
 }
 

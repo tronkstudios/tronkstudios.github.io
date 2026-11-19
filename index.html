@@ -135,7 +135,7 @@
   <script src="js/suggestions.js?v=29" defer></script>
   <script src="js/comments.js?v=1" defer></script>
   <script src="js/projects.js?v=34" defer></script>
-  <script src="js/profiles.js?v=18" defer></script>
+  <script src="js/profiles.js?v=19" defer></script>
   <script src="js/community.js?v=6" defer></script>
   <script src="js/challenges.js?v=6" defer></script>
   <script src="js/gallery.js?v=2" defer></script>
@@ -917,6 +917,25 @@
 
           </article>
 
+          <article class="card dev-card minigame-card">
+            <a class="minigame-open minigame-link" href="juegos/tronk-gravity-runners/" aria-label="Jugar a Tronk GravityRunners">
+              <div class="dev-card-media">
+                <img
+                  src="img/juegos/mini/tronk-gravity-runners.webp"
+                  alt="Tronk GravityRunners, un corredor 3D en el túnel del reactor"
+                  loading="lazy" decoding="async" width="640" height="360"
+                  data-fallback-label="Tronk GravityRunners" />
+              </div>
+              <h3>Tronk GravityRunners</h3>
+            </a>
+            <details class="minigame-demo">
+              <summary>Ver vídeo</summary>
+              <video controls muted playsinline loop preload="none" poster="img/juegos/mini/tronk-gravity-runners.webp" width="640" height="360" aria-label="Vídeo de Tronk GravityRunners">
+                <source src="video/tronk-gravity-runners.mp4" type="video/mp4" />
+              </video>
+            </details>
+          </article>
+
         </div>
 
         <!-- Clasificación (js/profiles.js) -->
@@ -939,6 +958,7 @@
             <button class="leaderboard-tab" type="button" data-game="tronk-fight" aria-pressed="false">Tronk Fight</button>
             <button class="leaderboard-tab" type="button" data-game="miente" aria-pressed="false">El Juego Miente</button>
             <button class="leaderboard-tab" type="button" data-game="survivors" aria-pressed="false">Tronk Survivors</button>
+            <button class="leaderboard-tab" type="button" data-game="gravity-runners" aria-pressed="false">Tronk GravityRunners</button>
           </div>
 
           <ol id="leaderboard-list" class="leaderboard-list" aria-live="polite"></ol>
@@ -2916,6 +2936,6 @@
 
   <!-- Versión en inglés. Va aquí, sin defer, para traducir antes de
        que se vea la página (ver js/i18n.js). -->
-  <script src="js/i18n.js?v=29"></script>
+  <script src="js/i18n.js?v=30"></script>
 </body>
 </html>
