@@ -592,6 +592,8 @@
         progress.setAttribute("aria-label", L("Anuncios completados"));
         const text = `${L("Anuncios completados")} · ${count}/${total}`;
         box.append(el("small", "", text), progress, adButton("character", ch));
+      } else {
+        box.append(el("p", "", L("Anuncios con recompensa no disponibles por ahora.")));
       }
     }
   }
@@ -625,7 +627,12 @@
       button.disabled = true;
       button.textContent = L("Buscando anuncio…");
       const screen = current;
-      const granted = await RewardedAds.request(() => current === screen && button.isConnected);
+      let adShown = false;
+      const granted = await RewardedAds.request(() => current === screen && button.isConnected, kind, () => {
+        adShown = true;
+        Sfx.stopMusic();
+      });
+      if (adShown && current !== "game") Sfx.startMusic("menu");
       if (granted && kind === "character") {
         const progress = Save.recordUnlockAd(character.id);
         if (progress) toast(progress.unlocked
@@ -653,6 +660,9 @@
     rewards.replaceChildren();
     const freeBatch = Save.hasAdPulls();
     rewards.hidden = !RewardedAds.configured && !freeBatch;
+    const adStatus = $("gacha-ad-status");
+    adStatus.hidden = RewardedAds.configured;
+    adStatus.textContent = adStatus.hidden ? "" : L("Anuncios con recompensa no disponibles por ahora.");
     if (freeBatch) {
       const redeem = el("button", "btn btn-gold", L("Abrir 5 gratis"));
       redeem.type = "button";

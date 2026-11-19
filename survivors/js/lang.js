@@ -894,3 +894,5 @@ Object.assign(EN,{
   "Derrota a un élite con un tornado dividido.": "Defeat an elite with a split tornado.",
   "Derrota a 3 élites en una partida.": "Defeat 3 elites in one run."
 });
+
+EN["Anuncios con recompensa no disponibles por ahora."] = "Rewarded ads are currently unavailable.";

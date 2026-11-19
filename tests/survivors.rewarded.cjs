@@ -1,6 +1,7 @@
-// Exercise the reward flow with GPT events supplied by a test fixture.
+// Exercise the reward flow with simulated Google ad events.
 const { chromium } = require("playwright");
 const assert = require("node:assert/strict");
+const useAdSense = process.env.REWARDED_PROVIDER === "adsense";
 
 (async () => {
   const browser = await chromium.launch({
@@ -14,10 +15,13 @@ const assert = require("node:assert/strict");
     await page.route("**/three.min.js", route => route.abort());
     await page.route("**/survivors/", async route => {
       const response = await route.fetch();
-      const html = (await response.text()).replace(
-        'name="rewarded-ad-unit" content=""',
-        'name="rewarded-ad-unit" content="/123/test-rewarded"'
-      );
+      let html = await response.text();
+      if (!useAdSense) {
+        html = html.replace(
+          'name="rewarded-ad-unit" content=""',
+          'name="rewarded-ad-unit" content="/123/test-rewarded"'
+        );
+      }
       await route.fulfill({ response, body: html });
     });
     await page.route("https://securepubads.g.doubleclick.net/tag/js/gpt.js", route => route.fulfill({
@@ -51,26 +55,68 @@ const assert = require("node:assert/strict");
         queue.forEach(fn => fn());
       `
     }));
+    await page.route("https://pagead2.googlesyndication.com/**", route => {
+      if (!useAdSense) return route.abort();
+      assert.equal(route.request().url(), "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6088460231287739");
+      return route.fulfill({
+        contentType: "application/javascript",
+        body: `
+          const queue = window.adsbygoogle;
+          function handle(request) {
+            if (request.onReady) {
+              if (request.preloadAdBreaks !== "on") throw new Error("Expected H5 preload");
+              request.onReady();
+              return;
+            }
+            if (request.type !== "reward" || !["coins", "chest", "character"].includes(request.name)) {
+              throw new Error("Expected a named rewarded ad");
+            }
+            window.requests = (window.requests || 0) + 1;
+            window.finishAd = complete => request.beforeReward(() => {
+              request.beforeAd();
+              if (complete) {
+                request.adViewed();
+                request.adViewed();
+              } else {
+                request.adDismissed();
+              }
+              request.adBreakDone();
+            });
+            window.noAd = () => request.adBreakDone();
+          }
+          queue.push = handle;
+          queue.forEach(handle);
+        `
+      });
+    });
     await page.goto((process.env.BASE_URL || "http://127.0.0.1:8771") + "/survivors/");
     await page.waitForSelector("#menu.is-on", { timeout: 90000 });
     await page.evaluate(() => TronkUI.show("gacha"));
     const button = page.getByRole("button", { name: "Ver anuncio · +50 monedas", exact: true });
     const coins = await page.evaluate(() => Save.get().coins);
     assert.equal(await page.evaluate(() => !!window.googletag), false);
+    assert.equal(await page.evaluate(() => !!window.adsbygoogle), false);
     await button.click();
     await page.waitForFunction(() => window.requests === 1);
     assert.equal(await page.getByRole("button", { name: "Buscando anuncio…" }).isDisabled(), true);
     await page.evaluate(() => finishAd(false));
     await page.waitForFunction(() => !RewardedAds.pending);
     assert.equal(await page.evaluate(() => Save.get().coins), coins);
+    if (useAdSense) {
+      await button.click();
+      await page.waitForFunction(() => window.requests === 2);
+      await page.evaluate(() => noAd());
+      await page.waitForFunction(() => !RewardedAds.pending);
+      assert.equal(await page.evaluate(() => Save.get().coins), coins);
+    }
     await button.click();
-    await page.waitForFunction(() => window.requests === 2);
+    await page.waitForFunction(expected => window.requests === expected, useAdSense ? 3 : 2);
     await page.evaluate(() => finishAd(true));
     await page.waitForFunction(expected => Save.get().coins === expected, coins + 50);
     assert.equal(await page.getByRole("button", { name: "Vuelve más tarde para ganar monedas" }).isDisabled(), true);
     const chestButton = page.getByRole("button", { name: "Ver anuncio · 5 aperturas gratis", exact: true });
     await chestButton.click();
-    await page.waitForFunction(() => window.requests === 3);
+    await page.waitForFunction(expected => window.requests === expected, useAdSense ? 4 : 3);
     await page.evaluate(() => finishAd(true));
     await page.waitForFunction(() => Save.hasAdPulls());
     const unusedReward = await page.evaluate(() => Save.exportData());
@@ -120,7 +166,7 @@ const assert = require("node:assert/strict");
     }));
     assert.deepEqual(costs, [1, 2, 3, 5]);
     assert.deepEqual(errors, []);
-    console.log("Rewarded ad flow passed: opt-in, cancellation, duplicate event, cooldown, persisted five-pull batch, rarity progress and unlock.");
+    console.log(`${useAdSense ? "AdSense" : "Ad Manager"} rewarded ad flow passed: opt-in, cancellation, duplicate event, cooldown, persisted five-pull batch, rarity progress and unlock.`);
   } finally {
     await browser.close();
   }
