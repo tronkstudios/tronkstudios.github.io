@@ -1,6 +1,6 @@
 const { chromium } = require("playwright");
 const assert = require("node:assert/strict");
-const base = process.env.BASE_URL || "http://127.0.0.1:8788";
+const base = process.env.BASE_URL || "http://127.0.0.1:8789";
 (async () => {
   const browser = await chromium.launch({
     executablePath: process.env.CHROMIUM_PATH || "/usr/bin/chromium",
@@ -48,7 +48,7 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8788";
       function handle(config){
         if(config.onReady){setTimeout(config.onReady,10);return;}
         if(config.type!=="reward")throw new Error("Unexpected ad placement");
-        setTimeout(()=>{
+        function offer(){
            if(window.noFill){config.adBreakDone({breakStatus:"noAdPreloaded"});return;}
            config.beforeReward(()=>{
               if(!navigator.userActivation.isActive) throw new Error("The ad must be opened by a direct click");
@@ -62,13 +62,16 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8788";
                 config.adBreakDone({breakStatus:ok?"viewed":"dismissed"});
               };
            });
-        },25);
+        }
+        if(window.delayedOffer) setTimeout(offer,25);
+        else offer();
       }
       queue.push=handle;queue.forEach(handle);
     `,
           });
         });
         await page.goto(base + path);
+        assert.equal(requests, 0, "no ad on the home screen");
         let button, balance, verify;
         if (path.includes("bio-lab")) {
           await page.locator("#campaign-button").tap();
@@ -117,47 +120,76 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8788";
               () => gravityShiftGame.scoreMgr.reviveUsed,
             );
         }
-        const initial = await balance(),
-          dialog = page.getByRole("dialog", { name: "Anuncio con recompensa" });
-        assert.equal(requests, 0);
-        await button.tap();
-        await dialog.waitFor();
+        const initial = await balance();
+        const readyLabel =
+          /Ver anuncio · \+75 ATP|Ver anuncio · \+50 monedas|VER ANUNCIO · CONTINUAR UNA VEZ/;
+        await page.waitForFunction(
+          (source) =>
+            [...document.querySelectorAll("button")].some(
+              (b) =>
+                !b.disabled &&
+                b.getClientRects().length &&
+                new RegExp(source).test(b.textContent),
+            ),
+          readyLabel.source,
+        );
+        assert.equal(
+          requests,
+          1,
+          "SDK is prepared before the user requests the video",
+        );
         assert.equal(await page.evaluate(() => visibleAds), 0);
-        await dialog.getByRole("button", { name: "Ahora no" }).tap();
-        await dialog.waitFor({ state: "hidden" });
-        assert.equal(await balance(), initial);
         await page.evaluate(() => {
           window.noFill = true;
         });
         await button.tap();
-        await button.waitFor({ state: "visible" });
         await page.waitForFunction(
-          () =>
-            !document.querySelector(".tronk-ad-offer") &&
-            Boolean(
-              [...document.querySelectorAll("button")].find(
-                (b) =>
-                  !b.disabled &&
-                  b.getClientRects().length &&
-                  /Ver anuncio · \+75 ATP|Ver anuncio · \+50 monedas|VER ANUNCIO · CONTINUAR UNA VEZ/.test(
-                    b.textContent,
-                  ),
-              ),
+          (source) =>
+            [...document.querySelectorAll("button")].some(
+              (b) =>
+                !b.disabled &&
+                b.getClientRects().length &&
+                new RegExp(source).test(b.textContent),
             ),
+          readyLabel.source,
         );
         assert.equal(await balance(), initial);
+
         await page.evaluate(() => {
           window.noFill = false;
+          window.delayedOffer = true;
         });
         await button.tap();
-        await dialog.waitFor();
-        await dialog.getByRole("button", { name: "Ver vídeo" }).tap();
+        await page.waitForFunction(
+          (source) =>
+            [...document.querySelectorAll("button")].some(
+              (b) =>
+                !b.disabled &&
+                b.getClientRects().length &&
+                new RegExp(source).test(b.textContent),
+            ),
+          readyLabel.source,
+        );
+        assert.equal(
+          await page.evaluate(() => visibleAds),
+          0,
+          "a late offer must not open on its own",
+        );
+
+        await page.evaluate(() => {
+          window.delayedOffer = false;
+        });
+        await button.tap();
         await page.waitForFunction(() => visibleAds === 1);
+        assert.equal(
+          await page.locator(".tronk-ad-offer").count(),
+          0,
+          "no second confirmation",
+        );
         await page.evaluate(() => finishAd(false));
         assert.equal(await balance(), initial);
+
         await button.tap();
-        await dialog.waitFor();
-        await dialog.getByRole("button", { name: "Ver vídeo" }).tap();
         await page.waitForFunction(() => visibleAds === 2);
         await page.evaluate(() => finishAd(true));
         await verify(initial);
@@ -169,6 +201,14 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8788";
             x: (bounds.width * 170) / 900,
             y: (bounds.height * 170) / 540,
           };
+          const balanceAfterReward = await balance();
+          await canvas.tap({ position: pos });
+          await page.locator("#undo-build").tap();
+          assert.equal(
+            await balance(),
+            balanceAfterReward,
+            "undo refunds the full purchase",
+          );
           await canvas.tap({ position: pos });
           await canvas.tap({ position: pos });
           await page.getByRole("button", { name: /^Mejorar/ }).tap();

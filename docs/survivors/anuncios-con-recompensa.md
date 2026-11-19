@@ -2,7 +2,7 @@
 
 Tronk Survivors comparte con Bio-Lab Defense y Tronk GravityRunners el proveedor de [AdSense H5 Games Ads](https://developers.google.com/ad-placement/docs/signup). El identificador público se configura en `rewarded-adsense-client`. Para servir anuncios reales, el sitio debe estar listo en AdSense y la cuenta debe tener acceso a H5 Games Ads. Se pueden mantener desactivados los anuncios automáticos.
 
-El juego carga AdSense al solicitar una recompensa. Cuando Google encuentra inventario, aparece el botón **Ver vídeo**. Ese toque directo abre el anuncio. Si no hay inventario, el juego muestra el estado y deja disponible la recompensa para otro intento. El módulo compartido vive en `js/h5-rewards.js`.
+Cada juego prepara AdSense al entrar en una pantalla donde se puede conseguir una recompensa. Cuando el servicio está listo, un toque en **Ver anuncio** solicita y abre el vídeo si hay inventario. Si no hay inventario, el juego muestra el estado y deja disponible la recompensa para otro intento. El módulo compartido vive en `js/h5-rewards.js`.
 
 Survivors admite un bloque web de [Google Ad Manager](https://developers.google.com/publisher-tag/samples/display-rewarded-ad) cuando se configura `rewarded-ad-unit` con el formato `/código-de-red/nombre-del-bloque`.
 

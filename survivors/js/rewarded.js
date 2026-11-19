@@ -11,7 +11,22 @@ const RewardedAds = (() => {
   let pending = false;
   let loader;
   let enabled = false;
-  let h5, lastError;
+  let h5, adMessage, preparation, lastError;
+
+  function prepare() {
+    if (!configured || adManager || h5?.prepared) return Promise.resolve();
+    if (preparation) return preparation;
+    lastError = "";
+    preparation = (async () => {
+      const api = await import("/js/h5-rewards.js?v=2");
+      h5 ||= api.createAdSenseProvider(client);
+      adMessage = api.adMessage;
+      await h5.prepare();
+    })().catch(reason => {
+      lastError = adMessage?.(reason) || "No se ha podido mostrar un anuncio ahora.";
+    }).finally(() => { preparation = null; });
+    return preparation;
+  }
 
   function load() {
     if (window.googletag?.apiReady) return Promise.resolve(window.googletag);
@@ -89,19 +104,16 @@ const RewardedAds = (() => {
     });
   }
 
-  async function request(stillHere, placement, reward, onShow) {
-    if (!configured || pending) return false;
+  async function request(stillHere, placement, onShow) {
+    if (!configured || pending || (!adManager && !h5?.prepared)) return false;
     lastError = "";
     pending = true;
     try {
       if (adManager) return await display(await load(), stillHere, onShow);
-      const { createAdSenseProvider, adMessage } = await import("/js/h5-rewards.js?v=1");
-      h5 ||= createAdSenseProvider(client);
       return await new Promise(resolve => {
-        h5.showRewardedAd({
+        h5.showPreparedReward({
           placementName: `tronk-survivors-${placement}`,
           canShow: stillHere,
-          reward,
           onShow,
           onReward: () => resolve(true),
           onCancel: () => resolve(false),
@@ -109,12 +121,12 @@ const RewardedAds = (() => {
             lastError = adMessage(reason);
             resolve(false);
           }
-        }).catch(() => resolve(false));
+        });
       });
     }
     catch { return false; }
     finally { pending = false; }
   }
 
-  return { configured, request, coins, cooldown, get pending() { return pending; }, get lastError() { return lastError; } };
+  return { configured, prepare, request, coins, cooldown, get prepared() { return adManager || !!h5?.prepared; }, get preparing() { return !!preparation; }, get pending() { return pending; }, get lastError() { return lastError; } };
 })();

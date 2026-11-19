@@ -641,8 +641,15 @@
     const available = () => kind === "character" ? !save.owned[character.id]
       : kind === "chest" ? Save.canEarnAdPulls() : coinAdReady();
     function refresh() {
-      button.disabled = pulling || RewardedAds.pending || !available();
-      button.textContent = available() ? label : kind === "chest" ? L("Cinco aperturas disponibles cada 24 h") : L("Vuelve más tarde para ganar monedas");
+      button.disabled = pulling || RewardedAds.pending || RewardedAds.preparing || !available();
+      button.title = !RewardedAds.prepared && RewardedAds.lastError ? L(RewardedAds.lastError) : "";
+      button.textContent = available()
+        ? RewardedAds.prepared ? label : L(RewardedAds.preparing ? "Preparando anuncio…" : "Reintentar preparación")
+        : kind === "chest" ? L("Cinco aperturas disponibles cada 24 h") : L("Vuelve más tarde para ganar monedas");
+    }
+    if ((current === "gacha" || current === "chars") && available() &&
+        !RewardedAds.prepared && !RewardedAds.lastError) {
+      void RewardedAds.prepare().then(refresh);
     }
     refresh();
     if (kind !== "character" && !available()) {
@@ -652,15 +659,25 @@
     }
     button.addEventListener("click", async () => {
       if (pulling || button.disabled || RewardedAds.pending || !available()) return;
+      if (button.textContent !== label && RewardedAds.prepared) {
+        refresh();
+        return;
+      }
+      if (!RewardedAds.prepared) {
+        const ready = RewardedAds.prepare();
+        refresh();
+        await ready;
+        if (current === "chars") renderChars();
+        if (current === "gacha" && !pulling) renderGacha();
+        if (RewardedAds.lastError) toast(L(RewardedAds.lastError));
+        return;
+      }
       button.disabled = true;
       button.textContent = L("Buscando anuncio…");
       const screen = current;
-      const reward = kind === "character"
-        ? `${L("Completa el vídeo para avanzar el desbloqueo de")} ${character.name}.`
-        : kind === "chest" ? L("Completa el vídeo para ganar 5 aperturas gratis.") : L("Completa el vídeo para ganar 50 monedas.");
       let adShown = false;
       const granted = await RewardedAds.request(() => current === screen && button.isConnected,
-        kind, reward, () => { adShown = true; Sfx.stopMusic(); });
+        kind, () => { adShown = true; Sfx.stopMusic(); });
       if (adShown && current !== "game") Sfx.startMusic("menu");
       if (granted && kind === "character") {
         const progress = Save.recordUnlockAd(character.id);

@@ -463,3 +463,40 @@ dialog p {
     flex-wrap: wrap;
   }
 }
+
+.lane-brief {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+}
+.lane-brief b {
+  padding: 0.2rem 0.48rem;
+  border-radius: 6px;
+  background: #193b50;
+  color: #a8edff;
+  font-size: 0.75rem;
+}
+.lane-brief b + b {
+  background: #33284b;
+  color: #e1c8ff;
+}
+.wave-debrief {
+  margin: 0 0 0.6rem;
+  padding: 0.45rem 0.7rem;
+  border-left: 2px solid #7ae6b5;
+  border-radius: 6px;
+  background: #102c32;
+  color: #bcf1d8;
+  font-size: 0.82rem;
+}
+.undo-build {
+  width: 100%;
+  margin-top: 0.45rem;
+  font-size: 0.78rem;
+}
+#boost-status {
+  margin: 0.1rem 0.25rem;
+  color: var(--warning);
+  font-size: 0.76rem;
+}
