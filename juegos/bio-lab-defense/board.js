@@ -307,7 +307,7 @@ export class Board {
     this.buffers = new Map();
   }
 
-  draw(match, blueprint, selected, cursor, reduced, aiming) {
+  draw(match, blueprint, selected, cursor, reduced, aiming, hovered = null) {
     const ctx = this.ctx;
     const key = match.mission ? match.level : `reto-${match.mapIndex}`;
     if (!this.buffers.has(key))
@@ -321,9 +321,11 @@ export class Board {
       circle(ctx, cursor.x, cursor.y, 5, "#c8faff");
     }
     for (const [tower, valid, ghost] of [
-      [aiming ? null : selected, true, false],
+      [aiming ? null : hovered || selected, true, false],
       [
-        !aiming && cursor && blueprint ? { ...blueprint, ...cursor } : null,
+        !aiming && !hovered && cursor && blueprint
+          ? { ...blueprint, ...cursor }
+          : null,
         cursor && !match.checkPlacement(blueprint, cursor.x, cursor.y),
         true,
       ],
@@ -352,7 +354,9 @@ export class Board {
           2,
         );
     }
-    match.towers.forEach((tower) => turret(ctx, tower, tower === selected));
+    match.towers.forEach((tower) =>
+      turret(ctx, tower, tower === selected || tower === hovered),
+    );
     match.enemies.forEach((enemy) => target(ctx, enemy));
     match.shots.forEach((shot) => {
       circle(ctx, shot.x, shot.y, 7, shot.color + "48");

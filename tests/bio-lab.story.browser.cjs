@@ -73,7 +73,11 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8790";
       );
       await page.locator("#launch-mission").click();
       assert.match(await page.locator("#radio-text").textContent(), /Restaura/);
-      assert.equal(await page.locator("#threats").textContent(), "0");
+      assert.equal(
+        await page.locator("#threat-label").textContent(),
+        "Próxima oleada",
+      );
+      assert.ok(Number(await page.locator("#threats").textContent()) > 0);
       await page.evaluate(() => completeStoryMission());
       await page.getByRole("heading", { name: "Misión completada" }).waitFor();
       assert.match(

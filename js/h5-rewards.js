@@ -3,7 +3,7 @@ const adErrors = {
   blocked:
     "No se pudo cargar el servicio de anuncios. Puede estar bloqueado en el navegador.",
   initTimeout:
-    "El servicio no se ha activado. Puede que la cuenta o el sitio aún estén en revisión.",
+    "El servicio de anuncios no respondió a tiempo. Vuelve a intentarlo.",
   notReady:
     "El anuncio aún no está listo. Puedes volver a intentarlo en unos segundos.",
   timeout: "El servicio de anuncios tardó demasiado.",
@@ -19,7 +19,9 @@ export function adMessage(reason) {
 
 export function createAdSenseProvider(client) {
   if (!/^ca-pub-\d{16}$/.test(client || "")) return null;
-  let ready;
+  let loading,
+    sdkLoaded = false,
+    signalReady;
   let prepared = false;
   function push(options) {
     (window.adsbygoogle ||= []).push(options);
@@ -27,40 +29,58 @@ export function createAdSenseProvider(client) {
 
   function load() {
     if (navigator.onLine === false) return Promise.reject("offline");
-    ready ||= new Promise((resolve, reject) => {
-      const tag = document.createElement("script");
-      tag.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${client}`;
-      tag.async = true;
-      tag.crossOrigin = "anonymous";
+    if (prepared) return Promise.resolve();
+    if (loading) return loading;
+
+    loading = new Promise((resolve, reject) => {
+      let tag;
+      const queue = (window.adsbygoogle ||= []);
       const config = {
-        preloadAdBreaks: "on",
         onReady() {
           prepared = true;
-          resolve();
+          signalReady?.();
         },
       };
-      const queue = (window.adsbygoogle ||= []);
-      tag.onerror = () => {
-        tag.remove();
-        if (Array.isArray(queue)) {
-          const index = queue.indexOf(config);
-          if (index !== -1) queue.splice(index, 1);
+      const timer = setTimeout(() => finish("initTimeout"), 6500);
+      function finish(reason) {
+        clearTimeout(timer);
+        signalReady = null;
+        if (reason && tag && !sdkLoaded) {
+          tag.onload = tag.onerror = null;
+          tag.remove();
+          if (Array.isArray(queue)) {
+            const index = queue.indexOf(config);
+            if (index !== -1) queue.splice(index, 1);
+          }
         }
-        reject("blocked");
-      };
-      push(config);
-      document.head.append(tag);
-    }).catch((reason) => {
-      ready = undefined;
-      throw reason;
+        if (reason) reject(reason);
+        else resolve();
+      }
+      signalReady = () => finish();
+      try {
+        if (sdkLoaded) {
+          // Retry readiness on the existing SDK without setting preload twice.
+          push(config);
+        } else {
+          config.preloadAdBreaks = "on";
+          tag = document.createElement("script");
+          tag.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${client}`;
+          tag.async = true;
+          tag.crossOrigin = "anonymous";
+          tag.onload = () => {
+            sdkLoaded = true;
+          };
+          tag.onerror = () => finish("blocked");
+          push(config);
+          document.head.append(tag);
+        }
+      } catch {
+        finish("blocked");
+      }
+    }).finally(() => {
+      loading = null;
     });
-    let timer;
-    return Promise.race([
-      ready,
-      new Promise((_, reject) => {
-        timer = setTimeout(() => reject("initTimeout"), 10000);
-      }),
-    ]).finally(() => clearTimeout(timer));
+    return loading;
   }
 
   function showPreparedReward({
@@ -91,7 +111,7 @@ export function createAdSenseProvider(client) {
       clearTimeout(timer);
       timer = setTimeout(() => settle(callback, reason), milliseconds);
     }
-    wait(10000, onError, "timeout");
+    wait(7000, onError, "timeout");
     try {
       push({
         type: "reward",
@@ -103,7 +123,7 @@ export function createAdSenseProvider(client) {
           if (!clickInProgress || navigator.userActivation?.isActive === false)
             return settle(onError, "notReady");
           shown = true;
-          wait(10000, onError, "timeout");
+          wait(7000, onError, "timeout");
           try {
             showAd();
           } catch {
@@ -112,7 +132,7 @@ export function createAdSenseProvider(client) {
         },
         beforeAd() {
           if (finished || !shown) return;
-          wait(180000, onError, "timeout");
+          wait(90000, onError, "timeout");
           onShow?.();
         },
         afterAd() {

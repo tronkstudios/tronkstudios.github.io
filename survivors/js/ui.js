@@ -450,6 +450,7 @@
 
   function renderChars() {
     const grid = $("chars-grid");
+    const focused = grid.contains(document.activeElement) ? document.activeElement.dataset.charId : null;
     grid.textContent = "";
     $("chars-count").textContent = `${Object.keys(save.owned).length} / ${TS.CHARACTERS.length}`;
     const family=$("char-family");if(family.options.length===1)for(const id of [...new Set(TS.CHARACTERS.map(c=>TS.WEAPONS[c.weapon].family || c.weapon))]){const option=el("option","",L(TS.WEAPONS[id].name));option.value=id;family.append(option);}
@@ -463,13 +464,15 @@
       card.type = "button";
       card.dataset.charId = ch.id;
       card.dataset.rarity = ch.rarity;
+      card.setAttribute("aria-controls", "char-detail");
+      card.setAttribute("aria-pressed", String(ch.id === selectedView));
       card.setAttribute("aria-label",`${ch.name} · ${L(TS.RARITIES[ch.rarity].name)}${have ? "" : ` · ${L("Bloqueado")}`}`);
       card.style.setProperty("--rarity", TS.RARITIES[ch.rarity].color);
       const img = document.createElement("img");
       img.src = have ? Sprites.portrait(ch.id, 2) : Sprites.silhouettePortrait(ch.id, 2);
       img.alt = "";
       card.append(img, el("span", "", ch.name), el("small", "char-rarity", L(TS.RARITIES[ch.rarity].name)), el("span", "stars", have ? stars(have.stars) : ""));
-      card.addEventListener("click", () => {
+      card.addEventListener("click", event => {
         selectedView = ch.id;
         Sfx.play("click");
         if (have) {
@@ -477,11 +480,20 @@
           Save.persist();
         }
         renderChars();
-        if(window.matchMedia("(max-width: 700px)").matches)$("char-detail").scrollIntoView({block:"start"});
+        if (window.matchMedia("(max-width: 700px)").matches) {
+          const detail = $("char-detail");
+          detail.scrollIntoView({block:"start"});
+          if (event.detail === 0) {
+            const heading = detail.querySelector("h3");
+            heading.tabIndex = -1;
+            heading.focus({preventScroll:true});
+          }
+        }
       });
       grid.appendChild(card);
     }
     renderDetail(selectedView);
+    if (focused) grid.querySelector(`[data-char-id="${focused}"]`)?.focus({preventScroll:true});
   }
 
   for(const id of ["char-search","char-owned","char-family"])$(id).addEventListener(id==="char-search"?"input":"change",renderChars);

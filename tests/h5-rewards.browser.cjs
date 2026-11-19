@@ -8,6 +8,7 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8789";
       "--no-sandbox",
       "--use-angle=swiftshader",
       "--enable-unsafe-swiftshader",
+      "--disable-background-timer-throttling",
     ],
   });
   try {
@@ -16,15 +17,16 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8789";
       "/survivors/",
       "/juegos/tronk-gravity-runners/",
     ];
-    await Promise.all(
-      routes.map(async (path) => {
-        const context = await browser.newContext({
-          viewport: { width: 390, height: 844 },
-          hasTouch: true,
-          isMobile: true,
-          locale: "es-ES",
-          reducedMotion: "reduce",
-        });
+    // Keep the game under test in the foreground while its sprites initialize.
+    for (const path of routes) {
+      const context = await browser.newContext({
+        viewport: { width: 390, height: 844 },
+        hasTouch: true,
+        isMobile: true,
+        locale: "es-ES",
+        reducedMotion: "reduce",
+      });
+      try {
         await context.route(
           (url) =>
             !url.href.startsWith(base) && !url.href.includes("adsbygoogle"),
@@ -45,9 +47,16 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8789";
             body: `
       const queue=window.adsbygoogle;
       window.visibleAds=0;
+      window.configCalls=0;
+      window.preloadCalls=0;
       function handle(config){
-        if(config.onReady){setTimeout(config.onReady,10);return;}
+        if(config.onReady){
+          if(config.preloadAdBreaks === "on") window.preloadCalls++;
+          if(++window.configCalls > 1) setTimeout(config.onReady,10);
+          return;
+        }
         if(config.type!=="reward")throw new Error("Unexpected ad placement");
+        if(window.ignorePlacement) return;
         function offer(){
            if(window.noFill){config.adBreakDone({breakStatus:"noAdPreloaded"});return;}
            config.beforeReward(()=>{
@@ -122,6 +131,8 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8789";
             );
         }
         const initial = await balance();
+        const retry = page.getByRole("button", { name: /^reintentar preparación$/i }).first();
+        await retry.tap();
         const readyLabel =
           /Ver anuncio · \+75 ATP|Ver anuncio · \+50 monedas|VER ANUNCIO · CONTINUAR UNA VEZ/;
         await page.waitForFunction(
@@ -137,10 +148,17 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8789";
         assert.equal(
           requests,
           1,
-          "SDK is prepared before the user requests the video",
+          "retry readiness without loading the SDK again",
         );
+        assert.equal(await page.evaluate(() => configCalls), 2);
+        assert.equal(await page.evaluate(() => preloadCalls), 1);
         assert.equal(await page.evaluate(() => visibleAds), 0);
+        await page.evaluate(() => { window.ignorePlacement = true; });
+        await button.tap();
+        await button.and(page.getByRole("button", { name: readyLabel })).and(page.locator(":enabled")).waitFor();
+        assert.equal(await balance(), initial, "a stalled placement gives no reward");
         await page.evaluate(() => {
+          window.ignorePlacement = false;
           window.noFill = true;
         });
         await button.tap();
@@ -237,9 +255,10 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8789";
         }
         assert.deepEqual(errors, []);
         console.log(path + " passed");
+      } finally {
         await context.close();
-      }),
-    );
+      }
+    }
   } finally {
     await browser.close();
   }

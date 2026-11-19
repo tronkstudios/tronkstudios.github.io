@@ -8,9 +8,9 @@ import {
   TARGETING,
   dailySetup,
 } from "./engine.js?v=5";
-import { Board } from "./board.js?v=5";
+import { Board } from "./board.js?v=6";
 import { Profile, dayKey } from "./profile.js?v=3";
-import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=2";
+import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=3";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=1";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=1";
 
@@ -201,7 +201,7 @@ function refreshCheckpoint() {
   if (saved)
     updateText(
       "saved-sector",
-      `${saved.match.mission.name} · Oleada ${saved.match.wave + 1}/${saved.match.maxWaves}`,
+      `${saved.match.mission.name} · Oleada ${saved.match.wave + 1}/${saved.match.maxWaves} · Núcleo ${saved.match.hp} % · ${saved.match.atp} ATP`,
     );
 }
 
@@ -342,8 +342,7 @@ function place(x, y) {
     renderHUD();
     return;
   }
-  const radius = Math.min(36, Math.max(22, (12 * WIDTH) / canvas.clientWidth));
-  const tower = match.towers.find((t) => Math.hypot(t.x - x, t.y - y) < radius);
+  const tower = towerAt(x, y);
   if (tower) {
     selected = tower;
     blueprint = null;
@@ -478,12 +477,16 @@ function renderHUD() {
   $("integrity").value = match.hp;
   updateText("atp", match.atp);
   updateText("wave", `${match.wave}/${match.maxWaves}`);
-  updateText("threats", match.enemies.length + match.queue.length);
+  const waiting = match.state === "build";
+  updateText("threat-label", waiting ? "Próxima oleada" : "Quedan");
+  updateText(
+    "threats",
+    waiting ? match.preview.count : match.enemies.length + match.queue.length,
+  );
   updateText(
     "combo",
     match.combo >= 5 ? `×${match.combo} Fiebre` : `×${match.combo || 1}`,
   );
-  const waiting = match.state === "build";
   const boss = match.enemies.find((enemy) => enemy.boss && enemy.hp > 0);
   $("boss-status").hidden = !boss;
   if (boss && !lastBoss) sound("boss");
@@ -595,7 +598,16 @@ function frame(now) {
         message(announce());
       }
     }
-    board.draw(match, blueprint, selected, cursor, reduced.matches, aiming);
+    const hovered = cursor && !aiming ? towerAt(cursor.x, cursor.y) : null;
+    board.draw(
+      match,
+      blueprint,
+      selected,
+      cursor,
+      reduced.matches,
+      aiming,
+      hovered,
+    );
     renderHUD();
   } else {
     accumulator = 0;
@@ -679,11 +691,30 @@ function campaign() {
   renderLevels();
   view("campaign");
 }
+function towerAt(x, y) {
+  let nearest = null;
+  let limit = Math.min(36, Math.max(22, (12 * WIDTH) / canvas.clientWidth));
+  for (const tower of match.towers) {
+    const distance = Math.hypot(tower.x - x, tower.y - y);
+    if (distance < limit) {
+      nearest = tower;
+      limit = distance;
+    }
+  }
+  return nearest;
+}
+
 function pointer(e) {
   const rect = canvas.getBoundingClientRect();
+  const scaleX = rect.width / canvas.offsetWidth;
+  const scaleY = rect.height / canvas.offsetHeight;
   return {
-    x: ((e.clientX - rect.left) * WIDTH) / rect.width,
-    y: ((e.clientY - rect.top) * HEIGHT) / rect.height,
+    x:
+      ((e.clientX - rect.left - canvas.clientLeft * scaleX) * WIDTH) /
+      (canvas.clientWidth * scaleX),
+    y:
+      ((e.clientY - rect.top - canvas.clientTop * scaleY) * HEIGHT) /
+      (canvas.clientHeight * scaleY),
   };
 }
 canvas.onclick = (e) => {
