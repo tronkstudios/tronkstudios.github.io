@@ -1,0 +1,1372 @@
+<!doctype html>
+<html lang="es" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <title>Tronk GravityRunners</title>
+    <meta
+      name="description"
+      content="Domina la gravedad en un runner 3D de cuatro superficies. Esquiva, encadena combos y personaliza tu personaje en el hangar."
+    />
+    <meta name="theme-color" content="#10151D" />
+
+    <link rel="canonical" href="https://tronkstudios.github.io/juegos/tronk-gravity-runners/" />
+        <meta property="og:title" content="Tronk GravityRunners" />
+        <meta property="og:image" content="https://tronkstudios.github.io/img/juegos/mini/tronk-gravity-runners.webp" />
+        <meta name="rewarded-adsense-client" content="ca-pub-6088460231287739" />
+
+    <!-- Tailwind CSS -->
+    <!-- Tailwind utilities are compiled into the stylesheet. -->
+
+    <link rel="stylesheet" href="./assets/icons/css/all.min.css" />
+    <link rel="icon" href="./assets/icons/icon-192.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./assets/icons/icon-192.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <!-- Three.js r128 -->
+    <!-- Three.js is bundled with the engine. -->
+
+    <link rel="stylesheet" href="./styles.be5b0c321d58.css" />
+  </head>
+
+  <body>
+    <div id="loading-screen" class="loading-screen" role="status">
+      <img src="./assets/icons/mark.svg" alt="" /><strong>Tronk GravityRunners</strong
+      ><span>Preparando el personaje y el túnel…</span>
+      <div></div>
+    </div>
+    <!-- 3D WebGL Viewport -->
+    <div id="canvas-container"></div>
+
+    <!-- Subtle Sci-Fi Scanline Overlay -->
+    <div class="scanline-overlay"></div>
+
+    <!-- Screen Flash Effect Overlay (Shifts & Impacts) -->
+    <div
+      id="screen-flash"
+      class="fixed inset-0 pointer-events-none z-20 transition-opacity duration-200 opacity-0"
+    ></div>
+
+    <div
+      id="countdown"
+      class="countdown hidden"
+      role="status"
+      aria-live="assertive"
+    >
+      <small id="countdown-label">PREPARA EL CAMBIO</small
+      ><strong id="countdown-number">3</strong>
+      <p>
+        W / ↑ techo · S / ↓ suelo<br />A / ← izquierda · D / → derecha<br /><span
+          >ESPACIO / centro: saltar · B: tabla<br />En móvil: desliza o toca las
+          flechas</span
+        >
+      </p>
+      <button id="btn-cancel-countdown" class="brutal-btn">VOLVER</button>
+    </div>
+    <div id="danger-cue" class="danger-cue hidden" role="status">
+      PELIGRO EN TU SUPERFICIE · CAMBIA
+    </div>
+    <div id="perfect-feedback" class="perfect-feedback hidden" role="status">
+      CAMBIO PERFECTO<small>PRECISIÓN + MULTIPLICADOR</small>
+    </div>
+    <aside id="save-warning" hidden class="save-warning" role="status">
+      El progreso está solo en memoria.
+      <button id="btn-save-warning">Exportar copia</button>
+    </aside>
+    <section
+      id="share-panel"
+      hidden
+      class="share-panel"
+      role="dialog"
+      aria-label="Compartir reto diario"
+      aria-modal="true"
+    >
+      <div class="share-card">
+        <strong>Comparte el mismo recorrido</strong
+        ><input
+          id="daily-share-link"
+          readonly
+          aria-label="Enlace del reto diario"
+        />
+        <p>El récord es local. El reto cambia a medianoche, hora de Madrid.</p>
+        <button id="btn-close-share" class="brutal-btn">CERRAR</button>
+      </div>
+    </section>
+    <section
+      id="practice-complete"
+      class="practice-complete hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Práctica completada"
+    >
+      <div class="brutal-card">
+        <span>ENTRENAMIENTO COMPLETADO</span>
+        <h2>Ya dominas la gravedad.</h2>
+        <p>
+          Has practicado las cuatro superficies, el ajuste lateral y el cambio
+          perfecto. No se han modificado tus monedas ni tus récords.
+        </p>
+        <button id="btn-practice-play" class="brutal-btn brutal-btn-primary">
+          JUGAR UNA PARTIDA</button
+        ><button id="btn-practice-menu" class="brutal-btn">
+          VOLVER AL MENÚ
+        </button>
+      </div>
+    </section>
+    <div id="queued-shift" class="queued-shift" hidden role="status"></div>
+    <section
+      id="replay-overlay"
+      class="replay-overlay"
+      hidden
+      aria-label="Repetición de la derrota"
+    >
+      <strong id="replay-caption">ÚLTIMO SEGUNDO</strong
+      ><button id="btn-close-replay" class="brutal-btn">
+        VOLVER AL RESUMEN
+      </button>
+      <p>
+        El recuadro marca el obstáculo; el punto señala el contacto calculado.
+      </p>
+    </section>
+    <div id="active-items" class="active-items" hidden role="status"></div>
+    <div id="rival-notice" class="rival-notice" hidden role="status"></div>
+    <section
+      id="modal-workshop"
+      class="hidden workshop-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Tienda de objetos y mejoras"
+    >
+      <div class="workshop-panel brutal-card">
+        <header>
+          <div>
+            <small>TALLER DEL CORREDOR</small>
+            <h2>Objetos y mejoras</h2>
+          </div>
+          <div>
+            ⚡ <b id="workshop-balance">0</b
+            ><button
+              id="btn-close-workshop"
+              class="brutal-btn"
+              aria-label="Cerrar tienda"
+            >
+              ✕
+            </button>
+          </div>
+        </header>
+        <p>
+          Mejora la duración de los objetos que recoges. Las compras se guardan
+          y se usan en partidas normales; el reto diario mantiene condiciones
+          iguales para todos.
+        </p>
+        <div id="workshop-cards" class="workshop-cards"></div>
+        <p>
+          En la pista: imán, tabla, puntos ×2 y superbotas. Salta con ESPACIO o
+          el botón central. Algunos corredores raros entregan su traje si
+          consigues alcanzarlos.
+        </p>
+      </div>
+    </section>
+    <!-- Toast Notification -->
+    <div
+      role="status"
+      aria-live="polite"
+      id="toast-msg"
+      class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded brutal-card border-l-4 border-l-cyan font-mono text-xs text-coldwhite uppercase tracking-wider transition-all duration-300 opacity-0 translate-y-4 pointer-events-none"
+    >
+      SISTEMA INICIALIZADO
+    </div>
+
+    <!-- =========================================================================
+       MASTER UI LAYER
+       ========================================================================= -->
+    <div class="ui-layer flex flex-col justify-between p-3 sm:p-5">
+      <!-- ==========================================
+         1. TOP NAVIGATION BAR (Visible on Main Menu)
+         ========================================== -->
+      <header
+        id="top-nav-bar"
+        class="w-full max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 pointer-auto"
+      >
+        <div class="flex items-center gap-2.5">
+          <div
+            class="w-9 h-9 rounded bg-cyan/15 border border-cyan flex items-center justify-center text-cyan font-mono font-extrabold text-lg shadow-[0_0_12px_rgba(0,217,255,0.3)]"
+          >
+            G4
+          </div>
+          <div>
+            <div
+              class="text-xs font-mono text-cyan tracking-widest uppercase font-bold"
+            >
+              Tronk GravityRunners
+            </div>
+            <div class="text-[11px] font-mono text-coldwhite/60">
+              4 superficies · 16 chasis
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 sm:gap-3">
+          <!-- Saved Energy Balance -->
+          <div
+            class="brutal-card px-3 py-1.5 rounded flex items-center gap-2 font-mono text-xs border-cyan/40"
+          >
+            <i class="fa-solid fa-bolt text-cyan"></i>
+            <span class="text-coldwhite/60 hidden sm:inline">ENERGÍA:</span>
+            <span id="nav-energy-count" class="font-bold text-cyan text-sm"
+              >350</span
+            >
+          </div>
+
+          <!-- Personal Record -->
+          <div
+            class="brutal-card px-3 py-1.5 rounded flex items-center gap-2 font-mono text-xs"
+          >
+            <i class="fa-solid fa-trophy text-amber-400"></i>
+            <span class="text-coldwhite/60 hidden sm:inline">RÉCORD:</span>
+            <span id="nav-best-score" class="font-bold text-coldwhite text-sm"
+              >0</span
+            >
+          </div>
+
+          <!-- Quick Mute Toggle -->
+          <button
+            id="btn-quick-mute"
+            class="brutal-btn w-9 h-9 rounded flex items-center justify-center text-cyan"
+            title="Alternar Audio"
+          >
+            <i id="icon-quick-mute" class="fa-solid fa-volume-high"></i>
+          </button>
+
+          <a class="studio-back" id="back-to-tronkstudios" href="/#minijuegos">← Minijuegos</a>
+        </div>
+      </header>
+
+      <!-- ==========================================
+         2. MAIN MENU SCREEN
+         ========================================== -->
+      <main
+        id="screen-main-menu"
+        class="my-auto w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 items-center"
+      >
+        <!-- Left Column: Hero Title & Primary Controls -->
+        <div class="lg:col-span-7 space-y-4 pointer-auto">
+          <div
+            class="inline-flex items-center gap-2 px-3 py-1 rounded bg-cyan/10 border border-cyan/40 text-cyan font-mono text-xs"
+          >
+            <span class="w-2 h-2 rounded-full bg-cyan animate-ping"></span>
+            <span>DOMINA LAS CUATRO CARAS DEL VACÍO.</span>
+          </div>
+
+          <h1
+            class="text-5xl sm:text-7xl font-extrabold tracking-tighter leading-none text-coldwhite"
+          >
+            <small class="game-wordmark-kicker">Tronk</small>
+            <span class="game-wordmark-name">GravityRunners</span>
+          </h1>
+
+          <p
+            class="text-sm sm:text-base text-coldwhite/75 max-w-xl leading-relaxed"
+          >
+            El suelo es solo el principio. Corre por las paredes, salta al techo
+            y encuentra tu ritmo en un túnel infinito.
+            <span class="text-cyan font-semibold"
+              >Sigue la energía. Evita el naranja. Supera tu mejor marca.</span
+            >
+          </p>
+
+          <!-- Primary Action Buttons -->
+          <div
+            class="hero-cta w-full sm:w-auto flex flex-col sm:flex-row gap-3 pt-2"
+          >
+            <button
+              id="btn-start-game"
+              class="brutal-btn brutal-btn-primary px-8 py-4 rounded text-xl font-bold flex items-center justify-center gap-3"
+            >
+              <i class="fa-solid fa-play"></i>
+              <span>JUGAR AHORA</span>
+            </button>
+            <button
+              id="btn-open-shop"
+              class="brutal-btn px-6 py-4 rounded text-base font-bold flex items-center justify-center gap-2"
+            >
+              <i class="fa-solid fa-user-astronaut text-cyan"></i>
+              <span
+                >HANGAR 3D (<span id="menu-skins-unlocked">1/16</span>)</span
+              >
+            </button>
+            <button
+              id="btn-open-workshop"
+              class="brutal-btn px-5 py-4 rounded text-base font-bold"
+            >
+              <i class="fa-solid fa-bag-shopping text-cyan"></i> TIENDA
+            </button>
+            <button
+              id="btn-open-settings"
+              class="brutal-btn px-5 py-4 rounded text-base font-bold flex items-center justify-center gap-2"
+            >
+              <i class="fa-solid fa-sliders text-cyan"></i>
+              <span>AJUSTES</span>
+            </button>
+          </div>
+
+          <div class="mode-cards">
+            <button id="btn-practice" class="mode-card">
+              <b>APRENDER</b><span>6 ejercicios · sin perder progreso</span>
+            </button>
+            <div class="mode-card daily-card">
+              <button id="btn-daily">
+                <b id="daily-label">RETO DIARIO</b
+                ><span id="daily-best">0 puntos · récord local</span></button
+              ><button
+                id="btn-share-daily"
+                class="share-daily"
+                aria-label="Compartir reto diario"
+              >
+                COMPARTIR ↗
+              </button>
+            </div>
+          </div>
+          <div class="mission-card">
+            <span class="mission-kicker"
+              ><span id="achievement-progress">0 / 3 HAZAÑAS</span></span
+            ><strong id="next-achievement"
+              >Sobrevive 60 segundos → PHANTOM</strong
+            ><span
+              >Completa el recorrido y gana +75 de energía para tu próximo
+              chasis.</span
+            >
+          </div>
+          <div class="demo-label">
+            <i></i>PARTIDA AUTÓNOMA<small>PARTIDA IA · VISTA INTERIOR</small>
+            <div class="demo-metrics">
+              <b id="demo-coins">0</b> MONEDAS <span> / </span
+              ><b id="demo-dodges">0</b> ESQUIVES
+            </div>
+          </div>
+          <!-- Telemetry Stats Strip -->
+          <div class="w-full grid grid-cols-3 gap-3 pt-2">
+            <div class="brutal-card p-3 rounded border-t-2 border-t-cyan">
+              <div class="text-[11px] font-mono text-coldwhite/60 uppercase">
+                MEJOR DISTANCIA
+              </div>
+              <div
+                id="stat-best-dist"
+                class="text-xl font-mono font-bold text-coldwhite"
+              >
+                0 m
+              </div>
+            </div>
+            <div class="brutal-card p-3 rounded border-t-2 border-t-cyan">
+              <div class="text-[11px] font-mono text-coldwhite/60 uppercase">
+                CHASIS EQUIPADO
+              </div>
+              <div
+                id="stat-active-skin"
+                class="text-base sm:text-lg font-bold text-cyan truncate"
+              >
+                CORE
+              </div>
+            </div>
+            <div class="brutal-card p-3 rounded border-t-2 border-t-hazard">
+              <div class="text-[11px] font-mono text-coldwhite/60 uppercase">
+                SEMILLA ACTUAL
+              </div>
+              <div
+                id="stat-current-seed"
+                class="text-sm sm:text-base font-mono font-bold text-hazard truncate"
+              >
+                AUTO
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Interactive Gravity Controls & Architectural Orientation Guide -->
+        <div
+          class="lg:col-span-5 brutal-card p-5 rounded-lg pointer-auto space-y-4 border-r-4 border-r-cyan"
+        >
+          <div
+            class="flex items-center justify-between border-b border-steel pb-2"
+          >
+            <span
+              class="font-mono text-xs uppercase tracking-widest text-cyan font-bold"
+            >
+              <i class="fa-solid fa-compass mr-1"></i> ORIENTACIÓN
+              ARQUITECTÓNICA 4D
+            </span>
+            <span
+              class="text-[11px] font-mono px-2 py-0.5 bg-cyan/10 text-cyan rounded"
+              >LECTURA VISUAL</span
+            >
+          </div>
+
+          <!-- Visual Tunnel Cross-Section Diagram -->
+          <div
+            class="relative w-44 h-44 mx-auto border-2 border-steel bg-void/90 rounded flex items-center justify-center"
+          >
+            <!-- Ceiling -->
+            <div
+              class="absolute top-1 left-4 right-4 h-7 bg-steel/60 border border-cyan/50 rounded flex items-center justify-center gap-1.5 text-xs font-mono text-cyan"
+            >
+              <span
+                class="px-1.5 py-0.5 bg-void rounded text-coldwhite font-bold"
+                >W / ↑</span
+              >
+              TECHO
+            </div>
+            <!-- Floor -->
+            <div
+              class="absolute bottom-1 left-4 right-4 h-7 bg-cyan/20 border border-cyan rounded flex items-center justify-center gap-1.5 text-xs font-mono text-coldwhite font-bold"
+            >
+              <span class="px-1.5 py-0.5 bg-void rounded text-cyan">S / ↓</span>
+              SUELO
+            </div>
+            <!-- Left Wall -->
+            <div
+              class="absolute left-1 top-9 bottom-9 w-10 bg-steel/60 border border-cyan/50 rounded flex flex-col items-center justify-center text-[10px] font-mono text-cyan leading-tight"
+            >
+              <span class="px-1 bg-void rounded text-coldwhite font-bold"
+                >A/←</span
+              >
+              <span>IZQ</span>
+            </div>
+            <!-- Right Wall -->
+            <div
+              class="absolute right-1 top-9 bottom-9 w-10 bg-steel/60 border border-cyan/50 rounded flex flex-col items-center justify-center text-[10px] font-mono text-cyan leading-tight"
+            >
+              <span class="px-1 bg-void rounded text-coldwhite font-bold"
+                >D/→</span
+              >
+              <span>DER</span>
+            </div>
+            <!-- Center Core -->
+            <div class="text-center">
+              <i
+                class="fa-solid fa-arrows-to-dot text-cyan text-xl animate-pulse"
+              ></i>
+              <div class="text-[10px] font-mono text-coldwhite/70 mt-0.5">
+                CAMBIO LIBRE
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-1.5 text-[11px] text-coldwhite/80 font-mono">
+            <div class="flex items-center justify-between">
+              <span class="text-cyan">▪ SUELO:</span>
+              <span>Rieles longitudinales dobles + pista cian</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-coldwhite/90">▪ TECHO:</span>
+              <span>Vigas invertidas oscuras + bóveda profunda</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-cyan">▪ PARED IZQ:</span>
+              <span>Pilares luminosos verticales rítmicos</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-amber-400">▪ PARED DER:</span>
+              <span>Celosía diagonal asimétrica + bandas dobles</span>
+            </div>
+            <div
+              class="flex items-center justify-between pt-1 border-t border-steel/60 text-coldwhite/60"
+            >
+              <span>▪ AJUSTE LATERAL FINO:</span>
+              <span>Teclas Q / E</span>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- ==========================================
+         3. IN-GAME HUD (Visible during PLAYING)
+         ========================================== -->
+      <section
+        id="screen-hud"
+        class="hidden fixed inset-0 pointer-events-none flex flex-col justify-between p-3 sm:p-5 z-20"
+      >
+        <!-- Top HUD Row -->
+        <div
+          class="w-full max-w-7xl mx-auto flex items-start justify-between gap-3"
+        >
+          <!-- Score & Multiplier Card -->
+          <div
+            class="hud-score-card brutal-card px-4 py-2.5 rounded border-l-4 border-l-cyan min-w-[170px] sm:min-w-[210px]"
+          >
+            <div
+              class="flex items-center justify-between text-[10px] font-mono text-coldwhite/60"
+            >
+              <span>PUNTUACIÓN</span>
+              <span
+                id="hud-multiplier"
+                class="px-1.5 py-0.2 bg-cyan/20 text-cyan font-bold rounded"
+                >x1.0</span
+              >
+            </div>
+            <div
+              id="hud-score"
+              class="text-2xl sm:text-3xl font-mono font-extrabold text-coldwhite tracking-tight"
+            >
+              0
+            </div>
+            <div class="w-full h-1 bg-steel rounded overflow-hidden mt-1">
+              <div
+                id="hud-mult-bar"
+                class="h-full bg-cyan transition-all duration-150"
+                style="width: 0%"
+              ></div>
+            </div>
+          </div>
+
+          <!-- Center Gravity Compass & Surface Indicator -->
+          <div
+            class="hud-compass brutal-card px-3.5 py-2 rounded flex items-center gap-3 border-t-2 border-t-cyan"
+          >
+            <div
+              class="relative w-9 h-9 rounded-full border border-cyan/50 flex items-center justify-center bg-void"
+            >
+              <i
+                id="hud-compass-arrow"
+                class="fa-solid fa-location-arrow text-cyan text-sm transition-transform duration-200"
+                style="transform: rotate(-45deg)"
+              ></i>
+            </div>
+            <div class="hidden sm:block font-mono">
+              <div class="text-[10px] text-coldwhite/50">
+                VECTOR GRAVITATORIO
+              </div>
+              <div id="hud-surface-name" class="text-xs font-bold text-cyan">
+                SUELO [0°]
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Telemetry (Distance, Speed, Energy, Pause) -->
+          <div class="hud-telemetry flex items-center gap-2 pointer-auto">
+            <div class="brutal-card px-3 py-2 rounded font-mono text-right">
+              <div class="text-[10px] text-coldwhite/50">DISTANCIA / VEL</div>
+              <div class="text-sm sm:text-base font-bold text-coldwhite">
+                <span id="hud-distance">0</span>m
+                <span class="text-cyan text-xs ml-1" id="hud-speed"
+                  >30 m/s</span
+                >
+              </div>
+              <div class="text-[11px] text-cyan font-bold">
+                <i class="fa-solid fa-bolt mr-1"></i
+                ><span id="hud-energy">0</span>
+              </div>
+            </div>
+
+            <button
+              id="btn-pause-game"
+              aria-label="Pausar partida"
+              class="brutal-btn w-11 h-11 rounded flex items-center justify-center text-lg text-coldwhite"
+            >
+              <i class="fa-solid fa-pause"></i>
+            </button>
+          </div>
+        </div>
+
+        <div id="practice-panel" class="practice-panel hidden" role="status">
+          <strong id="practice-title"></strong>
+          <p id="practice-hint"></p>
+        </div>
+        <!-- Bottom HUD Row: Seed Info + Optional On-Screen 4G Directional Pad -->
+        <div class="w-full max-w-7xl mx-auto flex items-end justify-between">
+          <div
+            class="brutal-card px-2.5 py-1 rounded font-mono text-[10px] text-coldwhite/60"
+          >
+            <span id="hud-mode" class="mode-label">PARTIDA NORMAL</span
+            ><span id="hud-zone" class="zone-badge">01 · MUELLE INDUSTRIAL</span
+            ><span id="hud-seed-badge">SEED: AUTO</span>
+            <div class="run-mission">
+              <div id="lateral-controls" class="lateral-controls pointer-auto">
+                <button
+                  data-nudge="-1"
+                  aria-label="Desplazamiento lateral negativo"
+                >
+                  Q · ◀</button
+                ><button
+                  data-nudge="1"
+                  aria-label="Desplazamiento lateral positivo"
+                >
+                  ▶ · E
+                </button>
+              </div>
+              <button id="btn-use-board" class="brutal-btn board-button" hidden>
+                TABLA · B
+              </button>
+              <span id="mission-label">RETO 0 / 250 m</span>
+              <div><i id="mission-bar"></i></div>
+            </div>
+          </div>
+
+          <!-- Accessible 4-Surface Touch / Click Pad -->
+          <div
+            id="touch-controls"
+            class="pointer-auto grid grid-cols-3 gap-1.5 w-36 h-36 sm:w-40 sm:h-40 opacity-85"
+          >
+            <div></div>
+            <button
+              data-surface="CEILING"
+              class="surface-pad-btn brutal-btn rounded flex flex-col items-center justify-center font-mono text-[10px] font-bold"
+            >
+              <i class="fa-solid fa-caret-up text-cyan text-base"></i>
+              <span>W</span>
+            </button>
+            <div></div>
+
+            <button
+              data-surface="LEFT"
+              class="surface-pad-btn brutal-btn rounded flex flex-col items-center justify-center font-mono text-[10px] font-bold"
+            >
+              <i class="fa-solid fa-caret-left text-cyan text-base"></i>
+              <span>A</span>
+            </button>
+            <button
+              id="btn-jump"
+              class="brutal-btn rounded text-[8px] font-mono text-cyan"
+              aria-label="Saltar"
+            >
+              ↑<br />SALTAR
+            </button>
+            <button
+              data-surface="RIGHT"
+              class="surface-pad-btn brutal-btn rounded flex flex-col items-center justify-center font-mono text-[10px] font-bold"
+            >
+              <i class="fa-solid fa-caret-right text-cyan text-base"></i>
+              <span>D</span>
+            </button>
+
+            <div></div>
+            <button
+              data-surface="FLOOR"
+              class="surface-pad-btn brutal-btn rounded flex flex-col items-center justify-center font-mono text-[10px] font-bold"
+            >
+              <span>S</span>
+              <i class="fa-solid fa-caret-down text-cyan text-base"></i>
+            </button>
+            <div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+         4. PAUSE MODAL
+         ========================================== -->
+      <div
+        id="modal-pause"
+        class="hidden fixed inset-0 bg-void/85 backdrop-blur-md z-40 flex items-center justify-center p-4 pointer-auto"
+      >
+        <div
+          class="brutal-card w-full max-w-md p-6 rounded-lg border-t-4 border-t-cyan space-y-5 text-center"
+        >
+          <div
+            class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-cyan/15 text-cyan text-xl"
+          >
+            <i class="fa-solid fa-pause"></i>
+          </div>
+          <div>
+            <h2 class="text-2xl font-extrabold text-coldwhite">
+              SIMULACIÓN EN PAUSA
+            </h2>
+            <p class="text-xs font-mono text-coldwhite/60 mt-1">
+              SISTEMA DE PROPULSIÓN EN ESPERA
+            </p>
+          </div>
+          <div class="space-y-2.5 pt-2">
+            <button
+              id="btn-resume-game"
+              class="brutal-btn brutal-btn-primary w-full py-3.5 rounded font-bold text-base"
+            >
+              <i class="fa-solid fa-play mr-2"></i>CONTINUAR PARTIDA
+            </button>
+            <button
+              id="btn-restart-pause"
+              class="brutal-btn w-full py-3 rounded font-bold text-sm"
+            >
+              <i class="fa-solid fa-rotate-right mr-2 text-cyan"></i>REENTRAR AL
+              TÚNEL
+            </button>
+            <button
+              id="btn-quit-pause"
+              class="brutal-btn brutal-btn-hazard w-full py-3 rounded font-bold text-sm"
+            >
+              <i class="fa-solid fa-house mr-2"></i>VOLVER AL MENÚ PRINCIPAL
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==========================================
+         5. CUSTOMIZATION / 3D HANGAR STUDIO MODAL
+         ========================================== -->
+      <div
+        id="modal-shop"
+        class="hidden fixed inset-0 bg-void/90 backdrop-blur-md z-40 flex items-center justify-center p-3 sm:p-5 pointer-auto"
+      >
+        <div
+          class="brutal-card w-full max-w-6xl p-4 sm:p-6 rounded-lg border-t-4 border-t-cyan flex flex-col gap-4 max-h-[94vh]"
+        >
+          <!-- Hangar Header -->
+          <div
+            class="flex flex-wrap items-center justify-between gap-3 border-b border-steel pb-3"
+          >
+            <div>
+              <div class="flex items-center gap-2">
+                <h2
+                  class="text-2xl sm:text-3xl font-extrabold text-coldwhite tracking-tight"
+                >
+                  HANGAR DE INGENIERÍA 3D
+                </h2>
+                <span
+                  class="px-2 py-0.5 text-[10px] font-mono bg-cyan/15 border border-cyan/50 text-cyan rounded"
+                  >16 TRAJES · 5 FAMILIAS</span
+                >
+              </div>
+              <p class="text-xs font-mono text-coldwhite/70">
+                ELIGE TU ESTILO. ARRASTRA EL PERSONAJE PARA INSPECCIONAR EL
+                TRAJE.
+              </p>
+            </div>
+            <div class="flex items-center gap-3">
+              <div
+                class="px-3.5 py-1.5 rounded bg-void border border-cyan/50 font-mono text-sm flex items-center gap-2"
+              >
+                <i class="fa-solid fa-bolt text-cyan"></i>
+                <span class="text-xs text-coldwhite/60">ENERGÍA:</span>
+                <span
+                  id="shop-energy-balance"
+                  class="font-bold text-cyan text-base"
+                  >0</span
+                >
+              </div>
+              <button
+                id="btn-close-shop"
+                class="brutal-btn w-10 h-10 rounded flex items-center justify-center text-coldwhite text-lg"
+              >
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Hangar Body: Left 3D Live Preview Studio + Right Catalog Grid -->
+          <div
+            class="grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-hidden flex-1 min-h-0"
+          >
+            <!-- Left 3D Turntable Studio (Single active 3D instance for optimal performance) -->
+            <div
+              class="lg:col-span-5 brutal-card rounded-lg p-4 flex flex-col justify-between border border-cyan/30 bg-void/95 relative"
+            >
+              <div class="flex items-start justify-between gap-2 z-10">
+                <div>
+                  <div
+                    id="preview-skin-rarity"
+                    class="inline-block px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase mb-1 bg-cyan/20 text-cyan border border-cyan/40"
+                  >
+                    COMÚN
+                  </div>
+                  <h3
+                    id="preview-skin-name"
+                    class="text-2xl sm:text-3xl font-extrabold text-coldwhite leading-none"
+                  >
+                    CORE
+                  </h3>
+                  <div
+                    id="preview-skin-subtitle"
+                    class="text-xs font-mono text-cyan mt-0.5"
+                  >
+                    Chasis Tecnológico Estándar
+                  </div>
+                </div>
+                <div class="text-right font-mono text-[10px] text-coldwhite/60">
+                  <div id="preview-skin-poly">GEOMETRÍA: ACTIVA</div>
+                  <div
+                    id="preview-skin-status"
+                    class="text-cyan font-bold mt-0.5"
+                  >
+                    DESBLOQUEADO
+                  </div>
+                </div>
+              </div>
+
+              <!-- Interactive 3D WebGL Preview Canvas Container -->
+              <div
+                id="hangar-preview-viewport"
+                class="relative w-full h-56 sm:h-64 my-2 rounded border border-steel/80 bg-gradient-to-b from-void via-steel/20 to-void overflow-hidden cursor-grab active:cursor-grabbing"
+              >
+                <canvas
+                  id="hangar-preview-canvas"
+                  class="w-full h-full block"
+                ></canvas>
+                <div
+                  class="absolute bottom-2 left-2.5 right-2.5 flex items-center justify-between text-[10px] font-mono text-coldwhite/50 pointer-events-none"
+                >
+                  <span
+                    ><i class="fa-solid fa-arrows-rotate text-cyan mr-1"></i
+                    >ARRASTRA PARA ROTAR 360°</span
+                  >
+                  <button
+                    id="btn-preview-pose"
+                    class="pointer-auto px-2 py-0.5 rounded bg-void/80 border border-cyan/40 text-cyan hover:bg-cyan hover:text-void transition-colors"
+                  >
+                    POSE: CARRERA
+                  </button>
+                </div>
+              </div>
+
+              <!-- Selected Skin Description & Action Button -->
+              <div class="space-y-3 z-10">
+                <p
+                  id="preview-skin-desc"
+                  class="text-xs text-coldwhite/80 font-medium leading-relaxed min-h-[36px]"
+                >
+                  Unidad corredora de serie con visor aerodinámico, propulsores
+                  dorsales dobles y núcleo de energía cian estabilizado.
+                </p>
+
+                <!-- Dynamic Ad SDK Warning / Status Box (Only visible for Rewarded Ad Skin) -->
+                <div
+                  id="preview-ad-sdk-box"
+                  class="hidden p-2.5 rounded bg-amber-500/10 border border-amber-400/50 text-[11px] font-mono text-amber-300 space-y-1"
+                >
+                  <div class="flex items-center justify-between font-bold">
+                    <span
+                      ><i class="fa-solid fa-satellite-dish mr-1"></i>
+                      INTEGRACIÓN REWARDED AD SDK</span
+                    >
+                    <span
+                      id="ad-sdk-status-pill"
+                      class="px-1.5 py-0.2 bg-void rounded text-[9px]"
+                      >VERIFICANDO...</span
+                    >
+                  </div>
+                  <div
+                    id="ad-sdk-status-msg"
+                    class="text-[10px] text-coldwhite/80 leading-normal"
+                  >
+                    Requiere completar un anuncio de vídeo recompensado
+                    verificado mediante Google AdMob / AdPlacement API.
+                  </div>
+                </div>
+
+                <div class="flex gap-2">
+                  <button
+                    id="btn-preview-action"
+                    class="brutal-btn brutal-btn-primary w-full py-3 rounded font-bold text-sm font-mono flex items-center justify-center gap-2"
+                  >
+                    EQUIPADO
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Column: Filter Tabs & 16-Skin Collection Grid -->
+            <div class="lg:col-span-7 flex flex-col min-h-0">
+              <!-- Rarity Filter Bar -->
+              <div class="flex flex-wrap items-center gap-1.5 pb-3">
+                <button
+                  data-filter="ALL"
+                  class="shop-filter-btn brutal-btn px-3 py-1 rounded text-xs font-mono bg-cyan/20 border-cyan text-cyan font-bold"
+                >
+                  TODOS (16)
+                </button>
+                <button
+                  data-filter="UNLOCKED"
+                  class="shop-filter-btn brutal-btn px-3 py-1 rounded text-xs font-mono"
+                >
+                  DESBLOQUEADOS
+                </button>
+                <button
+                  data-filter="RARE"
+                  class="shop-filter-btn brutal-btn px-3 py-1 rounded text-xs font-mono"
+                >
+                  COMÚN / RARO
+                </button>
+                <button
+                  data-filter="EPIC"
+                  class="shop-filter-btn brutal-btn px-3 py-1 rounded text-xs font-mono"
+                >
+                  ÉPICO / LEGENDARIO
+                </button>
+                <button
+                  data-filter="SPECIAL"
+                  class="shop-filter-btn brutal-btn px-3 py-1 rounded text-xs font-mono text-amber-400 border-amber-400/50"
+                >
+                  MÍTICO & AD EXCLUSIVO
+                </button>
+              </div>
+
+              <!-- Scrollable Skins Grid -->
+              <div
+                id="skins-container"
+                class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 overflow-y-auto pr-1 pb-2 flex-1"
+              >
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==========================================
+         6. GAME OVER MODAL
+         ========================================== -->
+      <div
+        id="modal-gameover"
+        class="hidden fixed inset-0 bg-void/90 backdrop-blur-md z-40 flex items-center justify-center p-4 pointer-auto"
+      >
+        <div
+          class="brutal-card w-full max-w-lg p-6 rounded-lg border-t-4 border-t-hazard space-y-5"
+        >
+          <div class="flex items-center justify-between">
+            <div>
+              <span
+                class="px-2 py-0.5 text-[10px] font-mono bg-hazard/20 text-hazard border border-hazard/40 rounded uppercase"
+              >
+                IMPACTO ESTRUCTURAL DETECTADO
+              </span>
+              <h2 class="text-3xl font-extrabold text-coldwhite mt-1">
+                SECUENCIA TERMINADA
+              </h2>
+            </div>
+            <div
+              id="go-new-record-badge"
+              class="hidden px-3 py-1 rounded bg-cyan/20 border border-cyan text-cyan font-mono text-xs font-bold animate-bounce"
+            >
+              ¡NUEVO RÉCORD!
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 font-mono">
+            <div class="p-3 rounded bg-void border border-steel">
+              <div class="text-[10px] text-coldwhite/60">PUNTUACIÓN FINAL</div>
+              <div id="go-score" class="text-2xl font-extrabold text-coldwhite">
+                0
+              </div>
+            </div>
+            <div class="p-3 rounded bg-void border border-steel">
+              <div class="text-[10px] text-coldwhite/60">
+                DISTANCIA ALCANZADA
+              </div>
+              <div id="go-distance" class="text-2xl font-extrabold text-cyan">
+                0 m
+              </div>
+            </div>
+            <div class="p-3 rounded bg-void border border-steel">
+              <div class="text-[10px] text-coldwhite/60">
+                <span id="go-energy-label">ENERGÍA RECOGIDA</span>
+              </div>
+              <div id="go-energy" class="text-lg font-bold text-cyan">+0</div>
+            </div>
+            <div class="p-3 rounded bg-void border border-steel">
+              <div class="text-[10px] text-coldwhite/60">
+                <span id="go-best-label">MEJOR RÉCORD</span>
+              </div>
+              <div id="go-best" class="text-lg font-bold text-amber-400">0</div>
+            </div>
+          </div>
+
+          <button id="btn-share-result" hidden class="brutal-btn">
+            COMPARTIR ESTE RETO ↗
+          </button>
+          <p id="go-reason" class="death-reason"></p>
+          <button
+            id="btn-watch-replay"
+            class="brutal-btn w-full p-3 rounded"
+            hidden
+          >
+            VER ÚLTIMO SEGUNDO
+          </button>
+          <p id="go-perfects" class="run-detail"></p>
+          <button
+            id="btn-reward-continue"
+            hidden
+            class="brutal-btn reward-continue"
+          >
+            VER ANUNCIO · CONTINUAR UNA VEZ
+          </button>
+          <!-- Optional Emergency Shield Revive (Costs in-game Energy) -->
+          <button
+            id="btn-revive-shield"
+            class="brutal-btn w-full py-3 rounded font-mono text-xs font-bold border-cyan/60 text-cyan flex items-center justify-center gap-2"
+          >
+            <i class="fa-solid fa-shield-halved"></i>
+            <span
+              >SOBRECARGAR ESCUDO DE EMERGENCIA Y CONTINUAR (50 ENERGÍA)</span
+            >
+          </button>
+
+          <div class="flex flex-col sm:flex-row gap-3 pt-1">
+            <button
+              id="btn-retry-game"
+              class="brutal-btn brutal-btn-primary flex-1 py-3.5 rounded font-bold text-base flex items-center justify-center gap-2"
+            >
+              <i class="fa-solid fa-rotate-right"></i>
+              <span>REINTENTAR AHORA ↗</span>
+            </button>
+            <button
+              id="btn-gameover-menu"
+              class="brutal-btn px-6 py-3.5 rounded font-bold text-sm flex items-center justify-center gap-2"
+            >
+              <i class="fa-solid fa-house"></i>
+              <span>MENÚ</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==========================================
+         7. SETTINGS MODAL
+         ========================================== -->
+      <div
+        id="modal-settings"
+        class="hidden fixed inset-0 bg-void/90 backdrop-blur-md z-40 flex items-center justify-center p-4 pointer-auto"
+      >
+        <div
+          class="brutal-card w-full max-w-lg p-6 rounded-lg border-t-4 border-t-cyan space-y-4"
+        >
+          <div
+            class="flex items-center justify-between border-b border-steel pb-3"
+          >
+            <div>
+              <h2 class="text-2xl font-extrabold text-coldwhite">
+                PARÁMETROS DEL SISTEMA
+              </h2>
+              <p class="text-xs font-mono text-coldwhite/60">
+                CONFIGURACIÓN DE GRAVEDAD, CÁMARA Y SEMILLA
+              </p>
+            </div>
+            <button
+              id="btn-close-settings"
+              class="brutal-btn w-9 h-9 rounded flex items-center justify-center"
+            >
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <div class="space-y-4 font-mono text-xs">
+            <!-- Gravity Transition Duration -->
+            <div>
+              <div class="flex justify-between mb-1">
+                <span class="text-coldwhite/80"
+                  >DURACIÓN DE TRANSICIÓN GRAVITATORIA</span
+                >
+                <span id="lbl-transition-speed" class="text-cyan font-bold"
+                  >0.20 s</span
+                >
+              </div>
+              <input
+                id="inp-transition-speed"
+                type="range"
+                min="0.12"
+                max="0.35"
+                step="0.01"
+                value="0.20"
+                class="w-full accent-cyan cursor-pointer"
+              />
+            </div>
+
+            <!-- Camera Orientation Mode -->
+            <div class="flex items-center justify-between">
+              <span>ORIENTACIÓN DE CÁMARA AL ROTAR</span>
+              <select
+                id="sel-camera-mode"
+                class="bg-void border border-steel rounded px-2.5 py-1.5 text-cyan"
+              >
+                <option value="FULL">ROTACIÓN COMPLETA (100%)</option>
+                <option value="HYBRID">SEMI-ESTABILIZADA (65%)</option>
+              </select>
+            </div>
+
+            <!-- Graphics Quality -->
+            <div class="flex items-center justify-between">
+              <span>CALIDAD DE RENDERIZADO WEBGL</span>
+              <select
+                id="sel-graphics"
+                class="bg-void border border-steel rounded px-2.5 py-1.5 text-cyan"
+              >
+                <option value="AUTO">AUTOMÁTICA · RECOMENDADA</option>
+                <option value="HIGH">ALTA (DPI NATIVO + NIEBLA)</option>
+                <option value="PERFORMANCE">RENDIMIENTO (60 FPS MÓVIL)</option>
+              </select>
+            </div>
+
+            <!-- Procedural Seed Input -->
+            <div>
+              <div class="flex justify-between mb-1">
+                <span>SEMILLA PROCEDURAL (VACÍO = ALEATORIA)</span>
+                <span class="text-coldwhite/50">REPRODUCIBLE</span>
+              </div>
+              <input
+                id="inp-custom-seed"
+                type="text"
+                placeholder="Ej: BRUTAL-2099"
+                maxlength="18"
+                class="w-full bg-void border border-steel rounded px-3 py-2 text-cyan uppercase"
+              />
+            </div>
+
+            <!-- Toggles -->
+            <div class="grid grid-cols-3 gap-2 pt-1">
+              <label
+                class="flex items-center gap-2 p-2 rounded bg-void border border-steel cursor-pointer"
+              >
+                <input
+                  id="chk-music"
+                  type="checkbox"
+                  checked
+                  class="accent-cyan"
+                />
+                <span>MÚSICA</span>
+              </label>
+              <label
+                class="flex items-center gap-2 p-2 rounded bg-void border border-steel cursor-pointer"
+              >
+                <input
+                  id="chk-sfx"
+                  type="checkbox"
+                  checked
+                  class="accent-cyan"
+                />
+                <span>EFECTOS</span>
+              </label>
+              <label
+                class="flex items-center gap-2 p-2 rounded bg-void border border-steel cursor-pointer"
+              >
+                <input
+                  id="chk-touchpad"
+                  type="checkbox"
+                  checked
+                  class="accent-cyan"
+                />
+                <span>PAD 4G</span>
+              </label>
+            </div>
+          </div>
+
+          <section class="save-tools">
+            <h3>TU PROGRESO</h3>
+            <p id="save-status"></p>
+            <p id="quality-status"></p>
+            <div>
+              <button id="btn-export-save" class="brutal-btn">
+                EXPORTAR COPIA</button
+              ><button id="btn-import-save" class="brutal-btn">
+                IMPORTAR COPIA</button
+              ><button id="btn-retry-save" class="brutal-btn">
+                REINTENTAR GUARDADO
+              </button>
+            </div>
+            <input
+              id="inp-import-save"
+              type="file"
+              accept="application/json,.json"
+              hidden
+            />
+          </section>
+          <section class="playtest-tools">
+            <label
+              ><input id="chk-haptics" type="checkbox" /> Vibración breve (si el
+              dispositivo la admite)</label
+            ><label
+              ><input id="chk-local-metrics" type="checkbox" /> Conservar
+              historial de pruebas en este dispositivo</label
+            ><button id="btn-export-report" class="brutal-btn">
+              EXPORTAR INFORME DE PRUEBA
+            </button>
+            <p>
+              Sin envío automático. El informe incluye tiempos de fotograma y
+              resultados de partidas.
+            </p>
+          </section>
+          <section class="native-ad-tools">
+            <p id="native-ad-status">La web no muestra anuncios comerciales.</p>
+            <button id="btn-test-ads" hidden class="brutal-btn">
+              ACTIVAR ANUNCIOS DE PRUEBA</button
+            ><button id="btn-ad-privacy" hidden class="brutal-btn">
+              PRIVACIDAD DE ANUNCIOS
+            </button>
+          </section>
+          <section class="install-tools">
+            <button id="btn-install" class="brutal-btn">INSTALAR JUEGO</button
+            ><button id="btn-update" hidden class="brutal-btn">
+              ACTUALIZACIÓN LISTA · RECARGAR
+            </button>
+            <p id="offline-status">Preparando modo sin conexión…</p>
+            <a href="./privacy.html" target="_blank" rel="noopener"
+              >Privacidad y créditos</a
+            >
+          </section>
+          <details hidden class="developer-tools" data-project-tools>
+            <summary>Herramientas del proyecto</summary>
+            <button
+              id="btn-open-arch"
+              class="brutal-btn brutal-btn-primary px-3 py-1.5 rounded font-mono text-xs flex items-center gap-1.5 text-coldwhite"
+            >
+              <i class="fa-brands fa-github text-base"></i>
+              <span>DESCARGAR CÓDIGO</span></button
+            ><a
+              href="./gravity-shift-source.zip"
+              download
+              class="brutal-btn px-3 py-1.5 font-mono text-xs"
+              >PROYECTO ZIP</a
+            >
+          </details>
+          <div
+            class="flex items-center justify-between pt-3 border-t border-steel"
+          >
+            <button
+              id="btn-reset-save"
+              class="brutal-btn brutal-btn-hazard px-3 py-2 rounded font-mono text-xs"
+            >
+              BORRAR PROGRESO
+            </button>
+            <button
+              id="btn-save-settings"
+              class="brutal-btn brutal-btn-primary px-6 py-2.5 rounded font-mono text-xs font-bold"
+            >
+              GUARDAR CAMBIOS
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==========================================
+         8. GITHUB EXPORT (HTML / CSS / JS) & ARCHITECTURE MODAL
+         ========================================== -->
+      <div
+        id="modal-arch"
+        class="hidden fixed inset-0 bg-void/95 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-5 pointer-auto"
+      >
+        <div
+          class="brutal-card w-full max-w-5xl p-4 sm:p-6 rounded-lg border-t-4 border-t-cyan space-y-4 max-h-[94vh] flex flex-col"
+        >
+          <div
+            class="flex flex-wrap items-center justify-between gap-3 border-b border-steel pb-3"
+          >
+            <div>
+              <h2
+                class="text-xl sm:text-2xl font-extrabold text-coldwhite flex items-center gap-2"
+              >
+                <i class="fa-brands fa-github text-cyan"></i>
+                <span
+                  >EXPORTADOR DE CÓDIGO PARA GITHUB PAGES (HTML + CSS +
+                  JS)</span
+                >
+              </h2>
+              <p class="text-xs font-mono text-cyan">
+                DESCARGA O COPIA LOS ARCHIVOS SEPARADOS LISTOS PARA SUBIR A TU
+                REPOSITORIO
+              </p>
+            </div>
+            <button
+              id="btn-close-arch"
+              class="brutal-btn w-9 h-9 rounded flex items-center justify-center"
+            >
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <!-- One-Click Download Bar -->
+          <div
+            class="grid grid-cols-1 sm:grid-cols-4 gap-2.5 font-mono text-xs"
+          >
+            <button
+              id="btn-dl-html"
+              class="brutal-btn brutal-btn-primary py-2.5 px-3 rounded font-bold flex items-center justify-center gap-2"
+            >
+              <i class="fa-solid fa-download"></i>
+              <span>1. DESCARGAR index.html</span>
+            </button>
+            <button
+              id="btn-dl-css"
+              class="brutal-btn brutal-btn-primary py-2.5 px-3 rounded font-bold flex items-center justify-center gap-2"
+            >
+              <i class="fa-solid fa-download"></i>
+              <span>2. DESCARGAR styles.css</span>
+            </button>
+            <button
+              id="btn-dl-js"
+              class="brutal-btn brutal-btn-primary py-2.5 px-3 rounded font-bold flex items-center justify-center gap-2"
+            >
+              <i class="fa-solid fa-download"></i>
+              <span>3. DESCARGAR game.js</span>
+            </button>
+            <button
+              id="btn-dl-bundle"
+              class="brutal-btn py-2.5 px-3 rounded font-bold flex items-center justify-center gap-2 border-cyan/50 text-cyan"
+            >
+              <i class="fa-solid fa-file-code"></i>
+              <span>TODO EN 1 (index.html)</span>
+            </button>
+          </div>
+
+          <!-- File Tabs & Copy Button -->
+          <div
+            class="flex flex-wrap items-center justify-between gap-2 border-b border-steel pb-2 font-mono text-xs"
+          >
+            <div class="flex items-center gap-2">
+              <button
+                data-export-tab="html"
+                class="export-tab-btn brutal-btn px-3.5 py-1.5 rounded bg-cyan/20 border-cyan text-cyan font-bold"
+              >
+                <i class="fa-brands fa-html5 mr-1"></i>index.html
+              </button>
+              <button
+                data-export-tab="css"
+                class="export-tab-btn brutal-btn px-3.5 py-1.5 rounded"
+              >
+                <i class="fa-brands fa-css3-alt mr-1"></i>styles.css
+              </button>
+              <button
+                data-export-tab="js"
+                class="export-tab-btn brutal-btn px-3.5 py-1.5 rounded"
+              >
+                <i class="fa-brands fa-js mr-1"></i>game.js
+              </button>
+            </div>
+            <button
+              id="btn-copy-export"
+              class="brutal-btn brutal-btn-primary px-4 py-1.5 rounded font-bold flex items-center gap-2"
+            >
+              <i class="fa-solid fa-copy"></i>
+              <span id="lbl-copy-export"
+                >COPIAR index.html AL PORTAPAPELES</span
+              >
+            </button>
+          </div>
+
+          <!-- Code Viewer Area -->
+          <div class="flex-1 min-h-0 flex flex-col">
+            <textarea
+              id="export-code-textarea"
+              readonly
+              class="w-full flex-1 min-h-[280px] p-3.5 rounded bg-void border border-steel font-mono text-[11px] text-cyan/95 focus:outline-none focus:border-cyan resize-none leading-relaxed"
+            ></textarea>
+          </div>
+
+          <div
+            class="text-[11px] font-mono text-coldwhite/70 flex flex-wrap items-center justify-between gap-2 pt-1"
+          >
+            <span
+              ><i class="fa-solid fa-circle-info text-cyan mr-1"></i>Sube
+              <strong>index.html</strong>, <strong>styles.css</strong> y
+              <strong>game.js</strong> a la misma carpeta raíz de tu repositorio
+              y activa <strong>GitHub Pages</strong>.</span
+            >
+            <span class="text-cyan">100% COMPATIBLE SIN SERVIDOR BACKEND</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================================
+       MODULAR GAME ENGINE IMPLEMENTATION
+       ========================================================================= -->
+    <script defer id="engine-script" src="./game.fb8cecc89c63.js"></script>
+  </body>
+</html>

@@ -135,6 +135,9 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
 
+  // GravityRunners instala su propia caché y controla las actualizaciones.
+  if (url.pathname.startsWith("/juegos/tronk-gravity-runners/")) return;
+
   if (request.mode === "navigate" && url.origin === self.location.origin) {
     event.respondWith(networkFirst(request));
     return;
