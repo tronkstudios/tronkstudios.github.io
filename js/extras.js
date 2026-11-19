@@ -316,21 +316,31 @@ function updateFullscreenButtons() {
    ========================================================= */
 
 function initializeMinigameDemos() {
-  document.querySelectorAll(".minigame-demo").forEach((demo) => {
-    const video = demo.querySelector("video");
+  const demos = Array.from(document.querySelectorAll(".minigame-demo"), demo => ({
+    demo,
+    video: demo.querySelector("video")
+  })).filter(({ video }) => video);
 
+  for (const { demo, video } of demos) {
     demo.addEventListener("toggle", () => {
-      if (!video) {
+      if (!demo.open || document.hidden) {
+        video.pause();
         return;
       }
-
-      if (demo.open) {
-        video.play().catch(() => {});
-      } else {
-        video.pause();
+      for (const other of demos) {
+        if (other.demo === demo) continue;
+        other.video.pause();
+        other.demo.open = false;
       }
+      video.play().catch(() => {});
     });
+  }
+
+  const pauseAll = () => demos.forEach(({ video }) => video.pause());
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) pauseAll();
   });
+  window.addEventListener("pagehide", pauseAll);
 }
 
 function initializeGameFullscreen() {

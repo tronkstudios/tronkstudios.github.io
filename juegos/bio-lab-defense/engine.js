@@ -1,3 +1,5 @@
+import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=1";
+
 export const TOWER_TYPES = [
   {
     id: "nanolaser",
@@ -278,18 +280,6 @@ export const MAPS = [
   },
 ];
 
-export const SECTORS = [
-  "Ingreso",
-  "Muestreo",
-  "Depósito",
-  "Conductos",
-  "Filtrado",
-  "Refrigeración",
-  "Cámara fría",
-  "Sellado",
-  "Cámara central",
-  "Protocolo final",
-];
 export const WIDTH = 900;
 export const HEIGHT = 540;
 
@@ -497,11 +487,17 @@ export class Match {
   constructor(level, daily = null) {
     this.level = level;
     this.daily = daily;
-    this.mapIndex = daily?.map ?? Math.min(2, Math.floor((level - 1) / 4));
-    this.map = MAPS[this.mapIndex];
+    this.mission = daily ? null : MISSIONS[level - 1];
+    this.mapIndex = daily?.map ?? CHAPTERS[this.mission.chapter].map;
+    const base = MAPS[this.mapIndex];
+    const layout = (points) =>
+      this.mission
+        ? missionRoutes(points, this.mission, WIDTH, HEIGHT)
+        : points;
+    this.map = this.mission ? { ...base, points: layout(base.points) } : base;
     this.routes = [route(this.map.points)];
     if ((daily || level >= 5) && this.mapIndex > 0)
-      this.routes.push(route(AUXILIARY_LANES[this.mapIndex - 1]));
+      this.routes.push(route(layout(AUXILIARY_LANES[this.mapIndex - 1])));
     this.hp = 100;
     this.atp = daily?.atp ?? 180 + level * 12 + Math.max(0, level - 5) * 20;
     this.techLevel = daily ? 10 : level;
@@ -520,6 +516,8 @@ export class Match {
     this.kills = 0;
     this.time = 0;
     this.charge = 43;
+    this.pulses = 0;
+    this.specialized = 0;
     this.grossATP = 0;
     this.preview = this.planWave(1);
     this.lastBuild = null;
@@ -599,6 +597,7 @@ export class Match {
     );
     if (!targets.length) return false;
     this.charge = 0;
+    this.pulses++;
     this.effect(x, y, "#8cf7ff", 108);
     for (const enemy of targets) {
       enemy.shield = 0;
@@ -648,6 +647,9 @@ export class Match {
       cooldown: type.type === "eco" ? 105 : 0,
       rank: 1,
       targeting: "first",
+      inflicted: 0,
+      defeated: 0,
+      produced: 0,
     };
     this.towers.push(tower);
     if (this.state === "build") this.lastBuild = tower;
@@ -686,6 +688,7 @@ export class Match {
     tower.fireRate *= 0.92;
     if (branch) {
       tower.branch = branch;
+      this.specialized++;
       tower.damage = Math.round(tower.damage * (branch.damage || 1));
       tower.fireRate *= branch.rate || 1;
       tower.range += branch.range || 0;
@@ -740,7 +743,13 @@ export class Match {
     const [[x, y]] = path.points;
     this.enemies.push({
       ...spec,
-      name: boss ? BOSS_NAMES[this.mapIndex] : spec.name,
+      name: boss
+        ? this.mission && ![4, 8, 10].includes(this.level)
+          ? ["Custodio de sector", "Centinela auxiliar", "Eco del Espejo"][
+              this.mapIndex
+            ]
+          : BOSS_NAMES[this.mapIndex]
+        : spec.name,
       x,
       y,
       path,
@@ -762,22 +771,33 @@ export class Match {
     });
   }
 
-  damage(enemy, amount, color, { piercing = false, shred = false } = {}) {
+  damage(
+    enemy,
+    amount,
+    color,
+    { piercing = false, shred = false } = {},
+    tower = null,
+  ) {
     if (enemy.hp <= 0) return;
     if (enemy.shield > 0) {
-      const absorbed = Math.min(enemy.shield, amount * (piercing ? 0.45 : 1));
+      const shield = enemy.shield;
+      const absorbed = Math.min(shield, amount * (piercing ? 0.45 : 1));
       enemy.shield = Math.max(0, enemy.shield - absorbed * (shred ? 2 : 1));
+      if (tower) tower.inflicted += shield - enemy.shield;
       amount -= absorbed;
     }
     if (amount <= 0) return;
-    enemy.hp -= piercing
+    const damage = piercing
       ? amount
       : Math.max(amount * 0.35, amount - enemy.armor);
+    if (tower) tower.inflicted += Math.min(enemy.hp, damage);
+    enemy.hp -= damage;
     if (enemy.hp > 0) {
       if (enemy.boss) this.advanceBoss(enemy);
       return;
     }
     this.kills++;
+    if (tower) tower.defeated++;
     this.combo = Math.min(10, this.combo + 1);
     this.comboTime = 210;
     this.charge = Math.min(100, this.charge + (enemy.boss ? 28 : 6));
@@ -803,7 +823,7 @@ export class Match {
   }
 
   hit(enemy, shot) {
-    const { damage, color, type, branch, radius } = shot;
+    const { damage, color, type, branch, radius, tower } = shot;
     const spreadDebuff = branch.splashSlow || branch.splashBurn;
     const applyDebuff = (target) => {
       if (type === "slow") {
@@ -815,11 +835,15 @@ export class Match {
       }
       if (type === "dot") {
         target.burn = Math.max(target.burn, branch.burn || 130);
-        target.burnDamage = Math.max(target.burnDamage || 0, damage * 0.115);
+        const burnDamage = damage * 0.115;
+        if (burnDamage >= (target.burnDamage || 0)) {
+          target.burnDamage = burnDamage;
+          target.burnTower = tower;
+        }
         target.burnPierces ||= !!branch.piercing;
       }
     };
-    this.damage(enemy, damage, color, branch);
+    this.damage(enemy, damage, color, branch, tower);
     applyDebuff(enemy);
     if (type === "splash" || spreadDebuff) {
       this.effect(enemy.x, enemy.y, color, radius);
@@ -835,6 +859,7 @@ export class Match {
             Math.round(damage * (branch.splash || 0.62)),
             color,
             branch,
+            tower,
           );
         if (spreadDebuff) applyDebuff(other);
       }
@@ -852,7 +877,7 @@ export class Match {
       );
       if (!next) break;
       this.effect(previous.x, previous.y, color, 0, { x: next.x, y: next.y });
-      this.damage(next, Math.round(damage * 0.72 ** i), color, branch);
+      this.damage(next, Math.round(damage * 0.72 ** i), color, branch, tower);
       hit.add(next);
       previous = next;
     }
@@ -873,12 +898,19 @@ export class Match {
       if (enemy.burn > 0) {
         enemy.burn--;
         if (enemy.burn % 12 === 0)
-          this.damage(enemy, enemy.burnDamage, "#a3e635", {
-            piercing: enemy.burnPierces,
-          });
+          this.damage(
+            enemy,
+            enemy.burnDamage,
+            "#a3e635",
+            {
+              piercing: enemy.burnPierces,
+            },
+            enemy.burnTower,
+          );
         if (!enemy.burn) {
           enemy.burnDamage = 0;
           enemy.burnPierces = false;
+          enemy.burnTower = null;
         }
         if (enemy.hp <= 0) continue;
       }
@@ -919,7 +951,9 @@ export class Match {
       if (tower.type === "eco") {
         // Reactor output stops in the build phase and when no threats remain.
         if (this.enemies.length || this.queue.length) {
-          this.addATP(tower.branch?.output ?? 9 + 4 * tower.rank);
+          const output = tower.branch?.output ?? 9 + 4 * tower.rank;
+          tower.produced += output;
+          this.addATP(output);
           this.charge = Math.min(
             100,
             this.charge + (tower.branch?.charge || 0),
@@ -952,6 +986,7 @@ export class Match {
         x: tower.x,
         y: tower.y,
         target,
+        tower,
         damage: tower.damage,
         type: tower.type,
         color: tower.color,

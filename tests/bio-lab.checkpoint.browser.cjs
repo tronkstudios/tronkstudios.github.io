@@ -1,0 +1,85 @@
+const { chromium } = require("playwright");
+const assert = require("node:assert/strict");
+const base = process.env.BASE_URL || "http://127.0.0.1:8791";
+
+(async () => {
+  const browser = await chromium.launch({
+    executablePath: "/usr/bin/chromium",
+    args: ["--no-sandbox"],
+  });
+  try {
+    const page = await browser.newPage({
+      viewport: { width: 360, height: 800 },
+      isMobile: true,
+      hasTouch: true,
+    });
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.route(
+      (url) => !url.href.startsWith(base),
+      (route) => route.abort(),
+    );
+    await page.goto(base + "/juegos/bio-lab-defense/");
+    await page.locator("#campaign-button").tap();
+    await page.locator(".level").first().tap();
+    await page.locator("#launch-mission").tap();
+
+    async function firstTower() {
+      const canvas = page.locator("#board");
+      const box = await canvas.boundingBox();
+      await canvas.tap({
+        position: { x: (box.width * 170) / 900, y: (box.height * 170) / 540 },
+      });
+    }
+    await firstTower();
+    await firstTower();
+    await page.getByRole("button", { name: /^Mejorar/ }).tap();
+    await page.getByRole("button", { name: /^Perforante/ }).tap();
+    await page.getByRole("button", { name: /^Objetivo/ }).tap();
+    await page.locator("#buy-atp").tap();
+    await page.locator("#speed").tap();
+    const saved = () =>
+      page.evaluate(() =>
+        JSON.parse(localStorage.getItem("biolab_checkpoint:guest")),
+      );
+    const before = await saved();
+    assert.equal(before.towers[0].rank, 3);
+    assert.equal(before.towers[0].targeting, "last");
+    assert.equal(before.speed, 2);
+    assert.equal(before.atpBought, true);
+    await page.locator("#next").tap();
+    await page.reload();
+    await page.locator("#home-resume-run").tap();
+    assert.equal(await page.locator("#wave").textContent(), "0/4");
+    assert.equal(await page.locator("#atp").textContent(), String(before.atp));
+    assert.equal(await page.locator("#buy-atp").isDisabled(), true);
+    assert.equal(await page.locator("#speed").textContent(), "Velocidad ×2");
+    assert.deepEqual(await saved(), before);
+    await firstTower();
+    await page.getByText("Nano-Láser · Nivel 3 · Perforante").waitFor();
+    await page.getByText(/Daño infligido · 0 · Bajas 0/).waitFor();
+    await page.locator("#pause").tap();
+    await page.getByRole("button", { name: "Volver con guardado" }).tap();
+    await page.locator(".level").first().tap();
+    await page.locator("#launch-mission").tap();
+    await page
+      .getByRole("heading", { name: "Hay una partida guardada" })
+      .waitFor();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Retomar partida" })
+      .tap();
+    await page.locator("#pause").tap();
+    await page.getByRole("button", { name: "Abandonar partida" }).tap();
+    assert.equal(await saved(), null);
+    assert.deepEqual(errors, []);
+    console.log(
+      "Bio-Lab reload, single-use supplies, tower specialization and safe discard passed.",
+    );
+  } finally {
+    await browser.close();
+  }
+})().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

@@ -21,6 +21,7 @@ export function normalize(data = {}) {
       ? data.lastDaily
       : "",
     dailyRecords: dailyRecords(data?.dailyRecords),
+    medals: Array.from({ length: 10 }, (_, i) => data?.medals?.[i] === true),
     stars: Array.from({ length: 10 }, (_, i) => bounded(data?.stars?.[i], 3)),
   };
 }
@@ -121,6 +122,9 @@ export class Profile {
       );
       next.stars = next.stars.map((stars, i) =>
         Math.max(stars, this.data.stars[i]),
+      );
+      next.medals = next.medals.map(
+        (earned, i) => earned || this.data.medals[i],
       );
       next.lastDaily = [next.lastDaily, this.data.lastDaily].sort().at(-1);
       const shared = { ...next.dailyRecords };
