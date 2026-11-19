@@ -293,6 +293,192 @@ export const SECTORS = [
 export const WIDTH = 900;
 export const HEIGHT = 540;
 
+const UPGRADES = {
+  single: [
+    {
+      name: "Perforante",
+      detail: "Más daño. Atraviesa parte del escudo y supera el blindaje.",
+      damage: 1.65,
+      piercing: true,
+    },
+    {
+      name: "Cadencia",
+      detail: "Dispara más rápido y gana alcance.",
+      rate: 0.66,
+      range: 25,
+    },
+  ],
+  slow: [
+    {
+      name: "Congelación",
+      detail: "Ralentiza más y durante más tiempo.",
+      slow: 148,
+      slowFactor: 0.38,
+    },
+    {
+      name: "Neblina fría",
+      detail: "Ralentiza también a los enemigos junto al objetivo.",
+      slow: 85,
+      splashSlow: true,
+    },
+  ],
+  splash: [
+    {
+      name: "Onda expansiva",
+      detail: "Amplía el área de impacto y su daño secundario.",
+      radius: 96,
+      splash: 0.78,
+    },
+    {
+      name: "Foco térmico",
+      detail: "Concentra el golpe y atraviesa parte del escudo.",
+      damage: 1.72,
+      piercing: true,
+    },
+  ],
+  dot: [
+    {
+      name: "Residuo corrosivo",
+      detail: "El daño prolongado dura más y ignora el blindaje.",
+      burn: 210,
+      piercing: true,
+    },
+    {
+      name: "Nube lítica",
+      detail: "Contagia el efecto a los enemigos cercanos al impacto.",
+      splashBurn: true,
+    },
+  ],
+  chain: [
+    {
+      name: "Red conductora",
+      detail: "Salta hasta cuatro veces con más alcance entre enemigos.",
+      jumps: 4,
+      jumpRange: 100,
+    },
+    {
+      name: "Cortocircuito",
+      detail: "Inflige más daño y consume el doble de escudo.",
+      damage: 1.3,
+      shred: true,
+    },
+  ],
+  eco: [
+    {
+      name: "Estabilizador",
+      detail: "Genera más ATP con cada ciclo.",
+      output: 28,
+    },
+    {
+      name: "Pulso industrial",
+      detail: "Genera ATP más a menudo y recarga el pulso táctico.",
+      rate: 0.61,
+      charge: 4,
+    },
+  ],
+};
+
+export const TARGETING = [
+  ["first", "Más cerca del núcleo"],
+  ["last", "Más lejos del núcleo"],
+  ["strong", "Mayor resistencia"],
+];
+
+export function specializations(tower) {
+  return UPGRADES[tower.type];
+}
+
+const ARMOR = {
+  name: "Blindados",
+  tip: "Los golpes débiles pierden eficacia. Usa Plasma o una torre perforante.",
+};
+const SHIELD = {
+  name: "Escudados",
+  tip: "Absorben los primeros impactos. El pulso táctico elimina su escudo.",
+};
+const RUSH = {
+  name: "Corrida veloz",
+  tip: "Crio-Gel o Imán Químico pueden frenarla.",
+};
+const SWARM = {
+  name: "Enjambre",
+  tip: "El daño en área y el Arco Iónico aprovechan los grupos.",
+};
+const BOSS_TIP = "El jefe cambia de fase al 66 % y al 33 % de vida.";
+const BOSS_NAMES = [
+  "Custodio Ámbar",
+  "Centinela de la Galería",
+  "Núcleo Espejo",
+];
+const AUXILIARY_LANES = [
+  [
+    [0, 469],
+    [310, 469],
+    [310, 335],
+    [555, 335],
+    [555, 195],
+    [900, 195],
+  ],
+  [
+    [0, 405],
+    [287, 405],
+    [287, 272],
+    [580, 272],
+    [580, 200],
+    [900, 200],
+  ],
+];
+
+function route(points) {
+  const remaining = Array(points.length).fill(0);
+  for (let i = points.length - 2; i >= 0; i--) {
+    remaining[i] =
+      remaining[i + 1] +
+      Math.hypot(
+        points[i + 1][0] - points[i][0],
+        points[i + 1][1] - points[i][1],
+      );
+  }
+  return { points, remaining };
+}
+
+export function dailySetup(day) {
+  const seed = Number(day.replaceAll("-", "")) >>> 0;
+  const rules = [
+    {
+      name: "Sin reservas",
+      text: "Más enemigos por oleada. Empiezas con 285 ATP.",
+      atp: 285,
+      extra: 4,
+      armor: 1,
+    },
+    {
+      name: "Carcasas reforzadas",
+      text: "Blindados con más resistencia. Empiezas con 310 ATP.",
+      atp: 310,
+      extra: 0,
+      armor: 1.55,
+    },
+    {
+      name: "Conductos rápidos",
+      text: "Enemigos más veloces. Empiezas con 290 ATP.",
+      atp: 290,
+      extra: 1,
+      speed: 1.18,
+      armor: 1,
+    },
+  ];
+  return {
+    ...rules[seed % rules.length],
+    seed,
+    map: Math.floor(seed / rules.length) % MAPS.length,
+  };
+}
+
+function nextEnemy(order, spec, lane, modifier = {}) {
+  order.push({ spec, lane, ...modifier });
+}
+
 function segmentDistance(x, y, [ax, ay], [bx, by]) {
   const dx = bx - ax,
     dy = by - ay;
@@ -308,13 +494,19 @@ export function upgradeCost(tower) {
 }
 
 export class Match {
-  constructor(level) {
+  constructor(level, daily = null) {
     this.level = level;
-    this.map = MAPS[Math.floor((level - 1) / 4)];
+    this.daily = daily;
+    this.mapIndex = daily?.map ?? Math.min(2, Math.floor((level - 1) / 4));
+    this.map = MAPS[this.mapIndex];
+    this.routes = [route(this.map.points)];
+    if ((daily || level >= 5) && this.mapIndex > 0)
+      this.routes.push(route(AUXILIARY_LANES[this.mapIndex - 1]));
     this.hp = 100;
-    this.atp = 180 + level * 12;
+    this.atp = daily?.atp ?? 180 + level * 12 + Math.max(0, level - 5) * 20;
+    this.techLevel = daily ? 10 : level;
     this.wave = 0;
-    this.maxWaves = level < 4 ? 4 : level < 8 ? 5 : 6;
+    this.maxWaves = daily ? 7 : level < 4 ? 4 : level < 8 ? 5 : 6;
     this.state = "build";
     this.towers = [];
     this.enemies = [];
@@ -327,20 +519,112 @@ export class Match {
     this.adUsed = false;
     this.kills = 0;
     this.time = 0;
+    this.charge = 43;
+    this.grossATP = 0;
+    this.preview = this.planWave(1);
+  }
+
+  planWave(wave) {
+    const level = this.level;
+    const final = wave === this.maxWaves;
+    const pattern =
+      level === 1 && wave === 1
+        ? 0
+        : (wave + level + (this.daily?.seed || 0)) % 4;
+    const canShield = level >= 3 && wave >= 2;
+    const canArmor = level >= 2 && wave >= 2;
+    const theme =
+      pattern === 1
+        ? RUSH
+        : pattern === 2 && canArmor
+          ? ARMOR
+          : pattern === 3 && canShield
+            ? SHIELD
+            : SWARM;
+    const count =
+      5 + wave * 2 + Math.floor(level * 0.55) + (this.daily?.extra || 0);
+    const order = [];
+    const pool = Math.min(wave < 3 ? 4 : 7, Math.ceil((level + wave) / 2));
+    for (let n = 0; n < count; n++) {
+      const lane =
+        this.routes.length > 1 &&
+        (wave > 1 || level > 5 || this.daily) &&
+        (n + wave) % 3 !== 0
+          ? 1
+          : 0;
+      const id =
+        theme === RUSH && n % 2 === 0
+          ? level >= 6
+            ? 6
+            : 2
+          : (n * 5 + wave + level + Math.floor(n / pool)) % pool;
+      const guarded = n % 3 === 1;
+      nextEnemy(order, PATHOGEN_TYPES[id], lane, {
+        speed: theme === RUSH ? 1.13 : 1,
+        armor: theme === ARMOR && guarded ? 6 + level * 0.65 : 0,
+        shield: theme === SHIELD && guarded ? 0.42 : 0,
+      });
+    }
+    if (final)
+      nextEnemy(
+        order,
+        PATHOGEN_TYPES[this.mapIndex === 0 ? 5 : this.mapIndex === 1 ? 8 : 9],
+        this.routes.length - 1,
+        { boss: true },
+      );
+    return {
+      order,
+      theme,
+      count: order.length,
+      final,
+      split: order.some((e) => e.lane > 0),
+      bossTip: final ? BOSS_TIP : "",
+    };
+  }
+
+  addATP(amount) {
+    this.atp += amount;
+    this.grossATP += amount;
+  }
+
+  activatePulse(x, y) {
+    if (this.state !== "wave" || this.charge < 100) return false;
+    const targets = this.enemies.filter(
+      (enemy) => enemy.hp > 0 && Math.hypot(enemy.x - x, enemy.y - y) <= 108,
+    );
+    if (!targets.length) return false;
+    this.charge = 0;
+    this.effect(x, y, "#8cf7ff", 108);
+    for (const enemy of targets) {
+      enemy.shield = 0;
+      enemy.stun = enemy.boss ? 52 : 140;
+      this.damage(enemy, 46 + this.level * 6, "#8cf7ff", { piercing: true });
+    }
+    return true;
+  }
+
+  score() {
+    return (
+      this.kills * 45 +
+      this.wave * 150 +
+      (this.state === "won" ? this.hp * 9 + 350 : 0) +
+      Math.floor(this.grossATP / 3)
+    );
   }
 
   checkPlacement(type, x, y) {
     if (!type || !["build", "wave"].includes(this.state))
       return "La partida está detenida.";
-    if (type.unlock > this.level)
+    if (type.unlock > this.techLevel)
       return "Esta torre se habilita en otro sector.";
     if (x < 24 || x > WIDTH - 24 || y < 24 || y > HEIGHT - 24)
       return "Acércate al interior del tablero.";
-    const points = this.map.points;
     if (
-      points
-        .slice(1)
-        .some((point, i) => segmentDistance(x, y, points[i], point) < 39)
+      this.routes.some(({ points }) =>
+        points
+          .slice(1)
+          .some((point, i) => segmentDistance(x, y, points[i], point) < 39),
+      )
     )
       return "Deja despejado el conducto.";
     if (this.towers.some((t) => Math.hypot(t.x - x, t.y - y) < 40))
@@ -358,22 +642,31 @@ export class Match {
       paid: type.cost,
       cooldown: type.type === "eco" ? 105 : 0,
       rank: 1,
+      targeting: "first",
     };
     this.towers.push(tower);
     this.effect(x, y, type.color, 32);
     return tower;
   }
 
-  upgrade(tower) {
+  upgrade(tower, choice) {
     const cost = upgradeCost(tower);
     if (!this.towers.includes(tower) || tower.rank >= 3 || this.atp < cost)
       return false;
+    const branch = tower.rank === 2 ? specializations(tower)[choice] : null;
+    if (tower.rank === 2 && !branch) return false;
     this.atp -= cost;
     tower.paid += cost;
     tower.rank++;
     tower.damage = Math.round(tower.damage * 1.42);
     if (tower.range) tower.range += 13;
     tower.fireRate *= 0.92;
+    if (branch) {
+      tower.branch = branch;
+      tower.damage = Math.round(tower.damage * (branch.damage || 1));
+      tower.fireRate *= branch.rate || 1;
+      tower.range += branch.range || 0;
+    }
     this.effect(tower.x, tower.y, tower.color, 42);
     return true;
   }
@@ -389,17 +682,11 @@ export class Match {
     if (this.state !== "build") return false;
     this.state = "wave";
     this.wave++;
-    const count = 5 + this.wave * 2 + Math.floor(this.level * 0.75);
-    const pool = Math.min(
-      PATHOGEN_TYPES.length - 1,
-      1 + Math.floor((this.wave + this.level) / 2),
-    );
-    for (let n = 0; n < count; n++)
-      this.queue.push(PATHOGEN_TYPES[(n * 7 + this.wave + this.level) % pool]);
-    if (this.wave === this.maxWaves)
-      this.queue.push(
-        PATHOGEN_TYPES[this.level >= 8 ? 9 : this.level >= 4 ? 8 : 5],
-      );
+    this.queue = [...this.preview.order];
+    this.interval =
+      this.preview.theme === SWARM ? 24 : this.preview.theme === RUSH ? 31 : 39;
+    this.preview =
+      this.wave < this.maxWaves ? this.planWave(this.wave + 1) : null;
     this.spawnIn = 12;
     return true;
   }
@@ -409,75 +696,139 @@ export class Match {
   }
 
   spawn() {
-    const boss = this.queue.length === 1 && this.wave === this.maxWaves;
-    const spec = this.queue.shift();
-    const scale = 0.96 + (this.wave - 1) * 0.12 + (this.level - 1) * 0.105;
-    const hp = Math.round(spec.hp * scale);
-    const [[x, y]] = this.map.points;
+    const order = this.queue.shift();
+    const {
+      spec,
+      lane,
+      boss = false,
+      armor = 0,
+      shield = 0,
+      speed = 1,
+    } = order;
+    const scale =
+      0.96 +
+      (this.wave - 1) * 0.14 +
+      (this.level - 1) * (this.wave < 3 ? 0.065 : 0.105);
+    const hp = Math.round(spec.hp * scale * (boss ? 1.18 : 1));
+    const path = this.routes[lane];
+    const [[x, y]] = path.points;
     this.enemies.push({
       ...spec,
+      name: boss ? BOSS_NAMES[this.mapIndex] : spec.name,
       x,
       y,
+      path,
+      lane,
       boss,
       hp,
       maxHp: hp,
+      speed: spec.speed * speed * (this.daily?.speed || 1),
+      armor: armor * (this.daily?.armor || 1),
+      shield: Math.round(hp * shield),
       wp: 1,
-      progress: 0,
+      remaining: path.remaining[0],
       slow: 0,
+      slowFactor: 1,
       burn: 0,
+      stun: 0,
       angle: 0,
+      phase: 1,
     });
   }
 
-  damage(enemy, amount, color) {
+  damage(enemy, amount, color, { piercing = false, shred = false } = {}) {
     if (enemy.hp <= 0) return;
-    enemy.hp -= amount;
-    if (enemy.hp > 0) return;
+    if (enemy.shield > 0) {
+      const absorbed = Math.min(enemy.shield, amount * (piercing ? 0.45 : 1));
+      enemy.shield = Math.max(0, enemy.shield - absorbed * (shred ? 2 : 1));
+      amount -= absorbed;
+    }
+    if (amount <= 0) return;
+    enemy.hp -= piercing
+      ? amount
+      : Math.max(amount * 0.35, amount - enemy.armor);
+    if (enemy.hp > 0) {
+      if (enemy.boss) this.advanceBoss(enemy);
+      return;
+    }
     this.kills++;
     this.combo = Math.min(10, this.combo + 1);
     this.comboTime = 210;
-    this.atp += Math.round(enemy.reward * (this.combo >= 5 ? 1.25 : 1));
+    this.charge = Math.min(100, this.charge + (enemy.boss ? 28 : 6));
+    this.addATP(Math.round(enemy.reward * (this.combo >= 5 ? 1.25 : 1)));
     this.effect(enemy.x, enemy.y, color, enemy.boss ? 56 : 27);
   }
 
+  advanceBoss(enemy) {
+    const ratio = enemy.hp / enemy.maxHp;
+    const phase = ratio <= 1 / 3 ? 3 : ratio <= 2 / 3 ? 2 : 1;
+    if (phase <= enemy.phase) return;
+    enemy.phase = phase;
+    if (phase === 2) {
+      enemy.shield = Math.round(enemy.maxHp * 0.19);
+      const backup = this.routes.length > 1 ? 1 - enemy.lane : enemy.lane;
+      for (let i = 0; i < 3; i++)
+        nextEnemy(this.queue, PATHOGEN_TYPES[2], backup, { speed: 1.22 });
+      if (this.queue.length === 3) this.spawnIn = 8;
+    } else {
+      enemy.speed *= 1.5;
+    }
+    this.effect(enemy.x, enemy.y, phase === 2 ? "#9ddcff" : "#ffae85", 88);
+  }
+
   hit(enemy, shot) {
-    this.damage(enemy, shot.damage, shot.color);
-    if (shot.type === "slow") enemy.slow = Math.max(enemy.slow, 95);
-    if (shot.type === "dot") {
-      enemy.burn = 130;
-      enemy.burnDamage = Math.max(enemy.burnDamage || 0, shot.damage * 0.115);
-    }
-    if (shot.type === "splash") {
-      const radius = shot.radius;
-      this.effect(enemy.x, enemy.y, shot.color, radius);
-      for (const nearby of this.enemies) {
-        if (
-          nearby !== enemy &&
-          Math.hypot(nearby.x - enemy.x, nearby.y - enemy.y) < radius
-        ) {
-          this.damage(nearby, Math.round(shot.damage * 0.62), shot.color);
-        }
-      }
-    }
-    if (shot.type === "chain") {
-      let previous = enemy;
-      const hit = new Set([enemy]);
-      for (let i = 1; i <= 2; i++) {
-        const next = this.enemies.find(
-          (e) =>
-            e.hp > 0 &&
-            !hit.has(e) &&
-            Math.hypot(e.x - previous.x, e.y - previous.y) < 74,
+    const { damage, color, type, branch, radius } = shot;
+    const spreadDebuff = branch.splashSlow || branch.splashBurn;
+    const applyDebuff = (target) => {
+      if (type === "slow") {
+        target.slow = Math.max(target.slow, branch.slow || 95);
+        target.slowFactor = Math.min(
+          target.slowFactor,
+          target.boss ? 0.72 : branch.slowFactor || 0.52,
         );
-        if (!next) break;
-        this.effect(previous.x, previous.y, shot.color, 0, {
-          x: next.x,
-          y: next.y,
-        });
-        this.damage(next, Math.round(shot.damage * 0.65 ** i), shot.color);
-        hit.add(next);
-        previous = next;
       }
+      if (type === "dot") {
+        target.burn = Math.max(target.burn, branch.burn || 130);
+        target.burnDamage = Math.max(target.burnDamage || 0, damage * 0.115);
+        target.burnPierces ||= !!branch.piercing;
+      }
+    };
+    this.damage(enemy, damage, color, branch);
+    applyDebuff(enemy);
+    if (type === "splash" || spreadDebuff) {
+      this.effect(enemy.x, enemy.y, color, radius);
+      for (const other of this.enemies) {
+        if (
+          other === enemy ||
+          Math.hypot(other.x - enemy.x, other.y - enemy.y) >= radius
+        )
+          continue;
+        if (type === "splash")
+          this.damage(
+            other,
+            Math.round(damage * (branch.splash || 0.62)),
+            color,
+            branch,
+          );
+        if (spreadDebuff) applyDebuff(other);
+      }
+    }
+    if (type !== "chain") return;
+    let previous = enemy;
+    const hit = new Set([enemy]);
+    for (let i = 1; i <= (branch.jumps || 2); i++) {
+      const next = this.enemies.find(
+        (e) =>
+          e.hp > 0 &&
+          !hit.has(e) &&
+          Math.hypot(e.x - previous.x, e.y - previous.y) <
+            (branch.jumpRange || 74),
+      );
+      if (!next) break;
+      this.effect(previous.x, previous.y, color, 0, { x: next.x, y: next.y });
+      this.damage(next, Math.round(damage * 0.72 ** i), color, branch);
+      hit.add(next);
+      previous = next;
     }
   }
 
@@ -489,31 +840,35 @@ export class Match {
     if (this.comboTime > 0 && --this.comboTime === 0) this.combo = 0;
     if (this.queue.length && --this.spawnIn <= 0) {
       this.spawn();
-      this.spawnIn = Math.max(
-        20,
-        48 - this.wave * 3 - Math.floor(this.level / 2),
-      );
+      this.spawnIn = this.interval;
     }
-    const points = this.map.points;
     for (const enemy of this.enemies) {
       if (enemy.hp <= 0) continue;
       if (enemy.burn > 0) {
         enemy.burn--;
         if (enemy.burn % 12 === 0)
-          this.damage(enemy, enemy.burnDamage, "#a3e635");
+          this.damage(enemy, enemy.burnDamage, "#a3e635", {
+            piercing: enemy.burnPierces,
+          });
+        if (!enemy.burn) {
+          enemy.burnDamage = 0;
+          enemy.burnPierces = false;
+        }
         if (enemy.hp <= 0) continue;
       }
+      if (enemy.stun > 0) {
+        enemy.stun--;
+        continue;
+      }
+      const points = enemy.path.points;
       const [x, y] = points[enemy.wp];
       const dx = x - enemy.x,
         dy = y - enemy.y;
       const distance = Math.hypot(dx, dy);
-      const advance = Math.min(
-        distance,
-        enemy.speed * (enemy.slow > 0 ? (enemy.boss ? 0.76 : 0.52) : 1),
-      );
-      if (enemy.slow > 0) enemy.slow--;
+      const advance = Math.min(distance, enemy.speed * enemy.slowFactor);
+      if (enemy.slow > 0 && --enemy.slow === 0) enemy.slowFactor = 1;
       enemy.angle = Math.atan2(dy, dx);
-      enemy.progress += advance;
+      enemy.remaining = enemy.path.remaining[enemy.wp] + distance - advance;
       if (advance >= distance) {
         enemy.x = x;
         enemy.y = y;
@@ -538,19 +893,31 @@ export class Match {
       if (tower.type === "eco") {
         // Reactor output stops in the build phase and when no threats remain.
         if (this.enemies.length || this.queue.length) {
-          this.atp += 9 + 4 * tower.rank;
+          this.addATP(tower.branch?.output ?? 9 + 4 * tower.rank);
+          this.charge = Math.min(
+            100,
+            this.charge + (tower.branch?.charge || 0),
+          );
           tower.cooldown = tower.fireRate;
           this.effect(tower.x, tower.y, tower.color, 29);
         }
         continue;
       }
       let target;
+      let best = -Infinity;
       for (const enemy of this.enemies) {
-        if (
-          (!target || enemy.progress > target.progress) &&
-          Math.hypot(enemy.x - tower.x, enemy.y - tower.y) <= tower.range
-        )
+        if (Math.hypot(enemy.x - tower.x, enemy.y - tower.y) > tower.range)
+          continue;
+        const priority =
+          tower.targeting === "strong"
+            ? enemy.hp + enemy.shield
+            : tower.targeting === "last"
+              ? enemy.remaining
+              : -enemy.remaining;
+        if (priority > best) {
           target = enemy;
+          best = priority;
+        }
       }
       if (!target) continue;
       tower.cooldown = tower.fireRate;
@@ -562,7 +929,8 @@ export class Match {
         damage: tower.damage,
         type: tower.type,
         color: tower.color,
-        radius: tower.id === "uv" ? 73 : 57,
+        branch: tower.branch || {},
+        radius: tower.branch?.radius || (tower.id === "uv" ? 73 : 57),
       });
     }
 
@@ -583,7 +951,10 @@ export class Match {
     this.enemies = this.enemies.filter((e) => e.hp > 0);
     if (!this.enemies.length && !this.queue.length) {
       this.shots = [];
-      this.atp += 24 + 4 * this.wave;
+      this.addATP(
+        25 + 5 * this.wave + (this.daily ? 0 : Math.max(0, this.level - 4) * 4),
+      );
+      this.charge = Math.min(100, this.charge + 20);
       this.state = this.wave === this.maxWaves ? "won" : "build";
     }
   }

@@ -894,3 +894,19 @@ Object.assign(EN,{
   "Derrota a un élite con un tornado dividido.": "Defeat an elite with a split tornado.",
   "Derrota a 3 élites en una partida.": "Defeat 3 elites in one run."
 });
+
+
+Object.assign(EN, {
+  "Rapidez de recarga": "Recharge speed",
+  "Completa el vídeo para avanzar el desbloqueo de": "Complete the video to make unlock progress on",
+  "Completa el vídeo para ganar 5 aperturas gratis.": "Complete the video to earn 5 free pulls.",
+  "Completa el vídeo para ganar 50 monedas.": "Complete the video to earn 50 coins.",
+  "Sin conexión. Vuelve a intentarlo al conectarte.": "You are offline. Try again when connected.",
+  "No se pudo cargar el servicio de anuncios. Puede estar bloqueado en el navegador.": "The ad service could not load. Your browser may be blocking it.",
+  "El servicio no se ha activado. Puede que la cuenta o el sitio aún estén en revisión.": "The ad service did not start. The account or site may still be under review.",
+  "El anuncio aún no está listo. Puedes volver a intentarlo en unos segundos.": "The ad is not ready yet. Try again in a few seconds.",
+  "El servicio de anuncios tardó demasiado.": "The ad service took too long.",
+  "Ya se han mostrado varios anuncios. Vuelve a intentarlo más tarde.": "Several ads have already been shown. Try again later.",
+  "Ahora mismo no hay ningún anuncio disponible.": "No ads are available right now.",
+  "No se ha podido mostrar un anuncio ahora.": "An ad could not be shown right now."
+});

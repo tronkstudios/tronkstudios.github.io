@@ -3,12 +3,15 @@
 const RewardedAds = (() => {
   // Configure a dedicated rewarded web ad unit from Google Ad Manager.
   const unit = document.querySelector('meta[name="rewarded-ad-unit"]')?.content.trim() || "";
-  const configured = /^\/\d+(?:,\d+)?\/[\w/-]+$/.test(unit);
+  const client = document.querySelector('meta[name="rewarded-adsense-client"]')?.content.trim() || "";
+  const adManager = /^\/\d+(?:,\d+)?\/[\w/-]+$/.test(unit);
+  const configured = adManager || /^ca-pub-\d{16}$/.test(client);
   const coins = 50;
   const cooldown = 15 * 60 * 1000;
   let pending = false;
   let loader;
   let enabled = false;
+  let h5, lastError;
 
   function load() {
     if (window.googletag?.apiReady) return Promise.resolve(window.googletag);
@@ -37,7 +40,7 @@ const RewardedAds = (() => {
     return loader;
   }
 
-  function display(gpt, stillHere) {
+  function display(gpt, stillHere, onShow) {
     return new Promise(resolve => {
       let slot, service, granted = false, shown = false, finished = false;
       const handlers = [];
@@ -69,6 +72,7 @@ const RewardedAds = (() => {
           if (!stillHere() || document.hidden) return finish(false);
           try {
             shown = true;
+            onShow();
             if (event.makeRewardedVisible() === false) finish(false);
             else clearTimeout(timer);
           } catch { finish(false); }
@@ -85,13 +89,32 @@ const RewardedAds = (() => {
     });
   }
 
-  async function request(stillHere) {
+  async function request(stillHere, placement, reward, onShow) {
     if (!configured || pending) return false;
+    lastError = "";
     pending = true;
-    try { return await display(await load(), stillHere); }
+    try {
+      if (adManager) return await display(await load(), stillHere, onShow);
+      const { createAdSenseProvider, adMessage } = await import("/js/h5-rewards.js?v=1");
+      h5 ||= createAdSenseProvider(client);
+      return await new Promise(resolve => {
+        h5.showRewardedAd({
+          placementName: `tronk-survivors-${placement}`,
+          canShow: stillHere,
+          reward,
+          onShow,
+          onReward: () => resolve(true),
+          onCancel: () => resolve(false),
+          onError: reason => {
+            lastError = adMessage(reason);
+            resolve(false);
+          }
+        }).catch(() => resolve(false));
+      });
+    }
     catch { return false; }
     finally { pending = false; }
   }
 
-  return { configured, request, coins, cooldown, get pending() { return pending; } };
+  return { configured, request, coins, cooldown, get pending() { return pending; }, get lastError() { return lastError; } };
 })();

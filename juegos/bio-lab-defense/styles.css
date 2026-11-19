@@ -389,3 +389,77 @@ dialog p {
     font-size: 0.84rem;
   }
 }
+
+.wave-preview,
+.boss-status {
+  margin: 0 0 0.6rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid #365374;
+  border-radius: 10px;
+  background: #10233a;
+  color: var(--text);
+  font-size: 0.83rem;
+}
+.wave-preview span {
+  display: block;
+  color: var(--muted);
+}
+.boss-status {
+  border-color: #935848;
+  background: #302036;
+}
+.boss-status div {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.7rem;
+  color: #ffc799;
+}
+.boss-status progress {
+  width: 100%;
+  height: 0.62rem;
+  accent-color: #ff806a;
+}
+#pulse:not(:disabled) {
+  border-color: #64d6ef;
+  color: #b2f3ff;
+}
+#pulse[aria-pressed="true"] {
+  background: #216182;
+  color: white;
+}
+.upgrade-options {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+.upgrade-options:empty {
+  display: none;
+}
+.upgrade-options button {
+  text-align: left;
+  border-color: #547598;
+}
+.upgrade-options small {
+  display: block;
+  font-weight: 500;
+  color: #b9cde4;
+  margin-top: 0.13rem;
+}
+
+@media (max-width: 760px) {
+  .wave-actions {
+    margin-bottom: 0.1rem;
+  }
+  .wave-actions button {
+    padding-inline: 0.55rem;
+    font-size: 0.79rem;
+  }
+  .wave-preview {
+    padding: 0.4rem 0.55rem;
+  }
+  #selection .actions {
+    display: flex;
+    flex-wrap: wrap;
+  }
+}

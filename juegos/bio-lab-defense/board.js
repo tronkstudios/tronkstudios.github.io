@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT } from "./engine.js";
+import { WIDTH, HEIGHT } from "./engine.js?v=2";
 
 function trace(ctx, points) {
   ctx.beginPath();
@@ -28,7 +28,7 @@ function polygon(ctx, sides, radius) {
   ctx.closePath();
 }
 
-function background(map) {
+function background(map, routes) {
   const base = document.createElement("canvas");
   base.width = WIDTH;
   base.height = HEIGHT;
@@ -59,6 +59,26 @@ function background(map) {
   }
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
+  if (routes.length > 1) {
+    const points = routes[1].points;
+    for (const [width, color] of [
+      [56, "#060d17"],
+      [47, "#8156ad"],
+      [42, "#2c2248"],
+    ]) {
+      trace(ctx, points);
+      ctx.lineWidth = width;
+      ctx.strokeStyle = color;
+      ctx.stroke();
+    }
+    trace(ctx, points);
+    ctx.setLineDash([5, 13]);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#c7a1ff";
+    ctx.stroke();
+    ctx.setLineDash([]);
+    circle(ctx, 7, points[0][1], 24, "#2b2047", "#caa0ff", 3);
+  }
   for (const [width, color] of [
     [58, "#060d17"],
     [50, map.accent + "65"],
@@ -103,6 +123,7 @@ function turret(ctx, tower, chosen) {
   }
   circle(ctx, 0, 0, 10, "#283a55", tower.color, 2);
   circle(ctx, 0, 0, 4, tower.color);
+  if (tower.branch) circle(ctx, 0, 0, 14, null, "#f7dfa8", 2);
   ctx.restore();
   for (let i = 0; i < tower.rank; i++)
     circle(
@@ -118,6 +139,10 @@ function target(ctx, enemy) {
   ctx.save();
   ctx.translate(enemy.x, enemy.y);
   circle(ctx, 0, 3, enemy.boss ? 27 : 15, "#030811b5");
+  if (enemy.shield > 0)
+    circle(ctx, 0, 0, enemy.boss ? 33 : 21, "#75d3ff25", "#6bd2ff", 3);
+  if (enemy.armor) circle(ctx, 0, 0, 18, null, "#ffcf81", 3);
+  if (enemy.stun) circle(ctx, 0, 0, enemy.boss ? 30 : 18, null, "#e9edff", 2);
   if (enemy.slow) circle(ctx, 0, 0, enemy.boss ? 29 : 16, null, "#97e9ff", 2);
   if (enemy.burn) circle(ctx, 0, 0, enemy.boss ? 32 : 19, null, "#b4ef68", 1.5);
   ctx.save();
@@ -165,15 +190,20 @@ export class Board {
     this.buffers = new Map();
   }
 
-  draw(match, blueprint, selected, cursor, reduced) {
+  draw(match, blueprint, selected, cursor, reduced, aiming) {
     const ctx = this.ctx;
-    if (!this.buffers.has(match.map))
-      this.buffers.set(match.map, background(match.map));
-    ctx.drawImage(this.buffers.get(match.map), 0, 0);
+    const key = match.mapIndex * 2 + match.routes.length - 1;
+    if (!this.buffers.has(key))
+      this.buffers.set(key, background(match.map, match.routes));
+    ctx.drawImage(this.buffers.get(key), 0, 0);
+    if (aiming && cursor) {
+      circle(ctx, cursor.x, cursor.y, 108, "#71e9ff29", "#89f1ff", 3);
+      circle(ctx, cursor.x, cursor.y, 5, "#c8faff");
+    }
     for (const [tower, valid, ghost] of [
-      [selected, true, false],
+      [aiming ? null : selected, true, false],
       [
-        cursor && blueprint ? { ...blueprint, ...cursor } : null,
+        !aiming && cursor && blueprint ? { ...blueprint, ...cursor } : null,
         cursor && !match.checkPlacement(blueprint, cursor.x, cursor.y),
         true,
       ],

@@ -5,10 +5,13 @@ import {
   WIDTH,
   HEIGHT,
   upgradeCost,
-} from "./engine.js";
-import { Board } from "./board.js";
-import { Profile, dayKey } from "./profile.js";
-import { createAdSenseProvider } from "./ads.js";
+  specializations,
+  TARGETING,
+  dailySetup,
+} from "./engine.js?v=2";
+import { Board } from "./board.js?v=2";
+import { Profile, dayKey } from "./profile.js?v=2";
+import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=1";
 
 const $ = (id) => document.getElementById(id);
 const panels = ["home", "campaign", "field"];
@@ -26,6 +29,8 @@ let match,
   speed,
   screen,
   adBusy = false;
+let aiming = false,
+  challengeDay = null;
 let atpBought,
   repaired,
   prepared = false;
@@ -96,20 +101,26 @@ function renderLevels() {
   $("levels").replaceChildren(...nodes);
 }
 
-function start(level) {
-  match = new Match(level);
+function start(level, day = null) {
+  challengeDay = day;
+  lastState = null;
+  match = new Match(level, day ? dailySetup(day) : null);
+  aiming = false;
   blueprint = BLUEPRINTS[0];
   selected = null;
   cursor = null;
   speed = 1;
   atpBought = repaired = false;
   selectionKey = "";
-  $("sector").textContent = `Sector ${level} · ${SECTORS[level - 1]}`;
+  $("sector").textContent = day
+    ? `Reto · ${match.daily.name}`
+    : `Sector ${level} · ${SECTORS[level - 1]}`;
   renderDock();
   view("field");
   message("Elige una torre y toca fuera del conducto para colocarla.");
+  $("supplies").hidden = !!day;
   renderHUD();
-  board.draw(match, blueprint, selected, cursor, reduced.matches);
+  board.draw(match, blueprint, selected, cursor, reduced.matches, aiming);
 }
 
 function message(text, warn = false) {
@@ -122,6 +133,7 @@ function renderDock() {
     ...BLUEPRINTS.map((type) => {
       const button = makeButton("", () => {
         blueprint = type;
+        aiming = false;
         selected = null;
         selectionKey = "";
         renderSelection();
@@ -130,7 +142,7 @@ function renderDock() {
       button.className = "tower";
       button.dataset.type = type.id;
       button.style.setProperty("--tower-color", type.color);
-      button.disabled = type.unlock > match.level;
+      button.disabled = type.unlock > match.techLevel;
       const name = document.createElement("strong");
       name.textContent = type.name;
       const cost = document.createElement("small");
@@ -154,7 +166,16 @@ function highlightDock() {
 
 function place(x, y) {
   if (!match || modal.open || !["build", "wave"].includes(match.state)) return;
-  const tower = match.towers.find((t) => Math.hypot(t.x - x, t.y - y) < 22);
+  if (aiming) {
+    if (match.activatePulse(x, y)) {
+      aiming = false;
+      message("Pulso activado. Escudos desactivados.");
+    } else message("Apunta a un enemigo dentro del círculo.", true);
+    renderHUD();
+    return;
+  }
+  const radius = Math.min(36, Math.max(22, (12 * WIDTH) / canvas.clientWidth));
+  const tower = match.towers.find((t) => Math.hypot(t.x - x, t.y - y) < radius);
   if (tower) {
     selected = tower;
     blueprint = null;
@@ -180,6 +201,7 @@ function renderSelection() {
         selected.x,
         selected.y,
         selected.rank,
+        selected.targeting,
         match.atp >= upgradeCost(selected),
       ].join(":")
     : blueprint?.id;
@@ -196,28 +218,60 @@ function renderSelection() {
   }
   const tower = selected;
   heading.textContent = `${tower.name} · Nivel ${tower.rank}`;
-  detail.textContent = tower.note;
+  detail.textContent =
+    tower.branch?.detail ||
+    (tower.type === "eco"
+      ? tower.note
+      : `${tower.note} · ${tower.damage} daño · ${tower.range} alcance`);
+  if (tower.branch) heading.textContent += ` · ${tower.branch.name}`;
   const cost = upgradeCost(tower);
-  const improve = makeButton(
-    tower.rank < 3 ? `Mejorar · ${cost} ATP` : "Nivel máximo",
-    () => {
-      if (match.upgrade(tower)) message(`${tower.name} mejorada.`);
+  const options = document.createElement("div");
+  options.className = "upgrade-options";
+  if (tower.rank === 1) {
+    const improve = makeButton(`Mejorar · ${cost} ATP`, () => {
+      if (match.upgrade(tower)) message(`${tower.name} mejorada a nivel 2.`);
       renderHUD();
-    },
-  );
-  improve.disabled = tower.rank >= 3 || match.atp < cost;
-  const sell = makeButton(
-    `Vender · +${Math.floor(tower.paid * 0.65)} ATP`,
-    () => {
+    });
+    improve.disabled = match.atp < cost;
+    options.append(improve);
+  } else if (tower.rank === 2) {
+    for (const [choice, branch] of specializations(tower).entries()) {
+      const improve = makeButton(`${branch.name} · ${cost} ATP`, () => {
+        if (match.upgrade(tower, choice))
+          message(`Especialización «${branch.name}» activada.`);
+        renderHUD();
+      });
+      improve.disabled = match.atp < cost;
+      const note = document.createElement("small");
+      note.textContent = branch.detail;
+      improve.append(note);
+      options.append(improve);
+    }
+  }
+  const actions = document.createElement("div");
+  actions.className = "actions";
+  if (tower.type !== "eco") {
+    const targeting = makeButton("", () => {
+      const index = TARGETING.findIndex(([id]) => id === tower.targeting);
+      tower.targeting = TARGETING[(index + 1) % TARGETING.length][0];
+      const label = TARGETING.find(([id]) => id === tower.targeting)[1];
+      targeting.textContent = `Objetivo: ${label}`;
+      selectionKey = null;
+      renderHUD();
+      $("selection").querySelector(".targeting").focus();
+    });
+    targeting.className = "targeting";
+    targeting.textContent = `Objetivo: ${TARGETING.find(([id]) => id === tower.targeting)[1]}`;
+    actions.append(targeting);
+  }
+  actions.append(
+    makeButton(`Vender · +${Math.floor(tower.paid * 0.65)} ATP`, () => {
       if (match.sell(tower)) message(`${tower.name} retirada.`);
       selected = null;
       renderHUD();
-    },
+    }),
   );
-  const actions = document.createElement("div");
-  actions.className = "actions";
-  actions.append(improve, sell);
-  panel.replaceChildren(heading, detail, actions);
+  panel.replaceChildren(heading, detail, options, actions);
 }
 
 function updateText(id, value) {
@@ -235,6 +289,33 @@ function renderHUD() {
     match.combo >= 5 ? `×${match.combo} Fiebre` : `×${match.combo || 1}`,
   );
   const waiting = match.state === "build";
+  const boss = match.enemies.find((enemy) => enemy.boss && enemy.hp > 0);
+  $("boss-status").hidden = !boss;
+  if (boss) {
+    updateText("boss-name", boss.name);
+    updateText(
+      "boss-phase",
+      boss.phase === 3
+        ? "Fase 3 · Acelerado"
+        : boss.shield
+          ? "Fase 2 · Escudo activo"
+          : `Fase ${boss.phase}/3`,
+    );
+    $("boss-health").value = Math.ceil((100 * boss.hp) / boss.maxHp);
+  }
+  $("wave-preview").hidden = !waiting;
+  if (waiting) {
+    const { count, theme, final, split, bossTip } = match.preview;
+    updateText(
+      "wave-preview-title",
+      `${theme.name} · ${count} enemigos${split ? " · Dos entradas" : ""}${final ? " · Jefe" : ""}`,
+    );
+    updateText("wave-preview-tip", `${theme.tip} ${bossTip}`.trim());
+  }
+  if (match.state !== "wave") aiming = false;
+  $("pulse").disabled = match.state !== "wave" || match.charge < 100;
+  $("pulse").setAttribute("aria-pressed", String(aiming));
+  updateText("pulse", aiming ? "Cancelar pulso" : `Pulso · ${match.charge}%`);
   const phase = waiting
     ? "Preparación"
     : match.state === "wave"
@@ -282,7 +363,7 @@ function frame(now) {
       if (match.state === "won" || match.state === "lost") finish();
       else if (match.state === "build" && match.wave) message(announce());
     }
-    board.draw(match, blueprint, selected, cursor, reduced.matches);
+    board.draw(match, blueprint, selected, cursor, reduced.matches, aiming);
     renderHUD();
   } else {
     accumulator = 0;
@@ -294,6 +375,19 @@ function finish() {
   const won = match.state === "won";
   const stars = won ? (match.hp >= 90 ? 3 : match.hp >= 55 ? 2 : 1) : 0;
   const { level } = match;
+  if (challengeDay) {
+    const score = match.score();
+    const record = profile.recordDaily(challengeDay, score);
+    ask(
+      record ? "Nuevo récord diario" : "Reto terminado",
+      `${score.toLocaleString("es-ES")} puntos · ${match.kills} eliminados · ${match.wave}/${match.maxWaves} oleadas.`,
+      [
+        ["Reintentar", () => start(level, challengeDay)],
+        ["Volver al menú", () => view("home")],
+      ],
+    );
+    return;
+  }
   if (won) {
     const earned = Math.max(0, stars - profile.data.stars[level - 1]);
     profile.data.stars[level - 1] = Math.max(
@@ -365,6 +459,17 @@ canvas.onkeydown = (e) => {
 
 $("campaign-button").onclick = campaign;
 $("back-home").onclick = () => view("home");
+$("challenge-button").onclick = () => {
+  if (!prepared) return;
+  const day = dayKey();
+  const rule = dailySetup(day);
+  const best = profile.data.dailyRecords[day] || 0;
+  ask(
+    rule.name,
+    `${rule.text} Récord de hoy: ${best.toLocaleString("es-ES")} puntos.`,
+    [["Jugar reto", () => start(6, day)], ["Volver"]],
+  );
+};
 $("daily-button").onclick = () => {
   if (profile.data.lastDaily >= dayKey())
     return ask(
@@ -390,6 +495,16 @@ $("next").onclick = () => {
   if (match.startWave()) message(`Oleada ${match.wave} iniciada.`);
   renderHUD();
 };
+$("pulse").onclick = () => {
+  if (match.charge !== 100 || match.state !== "wave") return;
+  aiming = !aiming;
+  message(
+    aiming
+      ? "Toca un grupo de enemigos para romper su escudo y aturdirlo."
+      : "Pulso cancelado.",
+  );
+  renderHUD();
+};
 $("speed").onclick = () => {
   speed = speed === 1 ? 2 : 1;
   renderHUD();
@@ -398,10 +513,18 @@ $("pause").onclick = () =>
   ask(
     "Partida en pausa",
     "Puedes volver a la defensa o abandonar esta partida.",
-    [["Continuar"], ["Abandonar partida", campaign]],
+    [
+      ["Continuar"],
+      ["Abandonar partida", challengeDay ? () => view("home") : campaign],
+    ],
   );
 $("buy-atp").onclick = () => {
-  if (match.state !== "build" || atpBought || profile.data.atpBank < 100)
+  if (
+    match.daily ||
+    match.state !== "build" ||
+    atpBought ||
+    profile.data.atpBank < 100
+  )
     return;
   atpBought = true;
   profile.data.atpBank -= 100;
@@ -412,6 +535,7 @@ $("buy-atp").onclick = () => {
 };
 $("heal").onclick = () => {
   if (
+    match.daily ||
     match.state !== "build" ||
     repaired ||
     match.hp === 100 ||
@@ -426,7 +550,8 @@ $("heal").onclick = () => {
   renderHUD();
 };
 $("boost").onclick = () => {
-  if (!ad || adBusy || match.adUsed || match.state !== "build") return;
+  if (!ad || adBusy || match.daily || match.adUsed || match.state !== "build")
+    return;
   const run = match;
   const canShow = () =>
     screen === "field" &&
@@ -435,6 +560,8 @@ $("boost").onclick = () => {
     !modal.open;
   const close = (text) => {
     adBusy = false;
+    let aiming = false,
+      challengeDay = null;
     if (screen === "field" && match === run) {
       message(text);
       renderHUD();
@@ -444,7 +571,8 @@ $("boost").onclick = () => {
   renderHUD();
   void ad
     .showRewardedAd({
-      placementName: "atp_supply",
+      placementName: "bio-lab-defense-atp_supply",
+      reward: "Completa el vídeo para recibir +75 ATP en esta partida.",
       canShow,
       onReward() {
         if (screen !== "field" || match !== run || run.adUsed) return close("");
@@ -453,7 +581,7 @@ $("boost").onclick = () => {
         close("Suministro publicitario recibido: +75 ATP.");
       },
       onCancel: () => close("Anuncio cancelado. Puedes volver a intentarlo."),
-      onError: () => close("No hay un anuncio disponible ahora."),
+      onError: (reason) => close(adMessage(reason)),
     })
     .catch(() => close("No se pudo cargar el anuncio."));
 };
@@ -467,11 +595,14 @@ window.addEventListener("online", () => {
 window.addEventListener("focus", () => {
   void profile.flush();
 });
-$("campaign-button").disabled = $("daily-button").disabled = true;
+$("campaign-button").disabled =
+  $("daily-button").disabled =
+  $("challenge-button").disabled =
+    true;
 view("home");
 void profile.init().finally(() => {
   prepared = true;
-  $("campaign-button").disabled = false;
+  $("campaign-button").disabled = $("challenge-button").disabled = false;
   refreshProfile();
 });
 requestAnimationFrame(frame);
