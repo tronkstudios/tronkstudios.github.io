@@ -29,7 +29,14 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8790";
           response,
           body:
             script +
-            '\nwindow.completeStoryMission = () => Object.assign(match, { hp: 100, kills: 30, state: "won" });',
+            `
+window.completeStoryMission = () => Object.assign(match, { hp: 100, kills: 30, state: "won" });
+window.hasEnemyAtB = () => match.enemies.some((enemy) => enemy.lane === 1);
+window.defeatEnemyAtB = () => match.damage(match.enemies.find((enemy) => enemy.lane === 1), 10000, "#fff");
+window.spawnTestBoss = () => {
+  match.queue.unshift(match.planWave(match.maxWaves).order.at(-1));
+  match.spawn();
+};`,
         });
       });
       await page.addInitScript(() => {
@@ -78,6 +85,17 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8790";
         "Próxima oleada",
       );
       assert.ok(Number(await page.locator("#threats").textContent()) > 0);
+      assert.equal(await page.locator("#lane-brief").isVisible(), false);
+      const canvas = page.locator("#board");
+      const dock = page.locator("#dock");
+      if (width < 400) {
+        assert.ok((await dock.boundingBox()).y < (await canvas.boundingBox()).y);
+        assert.ok(
+          await dock.evaluate((node) => node.scrollWidth > node.clientWidth),
+        );
+      } else {
+        assert.ok((await dock.boundingBox()).x > (await canvas.boundingBox()).x);
+      }
       await page.evaluate(() => completeStoryMission());
       await page.getByRole("heading", { name: "Misión completada" }).waitFor();
       assert.match(
@@ -116,9 +134,44 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8790";
         ),
         true,
       );
+      await page.evaluate(() => {
+        const save = JSON.parse(localStorage.getItem("biolab_save_v1"));
+        localStorage.setItem(
+          "biolab_save_v1",
+          JSON.stringify({ ...save, unlockedLevel: 6 }),
+        );
+      });
+      await page.reload();
+      await page.locator("#campaign-button").click();
+      await page.locator(".level").nth(5).click();
+      await page.locator("#launch-mission").click();
+      const counts = async () => {
+        const labels = await page.locator("#lane-brief b").allTextContents();
+        return labels.map((label) => Number(label.split(" · ").at(-1)));
+      };
+      const [a, b] = await counts();
+      assert.ok(a > 0 && b > 0);
+      const roster = await page.locator("#wave-roster li").allTextContents();
+      assert.equal(
+        roster.reduce((sum, entry) => sum + Number(entry.split(" × ")[0]), 0),
+        a + b,
+      );
+      await page.locator("#next").click();
+      await page.waitForFunction(() => hasEnemyAtB());
+      assert.deepEqual(await counts(), [a, b]);
+      await page.evaluate(() => defeatEnemyAtB());
+      await page.waitForFunction(
+        (label) => document.querySelector("#lane-b").textContent === label,
+        `Entrada B · ${b - 1}`,
+      );
+      assert.deepEqual(await counts(), [a, b - 1]);
+      const boardTop = await canvas.evaluate((node) => node.offsetTop);
+      await page.evaluate(() => spawnTestBoss());
+      await page.locator("#boss-status").waitFor();
+      assert.equal(await canvas.evaluate((node) => node.offsetTop), boardTop);
       assert.deepEqual(errors, []);
       console.log(
-        `Bio-Lab campaign, mission briefing, legacy saves and one-time medals passed at ${width}px.`,
+        `Bio-Lab campaign, medals, wave roster, live lanes and layout passed at ${width}px.`,
       );
       await page.close();
     }

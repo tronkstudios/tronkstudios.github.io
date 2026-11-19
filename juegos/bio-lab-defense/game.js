@@ -44,7 +44,8 @@ let lastTick = performance.now(),
   accumulator = 0;
 let selectionKey = "";
 let briefingLevel = 1,
-  lastBoss = false;
+  lastBoss = false,
+  lastPreview;
 const profile = new Profile(refreshProfile);
 let checkpoint,
   checkpointLost = false;
@@ -320,6 +321,7 @@ function renderDock() {
       return button;
     }),
   );
+  $("dock").scrollLeft = 0;
   highlightDock();
 }
 
@@ -472,6 +474,31 @@ function updateText(id, value) {
   if (node.textContent !== String(value)) node.textContent = value;
 }
 
+function renderWavePreview(preview) {
+  if (preview === lastPreview) return;
+  lastPreview = preview;
+  const { count, theme, final, lanes, bossTip, order } = preview;
+  updateText(
+    "wave-preview-title",
+    `${theme.name} · ${count} enemigos${lanes[1] ? " · Dos entradas" : ""}${final ? " · Jefe" : ""}`,
+  );
+  updateText("wave-preview-tip", `${theme.tip} ${bossTip}`.trim());
+  const groups = new Map();
+  for (const { spec, boss, armor, shield } of order) {
+    const label = boss
+      ? "Jefe"
+      : spec.name + (armor ? " con blindaje" : shield ? " con escudo" : "");
+    groups.set(label, (groups.get(label) || 0) + 1);
+  }
+  $("wave-roster").replaceChildren(
+    ...Array.from(groups, ([label, n]) => {
+      const item = document.createElement("li");
+      item.textContent = `${n} × ${label}`;
+      return item;
+    }),
+  );
+}
+
 function renderHUD() {
   updateText("hp", `${match.hp}%`);
   $("integrity").value = match.hp;
@@ -479,10 +506,8 @@ function renderHUD() {
   updateText("wave", `${match.wave}/${match.maxWaves}`);
   const waiting = match.state === "build";
   updateText("threat-label", waiting ? "Próxima oleada" : "Quedan");
-  updateText(
-    "threats",
-    waiting ? match.preview.count : match.enemies.length + match.queue.length,
-  );
+  const remaining = match.enemies.length + match.queue.length;
+  updateText("threats", waiting ? match.preview.count : remaining);
   updateText(
     "combo",
     match.combo >= 5 ? `×${match.combo} Fiebre` : `×${match.combo || 1}`,
@@ -504,19 +529,22 @@ function renderHUD() {
     $("boss-health").value = Math.ceil((100 * boss.hp) / boss.maxHp);
   }
   $("wave-preview").hidden = !waiting;
-  if (waiting) {
-    const { count, theme, final, lanes, bossTip } = match.preview;
-    const split = lanes[1] > 0;
-    $("lane-brief").hidden = !split;
-    if (split) {
-      updateText("lane-a", `Entrada A · ${lanes[0]}`);
-      updateText("lane-b", `Entrada B · ${lanes[1]}`);
+  if (waiting) renderWavePreview(match.preview);
+  const split = match.routes.length > 1 && (waiting || match.state === "wave");
+  $("lane-brief").hidden = !split;
+  if (split) {
+    let a, b;
+    if (waiting) {
+      [a, b] = match.preview.lanes;
+    } else {
+      // Count both enemies on the board and those waiting to spawn.
+      b = 0;
+      for (const enemy of match.enemies) b += Number(enemy.lane === 1);
+      for (const enemy of match.queue) b += Number(enemy.lane === 1);
+      a = remaining - b;
     }
-    updateText(
-      "wave-preview-title",
-      `${theme.name} · ${count} enemigos${split ? " · Dos entradas" : ""}${final ? " · Jefe" : ""}`,
-    );
-    updateText("wave-preview-tip", `${theme.tip} ${bossTip}`.trim());
+    updateText("lane-a", `Entrada A · ${a}`);
+    updateText("lane-b", `Entrada B · ${b}`);
   }
   const { debrief } = match;
   $("wave-debrief").hidden = !waiting || !debrief;
