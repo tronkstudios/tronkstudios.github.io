@@ -8,7 +8,7 @@ import {
   TARGETING,
   dailySetup,
 } from "./engine.js?v=5";
-import { Board } from "./board.js?v=6";
+import { Board } from "./board.js?v=7";
 import { Profile, dayKey } from "./profile.js?v=3";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=3";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=1";
@@ -36,7 +36,8 @@ let match,
 let adPreparing = false,
   adError = "";
 let aiming = false,
-  challengeDay = null;
+  challengeDay = null,
+  tacticalPaused = false;
 let atpBought,
   repaired,
   prepared = false;
@@ -256,6 +257,7 @@ function begin(next, day = null, restored = null) {
   const level = match.level;
   checkpointLost = false;
   aiming = false;
+  tacticalPaused = false;
   blueprint = BLUEPRINTS[0];
   selected = null;
   cursor = null;
@@ -559,16 +561,19 @@ function renderHUD() {
   }
   $("undo-build").hidden = !match.undoable;
   if (match.state !== "wave") aiming = false;
-  $("pulse").disabled = match.state !== "wave" || match.charge < 100;
+  $("pulse").disabled =
+    match.state !== "wave" || match.charge < 100 || tacticalPaused;
   $("pulse").setAttribute("aria-pressed", String(aiming));
   updateText("pulse", aiming ? "Cancelar pulso" : `Pulso · ${match.charge}%`);
   const phase = waiting
     ? "Preparación"
-    : match.state === "wave"
-      ? match.enemies.some((enemy) => enemy.boss)
-        ? "Jefe en el conducto"
-        : "Oleada en curso"
-      : "Partida terminada";
+    : tacticalPaused
+      ? "Pausa táctica"
+      : match.state === "wave"
+        ? boss
+          ? "Jefe en el conducto"
+          : "Oleada en curso"
+        : "Partida terminada";
   updateText("phase", `${match.map.name} · ${phase}`);
   $("next").disabled = !waiting || adBusy;
   updateText(
@@ -577,6 +582,9 @@ function renderHUD() {
   );
   $("speed").setAttribute("aria-pressed", String(speed === 2));
   updateText("speed", `Velocidad ×${speed}`);
+  $("tactical-pause").disabled = match.state !== "wave";
+  $("tactical-pause").classList.toggle("engaged", tacticalPaused);
+  updateText("tactical-pause", tacticalPaused ? "Reanudar" : "Pausa táctica");
   const canRequestAd = ad && waiting && !match.daily && !match.adUsed;
   $("boost").hidden = !canRequestAd;
   $("boost").disabled = adBusy || adPreparing;
@@ -613,12 +621,13 @@ function frame(now) {
   const elapsed = Math.min(100, now - lastTick);
   lastTick = now;
   if (screen === "field" && !modal.open && !document.hidden) {
-    accumulator += elapsed;
+    accumulator = tacticalPaused ? 0 : accumulator + elapsed;
     while (accumulator >= 1000 / 60) {
       for (let i = 0; i < speed; i++) match.tick();
       accumulator -= 1000 / 60;
     }
     if (lastState !== match.state) {
+      tacticalPaused = false;
       lastState = match.state;
       if (match.state === "won" || match.state === "lost") finish();
       else if (match.state === "build" && match.wave) {
@@ -860,6 +869,33 @@ $("speed").onclick = () => {
   persistPreparation();
   renderHUD();
 };
+$("tactical-pause").onclick = () => {
+  if (match.state !== "wave" || modal.open) return;
+  tacticalPaused = !tacticalPaused;
+  if (tacticalPaused) aiming = false;
+  accumulator = 0;
+  lastTick = performance.now();
+  message(
+    tacticalPaused
+      ? "Oleada detenida. Puedes construir, mejorar y cambiar objetivos."
+      : "Combate reanudado.",
+  );
+  renderHUD();
+};
+document.addEventListener("keydown", (event) => {
+  if (
+    screen !== "field" ||
+    modal.open ||
+    event.defaultPrevented ||
+    event.repeat ||
+    event.ctrlKey ||
+    event.altKey ||
+    event.metaKey ||
+    event.key.toLowerCase() !== "p"
+  )
+    return;
+  $("tactical-pause").click();
+});
 $("pause").onclick = () => {
   const actions = [["Continuar"]];
   if (!match.daily && !checkpointLost && checkpoint?.raw)

@@ -301,6 +301,22 @@ function target(ctx, enemy) {
   ctx.restore();
 }
 
+function highlightCoverage(ctx, tower, routes) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(tower.x, tower.y, tower.range, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.lineWidth = 8;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.strokeStyle = tower.color;
+  for (const { points } of routes) {
+    trace(ctx, points);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 export class Board {
   constructor(canvas) {
     this.ctx = canvas.getContext("2d");
@@ -342,6 +358,7 @@ export class Board {
           color + "b0",
           2,
         );
+        if (valid) highlightCoverage(ctx, tower, match.routes);
       }
       if (ghost)
         circle(

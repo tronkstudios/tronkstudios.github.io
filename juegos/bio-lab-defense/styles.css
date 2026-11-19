@@ -466,6 +466,11 @@ dialog p {
   background: #216182;
   color: white;
 }
+#tactical-pause.engaged {
+  border-color: #f0bb6f;
+  background: #523623;
+  color: #ffe0a6;
+}
 .upgrade-options {
   display: grid;
   gap: 0.35rem;
@@ -488,7 +493,7 @@ dialog p {
 @media (max-width: 760px) {
   .wave-actions {
     display: grid;
-    grid-template-columns: minmax(0, 1.3fr) repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     margin-bottom: 0.1rem;
   }
   .wave-actions button {
@@ -501,6 +506,11 @@ dialog p {
   #selection .actions {
     display: flex;
     flex-wrap: wrap;
+  }
+}
+@media (max-width: 440px) {
+  .wave-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

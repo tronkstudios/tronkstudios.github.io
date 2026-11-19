@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=6" />
+    <link rel="stylesheet" href="./styles.css?v=7" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -190,6 +190,14 @@
               <button type="button" id="speed" aria-pressed="false">
                 Velocidad ×1
               </button>
+              <button
+                type="button"
+                id="tactical-pause"
+                aria-keyshortcuts="P"
+                disabled
+              >
+                Pausa táctica
+              </button>
             </div>
             <div id="boss-status" class="boss-status" hidden>
               <div>
@@ -246,6 +254,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=7"></script>
+    <script type="module" src="./game.js?v=8"></script>
   </body>
 </html>

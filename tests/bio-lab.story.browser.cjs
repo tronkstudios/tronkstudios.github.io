@@ -33,6 +33,14 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8790";
 window.completeStoryMission = () => Object.assign(match, { hp: 100, kills: 30, state: "won" });
 window.hasEnemyAtB = () => match.enemies.some((enemy) => enemy.lane === 1);
 window.defeatEnemyAtB = () => match.damage(match.enemies.find((enemy) => enemy.lane === 1), 10000, "#fff");
+window.matchTime = () => match.time;
+window.testTowerSpot = () => {
+  for (let y = 60; y < HEIGHT; y += 60) {
+    for (let x = 60; x < WIDTH; x += 60) {
+      if (!match.checkPlacement(blueprint, x, y)) return { x, y };
+    }
+  }
+};
 window.spawnTestBoss = () => {
   match.queue.unshift(match.planWave(match.maxWaves).order.at(-1));
   match.spawn();
@@ -151,6 +159,8 @@ window.spawnTestBoss = () => {
       };
       const [a, b] = await counts();
       assert.ok(a > 0 && b > 0);
+      const tacticalPause = page.locator("#tactical-pause");
+      assert.equal(await tacticalPause.isDisabled(), true);
       const roster = await page.locator("#wave-roster li").allTextContents();
       assert.equal(
         roster.reduce((sum, entry) => sum + Number(entry.split(" × ")[0]), 0),
@@ -159,6 +169,27 @@ window.spawnTestBoss = () => {
       await page.locator("#next").click();
       await page.waitForFunction(() => hasEnemyAtB());
       assert.deepEqual(await counts(), [a, b]);
+      await tacticalPause.click();
+      const frozenAt = await page.evaluate(() => matchTime());
+      await page.getByText(/Oleada detenida/).waitFor();
+      const beforeBuild = Number(await page.locator("#atp").textContent());
+      const { x, y } = await page.evaluate(() => testTowerSpot());
+      const dimensions = await canvas.boundingBox();
+      const position = {
+        x: ((dimensions.width - 2) * x) / 900,
+        y: ((dimensions.height - 2) * y) / 540,
+      };
+      if (width < 400) await canvas.tap({ position });
+      else await canvas.click({ position });
+      await page.getByText("Nano-Láser instalada.", { exact: true }).waitFor();
+      assert.equal(Number(await page.locator("#atp").textContent()), beforeBuild - 50);
+      assert.equal(await page.evaluate(() => matchTime()), frozenAt);
+      await page.locator("#pause").click();
+      await page.getByRole("button", { name: "Continuar", exact: true }).click();
+      assert.equal(await page.evaluate(() => matchTime()), frozenAt);
+      if (width < 400) await tacticalPause.tap();
+      else await page.keyboard.press("p");
+      await page.waitForFunction((time) => matchTime() > time, frozenAt);
       await page.evaluate(() => defeatEnemyAtB());
       await page.waitForFunction(
         (label) => document.querySelector("#lane-b").textContent === label,
@@ -171,7 +202,7 @@ window.spawnTestBoss = () => {
       assert.equal(await canvas.evaluate((node) => node.offsetTop), boardTop);
       assert.deepEqual(errors, []);
       console.log(
-        `Bio-Lab campaign, medals, wave roster, live lanes and layout passed at ${width}px.`,
+        `Bio-Lab campaign, wave roster, live lanes and tactical pause passed at ${width}px.`,
       );
       await page.close();
     }
