@@ -7,12 +7,14 @@ import {
   specializations,
   TARGETING,
   dailySetup,
-} from "./engine.js?v=4";
-import { Board } from "./board.js?v=4";
+} from "./engine.js?v=5";
+import { Board } from "./board.js?v=5";
 import { Profile, dayKey } from "./profile.js?v=3";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=2";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=1";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=1";
+
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=1";
 
 const $ = (id) => document.getElementById(id);
 const panels = ["home", "campaign", "briefing", "field"];
@@ -44,6 +46,8 @@ let selectionKey = "";
 let briefingLevel = 1,
   lastBoss = false;
 const profile = new Profile(refreshProfile);
+let checkpoint,
+  checkpointLost = false;
 
 function makeButton(text, handler) {
   const button = document.createElement("button");
@@ -57,6 +61,7 @@ function view(name) {
   screen = name;
   for (const panel of panels) $(panel).hidden = panel !== name;
   window.scrollTo(0, 0);
+  if (name === "home" || name === "campaign") refreshCheckpoint();
   if (name !== "home") {
     const heading = $(name).querySelector("h1");
     heading.tabIndex = -1;
@@ -183,17 +188,79 @@ function briefing(level) {
   briefingBoard.draw(preview, null, null, null, true, false);
 }
 
+function savedPreparation() {
+  return checkpoint
+    ? restoreCheckpoint(checkpoint.read(profile.data.unlockedLevel))
+    : null;
+}
+
+function refreshCheckpoint() {
+  const saved = savedPreparation();
+  $("home-resume-run").hidden = !saved;
+  $("campaign-checkpoint").hidden = !saved;
+  if (saved)
+    updateText(
+      "saved-sector",
+      `${saved.match.mission.name} · Oleada ${saved.match.wave + 1}/${saved.match.maxWaves}`,
+    );
+}
+
+function persistPreparation() {
+  if (
+    !checkpoint ||
+    checkpointLost ||
+    !match ||
+    match.daily ||
+    match.state !== "build"
+  )
+    return;
+  if (!checkpoint.write(match, { atpBought, repaired, speed })) {
+    checkpointLost = true;
+    updateText(
+      "checkpoint-state",
+      "No se pudo actualizar el punto de guardado.",
+    );
+    return;
+  }
+  updateText("checkpoint-state", `Punto guardado · Oleada ${match.wave + 1}`);
+}
+
+function resumePreparation() {
+  const saved = savedPreparation();
+  if (saved) begin(saved.match, null, saved);
+  else refreshCheckpoint();
+}
+
 function start(level, day = null) {
+  if (day) return begin(new Match(level, dailySetup(day)), day);
+  const saved = savedPreparation();
+  const launch = () => begin(new Match(level));
+  if (!saved) return launch();
+  ask(
+    "Hay una partida guardada",
+    `Si empiezas otra misión, se reemplazará el punto guardado de ${saved.match.mission.name}.`,
+    [
+      ["Retomar partida", resumePreparation],
+      ["Empezar y reemplazar", launch],
+      ["Volver"],
+    ],
+  );
+}
+
+function begin(next, day = null, restored = null) {
   challengeDay = day;
-  lastState = null;
+  lastState = next.state;
   lastBoss = false;
-  match = new Match(level, day ? dailySetup(day) : null);
+  match = next;
+  const level = match.level;
+  checkpointLost = false;
   aiming = false;
   blueprint = BLUEPRINTS[0];
   selected = null;
   cursor = null;
-  speed = 1;
-  atpBought = repaired = false;
+  speed = restored?.speed || 1;
+  atpBought = restored?.atpBought || false;
+  repaired = restored?.repaired || false;
   selectionKey = "";
   $("sector").textContent = day
     ? `Reto · ${match.daily.name}`
@@ -202,11 +269,20 @@ function start(level, day = null) {
   $("radio-log").hidden = !match.mission;
   if (match.mission) {
     updateText("radio-speaker", match.mission.speaker);
-    updateText("radio-text", match.mission.task);
+    updateText(
+      "radio-text",
+      match.wave >= 2 ? match.mission.transmission : match.mission.task,
+    );
   }
   renderDock();
   view("field");
-  message("Elige una torre y toca fuera del conducto para colocarla.");
+  message(
+    restored
+      ? `Partida retomada. Prepara la oleada ${match.wave + 1}.`
+      : "Elige una torre y toca fuera del conducto para colocarla.",
+  );
+  $("checkpoint-state").hidden = !!day;
+  if (!day) persistPreparation();
   $("supplies").hidden = !!day;
   adError = "";
   if (!day) prepareAd();
@@ -281,6 +357,7 @@ function place(x, y) {
       );
     match.place(blueprint, x, y);
     sound("build", true);
+    persistPreparation();
     message(`${blueprint.name} instalada.`);
   }
   highlightDock();
@@ -322,7 +399,10 @@ function renderSelection() {
   options.className = "upgrade-options";
   if (tower.rank === 1) {
     const improve = makeButton(`Mejorar · ${cost} ATP`, () => {
-      if (match.upgrade(tower)) message(`${tower.name} mejorada a nivel 2.`);
+      if (match.upgrade(tower)) {
+        message(`${tower.name} mejorada a nivel 2.`);
+        persistPreparation();
+      }
       renderHUD();
     });
     improve.disabled = match.atp < cost;
@@ -330,8 +410,10 @@ function renderSelection() {
   } else if (tower.rank === 2) {
     for (const [choice, branch] of specializations(tower).entries()) {
       const improve = makeButton(`${branch.name} · ${cost} ATP`, () => {
-        if (match.upgrade(tower, choice))
+        if (match.upgrade(tower, choice)) {
           message(`Especialización «${branch.name}» activada.`);
+          persistPreparation();
+        }
         renderHUD();
       });
       improve.disabled = match.atp < cost;
@@ -347,6 +429,7 @@ function renderSelection() {
     const targeting = makeButton("", () => {
       const index = TARGETING.findIndex(([id]) => id === tower.targeting);
       tower.targeting = TARGETING[(index + 1) % TARGETING.length][0];
+      persistPreparation();
       const label = TARGETING.find(([id]) => id === tower.targeting)[1];
       targeting.textContent = `Objetivo: ${label}`;
       selectionKey = null;
@@ -359,12 +442,30 @@ function renderSelection() {
   }
   actions.append(
     makeButton(`Vender · +${Math.floor(tower.paid * 0.65)} ATP`, () => {
-      if (match.sell(tower)) message(`${tower.name} retirada.`);
+      if (match.sell(tower)) {
+        message(`${tower.name} retirada.`);
+        persistPreparation();
+      }
       selected = null;
       renderHUD();
     }),
   );
-  panel.replaceChildren(heading, detail, options, actions);
+  const performance = elPerformance(tower);
+  panel.replaceChildren(heading, detail, performance, options, actions);
+}
+
+function towerReport(tower) {
+  if (tower.type === "eco")
+    return `ATP generado · ${tower.produced.toLocaleString("es-ES")}`;
+  return `Daño infligido · ${Math.round(tower.inflicted).toLocaleString("es-ES")} · Bajas ${tower.defeated}`;
+}
+
+function elPerformance(tower) {
+  const performance = document.createElement("p");
+  performance.id = "tower-performance";
+  performance.className = "tower-performance";
+  performance.textContent = towerReport(tower);
+  return performance;
 }
 
 function updateText(id, value) {
@@ -464,6 +565,8 @@ function renderHUD() {
   $("heal").disabled =
     !waiting || repaired || match.hp === 100 || profile.data.bioGems < 5;
   renderSelection();
+  if (selected && $("tower-performance"))
+    updateText("tower-performance", towerReport(selected));
 }
 
 function announce() {
@@ -487,7 +590,10 @@ function frame(now) {
     if (lastState !== match.state) {
       lastState = match.state;
       if (match.state === "won" || match.state === "lost") finish();
-      else if (match.state === "build" && match.wave) message(announce());
+      else if (match.state === "build" && match.wave) {
+        persistPreparation();
+        message(announce());
+      }
     }
     board.draw(match, blueprint, selected, cursor, reduced.matches, aiming);
     renderHUD();
@@ -515,6 +621,7 @@ function finish() {
     );
     return;
   }
+  checkpoint?.clear();
   const mission = match.mission;
   let earnedMedal = false;
   if (won) {
@@ -611,6 +718,8 @@ canvas.onkeydown = (e) => {
 $("campaign-button").onclick = campaign;
 $("back-home").onclick = () => view("home");
 $("resume-mission").onclick = () => briefing(profile.data.unlockedLevel);
+$("home-resume-run").onclick = resumePreparation;
+$("campaign-resume-run").onclick = resumePreparation;
 $("back-campaign").onclick = campaign;
 $("launch-mission").onclick = () => start(briefingLevel);
 function showSoundState(enabled) {
@@ -674,6 +783,7 @@ $("undo-build").onclick = () => {
     highlightDock();
   }
   message(`${tower.name} retirada. Recuperas ${tower.cost} ATP.`);
+  persistPreparation();
   renderHUD();
 };
 $("pulse").onclick = () => {
@@ -688,17 +798,31 @@ $("pulse").onclick = () => {
 };
 $("speed").onclick = () => {
   speed = speed === 1 ? 2 : 1;
+  persistPreparation();
   renderHUD();
 };
-$("pause").onclick = () =>
+$("pause").onclick = () => {
+  const actions = [["Continuar"]];
+  if (!match.daily && !checkpointLost && checkpoint?.raw)
+    actions.push(["Volver con guardado", campaign]);
+  actions.push([
+    "Abandonar partida",
+    () => {
+      if (match.daily) view("home");
+      else {
+        checkpoint?.clear();
+        campaign();
+      }
+    },
+  ]);
   ask(
     "Partida en pausa",
-    "Puedes volver a la defensa o abandonar esta partida.",
-    [
-      ["Continuar"],
-      ["Abandonar partida", challengeDay ? () => view("home") : campaign],
-    ],
+    match.daily
+      ? "Puedes continuar el reto o abandonarlo."
+      : "Puedes retomar la misión desde la última preparación guardada. Abandonar descarta el punto de esta partida.",
+    actions,
   );
+};
 $("buy-atp").onclick = () => {
   if (
     match.daily ||
@@ -711,6 +835,7 @@ $("buy-atp").onclick = () => {
   profile.data.atpBank -= 100;
   match.atp += 60;
   profile.commit();
+  persistPreparation();
   message("Suministro de reserva entregado.");
   renderHUD();
 };
@@ -727,6 +852,7 @@ $("heal").onclick = () => {
   profile.data.bioGems -= 5;
   match.hp = Math.min(100, match.hp + 25);
   profile.commit();
+  persistPreparation();
   message("Núcleo reparado.");
   renderHUD();
 };
@@ -788,6 +914,7 @@ $("boost").onclick = () => {
       if (screen !== "field" || match !== run || run.adUsed) return close();
       run.adUsed = true;
       run.atp += 75;
+      persistPreparation();
       message("Suministro publicitario recibido: +75 ATP.");
       close();
     },
@@ -812,6 +939,8 @@ $("campaign-button").disabled =
 view("home");
 void profile.init().finally(() => {
   prepared = true;
+  checkpoint = new Checkpoint(profile.user);
+  refreshCheckpoint();
   $("campaign-button").disabled = $("challenge-button").disabled = false;
   refreshProfile();
 });

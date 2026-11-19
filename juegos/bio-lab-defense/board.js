@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT } from "./engine.js?v=4";
+import { WIDTH, HEIGHT } from "./engine.js?v=5";
 
 function trace(ctx, points) {
   ctx.beginPath();

@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=4" />
+    <link rel="stylesheet" href="./styles.css?v=5" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -55,6 +55,14 @@
               <button type="button" class="primary" id="campaign-button">
                 Modo historia
               </button>
+              <button
+                type="button"
+                class="resume-checkpoint"
+                id="home-resume-run"
+                hidden
+              >
+                Retomar partida
+              </button>
               <button type="button" id="challenge-button">Reto de hoy</button>
               <button type="button" id="daily-button">Suministro diario</button>
             </div>
@@ -78,6 +86,19 @@
           </div>
           <button type="button" class="primary" id="resume-mission">
             Continuar historia
+          </button>
+        </div>
+        <div id="campaign-checkpoint" class="campaign-resume" hidden>
+          <div>
+            <strong>Partida guardada</strong>
+            <p id="saved-sector"></p>
+          </div>
+          <button
+            type="button"
+            class="primary resume-checkpoint"
+            id="campaign-resume-run"
+          >
+            Retomar partida
           </button>
         </div>
         <div id="levels" class="levels"></div>
@@ -119,6 +140,7 @@
           <div>
             <h1 id="sector"></h1>
             <p id="phase"></p>
+            <p id="checkpoint-state" hidden></p>
           </div>
           <button type="button" id="pause">Pausa</button>
         </div>
@@ -214,6 +236,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=4"></script>
+    <script type="module" src="./game.js?v=5"></script>
   </body>
 </html>

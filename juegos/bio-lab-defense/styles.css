@@ -719,3 +719,25 @@ dialog p {
     font-size: 0.86rem;
   }
 }
+
+.resume-checkpoint {
+  border-color: #72bba9;
+  color: #c1fae7;
+}
+#campaign-checkpoint {
+  border-color: #3e786e;
+}
+#checkpoint-state {
+  color: #95d9bd;
+  font-size: 0.76rem;
+  margin-top: 0.2rem;
+}
+#selection .tower-performance {
+  padding: 0.3rem 0.45rem;
+  margin-top: 0.5rem;
+  border-radius: 6px;
+  background: #142937;
+  color: #aeeadf;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
