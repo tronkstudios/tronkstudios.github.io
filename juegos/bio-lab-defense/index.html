@@ -22,15 +22,18 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=3" />
+    <link rel="stylesheet" href="./styles.css?v=4" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
     <header class="site-bar">
       <a href="/#minijuegos" class="back-link">← Minijuegos</a>
-      <a href="/#account-button" class="brand"
-        >Cuenta · TRONK<span>STUDIOS</span></a
-      >
+      <div class="site-actions">
+        <button type="button" id="sound-toggle" aria-pressed="false">
+          Sonido
+        </button>
+        <a href="/#account-button" class="brand">Cuenta</a>
+      </div>
     </header>
     <main>
       <section id="home" aria-labelledby="title">
@@ -45,17 +48,18 @@
           <div class="hero-body">
             <h1 id="title">Bio-Lab <span>Defense</span></h1>
             <p>
-              Protege el núcleo. Combina torres, mejora tus defensas y aguanta
-              hasta la última oleada.
+              Las compuertas se han abierto. Defiende el laboratorio y recupera
+              el control antes de que la avería alcance el núcleo.
             </p>
             <div class="actions">
               <button type="button" class="primary" id="campaign-button">
-                Jugar campaña
+                Modo historia
               </button>
               <button type="button" id="challenge-button">Reto de hoy</button>
               <button type="button" id="daily-button">Suministro diario</button>
             </div>
           </div>
+          <div class="home-progress" id="home-progress"></div>
         </div>
         <output id="home-status" role="status"></output>
       </section>
@@ -63,11 +67,52 @@
         <div class="section-head">
           <div>
             <button type="button" id="back-home">← Menú</button>
-            <h1 id="campaign-title">Sectores del laboratorio</h1>
+            <h1 id="campaign-title">Modo historia</h1>
           </div>
           <p id="profile-balance"></p>
         </div>
+        <div class="campaign-resume">
+          <div>
+            <strong id="campaign-progress-title"></strong>
+            <p id="campaign-progress"></p>
+          </div>
+          <button type="button" class="primary" id="resume-mission">
+            Continuar historia
+          </button>
+        </div>
         <div id="levels" class="levels"></div>
+      </section>
+      <section id="briefing" hidden aria-labelledby="briefing-title">
+        <button type="button" id="back-campaign">← Sectores</button>
+        <div class="mission-brief">
+          <div class="mission-plan">
+            <p class="mission-chapter" id="briefing-chapter"></p>
+            <h1 id="briefing-title"></h1>
+            <p class="mission-task" id="briefing-task"></p>
+            <div class="radio-card">
+              <strong id="briefing-speaker"></strong>
+              <p id="briefing-voice"></p>
+            </div>
+            <p class="mission-cue" id="briefing-tip"></p>
+            <div class="mission-medal">
+              <strong id="briefing-medal"></strong>
+              <p id="briefing-medal-note"></p>
+            </div>
+            <button type="button" class="primary" id="launch-mission">
+              Comenzar misión
+            </button>
+          </div>
+          <div class="mission-preview">
+            <canvas
+              id="briefing-map"
+              width="900"
+              height="540"
+              role="img"
+              aria-label="Plano del sector"
+            ></canvas>
+            <p id="briefing-waves"></p>
+          </div>
+        </div>
       </section>
       <section id="field" hidden aria-label="Partida">
         <div class="section-head field-head">
@@ -91,6 +136,11 @@
           <div><span>ATP</span><strong id="atp"></strong></div>
           <div><span>Oleadas</span><strong id="wave"></strong></div>
           <div><span>Combo</span><strong id="combo"></strong></div>
+          <div><span>Amenazas</span><strong id="threats"></strong></div>
+        </div>
+        <div id="radio-log" class="radio-card field-radio" hidden>
+          <strong id="radio-speaker"></strong>
+          <p id="radio-text" role="status"></p>
         </div>
         <div id="boss-status" class="boss-status" hidden>
           <div>
@@ -126,7 +176,7 @@
                 Iniciar oleada
               </button>
               <button type="button" id="pulse" aria-pressed="false">
-                Pulso · 35 %
+                Pulso táctico
               </button>
               <button type="button" id="speed" aria-pressed="false">
                 Velocidad ×1
@@ -164,6 +214,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=3"></script>
+    <script type="module" src="./game.js?v=4"></script>
   </body>
 </html>

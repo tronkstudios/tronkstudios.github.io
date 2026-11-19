@@ -76,6 +76,7 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8789";
         if (path.includes("bio-lab")) {
           await page.locator("#campaign-button").tap();
           await page.locator(".level").first().tap();
+          await page.locator("#launch-mission").tap();
           assert.match(
             await page.locator("#wave-preview-title").textContent(),
             /enemigos/,

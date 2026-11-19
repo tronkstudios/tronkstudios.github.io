@@ -1,6 +1,5 @@
 import {
   BLUEPRINTS,
-  SECTORS,
   Match,
   WIDTH,
   HEIGHT,
@@ -8,15 +7,18 @@ import {
   specializations,
   TARGETING,
   dailySetup,
-} from "./engine.js?v=3";
-import { Board } from "./board.js?v=3";
-import { Profile, dayKey } from "./profile.js?v=2";
+} from "./engine.js?v=4";
+import { Board } from "./board.js?v=4";
+import { Profile, dayKey } from "./profile.js?v=3";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=2";
+import { CHAPTERS, MISSIONS } from "./campaign.js?v=1";
+import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=1";
 
 const $ = (id) => document.getElementById(id);
-const panels = ["home", "campaign", "field"];
+const panels = ["home", "campaign", "briefing", "field"];
 const canvas = $("board");
 const board = new Board(canvas);
+const briefingBoard = new Board($("briefing-map"));
 const modal = $("modal");
 const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 const ad = createAdSenseProvider(
@@ -39,6 +41,8 @@ let atpBought,
 let lastTick = performance.now(),
   accumulator = 0;
 let selectionKey = "";
+let briefingLevel = 1,
+  lastBoss = false;
 const profile = new Profile(refreshProfile);
 
 function makeButton(text, handler) {
@@ -53,6 +57,11 @@ function view(name) {
   screen = name;
   for (const panel of panels) $(panel).hidden = panel !== name;
   window.scrollTo(0, 0);
+  if (name !== "home") {
+    const heading = $(name).querySelector("h1");
+    heading.tabIndex = -1;
+    heading.focus({ preventScroll: true });
+  }
 }
 
 function ask(title, message, buttons) {
@@ -76,36 +85,108 @@ function refreshProfile() {
   $("profile-balance").textContent =
     `Reserva: ${profile.data.atpBank} ATP · ${profile.data.bioGems} biogemas`;
   $("daily-button").disabled = !prepared;
+  const complete = profile.data.stars.filter(Boolean).length;
+  const medals = profile.data.medals.filter(Boolean).length;
+  updateText(
+    "home-progress",
+    `${complete}/${MISSIONS.length} misiones · ${medals} insignias`,
+  );
   if (screen === "campaign") renderLevels();
 }
 
 function renderLevels() {
-  const nodes = SECTORS.map((name, i) => {
-    const level = i + 1;
-    const button = makeButton("", () => start(level));
-    button.className = "level";
-    button.disabled = level > profile.data.unlockedLevel;
-    const number = document.createElement("small");
-    number.textContent = `Sector ${String(level).padStart(2, "0")}`;
-    const label = document.createElement("strong");
-    label.textContent = name;
-    const badge = document.createElement("span");
-    const stars = profile.data.stars[i];
-    badge.className = `stamps${stars ? " earned" : ""}`;
-    badge.textContent = button.disabled
-      ? "Bloqueado"
-      : stars
-        ? `${"★".repeat(stars)}${"☆".repeat(3 - stars)}`
-        : "Disponible";
-    button.append(number, label, badge);
-    return button;
+  const complete = profile.data.stars.filter(Boolean).length;
+  const totalStars = profile.data.stars.reduce((a, b) => a + b, 0);
+  const medals = profile.data.medals.filter(Boolean).length;
+  updateText(
+    "campaign-progress-title",
+    complete === MISSIONS.length
+      ? "Laboratorio recuperado"
+      : "Progreso de la operación",
+  );
+  updateText(
+    "campaign-progress",
+    `${complete}/${MISSIONS.length} misiones · ${totalStars} estrellas · ${medals} insignias`,
+  );
+  const active = profile.data.unlockedLevel;
+  const chapters = CHAPTERS.map((chapter, index) => {
+    const section = document.createElement("section");
+    section.className = "chapter";
+    section.style.setProperty("--chapter", chapter.color);
+    const header = document.createElement("header");
+    const title = document.createElement("h2");
+    title.textContent = `Capítulo ${index + 1} · ${chapter.name}`;
+    const location = document.createElement("p");
+    location.textContent = chapter.location;
+    header.append(title, location);
+    const sectors = document.createElement("div");
+    sectors.className = "chapter-sectors";
+    for (const [i, mission] of MISSIONS.entries()) {
+      if (mission.chapter !== index) continue;
+      const level = i + 1;
+      const button = makeButton("", () => briefing(level));
+      button.className = "level";
+      button.classList.toggle(
+        "level-current",
+        level === active && !profile.data.stars[i],
+      );
+      button.disabled = level > active;
+      const number = document.createElement("small");
+      number.textContent = `Sector ${String(level).padStart(2, "0")}`;
+      const label = document.createElement("strong");
+      label.textContent = mission.name;
+      const badge = document.createElement("span");
+      const stars = profile.data.stars[i];
+      badge.className = `stamps${stars ? " earned" : ""}`;
+      badge.textContent = button.disabled
+        ? "Bloqueado"
+        : stars
+          ? `${"★".repeat(stars)}${"☆".repeat(3 - stars)}${profile.data.medals[i] ? " · Insignia" : ""}`
+          : "Disponible";
+      button.append(number, label, badge);
+      sectors.append(button);
+    }
+    section.append(header, sectors);
+    return section;
   });
-  $("levels").replaceChildren(...nodes);
+  $("levels").replaceChildren(...chapters);
+}
+
+function briefing(level) {
+  if (level > profile.data.unlockedLevel) return;
+  briefingLevel = level;
+  const mission = MISSIONS[level - 1];
+  const chapter = CHAPTERS[mission.chapter];
+  const preview = new Match(level);
+  $("briefing").style.setProperty("--chapter", chapter.color);
+  updateText(
+    "briefing-chapter",
+    `Capítulo ${mission.chapter + 1} · ${chapter.name}`,
+  );
+  updateText("briefing-title", mission.name);
+  updateText("briefing-task", mission.task);
+  updateText("briefing-speaker", mission.speaker);
+  updateText("briefing-voice", mission.briefing);
+  updateText("briefing-tip", mission.cue);
+  updateText(
+    "briefing-medal",
+    profile.data.medals[level - 1]
+      ? `Insignia obtenida · ${mission.medal.title}`
+      : `Insignia · ${mission.medal.title}`,
+  );
+  updateText("briefing-medal-note", mission.medal.text);
+  updateText(
+    "briefing-waves",
+    `${preview.maxWaves} oleadas · ${preview.routes.length === 2 ? "Dos entradas" : "Una entrada"}`,
+  );
+  view("briefing");
+  briefingBoard.draw(preview, null, null, null, true, false);
 }
 
 function start(level, day = null) {
   challengeDay = day;
   lastState = null;
+  lastBoss = false;
   match = new Match(level, day ? dailySetup(day) : null);
   aiming = false;
   blueprint = BLUEPRINTS[0];
@@ -116,7 +197,13 @@ function start(level, day = null) {
   selectionKey = "";
   $("sector").textContent = day
     ? `Reto · ${match.daily.name}`
-    : `Sector ${level} · ${SECTORS[level - 1]}`;
+    : `Sector ${level} · ${match.mission.name}`;
+  unlockAudio();
+  $("radio-log").hidden = !match.mission;
+  if (match.mission) {
+    updateText("radio-speaker", match.mission.speaker);
+    updateText("radio-text", match.mission.task);
+  }
   renderDock();
   view("field");
   message("Elige una torre y toca fuera del conducto para colocarla.");
@@ -173,6 +260,7 @@ function place(x, y) {
   if (aiming) {
     if (match.activatePulse(x, y)) {
       aiming = false;
+      sound("pulse", true);
       message("Pulso activado. Escudos desactivados.");
     } else message("Apunta a un enemigo dentro del círculo.", true);
     renderHUD();
@@ -192,6 +280,7 @@ function place(x, y) {
         true,
       );
     match.place(blueprint, x, y);
+    sound("build", true);
     message(`${blueprint.name} instalada.`);
   }
   highlightDock();
@@ -288,6 +377,7 @@ function renderHUD() {
   $("integrity").value = match.hp;
   updateText("atp", match.atp);
   updateText("wave", `${match.wave}/${match.maxWaves}`);
+  updateText("threats", match.enemies.length + match.queue.length);
   updateText(
     "combo",
     match.combo >= 5 ? `×${match.combo} Fiebre` : `×${match.combo || 1}`,
@@ -295,6 +385,8 @@ function renderHUD() {
   const waiting = match.state === "build";
   const boss = match.enemies.find((enemy) => enemy.boss && enemy.hp > 0);
   $("boss-status").hidden = !boss;
+  if (boss && !lastBoss) sound("boss");
+  lastBoss = !!boss;
   if (boss) {
     updateText("boss-name", boss.name);
     updateText(
@@ -409,6 +501,7 @@ function finish() {
   const won = match.state === "won";
   const stars = won ? (match.hp >= 90 ? 3 : match.hp >= 55 ? 2 : 1) : 0;
   const { level } = match;
+  sound(won ? "victory" : "defeat");
   if (challengeDay) {
     const score = match.score();
     const record = profile.recordDaily(challengeDay, score);
@@ -422,31 +515,55 @@ function finish() {
     );
     return;
   }
+  const mission = match.mission;
+  let earnedMedal = false;
   if (won) {
-    const earned = Math.max(0, stars - profile.data.stars[level - 1]);
-    profile.data.stars[level - 1] = Math.max(
-      stars,
-      profile.data.stars[level - 1],
-    );
-    profile.data.unlockedLevel = Math.min(
-      10,
+    const earnedStars = Math.max(0, stars - profile.data.stars[level - 1]);
+    const unlock = Math.min(
+      MISSIONS.length,
       Math.max(profile.data.unlockedLevel, level + 1),
     );
-    profile.data.atpBank += earned * 55;
-    profile.data.bioGems += earned * 2;
-    profile.commit();
+    earnedMedal = !profile.data.medals[level - 1] && mission.medal.test(match);
+    if (earnedStars || earnedMedal || unlock !== profile.data.unlockedLevel) {
+      profile.data.stars[level - 1] = Math.max(
+        stars,
+        profile.data.stars[level - 1],
+      );
+      profile.data.unlockedLevel = unlock;
+      if (earnedMedal) profile.data.medals[level - 1] = true;
+      profile.data.atpBank += earnedStars * 55 + (earnedMedal ? 35 : 0);
+      profile.data.bioGems += earnedStars * 2 + (earnedMedal ? 2 : 0);
+      profile.commit();
+    }
   }
   const buttons =
-    won && level < 10 ? [["Siguiente sector", () => start(level + 1)]] : [];
+    won && level < MISSIONS.length
+      ? [["Siguiente sector", () => briefing(level + 1)]]
+      : [];
   buttons.push(
     ["Reintentar", () => start(level)],
     ["Volver a sectores", campaign],
   );
+  const summary = won
+    ? `${"★".repeat(stars)}${"☆".repeat(3 - stars)} · Núcleo al ${match.hp}% · ${match.kills} eliminados.
+
+${mission.end}${
+        earnedMedal
+          ? `
+
+Insignia: ${mission.medal.title}. +35 ATP de reserva y +2 biogemas.`
+          : ""
+      }`
+    : `El núcleo cayó en la oleada ${match.wave} de ${match.maxWaves}.
+
+${mission.cue}`;
   ask(
-    won ? "Contención completada" : "Brecha de contención",
     won
-      ? `${"★".repeat(stars)}${"☆".repeat(3 - stars)} · Núcleo al ${match.hp}% · ${match.kills} eliminados.`
-      : `El núcleo cayó en la oleada ${match.wave} de ${match.maxWaves}. Prueba a combinar ralentización y daño en área.`,
+      ? level === MISSIONS.length
+        ? "Laboratorio recuperado"
+        : "Misión completada"
+      : "Brecha de contención",
+    summary,
     buttons,
   );
 }
@@ -493,6 +610,19 @@ canvas.onkeydown = (e) => {
 
 $("campaign-button").onclick = campaign;
 $("back-home").onclick = () => view("home");
+$("resume-mission").onclick = () => briefing(profile.data.unlockedLevel);
+$("back-campaign").onclick = campaign;
+$("launch-mission").onclick = () => start(briefingLevel);
+function showSoundState(enabled) {
+  $("sound-toggle").setAttribute("aria-pressed", String(enabled));
+  $("sound-toggle").setAttribute(
+    "aria-label",
+    enabled ? "Silenciar sonido" : "Activar sonido",
+  );
+  updateText("sound-toggle", enabled ? "Sonido sí" : "Sonido no");
+}
+showSoundState(soundEnabled());
+$("sound-toggle").onclick = () => showSoundState(toggleSound());
 $("challenge-button").onclick = () => {
   if (!prepared) return;
   const day = dayKey();
@@ -527,7 +657,12 @@ $("daily-button").onclick = () => {
 };
 $("next").onclick = () => {
   if (adBusy) return;
-  if (match.startWave()) message(`Oleada ${match.wave} iniciada.`);
+  if (match.startWave()) {
+    sound("wave", true);
+    if (match.mission && match.wave === 2)
+      updateText("radio-text", match.mission.transmission);
+    message(`Oleada ${match.wave} iniciada.`);
+  }
   renderHUD();
 };
 $("undo-build").onclick = () => {

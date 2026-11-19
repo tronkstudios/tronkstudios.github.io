@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT } from "./engine.js?v=3";
+import { WIDTH, HEIGHT } from "./engine.js?v=4";
 
 function trace(ctx, points) {
   ctx.beginPath();
@@ -28,34 +28,107 @@ function polygon(ctx, sides, radius) {
   ctx.closePath();
 }
 
-function background(map, routes) {
+const floors = [
+  { light: "#173958", dark: "#061322", grid: "#32648848", fixture: "#18425b" },
+  { light: "#153c37", dark: "#061b20", grid: "#37776b48", fixture: "#1e5245" },
+  { light: "#392c55", dark: "#120c24", grid: "#705b9a4f", fixture: "#483767" },
+];
+
+function floorTile(ctx, x, y, chapter, palette, accent) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.fillStyle = palette.fixture + "68";
+  ctx.strokeStyle = palette.grid;
+  ctx.lineWidth = 2;
+  if (chapter === 0) {
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(-45, -24, 90, 48, 9);
+    else ctx.rect(-45, -24, 90, 48);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#070f1c88";
+    for (let i = -31; i <= 29; i += 15) ctx.fillRect(i, -14, 7, 28);
+  } else if (chapter === 1) {
+    circle(ctx, 0, 0, 34, palette.fixture + "85", palette.grid, 2);
+    circle(ctx, 0, 0, 25, "#081826aa", accent + "44", 2);
+    for (let i = 0; i < 3; i++) {
+      ctx.rotate((Math.PI * 2) / 3);
+      ctx.beginPath();
+      ctx.ellipse(10, 9, 9, 13, -0.6, 0, Math.PI * 2);
+      ctx.fillStyle = palette.fixture;
+      ctx.fill();
+    }
+  } else {
+    polygon(ctx, 6, 38);
+    ctx.fill();
+    ctx.stroke();
+    polygon(ctx, 6, 23);
+    ctx.strokeStyle = accent + "43";
+    ctx.stroke();
+  }
+  circle(ctx, 0, 0, 3, accent + "88");
+  ctx.restore();
+}
+
+function directionMarks(ctx, points, color) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  for (let i = 1; i < points.length; i++) {
+    const [x, y] = points[i - 1];
+    const dx = points[i][0] - x,
+      dy = points[i][1] - y;
+    const length = Math.hypot(dx, dy);
+    const angle = Math.atan2(dy, dx);
+    for (let step = 46; step <= length - 23; step += 82) {
+      ctx.save();
+      ctx.translate(x + (dx * step) / length, y + (dy * step) / length);
+      ctx.rotate(angle);
+      trace(ctx, [
+        [-5, -6],
+        [2, 0],
+        [-5, 6],
+      ]);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+}
+
+function background(map, routes, chapter) {
   const base = document.createElement("canvas");
   base.width = WIDTH;
   base.height = HEIGHT;
   const ctx = base.getContext("2d");
-  const glow = ctx.createRadialGradient(530, 245, 35, 490, 270, 590);
-  glow.addColorStop(0, "#153454");
-  glow.addColorStop(0.65, "#0b1829");
-  glow.addColorStop(1, "#060d18");
+  const palette = floors[chapter];
+  const glow = ctx.createRadialGradient(490, 240, 36, 490, 270, 595);
+  glow.addColorStop(0, palette.light);
+  glow.addColorStop(1, palette.dark);
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
-  ctx.strokeStyle = "#47709631";
+  ctx.strokeStyle = palette.grid;
   ctx.lineWidth = 1;
-  for (let x = 10; x < WIDTH; x += 33) {
-    for (let y = 10; y < HEIGHT; y += 33) {
-      if ((x * 5 + y * 3) % 7 < 5) circle(ctx, x, y, 1.4, "#44739956");
-    }
+  for (let x = 0; x < WIDTH; x += 48) {
+    trace(ctx, [
+      [x, 0],
+      [x, HEIGHT],
+    ]);
+    ctx.stroke();
   }
-  for (const [x, y, r] of [
-    [102, 264, 48],
-    [331, 260, 54],
-    [626, 324, 34],
-    [827, 84, 39],
-    [790, 514, 56],
+  for (let y = 0; y < HEIGHT; y += 48) {
+    trace(ctx, [
+      [0, y],
+      [WIDTH, y],
+    ]);
+    ctx.stroke();
+  }
+  for (const [x, y] of [
+    [104, 255],
+    [341, 220],
+    [680, 345],
+    [817, 85],
+    [789, 493],
   ]) {
-    circle(ctx, x, y, r, "#122338a2", "#3d6a8b70");
-    circle(ctx, x, y, r * 0.68, null, "#3d6a8b69");
-    circle(ctx, x, y, 4, map.accent + "55");
+    floorTile(ctx, x, y, chapter, palette, map.accent);
   }
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
@@ -71,12 +144,7 @@ function background(map, routes) {
       ctx.strokeStyle = color;
       ctx.stroke();
     }
-    trace(ctx, points);
-    ctx.setLineDash([5, 13]);
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = "#c7a1ff";
-    ctx.stroke();
-    ctx.setLineDash([]);
+    directionMarks(ctx, points, "#c7a1ffa8");
     circle(ctx, 7, points[0][1], 24, "#2b2047", "#caa0ff", 3);
   }
   for (const [width, color] of [
@@ -90,12 +158,7 @@ function background(map, routes) {
     ctx.strokeStyle = color;
     ctx.stroke();
   }
-  trace(ctx, map.points);
-  ctx.lineWidth = 2;
-  ctx.setLineDash([7, 13]);
-  ctx.strokeStyle = map.accent + "80";
-  ctx.stroke();
-  ctx.setLineDash([]);
+  directionMarks(ctx, map.points, map.accent + "ad");
   if (routes.length > 1) {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -110,10 +173,20 @@ function background(map, routes) {
   }
   const [sx, sy] = map.points[0];
   const [ex, ey] = map.points.at(-1);
-  circle(ctx, sx + 6, sy, 28, "#251a38", "#e38cff", 3);
-  circle(ctx, sx + 6, sy, 16, "#6b3d9e");
-  circle(ctx, ex - 6, ey, 29, "#142b3a", map.accent, 3);
-  circle(ctx, ex - 6, ey, 15, map.accent);
+  circle(ctx, sx + 7, sy, 28, "#12233a", map.accent, 3);
+  circle(ctx, sx + 7, sy, 14, map.accent + "60");
+  const core = ex - 13;
+  circle(ctx, core, ey, 39, "#11203a", map.accent + "65", 5);
+  circle(ctx, core, ey, 27, "#172f46", map.accent, 3);
+  ctx.save();
+  ctx.translate(core, ey);
+  polygon(ctx, 6, 17);
+  ctx.fillStyle = map.accent;
+  ctx.fill();
+  polygon(ctx, 4, 8);
+  ctx.fillStyle = "#f8fdff";
+  ctx.fill();
+  ctx.restore();
   return base;
 }
 
@@ -121,21 +194,40 @@ function turret(ctx, tower, chosen) {
   ctx.save();
   ctx.translate(tower.x, tower.y);
   circle(ctx, 0, 3, 20, "#040c19bb");
-  polygon(ctx, tower.type === "eco" ? 6 : 8, 18);
-  ctx.fillStyle = "#101d32";
+  const frame = { single: 8, slow: 6, splash: 8, dot: 7, chain: 4, eco: 6 };
+  polygon(ctx, frame[tower.type], 19);
+  ctx.fillStyle = "#111e31";
   ctx.fill();
   ctx.strokeStyle = tower.color;
   ctx.lineWidth = chosen ? 3 : 2;
   ctx.stroke();
+  if (chosen) circle(ctx, 0, 0, 23, null, "#e5f4ff88");
+  if (tower.branch) circle(ctx, 0, 0, 15, null, "#f7dfa8", 2);
   ctx.rotate(tower.angle || 0);
-  const width = tower.type === "splash" ? 11 : 7;
   if (tower.type !== "eco") {
+    ctx.fillStyle = "#07121e";
+    const barrel = tower.id === "sniper" ? 28 : 22;
+    ctx.fillRect(2, -6, barrel, 12);
     ctx.fillStyle = tower.color;
-    ctx.fillRect(5, -width / 2, tower.id === "sniper" ? 21 : 15, width);
+    ctx.fillRect(10, -4, barrel - 8, 8);
   }
-  circle(ctx, 0, 0, 10, "#283a55", tower.color, 2);
+  ctx.fillStyle = "#2b425c";
+  if (tower.type === "slow" || tower.type === "chain" || tower.type === "eco") {
+    polygon(ctx, tower.type === "slow" ? 4 : 6, 11);
+    ctx.strokeStyle = tower.color;
+    ctx.lineWidth = 2;
+    ctx.fill();
+    ctx.stroke();
+  } else circle(ctx, 0, 0, 10, "#2b425c", tower.color, 2);
   circle(ctx, 0, 0, 4, tower.color);
-  if (tower.branch) circle(ctx, 0, 0, 14, null, "#f7dfa8", 2);
+  if (tower.type === "eco") {
+    for (const [x, y] of [
+      [-8, -6],
+      [8, -6],
+      [0, 9],
+    ])
+      circle(ctx, x, y, 2, "#ffe2ad");
+  }
   ctx.restore();
   for (let i = 0; i < tower.rank; i++)
     circle(
@@ -178,8 +270,21 @@ function target(ctx, enemy) {
   ctx.strokeStyle = "#fceaff";
   ctx.lineWidth = 1.35;
   ctx.stroke();
-  circle(ctx, 0, 0, 6, "#13182e");
-  circle(ctx, 2, -2, 2.6, "#fff3fd");
+  circle(ctx, 0, 0, enemy.boss ? 8 : 6, "#13182e");
+  circle(ctx, 3, -2, enemy.boss ? 4 : 2.6, "#fff3fd");
+  if (enemy.boss) {
+    ctx.strokeStyle = enemy.phase === 3 ? "#ff7d73" : "#fff0a8";
+    ctx.lineWidth = 2.5;
+    for (let i = 0; i < 4; i++) {
+      ctx.rotate(Math.PI / 2);
+      trace(ctx, [
+        [13, -3],
+        [19, 0],
+        [13, 3],
+      ]);
+      ctx.stroke();
+    }
+  }
   if (enemy.boss) {
     for (let i = 0; i < 6; i++) {
       const a = (i * Math.PI) / 3;
@@ -204,9 +309,12 @@ export class Board {
 
   draw(match, blueprint, selected, cursor, reduced, aiming) {
     const ctx = this.ctx;
-    const key = match.mapIndex * 2 + match.routes.length - 1;
+    const key = match.mission ? match.level : `reto-${match.mapIndex}`;
     if (!this.buffers.has(key))
-      this.buffers.set(key, background(match.map, match.routes));
+      this.buffers.set(
+        key,
+        background(match.map, match.routes, match.mapIndex),
+      );
     ctx.drawImage(this.buffers.get(key), 0, 0);
     if (aiming && cursor) {
       circle(ctx, cursor.x, cursor.y, 108, "#71e9ff29", "#89f1ff", 3);

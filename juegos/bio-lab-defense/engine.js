@@ -1,3 +1,5 @@
+import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=1";
+
 export const TOWER_TYPES = [
   {
     id: "nanolaser",
@@ -278,18 +280,6 @@ export const MAPS = [
   },
 ];
 
-export const SECTORS = [
-  "Ingreso",
-  "Muestreo",
-  "Depósito",
-  "Conductos",
-  "Filtrado",
-  "Refrigeración",
-  "Cámara fría",
-  "Sellado",
-  "Cámara central",
-  "Protocolo final",
-];
 export const WIDTH = 900;
 export const HEIGHT = 540;
 
@@ -497,11 +487,17 @@ export class Match {
   constructor(level, daily = null) {
     this.level = level;
     this.daily = daily;
-    this.mapIndex = daily?.map ?? Math.min(2, Math.floor((level - 1) / 4));
-    this.map = MAPS[this.mapIndex];
+    this.mission = daily ? null : MISSIONS[level - 1];
+    this.mapIndex = daily?.map ?? CHAPTERS[this.mission.chapter].map;
+    const base = MAPS[this.mapIndex];
+    const layout = (points) =>
+      this.mission
+        ? missionRoutes(points, this.mission, WIDTH, HEIGHT)
+        : points;
+    this.map = this.mission ? { ...base, points: layout(base.points) } : base;
     this.routes = [route(this.map.points)];
     if ((daily || level >= 5) && this.mapIndex > 0)
-      this.routes.push(route(AUXILIARY_LANES[this.mapIndex - 1]));
+      this.routes.push(route(layout(AUXILIARY_LANES[this.mapIndex - 1])));
     this.hp = 100;
     this.atp = daily?.atp ?? 180 + level * 12 + Math.max(0, level - 5) * 20;
     this.techLevel = daily ? 10 : level;
@@ -520,6 +516,8 @@ export class Match {
     this.kills = 0;
     this.time = 0;
     this.charge = 43;
+    this.pulses = 0;
+    this.specialized = 0;
     this.grossATP = 0;
     this.preview = this.planWave(1);
     this.lastBuild = null;
@@ -599,6 +597,7 @@ export class Match {
     );
     if (!targets.length) return false;
     this.charge = 0;
+    this.pulses++;
     this.effect(x, y, "#8cf7ff", 108);
     for (const enemy of targets) {
       enemy.shield = 0;
@@ -686,6 +685,7 @@ export class Match {
     tower.fireRate *= 0.92;
     if (branch) {
       tower.branch = branch;
+      this.specialized++;
       tower.damage = Math.round(tower.damage * (branch.damage || 1));
       tower.fireRate *= branch.rate || 1;
       tower.range += branch.range || 0;
@@ -740,7 +740,13 @@ export class Match {
     const [[x, y]] = path.points;
     this.enemies.push({
       ...spec,
-      name: boss ? BOSS_NAMES[this.mapIndex] : spec.name,
+      name: boss
+        ? this.mission && ![4, 8, 10].includes(this.level)
+          ? ["Custodio de sector", "Centinela auxiliar", "Eco del Espejo"][
+              this.mapIndex
+            ]
+          : BOSS_NAMES[this.mapIndex]
+        : spec.name,
       x,
       y,
       path,
