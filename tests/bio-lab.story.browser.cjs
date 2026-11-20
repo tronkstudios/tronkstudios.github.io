@@ -34,6 +34,19 @@ window.completeStoryMission = () => Object.assign(match, { hp: 100, kills: 30, s
 window.hasEnemyAtB = () => match.enemies.some((enemy) => enemy.lane === 1);
 window.defeatEnemyAtB = () => match.damage(match.enemies.find((enemy) => enemy.lane === 1), 10000, "#fff");
 window.matchTime = () => match.time;
+window.gateLength = () => match.routes[1].remaining[0];
+window.installShortcutBlocker = () => {
+  const shortcut = new Match(6);
+  shortcut.toggleGate();
+  for (let y = 48; y < HEIGHT - 48; y += 12) {
+    for (let x = 48; x < WIDTH - 48; x += 12) {
+      if (!match.checkPlacement(blueprint, x, y) &&
+          shortcut.checkPlacement(blueprint, x, y) === "Deja despejado el conducto.")
+        return !!match.place(blueprint, x, y);
+    }
+  }
+  return false;
+};
 window.testTowerSpot = () => {
   for (let y = 60; y < HEIGHT; y += 60) {
     for (let x = 60; x < WIDTH; x += 60) {
@@ -42,8 +55,18 @@ window.testTowerSpot = () => {
   }
 };
 window.spawnTestBoss = () => {
-  match.queue.unshift(match.planWave(match.maxWaves).order.at(-1));
-  match.spawn();
+  match.queue.unshift(...match.planWave(match.maxWaves).order.filter((entry) => entry.boss));
+  match.spawnIn = 1;
+};
+window.triggerBossPhases = () => {
+  for (const boss of match.enemies.filter((enemy) => enemy.boss))
+    match.damage(boss, boss.maxHp * 0.4, "#fff", { piercing: true });
+};
+window.forceRunnerLeak = () => {
+  const runner = match.enemies.find((enemy) => enemy.coolingBoss === "runner");
+  runner.wp = runner.path.points.length - 1;
+  [runner.x, runner.y] = runner.path.points.at(-1);
+  match.hp = 18;
 };`,
         });
       });
@@ -93,6 +116,7 @@ window.spawnTestBoss = () => {
         "Próxima oleada",
       );
       assert.ok(Number(await page.locator("#threats").textContent()) > 0);
+      assert.equal(await page.locator("#gate-panel").isVisible(), false);
       assert.equal(await page.locator("#lane-brief").isVisible(), false);
       const canvas = page.locator("#board");
       const dock = page.locator("#dock");
@@ -153,6 +177,22 @@ window.spawnTestBoss = () => {
       await page.locator("#campaign-button").click();
       await page.locator(".level").nth(5).click();
       await page.locator("#launch-mission").click();
+      const longRoute = await page.evaluate(() => gateLength());
+      await page.locator("#gate-preview").click();
+      await page.getByText(/Trazado amarillo: atajo/).waitFor();
+      assert.equal(await page.evaluate(() => gateLength()), longRoute);
+      assert.equal(await page.evaluate(() => installShortcutBlocker()), true);
+      await page.getByText(/Una torre ocupa el trazado amarillo/).waitFor();
+      assert.equal(await page.locator("#gate-apply").isDisabled(), true);
+      await page.locator("#undo-build").click();
+      await page.locator("#gate-apply").click();
+      await page.getByText("Atajo activo", { exact: true }).waitFor();
+      const shortRoute = await page.evaluate(() => gateLength());
+      assert.ok(shortRoute < longRoute);
+      await page.reload();
+      await page.locator("#home-resume-run").click();
+      await page.getByText("Atajo activo", { exact: true }).waitFor();
+      assert.equal(await page.evaluate(() => gateLength()), shortRoute);
       const counts = async () => {
         const labels = await page.locator("#lane-brief b").allTextContents();
         return labels.map((label) => Number(label.split(" · ").at(-1)));
@@ -167,6 +207,7 @@ window.spawnTestBoss = () => {
         a + b,
       );
       await page.locator("#next").click();
+      assert.equal(await page.locator("#gate-panel").isVisible(), false);
       await page.waitForFunction(() => hasEnemyAtB());
       assert.deepEqual(await counts(), [a, b]);
       await tacticalPause.click();
@@ -199,10 +240,24 @@ window.spawnTestBoss = () => {
       const boardTop = await canvas.evaluate((node) => node.offsetTop);
       await page.evaluate(() => spawnTestBoss());
       await page.locator("#boss-status").waitFor();
+      await page.locator("#boss-status-b").waitFor();
+      assert.match(await page.locator("#boss-name").textContent(), /Impulsor · Entrada A/);
+      assert.match(await page.locator("#boss-name-b").textContent(), /Blindaje · Entrada B/);
+      await page.evaluate(() => triggerBossPhases());
+      await page.getByText("Acelerado", { exact: true }).waitFor();
+      await page.getByText("Escudo activo", { exact: true }).waitFor();
       assert.equal(await canvas.evaluate((node) => node.offsetTop), boardTop);
+      await page.evaluate(() => forceRunnerLeak());
+      await page.getByRole("heading", { name: "Brecha de contención" }).waitFor();
+      const report = await page.locator("#modal-text").textContent();
+      assert.match(report, /Entrada A: 1 · Entrada B: 0/);
+      assert.match(report, /Impulsor \(−18 %\)/);
+      await page.getByRole("button", { name: "Repreparar la oleada" }).click();
+      await page.getByText("Atajo activo", { exact: true }).waitFor();
+      assert.equal(await page.locator("#wave").textContent(), "0/5");
       assert.deepEqual(errors, []);
       console.log(
-        `Bio-Lab campaign, wave roster, live lanes and tactical pause passed at ${width}px.`,
+        `Bio-Lab gate controls, boss phases, loss report and checkpoint retry passed at ${width}px.`,
       );
       await page.close();
     }

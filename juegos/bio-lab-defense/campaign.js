@@ -139,7 +139,7 @@ export const MISSIONS = [
     speaker: "Ivo · Ingeniería",
     briefing:
       "Si apagamos los ventiladores, perderemos el acceso a la cámara central. Puedo mantenerlos desde aquí si los protectores no dejan avanzar a las oleadas.",
-    cue: "Las curvas se abren hacia el este. Prepara daño en área en los puntos de paso común.",
+    cue: "Ivo puede cambiar el conducto B entre oleadas. El atajo reúne las dos rutas antes, pero los enemigos llegan más rápido al núcleo.",
     transmission:
       "Dos ventiladores operativos. Me falta el tercero. Conserva la energía para el relevo.",
     end: "Temperatura estable. Abro el paso a la cámara fría.",

@@ -1,4 +1,4 @@
-import { BLUEPRINTS, Match, TARGETING, specializations } from "./engine.js?v=5";
+import { BLUEPRINTS, Match, TARGETING, specializations } from "./engine.js?v=6";
 
 const version = 1;
 const blueprintById = new Map(BLUEPRINTS.map((type) => [type.id, type]));
@@ -46,6 +46,7 @@ export class Checkpoint {
       atpBought,
       repaired,
       speed,
+      gateDiverted: match.gateRoutes ? match.gateDiverted : undefined,
       debrief: match.debrief,
       lastBuild: match.undoable ? match.towers.indexOf(match.lastBuild) : -1,
       towers: match.towers.map((t) => ({
@@ -103,6 +104,7 @@ export function restoreCheckpoint(data) {
     data.towers.length > 256
   )
     return null;
+  if (data.gateDiverted === true && !match.toggleGate()) return null;
   match.atp = 100000;
   for (const item of data.towers) {
     if (

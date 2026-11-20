@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=7" />
+    <link rel="stylesheet" href="./styles.css?v=8" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -210,6 +210,13 @@
                 aria-label="Vida del jefe"
               ></progress>
             </div>
+            <div id="boss-status-b" class="boss-status boss-status-b" hidden>
+              <div>
+                <strong id="boss-name-b"></strong><span id="boss-phase-b"></span>
+              </div>
+              <progress id="boss-health-b" max="100" value="100"
+                aria-label="Vida de Blindaje"></progress>
+            </div>
             <p id="board-status" role="status"></p>
             <div class="lane-brief" id="lane-brief" hidden>
               <b id="lane-a"></b><b id="lane-b"></b>
@@ -224,6 +231,14 @@
               <span id="wave-preview-tip"></span>
             </div>
             <p id="wave-debrief" class="wave-debrief" hidden></p>
+            <section id="gate-panel" class="wave-preview gate-panel" aria-labelledby="gate-title" hidden>
+              <strong id="gate-title">Compuerta B</strong>
+              <p id="gate-status" role="status"></p>
+              <div class="actions">
+                <button type="button" id="gate-preview" aria-pressed="false">Previsualizar cambio</button>
+                <button type="button" id="gate-apply" hidden>Aplicar trazado</button>
+              </div>
+            </section>
           </div>
           <aside class="controls" aria-label="Mejoras y suministros">
             <div id="selection"></div>
@@ -254,6 +269,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=8"></script>
+    <script type="module" src="./game.js?v=9"></script>
   </body>
 </html>

@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT } from "./engine.js?v=5";
+import { WIDTH, HEIGHT } from "./engine.js?v=6";
 
 function trace(ctx, points) {
   ctx.beginPath();
@@ -323,15 +323,36 @@ export class Board {
     this.buffers = new Map();
   }
 
-  draw(match, blueprint, selected, cursor, reduced, aiming, hovered = null) {
+  draw(
+    match,
+    blueprint,
+    selected,
+    cursor,
+    reduced,
+    aiming,
+    hovered = null,
+    gatePreview = false,
+  ) {
     const ctx = this.ctx;
-    const key = match.mission ? match.level : `reto-${match.mapIndex}`;
+    const key = match.mission
+      ? `${match.level}:${match.gateDiverted}`
+      : `reto-${match.mapIndex}`;
     if (!this.buffers.has(key))
       this.buffers.set(
         key,
         background(match.map, match.routes, match.mapIndex),
       );
     ctx.drawImage(this.buffers.get(key), 0, 0);
+    if (gatePreview && match.alternateRoute) {
+      ctx.save();
+      trace(ctx, match.alternateRoute.points);
+      ctx.lineWidth = 8;
+      ctx.lineJoin = "round";
+      ctx.setLineDash([14, 11]);
+      ctx.strokeStyle = "#ffe19e";
+      ctx.stroke();
+      ctx.restore();
+    }
     if (aiming && cursor) {
       circle(ctx, cursor.x, cursor.y, 108, "#71e9ff29", "#89f1ff", 3);
       circle(ctx, cursor.x, cursor.y, 5, "#c8faff");
