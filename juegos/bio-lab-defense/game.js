@@ -4,17 +4,19 @@ import {
   WIDTH,
   HEIGHT,
   upgradeCost,
+  upgradeStats,
+  reactorOutput,
   specializations,
   TARGETING,
   dailySetup,
-} from "./engine.js?v=5";
-import { Board } from "./board.js?v=6";
+} from "./engine.js?v=6";
+import { Board } from "./board.js?v=8";
 import { Profile, dayKey } from "./profile.js?v=3";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=3";
-import { CHAPTERS, MISSIONS } from "./campaign.js?v=1";
+import { CHAPTERS, MISSIONS } from "./campaign.js?v=2";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=1";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=1";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=2";
 
 const $ = (id) => document.getElementById(id);
 const panels = ["home", "campaign", "briefing", "field"];
@@ -36,7 +38,9 @@ let match,
 let adPreparing = false,
   adError = "";
 let aiming = false,
-  challengeDay = null;
+  challengeDay = null,
+  tacticalPaused = false,
+  gatePreview = false;
 let atpBought,
   repaired,
   prepared = false;
@@ -44,7 +48,8 @@ let lastTick = performance.now(),
   accumulator = 0;
 let selectionKey = "";
 let briefingLevel = 1,
-  lastBoss = false;
+  lastBoss = false,
+  lastPreview;
 const profile = new Profile(refreshProfile);
 let checkpoint,
   checkpointLost = false;
@@ -255,6 +260,8 @@ function begin(next, day = null, restored = null) {
   const level = match.level;
   checkpointLost = false;
   aiming = false;
+  tacticalPaused = false;
+  gatePreview = false;
   blueprint = BLUEPRINTS[0];
   selected = null;
   cursor = null;
@@ -320,6 +327,7 @@ function renderDock() {
       return button;
     }),
   );
+  $("dock").scrollLeft = 0;
   highlightDock();
 }
 
@@ -405,6 +413,7 @@ function renderSelection() {
       renderHUD();
     });
     improve.disabled = match.atp < cost;
+    improve.append(upgradeForecast(tower));
     options.append(improve);
   } else if (tower.rank === 2) {
     for (const [choice, branch] of specializations(tower).entries()) {
@@ -418,7 +427,7 @@ function renderSelection() {
       improve.disabled = match.atp < cost;
       const note = document.createElement("small");
       note.textContent = branch.detail;
-      improve.append(note);
+      improve.append(note, upgradeForecast(tower, branch));
       options.append(improve);
     }
   }
@@ -453,6 +462,20 @@ function renderSelection() {
   panel.replaceChildren(heading, detail, performance, options, actions);
 }
 
+const cadence = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 2 });
+function upgradeForecast(tower, branch) {
+  const next = upgradeStats(tower, branch);
+  const interval = (ticks) => cadence.format(ticks / 60);
+  const stats = tower.type === "eco"
+    ? `ATP por ciclo ${reactorOutput(tower.rank, tower.branch)} → ${reactorOutput(tower.rank + 1, branch)}`
+    : `Daño ${tower.damage} → ${next.damage} · Alcance ${tower.range} → ${next.range}`;
+  const preview = document.createElement("small");
+  preview.className = "upgrade-forecast";
+  const action = tower.type === "eco" ? "ciclo" : "disparo";
+  preview.textContent = `${stats} · ${interval(tower.fireRate)} → ${interval(next.fireRate)} s por ${action}`;
+  return preview;
+}
+
 function towerReport(tower) {
   if (tower.type === "eco")
     return `ATP generado · ${tower.produced.toLocaleString("es-ES")}`;
@@ -472,6 +495,71 @@ function updateText(id, value) {
   if (node.textContent !== String(value)) node.textContent = value;
 }
 
+function renderWavePreview(preview) {
+  if (preview === lastPreview) return;
+  lastPreview = preview;
+  const { count, theme, final, lanes, bossTip, order } = preview;
+  const finale = match.gateRoutes ? " · Gemelos térmicos" : " · Jefe";
+  updateText(
+    "wave-preview-title",
+    `${theme.name} · ${count} enemigos${lanes[1] ? " · Dos entradas" : ""}${final ? finale : ""}`,
+  );
+  updateText("wave-preview-tip", `${theme.tip} ${bossTip}`.trim());
+  const groups = new Map();
+  for (const { spec, boss, armor, shield } of order) {
+    const label = boss
+      ? "Jefe"
+      : spec.name + (armor ? " con blindaje" : shield ? " con escudo" : "");
+    groups.set(label, (groups.get(label) || 0) + 1);
+  }
+  $("wave-roster").replaceChildren(
+    ...Array.from(groups, ([label, n]) => {
+      const item = document.createElement("li");
+      item.textContent = `${n} × ${label}`;
+      return item;
+    }),
+  );
+}
+
+function renderBoss(boss, suffix = "") {
+  $(`boss-status${suffix}`).hidden = !boss;
+  if (!boss) return;
+  const name = boss.coolingBoss
+    ? `${boss.name} · Entrada ${boss.lane === 0 ? "A" : "B"}`
+    : boss.name;
+  const accelerated = boss.coolingBoss === "runner"
+    ? boss.phase >= 2
+    : !boss.coolingBoss && boss.phase === 3;
+  updateText(`boss-name${suffix}`, name);
+  updateText(
+    `boss-phase${suffix}`,
+    boss.shield
+      ? "Escudo activo"
+      : accelerated
+        ? "Acelerado"
+        : `Fase ${boss.phase}/3`,
+  );
+  $(`boss-health${suffix}`).value = Math.ceil((100 * boss.hp) / boss.maxHp);
+}
+
+function renderGate(waiting) {
+  $("gate-panel").hidden = !match.gateRoutes || !waiting;
+  if ($("gate-panel").hidden) return;
+  const blocked = gatePreview && match.gateBlocked;
+  $("gate-preview").setAttribute("aria-pressed", String(gatePreview));
+  $("gate-apply").hidden = !gatePreview;
+  $("gate-apply").disabled = blocked;
+  let status = match.gateDiverted ? "Atajo activo" : "Conducto largo activo";
+  if (blocked) {
+    status = "Una torre ocupa el trazado amarillo. Retírala para poder cambiarlo.";
+  } else if (gatePreview) {
+    status = match.gateDiverted
+      ? "Trazado amarillo: conducto largo. Da más tiempo para frenar la entrada B."
+      : "Trazado amarillo: atajo. Junta las entradas antes y reduce el tiempo hasta el núcleo.";
+  }
+  updateText("gate-status", status);
+}
+
 function renderHUD() {
   updateText("hp", `${match.hp}%`);
   $("integrity").value = match.hp;
@@ -479,44 +567,41 @@ function renderHUD() {
   updateText("wave", `${match.wave}/${match.maxWaves}`);
   const waiting = match.state === "build";
   updateText("threat-label", waiting ? "Próxima oleada" : "Quedan");
-  updateText(
-    "threats",
-    waiting ? match.preview.count : match.enemies.length + match.queue.length,
-  );
+  const remaining = match.enemies.length + match.queue.length;
+  updateText("threats", waiting ? match.preview.count : remaining);
   updateText(
     "combo",
     match.combo >= 5 ? `×${match.combo} Fiebre` : `×${match.combo || 1}`,
   );
-  const boss = match.enemies.find((enemy) => enemy.boss && enemy.hp > 0);
-  $("boss-status").hidden = !boss;
+  const firstBoss = match.enemies.find(
+    (enemy) => enemy.boss && enemy.coolingBoss !== "guard" && enemy.hp > 0,
+  );
+  const secondBoss = match.enemies.find(
+    (enemy) => enemy.coolingBoss === "guard" && enemy.hp > 0,
+  );
+  const boss = firstBoss || secondBoss;
   if (boss && !lastBoss) sound("boss");
   lastBoss = !!boss;
-  if (boss) {
-    updateText("boss-name", boss.name);
-    updateText(
-      "boss-phase",
-      boss.phase === 3
-        ? "Fase 3 · Acelerado"
-        : boss.shield
-          ? "Fase 2 · Escudo activo"
-          : `Fase ${boss.phase}/3`,
-    );
-    $("boss-health").value = Math.ceil((100 * boss.hp) / boss.maxHp);
-  }
+  renderBoss(firstBoss);
+  renderBoss(secondBoss, "-b");
+  renderGate(waiting);
   $("wave-preview").hidden = !waiting;
-  if (waiting) {
-    const { count, theme, final, lanes, bossTip } = match.preview;
-    const split = lanes[1] > 0;
-    $("lane-brief").hidden = !split;
-    if (split) {
-      updateText("lane-a", `Entrada A · ${lanes[0]}`);
-      updateText("lane-b", `Entrada B · ${lanes[1]}`);
+  if (waiting) renderWavePreview(match.preview);
+  const split = match.routes.length > 1 && (waiting || match.state === "wave");
+  $("lane-brief").hidden = !split;
+  if (split) {
+    let a, b;
+    if (waiting) {
+      [a, b] = match.preview.lanes;
+    } else {
+      // Count both enemies on the board and those waiting to spawn.
+      b = 0;
+      for (const enemy of match.enemies) b += Number(enemy.lane === 1);
+      for (const enemy of match.queue) b += Number(enemy.lane === 1);
+      a = remaining - b;
     }
-    updateText(
-      "wave-preview-title",
-      `${theme.name} · ${count} enemigos${split ? " · Dos entradas" : ""}${final ? " · Jefe" : ""}`,
-    );
-    updateText("wave-preview-tip", `${theme.tip} ${bossTip}`.trim());
+    updateText("lane-a", `Entrada A · ${a}`);
+    updateText("lane-b", `Entrada B · ${b}`);
   }
   const { debrief } = match;
   $("wave-debrief").hidden = !waiting || !debrief;
@@ -531,16 +616,19 @@ function renderHUD() {
   }
   $("undo-build").hidden = !match.undoable;
   if (match.state !== "wave") aiming = false;
-  $("pulse").disabled = match.state !== "wave" || match.charge < 100;
+  $("pulse").disabled =
+    match.state !== "wave" || match.charge < 100 || tacticalPaused;
   $("pulse").setAttribute("aria-pressed", String(aiming));
   updateText("pulse", aiming ? "Cancelar pulso" : `Pulso · ${match.charge}%`);
   const phase = waiting
     ? "Preparación"
-    : match.state === "wave"
-      ? match.enemies.some((enemy) => enemy.boss)
-        ? "Jefe en el conducto"
-        : "Oleada en curso"
-      : "Partida terminada";
+    : tacticalPaused
+      ? "Pausa táctica"
+      : match.state === "wave"
+        ? boss
+          ? "Jefe en el conducto"
+          : "Oleada en curso"
+        : "Partida terminada";
   updateText("phase", `${match.map.name} · ${phase}`);
   $("next").disabled = !waiting || adBusy;
   updateText(
@@ -549,6 +637,9 @@ function renderHUD() {
   );
   $("speed").setAttribute("aria-pressed", String(speed === 2));
   updateText("speed", `Velocidad ×${speed}`);
+  $("tactical-pause").disabled = match.state !== "wave";
+  $("tactical-pause").classList.toggle("engaged", tacticalPaused);
+  updateText("tactical-pause", tacticalPaused ? "Reanudar" : "Pausa táctica");
   const canRequestAd = ad && waiting && !match.daily && !match.adUsed;
   $("boost").hidden = !canRequestAd;
   $("boost").disabled = adBusy || adPreparing;
@@ -585,12 +676,13 @@ function frame(now) {
   const elapsed = Math.min(100, now - lastTick);
   lastTick = now;
   if (screen === "field" && !modal.open && !document.hidden) {
-    accumulator += elapsed;
+    accumulator = tacticalPaused ? 0 : accumulator + elapsed;
     while (accumulator >= 1000 / 60) {
       for (let i = 0; i < speed; i++) match.tick();
       accumulator -= 1000 / 60;
     }
     if (lastState !== match.state) {
+      tacticalPaused = false;
       lastState = match.state;
       if (match.state === "won" || match.state === "lost") finish();
       else if (match.state === "build" && match.wave) {
@@ -607,6 +699,7 @@ function frame(now) {
       reduced.matches,
       aiming,
       hovered,
+      gatePreview,
     );
     renderHUD();
   } else {
@@ -633,7 +726,7 @@ function finish() {
     );
     return;
   }
-  checkpoint?.clear();
+  if (won) checkpoint?.clear();
   const mission = match.mission;
   let earnedMedal = false;
   if (won) {
@@ -659,8 +752,19 @@ function finish() {
     won && level < MISSIONS.length
       ? [["Siguiente sector", () => briefing(level + 1)]]
       : [];
+  if (!won && !checkpointLost && checkpoint?.raw) {
+    const expected = checkpoint.raw;
+    buttons.push(["Repreparar la oleada", () => {
+      const saved = savedPreparation();
+      if (checkpoint.raw === expected && saved) begin(saved.match, null, saved);
+      else campaign();
+    }]);
+  }
   buttons.push(
-    ["Reintentar", () => start(level)],
+    [won ? "Reintentar" : "Reiniciar misión", () => {
+      if (!won) checkpoint?.clear();
+      start(level);
+    }],
     ["Volver a sectores", campaign],
   );
   const summary = won
@@ -675,6 +779,8 @@ Insignia: ${mission.medal.title}. +35 ATP de reserva y +2 biogemas.`
       }`
     : `El núcleo cayó en la oleada ${match.wave} de ${match.maxWaves}.
 
+${lossReport()}
+
 ${mission.cue}`;
   ask(
     won
@@ -685,6 +791,23 @@ ${mission.cue}`;
     summary,
     buttons,
   );
+}
+
+function lossReport() {
+  const leaks = match.waveLeaks;
+  if (!leaks?.worst) return "";
+  const routes = leaks.lanes.map((count, lane) =>
+    `Entrada ${lane === 0 ? "A" : "B"}: ${count}`,
+  );
+  const idle = match.towers.filter(
+    (tower) => tower.type !== "eco" && tower.inflicted === 0,
+  ).length;
+  const details = [
+    `Fugas de esta oleada · ${routes.join(" · ")}`,
+    `Mayor golpe al núcleo · ${leaks.worst.name} (−${leaks.worst.loss} %)`,
+  ];
+  if (idle) details.push(`Torres sin daño registrado en la misión · ${idle}`);
+  return details.join("\n");
 }
 
 function campaign() {
@@ -798,12 +921,25 @@ $("daily-button").onclick = () => {
 $("next").onclick = () => {
   if (adBusy) return;
   if (match.startWave()) {
+    gatePreview = false;
     sound("wave", true);
     if (match.mission && match.wave === 2)
       updateText("radio-text", match.mission.transmission);
     message(`Oleada ${match.wave} iniciada.`);
   }
   renderHUD();
+};
+$("gate-preview").onclick = () => {
+  gatePreview = !gatePreview;
+  renderGate(match.state === "build");
+};
+$("gate-apply").onclick = () => {
+  if (!match.toggleGate()) return;
+  gatePreview = false;
+  persistPreparation();
+  renderGate(true);
+  $("gate-preview").focus({ preventScroll: true });
+  message(match.gateDiverted ? "Atajo de la entrada B activado." : "Entrada B devuelta al conducto largo.");
 };
 $("undo-build").onclick = () => {
   const tower = match.undoPlacement();
@@ -832,6 +968,33 @@ $("speed").onclick = () => {
   persistPreparation();
   renderHUD();
 };
+$("tactical-pause").onclick = () => {
+  if (match.state !== "wave" || modal.open) return;
+  tacticalPaused = !tacticalPaused;
+  if (tacticalPaused) aiming = false;
+  accumulator = 0;
+  lastTick = performance.now();
+  message(
+    tacticalPaused
+      ? "Oleada detenida. Puedes construir, mejorar y cambiar objetivos."
+      : "Combate reanudado.",
+  );
+  renderHUD();
+};
+document.addEventListener("keydown", (event) => {
+  if (
+    screen !== "field" ||
+    modal.open ||
+    event.defaultPrevented ||
+    event.repeat ||
+    event.ctrlKey ||
+    event.altKey ||
+    event.metaKey ||
+    event.key.toLowerCase() !== "p"
+  )
+    return;
+  $("tactical-pause").click();
+});
 $("pause").onclick = () => {
   const actions = [["Continuar"]];
   if (!match.daily && !checkpointLost && checkpoint?.raw)

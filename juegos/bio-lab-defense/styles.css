@@ -237,10 +237,15 @@ meter {
 .game-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 260px;
+  grid-template-areas:
+    "arena towers"
+    "arena controls";
+  grid-template-rows: auto 1fr;
   gap: 0.7rem;
   align-items: start;
 }
 .arena {
+  grid-area: arena;
   min-width: 0;
 }
 canvas {
@@ -266,7 +271,15 @@ canvas {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
+  margin-top: 0.6rem;
 }
+.tower-picker {
+  grid-area: towers;
+}
+.controls {
+  grid-area: controls;
+}
+.tower-picker,
 .controls {
   background: var(--panel);
   border: 1px solid var(--border);
@@ -351,6 +364,14 @@ dialog p {
   }
   .game-layout {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "towers" "arena" "controls";
+    grid-template-rows: auto;
+  }
+  .tower-picker {
+    padding: 0.4rem 0.55rem;
+  }
+  .tower-picker h2 {
+    font-size: 0.9rem;
   }
   #dock {
     display: flex;
@@ -404,7 +425,24 @@ dialog p {
   display: block;
   color: var(--muted);
 }
+.wave-roster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  list-style: none;
+  padding: 0;
+  margin: 0.35rem 0;
+}
+.wave-roster li {
+  border: 1px solid #365374;
+  border-radius: 6px;
+  padding: 0.12rem 0.4rem;
+  background: #142e46;
+  color: #d8f3ff;
+  font-size: 0.74rem;
+}
 .boss-status {
+  margin-top: 0.55rem;
   border-color: #935848;
   background: #302036;
 }
@@ -420,6 +458,25 @@ dialog p {
   height: 0.62rem;
   accent-color: #ff806a;
 }
+.boss-status-b {
+  border-color: #9471bb;
+}
+.boss-status-b div {
+  color: #e2c9ff;
+}
+.boss-status-b progress {
+  accent-color: #ba9bff;
+}
+.gate-panel {
+  border-color: #7f6e4f;
+}
+.gate-panel p {
+  margin: 0.25rem 0 0.45rem;
+  color: #efdaa9;
+}
+.gate-panel button[aria-pressed="true"] {
+  border-color: #ffe19e;
+}
 #pulse:not(:disabled) {
   border-color: #64d6ef;
   color: #b2f3ff;
@@ -427,6 +484,11 @@ dialog p {
 #pulse[aria-pressed="true"] {
   background: #216182;
   color: white;
+}
+#tactical-pause.engaged {
+  border-color: #f0bb6f;
+  background: #523623;
+  color: #ffe0a6;
 }
 .upgrade-options {
   display: grid;
@@ -446,13 +508,18 @@ dialog p {
   color: #b9cde4;
   margin-top: 0.13rem;
 }
+.upgrade-options .upgrade-forecast {
+  color: #a8e8db;
+}
 
 @media (max-width: 760px) {
   .wave-actions {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     margin-bottom: 0.1rem;
   }
   .wave-actions button {
-    padding-inline: 0.55rem;
+    padding-inline: 0.35rem;
     font-size: 0.79rem;
   }
   .wave-preview {
@@ -463,12 +530,17 @@ dialog p {
     flex-wrap: wrap;
   }
 }
+@media (max-width: 440px) {
+  .wave-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 
 .lane-brief {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
-  margin-top: 0.45rem;
+  margin: 0 0 0.55rem;
 }
 .lane-brief b {
   padding: 0.2rem 0.48rem;
@@ -476,6 +548,7 @@ dialog p {
   background: #193b50;
   color: #a8edff;
   font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
 }
 .lane-brief b + b {
   background: #33284b;
@@ -494,6 +567,10 @@ dialog p {
   width: 100%;
   margin-top: 0.45rem;
   font-size: 0.78rem;
+}
+#boost,
+#boost-status {
+  grid-column: 1 / -1;
 }
 #boost-status {
   margin: 0.1rem 0.25rem;

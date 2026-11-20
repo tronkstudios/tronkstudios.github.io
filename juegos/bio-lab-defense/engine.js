@@ -1,4 +1,4 @@
-import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=1";
+import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=2";
 
 export const TOWER_TYPES = [
   {
@@ -400,6 +400,18 @@ const BOSS_NAMES = [
   "Centinela de la Galería",
   "Núcleo Espejo",
 ];
+const COOLING_BOSSES = {
+  runner: "Impulsor",
+  guard: "Blindaje",
+};
+const COOLING_SHORTCUT = [
+  [0, 469],
+  [310, 469],
+  [480, 305],
+  [640, 305],
+  [640, 195],
+  [900, 195],
+];
 const AUXILIARY_LANES = [
   [
     [0, 469],
@@ -479,8 +491,26 @@ function segmentDistance(x, y, [ax, ay], [bx, by]) {
   return Math.hypot(x - ax - f * dx, y - ay - f * dy);
 }
 
+function nearRoute({ points }, x, y) {
+  return points
+    .slice(1)
+    .some((point, i) => segmentDistance(x, y, points[i], point) < 39);
+}
+
 export function upgradeCost(tower) {
   return Math.ceil(tower.cost * (tower.rank === 1 ? 0.7 : 1.05));
+}
+
+export function upgradeStats(tower, branch) {
+  return {
+    damage: Math.round(Math.round(tower.damage * 1.42) * (branch?.damage || 1)),
+    range: tower.range + (tower.range ? 13 : 0) + (branch?.range || 0),
+    fireRate: tower.fireRate * 0.92 * (branch?.rate || 1),
+  };
+}
+
+export function reactorOutput(rank, branch) {
+  return branch?.output ?? 9 + 4 * rank;
 }
 
 export class Match {
@@ -498,6 +528,9 @@ export class Match {
     this.routes = [route(this.map.points)];
     if ((daily || level >= 5) && this.mapIndex > 0)
       this.routes.push(route(layout(AUXILIARY_LANES[this.mapIndex - 1])));
+    this.gateRoutes =
+      !daily && level === 6 ? [this.routes[1], route(layout(COOLING_SHORTCUT))] : null;
+    this.gateDiverted = false;
     this.hp = 100;
     this.atp = daily?.atp ?? 180 + level * 12 + Math.max(0, level - 5) * 20;
     this.techLevel = daily ? 10 : level;
@@ -523,6 +556,24 @@ export class Match {
     this.lastBuild = null;
     this.waveStart = null;
     this.debrief = null;
+    this.waveLeaks = null;
+  }
+
+  get alternateRoute() {
+    return this.gateRoutes?.[Number(!this.gateDiverted)];
+  }
+
+  get gateBlocked() {
+    const next = this.alternateRoute;
+    return !!next && this.towers.some(({ x, y }) => nearRoute(next, x, y));
+  }
+
+  toggleGate() {
+    if (!this.gateRoutes || this.state !== "build" || this.gateBlocked)
+      return false;
+    this.routes[1] = this.alternateRoute;
+    this.gateDiverted = !this.gateDiverted;
+    return true;
   }
 
   planWave(wave) {
@@ -566,7 +617,18 @@ export class Match {
         shield: theme === SHIELD && guarded ? 0.42 : 0,
       });
     }
-    if (final)
+    if (final && this.gateRoutes) {
+      nextEnemy(order, PATHOGEN_TYPES[8], 0, {
+        boss: true,
+        coolingBoss: "runner",
+        speed: 1.35,
+      });
+      nextEnemy(order, PATHOGEN_TYPES[8], 1, {
+        boss: true,
+        coolingBoss: "guard",
+        armor: 5,
+      });
+    } else if (final)
       nextEnemy(
         order,
         PATHOGEN_TYPES[this.mapIndex === 0 ? 5 : this.mapIndex === 1 ? 8 : 9],
@@ -581,7 +643,11 @@ export class Match {
       lanes: this.routes.map((_, lane) =>
         order.reduce((sum, e) => sum + Number(e.lane === lane), 0),
       ),
-      bossTip: final ? BOSS_TIP : "",
+      bossTip: !final
+        ? ""
+        : this.gateRoutes
+          ? "Gemelos térmicos. El Impulsor acelera por A y el Blindaje activa un escudo en B. Prepara lentitud en A y reserva el pulso para B."
+          : BOSS_TIP,
     };
   }
 
@@ -623,13 +689,7 @@ export class Match {
       return "Esta torre se habilita en otro sector.";
     if (x < 24 || x > WIDTH - 24 || y < 24 || y > HEIGHT - 24)
       return "Acércate al interior del tablero.";
-    if (
-      this.routes.some(({ points }) =>
-        points
-          .slice(1)
-          .some((point, i) => segmentDistance(x, y, points[i], point) < 39),
-      )
-    )
+    if (this.routes.some((path) => nearRoute(path, x, y)))
       return "Deja despejado el conducto.";
     if (this.towers.some((t) => Math.hypot(t.x - x, t.y - y) < 40))
       return "Hay otra torre demasiado cerca.";
@@ -683,15 +743,10 @@ export class Match {
     this.atp -= cost;
     tower.paid += cost;
     tower.rank++;
-    tower.damage = Math.round(tower.damage * 1.42);
-    if (tower.range) tower.range += 13;
-    tower.fireRate *= 0.92;
+    Object.assign(tower, upgradeStats(tower, branch));
     if (branch) {
       tower.branch = branch;
       this.specialized++;
-      tower.damage = Math.round(tower.damage * (branch.damage || 1));
-      tower.fireRate *= branch.rate || 1;
-      tower.range += branch.range || 0;
     }
     this.effect(tower.x, tower.y, tower.color, 42);
     return true;
@@ -710,6 +765,7 @@ export class Match {
     this.wave++;
     this.lastBuild = null;
     this.waveStart = { hp: this.hp, kills: this.kills, atp: this.grossATP };
+    this.waveLeaks = { lanes: this.routes.map(() => 0), worst: null };
     this.debrief = null;
     this.queue = [...this.preview.order];
     this.interval =
@@ -733,28 +789,34 @@ export class Match {
       armor = 0,
       shield = 0,
       speed = 1,
+      coolingBoss,
     } = order;
     const scale =
       0.96 +
       (this.wave - 1) * 0.14 +
       (this.level - 1) * (this.wave < 3 ? 0.065 : 0.105);
-    const hp = Math.round(spec.hp * scale * (boss ? 1.18 : 1));
+    const bossScale = coolingBoss ? 0.68 : boss ? 1.18 : 1;
+    const hp = Math.round(spec.hp * scale * bossScale);
     const path = this.routes[lane];
     const [[x, y]] = path.points;
+    const bossName =
+      this.mission && ![4, 8, 10].includes(this.level)
+        ? ["Custodio de sector", "Centinela auxiliar", "Eco del Espejo"][this.mapIndex]
+        : BOSS_NAMES[this.mapIndex];
+    const color = coolingBoss === "runner"
+      ? "#ff865a"
+      : coolingBoss === "guard" ? "#ba9bff" : spec.color;
     this.enemies.push({
       ...spec,
-      name: boss
-        ? this.mission && ![4, 8, 10].includes(this.level)
-          ? ["Custodio de sector", "Centinela auxiliar", "Eco del Espejo"][
-              this.mapIndex
-            ]
-          : BOSS_NAMES[this.mapIndex]
-        : spec.name,
+      color,
+      shape: coolingBoss === "runner" ? "spiral" : spec.shape,
+      name: boss ? (COOLING_BOSSES[coolingBoss] || bossName) : spec.name,
       x,
       y,
       path,
       lane,
       boss,
+      coolingBoss,
       hp,
       maxHp: hp,
       speed: spec.speed * speed * (this.daily?.speed || 1),
@@ -809,7 +871,18 @@ export class Match {
     const ratio = enemy.hp / enemy.maxHp;
     const phase = ratio <= 1 / 3 ? 3 : ratio <= 2 / 3 ? 2 : 1;
     if (phase <= enemy.phase) return;
+    const enteredSecondPhase = enemy.phase === 1;
     enemy.phase = phase;
+    if (enemy.coolingBoss) {
+      if (enemy.coolingBoss === "runner") {
+        if (enteredSecondPhase) enemy.speed *= 1.25;
+        if (phase === 3) enemy.speed *= 1.22;
+      } else if (enteredSecondPhase) {
+        enemy.shield = Math.round(enemy.maxHp * 0.29);
+      }
+      this.effect(enemy.x, enemy.y, enemy.coolingBoss === "runner" ? "#ffae85" : "#9ddcff", 88);
+      return;
+    }
     if (phase === 2) {
       enemy.shield = Math.round(enemy.maxHp * 0.19);
       const backup = this.routes.length > 1 ? 1 - enemy.lane : enemy.lane;
@@ -890,7 +963,11 @@ export class Match {
     if (this.state !== "wave") return;
     if (this.comboTime > 0 && --this.comboTime === 0) this.combo = 0;
     if (this.queue.length && --this.spawnIn <= 0) {
+      const pair =
+        this.queue[0].coolingBoss === "runner" &&
+        this.queue[1]?.coolingBoss === "guard";
       this.spawn();
+      if (pair) this.spawn();
       this.spawnIn = this.interval;
     }
     for (const enemy of this.enemies) {
@@ -932,7 +1009,11 @@ export class Match {
         enemy.y = y;
         if (++enemy.wp === points.length) {
           enemy.escaped = true;
-          this.hp = Math.max(0, this.hp - (enemy.boss ? 30 : 10));
+          const loss = Math.min(this.hp, enemy.coolingBoss ? 18 : enemy.boss ? 30 : 10);
+          this.hp -= loss;
+          this.waveLeaks.lanes[enemy.lane]++;
+          if (loss > (this.waveLeaks.worst?.loss || 0))
+            this.waveLeaks.worst = { name: enemy.name, loss };
         }
       } else {
         enemy.x += (dx / distance) * advance;
@@ -951,7 +1032,7 @@ export class Match {
       if (tower.type === "eco") {
         // Reactor output stops in the build phase and when no threats remain.
         if (this.enemies.length || this.queue.length) {
-          const output = tower.branch?.output ?? 9 + 4 * tower.rank;
+          const output = reactorOutput(tower.rank, tower.branch);
           tower.produced += output;
           this.addATP(output);
           this.charge = Math.min(

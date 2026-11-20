@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT } from "./engine.js?v=5";
+import { WIDTH, HEIGHT } from "./engine.js?v=6";
 
 function trace(ctx, points) {
   ctx.beginPath();
@@ -301,21 +301,58 @@ function target(ctx, enemy) {
   ctx.restore();
 }
 
+function highlightCoverage(ctx, tower, routes) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(tower.x, tower.y, tower.range, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.lineWidth = 8;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.strokeStyle = tower.color;
+  for (const { points } of routes) {
+    trace(ctx, points);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 export class Board {
   constructor(canvas) {
     this.ctx = canvas.getContext("2d");
     this.buffers = new Map();
   }
 
-  draw(match, blueprint, selected, cursor, reduced, aiming, hovered = null) {
+  draw(
+    match,
+    blueprint,
+    selected,
+    cursor,
+    reduced,
+    aiming,
+    hovered = null,
+    gatePreview = false,
+  ) {
     const ctx = this.ctx;
-    const key = match.mission ? match.level : `reto-${match.mapIndex}`;
+    const key = match.mission
+      ? `${match.level}:${match.gateDiverted}`
+      : `reto-${match.mapIndex}`;
     if (!this.buffers.has(key))
       this.buffers.set(
         key,
         background(match.map, match.routes, match.mapIndex),
       );
     ctx.drawImage(this.buffers.get(key), 0, 0);
+    if (gatePreview && match.alternateRoute) {
+      ctx.save();
+      trace(ctx, match.alternateRoute.points);
+      ctx.lineWidth = 8;
+      ctx.lineJoin = "round";
+      ctx.setLineDash([14, 11]);
+      ctx.strokeStyle = "#ffe19e";
+      ctx.stroke();
+      ctx.restore();
+    }
     if (aiming && cursor) {
       circle(ctx, cursor.x, cursor.y, 108, "#71e9ff29", "#89f1ff", 3);
       circle(ctx, cursor.x, cursor.y, 5, "#c8faff");
@@ -342,6 +379,7 @@ export class Board {
           color + "b0",
           2,
         );
+        if (valid) highlightCoverage(ctx, tower, match.routes);
       }
       if (ghost)
         circle(

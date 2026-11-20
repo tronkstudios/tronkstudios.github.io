@@ -33,7 +33,9 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8791";
     }
     await firstTower();
     await firstTower();
+    await page.getByText(/Daño 14 → 20 · Alcance 120 → 133/).waitFor();
     await page.getByRole("button", { name: /^Mejorar/ }).tap();
+    await page.getByText(/Daño 20 → 46 · Alcance 133 → 146/).waitFor();
     await page.getByRole("button", { name: /^Perforante/ }).tap();
     await page.getByRole("button", { name: /^Objetivo/ }).tap();
     await page.locator("#buy-atp").tap();
