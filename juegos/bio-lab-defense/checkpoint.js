@@ -1,6 +1,6 @@
-import { BLUEPRINTS, Match, TARGETING, specializations } from "./engine.js?v=11";
+import { BLUEPRINTS, Match, TARGETING, specializations } from "./engine.js?v=12";
 
-import { MISSIONS } from "./campaign.js?v=4";
+import { MISSIONS } from "./campaign.js?v=5";
 
 const version = 1;
 const blueprintById = new Map(BLUEPRINTS.map((type) => [type.id, type]));
@@ -53,6 +53,7 @@ export class Checkpoint {
         abilityCooldown: match.hero.abilityCooldown, cooldown: match.hero.cooldown,
       } : undefined,
       barrierUsed: match.barrier?.used,
+      powerFirst: match.power?.first,
 
       gateDiverted: match.gateRoutes ? match.gateDiverted : undefined,
       debrief: match.debrief,
@@ -123,6 +124,12 @@ export function restoreCheckpoint(data) {
   }
   if (match.console) match.console.complete = data.wave > 0;
   if (match.barrier) match.barrier.used = data.barrierUsed === true;
+  if (match.archive)
+    for (const terminal of match.archive) terminal.complete = data.wave > terminal.lane;
+  if (match.power) {
+    // Older saves for this sector can already be between the planned cuts.
+    match.power.first = [0, 1].includes(data.powerFirst) ? data.powerFirst : data.wave > 0 ? 0 : null;
+  }
   if (data.gateDiverted === true && !match.toggleGate()) return null;
   match.atp = 100000;
   for (const item of data.towers) {

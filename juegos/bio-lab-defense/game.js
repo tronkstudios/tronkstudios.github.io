@@ -9,17 +9,17 @@ import {
   specializations,
   TARGETING,
   dailySetup,
-} from "./engine.js?v=11";
-import { Board } from "./board.js?v=14";
+} from "./engine.js?v=12";
+import { Board } from "./board.js?v=15";
 import { towerIcon, heroIcon } from "./art.js?v=3";
-import { Profile, dayKey } from "./profile.js?v=6";
+import { Profile, dayKey } from "./profile.js?v=7";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=3";
-import { CHAPTERS, MISSIONS } from "./campaign.js?v=4";
-import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=2";
+import { CHAPTERS, MISSIONS } from "./campaign.js?v=5";
+import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=7";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=8";
 
-import { HEROES, CONTRACTS } from "./operations.js?v=3";
+import { HEROES, CONTRACTS } from "./operations.js?v=4";
 
 const $ = (id) => document.getElementById(id);
 const panels = ["home", "campaign", "briefing", "operations", "field"];
@@ -62,6 +62,7 @@ let operationsMessage = "";
 let boardPointer = null;
 let upgradePreview = null;
 let abilityPreview = false;
+let lastCombatCue = null;
 let movingTower = null;
 let dockBudgetKey;
 const profile = new Profile(refreshProfile);
@@ -295,6 +296,10 @@ function briefing(level) {
   const mission = MISSIONS[level - 1];
   const chapter = CHAPTERS[mission.chapter];
   const preview = new Match(level);
+  const veteran = profile.data.stars[level - 1] > 0;
+  const record = profile.data.veteranRecords[level - 1];
+  $("veteran-briefing").hidden = !veteran;
+  updateText("veteran-record", record ? `Récord Veterano · ${record.toLocaleString("es-ES")}` : "Veterano con Óptix · Récord pendiente");
   $("briefing").style.setProperty("--chapter", chapter.color);
   updateText(
     "briefing-chapter",
@@ -379,6 +384,11 @@ function start(level, day = null) {
   );
 }
 
+function startVeteran(level) {
+  if (!profile.data.stars[level - 1] || adBusy) return;
+  begin(new Match(level, null, { veteran: true }));
+}
+
 function begin(next, day = null, restored = null) {
   challengeDay = day;
   lastState = next.state;
@@ -393,6 +403,7 @@ function begin(next, day = null, restored = null) {
   movingTower = null;
   lastPulseReady = false;
   lastMirrorOrder = null;
+  lastCombatCue = null;
   blueprint = BLUEPRINTS[0];
   selected = null;
   cursor = null;
@@ -405,7 +416,8 @@ function begin(next, day = null, restored = null) {
   selectionKey = "";
   $("sector").textContent = day
     ? `Reto · ${match.daily.name}`
-    : match.contract ? match.contract.name : `Sector ${level} · ${match.mission.name}`;
+    : match.contract ? match.contract.name
+      : match.veteran ? `Veterano · ${match.mission.name}` : `Sector ${level} · ${match.mission.name}`;
   unlockAudio();
   $("radio-log").hidden = !match.mission;
   if (match.mission) {
@@ -837,6 +849,8 @@ function positionMapControls() {
   for (const [index, path] of match.routes.entries()) {
     positionMapControl($(index ? "entry-start-b" : "entry-start-a"), path.points[0]);
   }
+  for (const [lane, path] of match.routes.entries())
+    positionMapControl($(lane ? "next-group-b" : "next-group-a"), path.points[0]);
   positionMapControl($("core-warning"), match.routes[0].points.at(-1));
 }
 
@@ -845,7 +859,7 @@ function renderFieldControls(waiting) {
     const beacon = $(id);
     const active = waiting && match.preview.lanes[lane] > 0;
     beacon.hidden = !active;
-    beacon.disabled = adBusy;
+    beacon.disabled = adBusy || match.power?.first === null;
     if (active) {
       const letter = lane ? "B" : "A";
       const count = match.preview.lanes[lane];
@@ -863,6 +877,21 @@ function renderFieldControls(waiting) {
       ? "Cualquier baliza inicia la oleada completa. ★ Jefe"
       : "Cualquier baliza inicia la oleada completa.");
   const live = match.state === "wave";
+  const groups = match.incomingGroups;
+  for (const [lane, group] of groups.entries()) {
+    const id = lane ? "next-group-b" : "next-group-a";
+    $(id).hidden = !group || group.ticks > 270 || match.mirrorOrders[0]?.lane === lane;
+    if (!$(id).hidden)
+      updateText(id, `${lane ? "B" : "A"} · ${group.name} en ${Math.max(1, Math.ceil(group.ticks / (speed * 60)))} s`);
+  }
+  const cue = match.combatCue;
+  $("combat-cue").hidden = !cue || cue.until <= match.time;
+  if (!$("combat-cue").hidden && cue !== lastCombatCue) {
+    $("combat-cue").dataset.kind = cue.kind;
+    updateText("combat-cue", cue.text);
+    sound(cue.kind);
+  }
+  lastCombatCue = cue;
   const order = live ? match.mirrorOrders[0] : null;
   $("entry-warning").hidden = !order;
   if (order && order !== lastMirrorOrder) {
@@ -893,13 +922,30 @@ function renderFieldControls(waiting) {
     $("barrier-action").disabled = !live || tacticalPaused || barrier.used;
     updateText("barrier-action", barrier.used ? "Barrera utilizada" : "Cerrar barrera · 4 s");
   }
-  const objective = match.console;
+  const terminal = match.activeTerminal;
+  const objective = match.console || match.archive;
+  const power = match.power;
+  $("power-lines").hidden = !power;
+  if (power) {
+    const isolated = match.isolatedLane(waiting ? match.wave + 1 : match.wave);
+    updateText("power-state", power.first === null ? "Elige qué línea aislar primero."
+      : isolated === null ? "Las dos líneas están aisladas."
+      : `Línea ${isolated ? "B" : "A"} aislada · Enemigos más lentos.`);
+    for (const [lane, id] of ["cut-a", "cut-b"].entries()) {
+      $(id).hidden = !waiting || match.wave !== 0;
+      $(id).setAttribute("aria-pressed", String(power.first === lane));
+    }
+  }
   const combo = live && match.comboNotice?.until > match.time;
   $("field-alerts").hidden = !objective && !combo;
   $("mission-objective").hidden = !objective;
   $("battle-notice").hidden = !combo;
-  if (objective)
-    updateText("mission-objective", objective.complete ? "Copia recuperada" : `Protege la consola · Integridad ${objective.hp}/4`);
+  if (match.archive)
+    updateText("mission-objective", terminal
+      ? `Protege la terminal ${terminal.lane ? "B" : "A"} · Integridad ${terminal.hp}/4`
+      : "Las dos terminales están aseguradas.");
+  else if (match.console)
+    updateText("mission-objective", match.console.complete ? "Copia recuperada" : `Protege la consola · Integridad ${match.console.hp}/4`);
   if (combo)
     updateText("battle-notice", `Combo de torres · ${match.comboNotice.count} enemigos ralentizados alcanzados`);
 }
@@ -978,10 +1024,10 @@ function renderHUD() {
           : "Oleada en curso"
         : "Partida terminada";
   updateText("phase", `${match.map.name} · ${phase}`);
-  $("next").disabled = !waiting || adBusy;
+  $("next").disabled = !waiting || adBusy || match.power?.first === null;
   updateText(
     "next",
-    waiting ? `Iniciar oleada ${match.wave + 1}` : "Oleada en curso",
+    waiting ? match.power?.first === null ? "Elige una línea" : `Iniciar oleada ${match.wave + 1}` : "Oleada en curso",
   );
   $("speed").setAttribute("aria-pressed", String(speed === 2));
   updateText("speed", `Velocidad ×${speed}`);
@@ -1075,6 +1121,14 @@ function finish() {
   const stars = won ? (match.hp >= 90 ? 3 : match.hp >= 55 ? 2 : 1) : 0;
   const { level } = match;
   sound(won ? "victory" : "defeat");
+  if (match.veteran) {
+    const score = match.score();
+    const record = won && profile.recordVeteran(level, score);
+    ask(record ? "Nuevo récord Veterano" : won ? "Sector Veterano superado" : "Intento Veterano terminado",
+      `${match.mission.name} · ${score.toLocaleString("es-ES")} puntos · Núcleo ${match.hp} %.`,
+      [["Reintentar", () => startVeteran(level)], ["Volver al sector", () => briefing(level)]]);
+    return;
+  }
   if (match.contract) {
     const contract = match.contract;
     const score = match.score();
@@ -1148,7 +1202,7 @@ ${mission.end}${
 Insignia: ${mission.medal.title}. +35 ATP de reserva y +2 biogemas.`
           : ""
       }`
-    : `${match.console?.hp === 0 ? "La consola de Muestreo fue destruida." : `El núcleo cayó en la oleada ${match.wave} de ${match.maxWaves}.`}
+    : `${match.activeTerminal?.hp === 0 ? "La terminal activa fue destruida." : match.console?.hp === 0 ? "La consola de Muestreo fue destruida." : `El núcleo cayó en la oleada ${match.wave} de ${match.maxWaves}.`}
 
 ${lossReport()}
 
@@ -1279,6 +1333,12 @@ $("home-resume-run").onclick = resumePreparation;
 $("campaign-resume-run").onclick = resumePreparation;
 $("back-campaign").onclick = campaign;
 $("launch-mission").onclick = () => start(briefingLevel);
+$("launch-veteran").onclick = () => startVeteran(briefingLevel);
+for (const [lane, id] of ["cut-a", "cut-b"].entries()) $(id).onclick = () => {
+  if (!match.selectPowerLine(lane)) return;
+  persistPreparation();
+  renderHUD();
+};
 function showSoundState(enabled) {
   $("sound-toggle").setAttribute("aria-pressed", String(enabled));
   $("sound-toggle").setAttribute(
@@ -1442,6 +1502,7 @@ $("pause").onclick = () => {
     "Abandonar partida",
     () => {
       if (match.contract) openOperations();
+      else if (match.veteran) briefing(match.level);
       else if (match.daily) view("home");
       else {
         checkpoint?.clear();

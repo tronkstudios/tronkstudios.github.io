@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=13" />
+    <link rel="stylesheet" href="./styles.css?v=14" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -123,6 +123,10 @@
             <button type="button" class="primary" id="launch-mission">
               Comenzar misión
             </button>
+            <div id="veteran-briefing" class="veteran-briefing" hidden>
+              <p id="veteran-record"></p>
+              <button type="button" id="launch-veteran">Jugar en Veterano</button>
+            </div>
           </div>
           <div class="mission-preview">
             <canvas
@@ -201,11 +205,22 @@
               ></canvas>
               <button type="button" class="wave-beacon" id="entry-start-a" hidden></button>
               <button type="button" class="wave-beacon" id="entry-start-b" hidden></button>
+              <b id="next-group-a" class="map-alert incoming-group" hidden></b>
+              <b id="next-group-b" class="map-alert incoming-group" hidden></b>
+              <b id="combat-cue" class="combat-cue" role="status" hidden></b>
               <b id="entry-warning" class="map-alert" role="status" hidden></b>
               <b id="core-warning" class="map-alert" hidden>¡Núcleo en peligro!</b>
               <b id="placement-preview" hidden></b>
             </div>
             <p id="wave-beacon-hint" hidden>Cualquier baliza inicia la oleada completa.</p>
+            <section id="power-lines" class="gate-panel wave-preview power-lines" aria-labelledby="power-title" hidden>
+              <strong id="power-title">Líneas de energía</strong>
+              <p id="power-state" role="status"></p>
+              <div class="actions">
+                <button type="button" id="cut-a" aria-pressed="false">Aislar A primero</button>
+                <button type="button" id="cut-b" aria-pressed="false">Aislar B primero</button>
+              </div>
+            </section>
             <div class="wave-actions">
               <button type="button" id="next" class="primary">
                 Iniciar oleada
@@ -307,6 +322,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=15"></script>
+    <script type="module" src="./game.js?v=16"></script>
   </body>
 </html>

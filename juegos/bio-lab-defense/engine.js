@@ -1,6 +1,6 @@
-import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=4";
+import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=5";
 
-import { HERO_BY_ID } from "./operations.js?v=3";
+import { HERO_BY_ID } from "./operations.js?v=4";
 
 export const TOWER_TYPES = [
   {
@@ -48,7 +48,7 @@ export const TOWER_TYPES = [
     name: "Ácido Lítico",
     cost: 90,
     range: 110,
-    damage: 8,
+    damage: 10,
     fireRate: 30,
     color: "#a3e635",
     type: "dot",
@@ -92,6 +92,7 @@ export const TOWER_TYPES = [
     fireRate: 25,
     color: "#38bdf8",
     type: "slow",
+    attack: { slow: 116 },
   },
   {
     id: "uv",
@@ -514,7 +515,7 @@ const FORMATIONS = {
   surge: ["Sondeo", "Irrupción rápida", "Último empuje"],
 };
 
-function formWave(order, formation, theme, level, pressure) {
+function formWave(order, formation, theme, level, { pressure, veteran, archiveLane }) {
   const interval = theme === SWARM ? 24 : theme === RUSH ? 31 : 39;
   const bosses = order.filter((enemy) => enemy.boss);
   const regular = order.length - bosses.length;
@@ -558,19 +559,26 @@ function formWave(order, formation, theme, level, pressure) {
         entry.lane = group === 1 && (i - start) % 3 !== 0 ? 0 : 1;
         entry.speed = entry.lane === 1 ? Math.max(entry.speed, 1.24) : 1;
       }
+      if (archiveLane != null)
+        entry.lane = group === 1 && i - start < 2 ? 1 - archiveLane : archiveLane;
+      if (veteran) entry.delay = Math.round(entry.delay * 0.82);
       elapsed += entry.delay;
       if (first) time = elapsed;
       lanes[entry.lane]++;
     }
-    return { name, time, lanes };
+    const event = { name, time, lanes };
+    order[start].group = event;
+    return event;
   });
   if (bosses.length) {
     const lanes = [0, 0];
     for (const [index, enemy] of bosses.entries()) {
-      enemy.delay = index === 0 ? (formation ? 92 : interval) : 0;
+        enemy.delay = index === 0 ? (veteran ? 72 : formation ? 92 : interval) : 0;
       lanes[enemy.lane]++;
     }
-    timeline.push({ name: bosses.length === 2 ? "Gemelos térmicos" : "Jefe", time: elapsed + bosses[0].delay, lanes });
+    const event = { name: bosses.length === 2 ? "Gemelos térmicos" : "Jefe", time: elapsed + bosses[0].delay, lanes };
+    bosses[0].group = event;
+    timeline.push(event);
   }
   return timeline;
 }
@@ -627,11 +635,12 @@ export function reactorOutput(rank, branch) {
 }
 
 export class Match {
-  constructor(level, daily = null, { heroId, contract } = {}) {
+  constructor(level, daily = null, { heroId, contract, veteran = false } = {}) {
     this.level = level;
     this.daily = daily;
     this.contract = contract || null;
-    this.ranked = !!(daily || contract);
+    this.veteran = veteran;
+    this.ranked = !!(daily || contract || veteran);
     this.mission = daily ? null : MISSIONS[level - 1];
     this.mapIndex = daily?.map ?? CHAPTERS[this.mission.chapter].map;
     const base = MAPS[this.mapIndex];
@@ -668,20 +677,27 @@ export class Match {
     this.pulses = 0;
     this.specialized = 0;
     this.grossATP = 0;
+    this.power = !daily && !contract && this.mission.objective === "power" ? { first: null } : null;
+    this.archive = !daily && !contract && this.mission.objective === "archive"
+      ? this.routes.map((path, lane) => ({
+          lane, waypoint: 3, x: path.points[3][0], y: path.points[3][1], hp: 4, complete: false,
+        }))
+      : null;
+    this.combatCue = null;
     this.preview = this.planWave(1);
     this.lastBuild = null;
     this.waveStart = null;
     this.debrief = null;
     this.waveLeaks = null;
-    this.console = !this.ranked && level === 2
+    this.console = !daily && !contract && level === 2
       ? { x: this.routes[0].points[2][0], y: this.routes[0].points[2][1], hp: 4, complete: false }
       : null;
-    this.barrier = !this.ranked && level === 8
+    this.barrier = !daily && !contract && level === 8
       ? { x: this.routes[0].points.at(-2)[0], y: this.routes[0].points.at(-2)[1], used: false, until: 0 }
       : null;
     this.mirrorOrders = [];
     this.comboNotice = null;
-    const hero = !this.ranked && HERO_BY_ID.get(heroId);
+    const hero = !daily && !contract && HERO_BY_ID.get(veteran ? "iris" : heroId);
     this.hero = hero
       ? { ...hero, x: WIDTH - 85, y: Math.max(26, Math.min(HEIGHT - 26, this.map.points.at(-1)[1] - 53)),
           cooldown: 0, abilityCooldown: 0, targeting: "first", inflicted: 0, defeated: 0 }
@@ -705,9 +721,66 @@ export class Match {
     return true;
   }
 
+  get activeTerminal() {
+    return this.archive?.[Math.max(0, this.wave - Number(this.state !== "build"))] ?? null;
+  }
+
+  isolatedLane(wave) {
+    if (!this.power || this.power.first === null || wave > 4) return null;
+    return wave <= 2 ? this.power.first : 1 - this.power.first;
+  }
+
+  selectPowerLine(lane) {
+    if (!this.power || this.state !== "build" || this.wave !== 0 || ![0, 1].includes(lane))
+      return false;
+    this.power.first = lane;
+    this.preview = this.planWave(1);
+    return true;
+  }
+
+  get incomingGroups() {
+    const upcoming = [null, null];
+    if (this.state !== "wave") return upcoming;
+    let ticks = Math.max(0, this.spawnIn);
+    for (const [i, entry] of this.queue.entries()) {
+      if (i > 0) ticks += entry.delay ?? this.interval;
+      const group = entry.group;
+      if (!group) continue;
+      for (const [lane, count] of group.lanes.entries())
+        if (count && !upcoming[lane]) upcoming[lane] = { name: group.name, ticks };
+      if (upcoming.filter(Boolean).length === this.routes.length) break;
+    }
+    return upcoming;
+  }
+
+  cue(kind, text, position) {
+    const previous = this.combatCue;
+    if (kind === "shield" && previous?.until - this.time > 34) return;
+    this.combatCue = { kind, text, x: position.x, y: position.y, until: this.time + 105 };
+  }
+
+  finishMissionObjectives() {
+    const terminal = this.activeTerminal;
+    if (terminal && !terminal.complete) {
+      terminal.complete = true;
+      this.cue("objective", `Terminal ${terminal.lane ? "B" : "A"} asegurada`, terminal);
+    }
+    if (this.console && !this.console.complete) {
+      this.console.complete = true;
+      this.cue("objective", "Copia recuperada", this.console);
+    }
+    if (this.power && [2, 4].includes(this.wave)) {
+      const point = this.routes[0].points.at(-1);
+      this.cue("objective", this.wave === 2 ? "Primera línea aislada" : "Líneas aisladas",
+        { x: point[0] - 28, y: point[1] });
+    }
+  }
+
   planWave(wave) {
     const level = this.level;
     const final = wave === this.maxWaves;
+    const protectingArchive = !!this.archive && wave <= 2;
+    const veteranPressure = this.veteran && !protectingArchive;
     const pattern =
       level === 1 && wave === 1
         ? 0
@@ -723,7 +796,7 @@ export class Match {
             ? SHIELD
             : SWARM;
     const count =
-      5 + wave * 2 + Math.floor(this.combatLevel * 0.55) + (this.daily?.extra || 0);
+      5 + wave * 2 + Math.floor(this.combatLevel * 0.55) + (this.daily?.extra || 0) + (veteranPressure ? 2 : 0);
     const order = [];
     const pool = Math.min(wave < 3 ? 4 : level > 10 ? 9 : 7, Math.ceil((level + wave) / 2));
     for (let n = 0; n < count; n++) {
@@ -742,7 +815,7 @@ export class Match {
       const guarded = n % 3 === 1;
       nextEnemy(order, PATHOGEN_TYPES[id], lane, {
         speed: this.contract?.pressure && lane === 1 ? 1.24 : theme === RUSH ? 1.13 : 1,
-        armor: theme === ARMOR && guarded ? 6 + this.combatLevel * 0.65 : 0,
+        armor: guarded && (theme === ARMOR || veteranPressure) ? 6 + this.combatLevel * 0.65 : 0,
         shield: theme === SHIELD && guarded ? 0.42 : 0,
       });
     }
@@ -764,12 +837,21 @@ export class Match {
         ...loadout,
         ...(zero ? { hpFactor: 1.26, reinforced: true } : {}),
         boss: true,
-        mirror: !this.daily && (this.level === 10 || zero),
+        mirror: !this.daily && (this.level === 10 || zero || (this.veteran && this.routes.length > 1)),
       });
     }
-    const formation = this.daily ? null : this.contract?.formation ?? this.mission.formation ??
-      (wave === 1 && level < 6 ? null : ["convoy", "cross", "surge"][(wave + level) % 3]);
-    const timeline = formWave(order, formation, theme, this.combatLevel, this.contract?.pressure);
+    const formation = this.daily ? null : veteranPressure
+      ? ["surge", "cross", "convoy"][(wave + level + 1) % 3]
+      : this.contract?.formation ?? this.mission.formation ??
+        (wave === 1 && level < 6 ? null : ["convoy", "cross", "surge"][(wave + level) % 3]);
+    const timeline = formWave(order, formation, theme, this.combatLevel, {
+      pressure: this.contract?.pressure,
+      veteran: veteranPressure,
+      archiveLane: protectingArchive ? wave - 1 : null,
+    });
+    const isolated = this.isolatedLane(wave);
+    if (isolated !== null)
+      for (const entry of order) entry.speed = (entry.speed || 1) * (entry.lane === isolated ? 0.8 : 1.12);
     return {
       order,
       timeline,
@@ -784,7 +866,9 @@ export class Match {
         : this.gateRoutes
           ? "Gemelos térmicos. El Impulsor acelera por A y el Blindaje activa un escudo en B. Prepara lentitud en A y reserva el pulso para B."
           : (this.level === 10 && !this.daily) || this.mission?.boss === "Cero"
-            ? "El jefe anunciará refuerzos primero por A y después por B."
+            ? this.veteran
+              ? "El jefe anunciará refuerzos primero por B y después por A."
+              : "El jefe anunciará refuerzos primero por A y después por B."
             : BOSS_TIP,
     };
   }
@@ -812,6 +896,7 @@ export class Match {
     hero.abilityCooldown = hero.recharge;
     for (const enemy of hits) {
       if (hero.stripShield && enemy.shield) {
+        this.cue("shield", "Escudo roto", enemy);
         enemy.shield = 0;
         hero.shieldsBroken = (hero.shieldsBroken || 0) + 1;
       }
@@ -840,6 +925,7 @@ export class Match {
     this.pulses++;
     this.effect(x, y, "#8cf7ff", 108);
     for (const enemy of targets) {
+      if (enemy.shield) this.cue("shield", "Escudo roto", enemy);
       enemy.shield = 0;
       enemy.stun = enemy.boss ? 52 : 140;
       this.damage(enemy, 46 + this.level * 6, "#8cf7ff", { piercing: true });
@@ -956,7 +1042,7 @@ export class Match {
   }
 
   startWave() {
-    if (this.state !== "build") return false;
+    if (this.state !== "build" || this.power?.first === null) return false;
     this.state = "wave";
     this.wave++;
     this.lastBuild = null;
@@ -995,7 +1081,8 @@ export class Match {
       (this.wave - 1) * 0.14 +
       (this.combatLevel - 1) * (this.wave < 3 ? 0.065 : 0.105);
     const bossScale = coolingBoss ? 0.68 : boss ? 1.18 : 1;
-    const hp = Math.round(spec.hp * scale * bossScale * hpFactor);
+    const veteranHealth = this.veteran && !(this.archive && this.wave <= 2) ? 1.09 : 1;
+    const hp = Math.round(spec.hp * scale * bossScale * hpFactor * veteranHealth);
     const path = this.routes[lane];
     const [[x, y]] = path.points;
     const bossName = this.mission?.boss ??
@@ -1050,6 +1137,7 @@ export class Match {
       tower.inflicted += shield - remainingShield;
       if (remainingShield === 0) tower.shieldsBroken = (tower.shieldsBroken || 0) + 1;
     }
+    if (shield > 0 && remainingShield === 0) this.cue("shield", "Escudo roto", enemy);
     if (damage <= 0) return;
     if (tower) tower.inflicted += Math.min(enemy.hp, damage);
     enemy.hp -= damage;
@@ -1072,13 +1160,14 @@ export class Match {
     if (phase <= enemy.phase) return;
     const enteredSecondPhase = enemy.phase === 1;
     enemy.phase = phase;
+    if (phase === 3) this.cue("phase", `${enemy.name} · Fase final`, enemy);
     if (enemy.mirror) {
       if (enteredSecondPhase) {
         enemy.shield = Math.round(enemy.maxHp * 0.19);
-        this.mirrorOrders.push({ lane: 0, ticks: 125, reinforced: enemy.reinforced });
+        this.mirrorOrders.push({ lane: this.veteran ? 1 : 0, ticks: this.veteran ? 100 : 125, reinforced: enemy.reinforced });
       }
       if (phase === 3) {
-        this.mirrorOrders.push({ lane: 1, ticks: 125, reinforced: enemy.reinforced });
+        this.mirrorOrders.push({ lane: this.veteran ? 0 : 1, ticks: this.veteran ? 100 : 125, reinforced: enemy.reinforced });
         enemy.speed *= 1.28;
       }
       return;
@@ -1110,7 +1199,7 @@ export class Match {
     const spreadDebuff = branch.splashSlow || branch.splashBurn;
     const applyDebuff = (target) => {
       if (type === "slow") {
-        const duration = branch.slow || 95;
+        const duration = branch.slow || tower?.attack?.slow || 95;
         if (duration >= target.slow) target.slowTower = tower;
         target.slow = Math.max(target.slow, duration);
         target.slowFactor = Math.min(
@@ -1220,6 +1309,7 @@ export class Match {
       while (this.queue[0]?.delay === 0) this.spawn();
       this.spawnIn = this.queue[0]?.delay ?? this.interval;
     }
+    const terminal = this.activeTerminal;
     for (const enemy of this.enemies) {
       if (enemy.hp <= 0) continue;
       if (enemy.burn > 0) {
@@ -1270,6 +1360,8 @@ export class Match {
         enemy.wp++;
         if (this.console && !this.console.complete && enemy.wp === 3)
           this.console.hp = Math.max(0, this.console.hp - 1);
+        if (terminal && !terminal.complete && enemy.wp === terminal.waypoint + 1 && enemy.lane === terminal.lane)
+          terminal.hp = Math.max(0, terminal.hp - 1);
         if (enemy.wp === points.length) {
           enemy.escaped = true;
           const loss = Math.min(this.hp, enemy.coolingBoss ? 18 : enemy.boss ? 30 : 10);
@@ -1284,7 +1376,7 @@ export class Match {
       }
     }
     this.enemies = this.enemies.filter((e) => e.hp > 0 && !e.escaped);
-    if (this.hp === 0 || this.console?.hp === 0) {
+    if (this.hp === 0 || this.console?.hp === 0 || terminal?.hp === 0) {
       this.state = "lost";
       return;
     }
@@ -1362,7 +1454,7 @@ export class Match {
     });
     this.enemies = this.enemies.filter((e) => e.hp > 0);
     if (!this.enemies.length && !this.queue.length && !this.mirrorOrders.length) {
-      if (this.console) this.console.complete = true;
+      this.finishMissionObjectives();
       if (this.hero?.destination) Object.assign(this.hero, {
         ...this.hero.destination, destination: null,
       });

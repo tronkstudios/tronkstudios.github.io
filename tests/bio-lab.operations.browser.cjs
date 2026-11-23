@@ -75,6 +75,19 @@ window.testRun = {
     match.wave = match.maxWaves - 1;
     match.preview = match.planWave(match.maxWaves);
   },
+  finishCurrentWave() {
+    match.enemies = [];
+    match.queue = [];
+    match.shots = [];
+    match.mirrorOrders = [];
+    match.tick();
+  },
+  breakTestShield() {
+    match.spawn();
+    const target = match.enemies.at(-1);
+    target.shield = 8;
+    match.damage(target, 8, "#fff");
+  },
   barrierActive() { return match.barrier.until > match.time; },
 };`,
       });
@@ -82,7 +95,7 @@ window.testRun = {
     await page.addInitScript(() => {
       if (!localStorage.getItem("biolab_save_v1"))
         localStorage.setItem("biolab_save_v1", JSON.stringify({
-          unlockedLevel: 10, bioGems: 61, stars: Array(10).fill(1),
+          unlockedLevel: 22, bioGems: 61, stars: Array(22).fill(1),
         }));
     });
     await page.goto(base + "/juegos/bio-lab-defense/");
@@ -196,8 +209,53 @@ window.testRun = {
     await bossBeacon.waitFor();
     await page.locator("#entry-start-a").tap();
     await page.evaluate(() => testRun.mirrorPhase());
+    await page.locator("#combat-cue").getByText(/Fase final/).waitFor();
     await page.getByText("Refuerzos · A", { exact: true }).waitFor();
     await page.getByText("Refuerzos · B", { exact: true }).waitFor();
+    await page.locator("#pause").tap();
+    await page.getByRole("button", { name: "Abandonar partida" }).tap();
+    await page.locator(".level").nth(15).tap();
+    await page.locator("#launch-mission").tap();
+    await page.getByText("Protege la terminal A · Integridad 4/4").waitFor();
+    await page.locator("#next").tap();
+    await page.waitForFunction(() =>
+      !document.querySelector("#next-group-a").hidden ||
+      !document.querySelector("#next-group-b").hidden);
+    await page.evaluate(() => testRun.breakTestShield());
+    await page.locator("#combat-cue").getByText("Escudo roto").waitFor();
+    await page.evaluate(() => testRun.finishCurrentWave());
+    await page.locator("#combat-cue").getByText("Terminal A asegurada").waitFor();
+    await page.getByText("Protege la terminal B · Integridad 4/4").waitFor();
+    await page.reload();
+    await page.locator("#home-resume-run").tap();
+    await page.getByText("Protege la terminal B · Integridad 4/4").waitFor();
+    await page.locator("#pause").tap();
+    await page.getByRole("button", { name: "Volver con guardado" }).tap();
+    await page.locator(".level").nth(19).tap();
+    await page.locator("#launch-veteran").tap();
+    await page.getByRole("heading", { name: "Veterano · Carga inversa" }).waitFor();
+    assert.equal(await page.locator("#next").isDisabled(), true);
+    assert.equal(await page.locator("#supplies").isVisible(), false);
+    assert.equal(await page.evaluate(() => testRun.state.hero), "iris");
+    await page.locator("#cut-b").tap();
+    await page.getByText("Línea B aislada · Enemigos más lentos.").waitFor();
+    await page.locator("#next").tap();
+    await page.evaluate(() => testRun.winContract());
+    await page.getByRole("heading", { name: "Nuevo récord Veterano" }).waitFor();
+    await page.getByRole("button", { name: "Volver al sector" }).tap();
+    await page.getByText(/Récord Veterano · \d/).waitFor();
+    await page.reload();
+    await page.locator("#home-resume-run").tap();
+    await page.getByText("Protege la terminal B · Integridad 4/4").waitFor();
+    await page.locator("#pause").tap();
+    await page.getByRole("button", { name: "Abandonar partida" }).tap();
+    await page.locator(".level").nth(19).tap();
+    await page.locator("#launch-mission").tap();
+    await page.locator("#cut-b").tap();
+    await page.reload();
+    await page.locator("#home-resume-run").tap();
+    assert.equal(await page.locator("#cut-b").getAttribute("aria-pressed"), "true");
+    assert.equal(await page.locator("#next").isDisabled(), false);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true);
     assert.deepEqual(errors, []);
     console.log("Bio-Lab map beacons, hero payment and ads, contracts, equipment and Mirror warnings passed.");

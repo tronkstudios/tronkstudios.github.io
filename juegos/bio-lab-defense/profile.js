@@ -1,6 +1,6 @@
-import { HEROES, HERO_BY_ID, CONTRACT_BY_ID } from "./operations.js?v=3";
+import { HEROES, HERO_BY_ID, CONTRACT_BY_ID } from "./operations.js?v=4";
 
-import { MISSIONS } from "./campaign.js?v=4";
+import { MISSIONS } from "./campaign.js?v=5";
 
 const KEY = "biolab_save_v1";
 const bounded = (value, max, fallback = 0) =>
@@ -33,6 +33,7 @@ export function normalize(data = {}) {
     heroOwned,
     heroEquipped: heroOwned[data?.heroEquipped] === true ? data.heroEquipped : "iris",
     contracts,
+    veteranRecords: Array.from({ length: MISSIONS.length }, (_, i) => bounded(data?.veteranRecords?.[i], 1000000)),
     unlockedLevel: Math.max(nextSector, bounded(data?.unlockedLevel, MISSIONS.length, 1)),
     atpBank: bounded(data?.atpBank, 99999, 500),
     bioGems: bounded(data?.bioGems, 9999, 25),
@@ -151,6 +152,9 @@ export class Profile {
         shared[day] = Math.max(shared[day] || 0, points);
       }
       next.dailyRecords = dailyRecords(shared);
+      next.veteranRecords = next.veteranRecords.map((score, i) =>
+        Math.max(score, this.data.veteranRecords[i]),
+      );
       for (const hero of HEROES) {
         if (!hero.ads) continue;
         next.heroAds[hero.id] = Math.max(next.heroAds[hero.id], this.data.heroAds[hero.id]);
@@ -220,6 +224,14 @@ export class Profile {
   recordContract(id, points) {
     if (!CONTRACT_BY_ID.has(id) || points <= this.data.contracts[id]) return false;
     this.data.contracts[id] = points;
+    this.commit();
+    return true;
+  }
+
+  recordVeteran(level, points) {
+    const index = level - 1;
+    if (!this.data.stars[index] || points <= this.data.veteranRecords[index]) return false;
+    this.data.veteranRecords[index] = points;
     this.commit();
     return true;
   }

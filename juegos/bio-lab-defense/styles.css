@@ -1080,3 +1080,56 @@ dialog p {
 .wave-timeline li span {
   color: #d6e5f4;
 }
+
+.veteran-briefing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.7rem;
+  margin-top: 0.65rem;
+}
+.veteran-briefing p {
+  font-size: 0.79rem;
+  color: #ffdfa0;
+}
+.power-lines {
+  margin-top: 0.55rem;
+}
+.power-lines .actions {
+  margin-top: 0.45rem;
+}
+.power-lines button[aria-pressed="true"] {
+  border-color: #8be2e5;
+  background: #193b43;
+}
+.incoming-group {
+  max-width: 48%;
+  border-color: #79c7ec;
+  background: #143145eb;
+  color: #e1f8ff;
+}
+#next-group-b {
+  left: 49%;
+  border-color: #c1a3f0;
+  background: #372953ec;
+}
+.combat-cue {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  z-index: 2;
+  max-width: 70%;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid currentColor;
+  border-radius: 7px;
+  background: #101c2def;
+  color: #b2edff;
+  font-size: 0.75rem;
+  pointer-events: none;
+}
+.combat-cue[data-kind="objective"] {
+  color: #a5fbd1;
+}
+.combat-cue[data-kind="phase"] {
+  color: #ffb5a1;
+}

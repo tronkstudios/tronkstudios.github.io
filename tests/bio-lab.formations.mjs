@@ -79,3 +79,67 @@ test("fixed between-wave support is distinct from controlled recovery", () => {
   assert.equal(match.debrief.recovery, 6);
   assert.equal(match.state, "build");
 });
+
+test("Veterano changes formations and combat tempo with a fixed nanobot", () => {
+  const standard = new Match(10);
+  const veteran = new Match(10, null, { veteran: true, heroId: "vega" });
+  assert.equal(veteran.hero.id, "iris");
+  assert.equal(veteran.ranked, true);
+  assert.notDeepEqual(veteran.preview.order, standard.preview.order);
+  assert.ok(veteran.preview.order[0].delay < standard.preview.order[0].delay);
+  assert.equal(veteran.startWave(), true);
+  const ticks = veteran.incomingGroups.find(Boolean).ticks;
+  veteran.tick();
+  assert.equal(veteran.incomingGroups.find(Boolean).ticks, ticks - 1);
+  const profile = normalize({ stars: [2], veteranRecords: [1350] });
+  assert.equal(profile.veteranRecords[0], 1350);
+  assert.equal(profile.stars[0], 2);
+  const end = veteran.planWave(veteran.maxWaves);
+  veteran.queue = [end.order.find((entry) => entry.boss)];
+  veteran.spawn();
+  const boss = veteran.enemies.at(-1);
+  veteran.damage(boss, boss.maxHp * 0.8, "#fff", { piercing: true });
+  assert.deepEqual(veteran.mirrorOrders.map((order) => order.lane), [1, 0]);
+  assert.equal(veteran.combatCue.kind, "phase");
+});
+
+test("Archive terminal A switches to B after the first defended wave", () => {
+  const match = new Match(16);
+  assert.equal(match.activeTerminal.lane, 0);
+  assert.ok(match.preview.lanes[0] > match.preview.lanes[1]);
+  match.startWave();
+  match.queue = [];
+  match.tick();
+  assert.equal(match.state, "build");
+  assert.equal(match.archive[0].complete, true);
+  assert.equal(match.combatCue.kind, "objective");
+  assert.equal(match.activeTerminal.lane, 1);
+  assert.ok(match.preview.lanes[1] > match.preview.lanes[0]);
+
+  match.startWave();
+  const terminal = match.activeTerminal;
+  const entry = match.queue.find((enemy) => enemy.lane === 1);
+  match.queue = Array(4).fill(entry);
+  for (let i = 0; i < 4; i++) {
+    match.spawn();
+    Object.assign(match.enemies.at(-1), { wp: terminal.waypoint, x: terminal.x, y: terminal.y });
+  }
+  match.tick();
+  assert.equal(terminal.hp, 0);
+  assert.equal(match.state, "lost");
+  assert.equal(match.hp, 100);
+});
+
+test("Carga inversa requires a choice and reverses the effect on the third wave", () => {
+  const match = new Match(20);
+  const initial = match.planWave(1).order;
+  assert.equal(match.startWave(), false);
+  assert.equal(match.selectPowerLine(1), true);
+  const power = match.preview.order;
+  for (const [index, entry] of power.entries())
+    assert.equal(entry.speed, initial[index].speed * (entry.lane === 1 ? 0.8 : 1.12));
+  assert.equal(match.isolatedLane(3), 0);
+  assert.equal(match.isolatedLane(5), null);
+  assert.equal(match.startWave(), true);
+  assert.equal(match.selectPowerLine(0), false);
+});

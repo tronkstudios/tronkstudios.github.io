@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT } from "./engine.js?v=11";
+import { WIDTH, HEIGHT } from "./engine.js?v=12";
 import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=3";
 
 function trace(ctx, points) {
@@ -274,7 +274,7 @@ function target(ctx, enemy) {
 }
 
 function drawMissionEquipment(ctx, match) {
-  const objective = match.console;
+  const objective = match.activeTerminal || match.console;
   if (objective && !objective.complete) {
     ctx.save();
     ctx.translate(objective.x, objective.y);
@@ -286,6 +286,11 @@ function drawMissionEquipment(ctx, match) {
     for (let i = 0; i < 4; i++)
       circle(ctx, (i - 1.5) * 6, 9, 2, i < objective.hp ? "#89fac2" : "#4a394a");
     ctx.restore();
+  }
+  const isolated = match.isolatedLane(match.state === "build" ? match.wave + 1 : match.wave);
+  if (isolated !== null) {
+    const [x, y] = match.routes[isolated].points[0];
+    circle(ctx, x + 17, y, 23, "#5fcee025", "#a8efff", 2);
   }
   const barrier = match.barrier;
   if (barrier && (!barrier.used || barrier.until > match.time)) {
@@ -461,6 +466,15 @@ export class Board {
       }
     }
     if (match.hero) drawHero(ctx, match.hero, cursor, movingHero, skillPreview);
+    const cue = match.combatCue;
+    if (cue?.until > match.time) {
+      const markers = {
+        shield: [25, "#a5eaff"], objective: [34, "#8bf9bd"], phase: [46, "#ff9a76"],
+      };
+      const [radius, color] = markers[cue.kind];
+      circle(ctx, cue.x, cue.y, radius, null, color, 2);
+      circle(ctx, cue.x, cue.y, radius + 6, null, color + "66", 2);
+    }
     match.enemies.forEach((enemy) => target(ctx, enemy));
     match.shots.forEach((shot) => {
       if (!reduced) {
