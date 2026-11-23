@@ -1,4 +1,6 @@
-import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=2";
+import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=3";
+
+import { HERO_BY_ID } from "./operations.js?v=1";
 
 export const TOWER_TYPES = [
   {
@@ -514,9 +516,11 @@ export function reactorOutput(rank, branch) {
 }
 
 export class Match {
-  constructor(level, daily = null) {
+  constructor(level, daily = null, { heroId, contract } = {}) {
     this.level = level;
     this.daily = daily;
+    this.contract = contract || null;
+    this.ranked = !!(daily || contract);
     this.mission = daily ? null : MISSIONS[level - 1];
     this.mapIndex = daily?.map ?? CHAPTERS[this.mission.chapter].map;
     const base = MAPS[this.mapIndex];
@@ -531,7 +535,7 @@ export class Match {
     this.gateRoutes =
       !daily && level === 6 ? [this.routes[1], route(layout(COOLING_SHORTCUT))] : null;
     this.gateDiverted = false;
-    this.hp = 100;
+    this.hp = contract?.hp ?? 100;
     this.atp = daily?.atp ?? 180 + level * 12 + Math.max(0, level - 5) * 20;
     this.techLevel = daily ? 10 : level;
     this.wave = 0;
@@ -557,6 +561,19 @@ export class Match {
     this.waveStart = null;
     this.debrief = null;
     this.waveLeaks = null;
+    this.console = !this.ranked && level === 2
+      ? { x: this.routes[0].points[2][0], y: this.routes[0].points[2][1], hp: 4, complete: false }
+      : null;
+    this.barrier = !this.ranked && level === 8
+      ? { x: this.routes[0].points.at(-2)[0], y: this.routes[0].points.at(-2)[1], used: false, until: 0 }
+      : null;
+    this.mirrorOrders = [];
+    this.comboNotice = null;
+    const hero = !this.ranked && HERO_BY_ID.get(heroId);
+    this.hero = hero
+      ? { ...hero, x: WIDTH - 85, y: Math.max(26, Math.min(HEIGHT - 26, this.map.points.at(-1)[1] - 53)),
+          cooldown: 0, abilityCooldown: 0, targeting: "first", inflicted: 0, defeated: 0 }
+      : null;
   }
 
   get alternateRoute() {
@@ -601,7 +618,7 @@ export class Match {
       const lane =
         this.routes.length > 1 &&
         (wave > 1 || level > 5 || this.daily) &&
-        (n + wave) % 3 !== 0
+        (this.contract?.pressure ? n % 5 !== 0 : (n + wave) % 3 !== 0)
           ? 1
           : 0;
       const id =
@@ -612,7 +629,7 @@ export class Match {
           : (n * 5 + wave + level + Math.floor(n / pool)) % pool;
       const guarded = n % 3 === 1;
       nextEnemy(order, PATHOGEN_TYPES[id], lane, {
-        speed: theme === RUSH ? 1.13 : 1,
+        speed: this.contract?.pressure && lane === 1 ? 1.24 : theme === RUSH ? 1.13 : 1,
         armor: theme === ARMOR && guarded ? 6 + level * 0.65 : 0,
         shield: theme === SHIELD && guarded ? 0.42 : 0,
       });
@@ -633,7 +650,7 @@ export class Match {
         order,
         PATHOGEN_TYPES[this.mapIndex === 0 ? 5 : this.mapIndex === 1 ? 8 : 9],
         this.routes.length - 1,
-        { boss: true },
+        { boss: true, mirror: !this.daily && this.level === 10 },
       );
     return {
       order,
@@ -647,13 +664,51 @@ export class Match {
         ? ""
         : this.gateRoutes
           ? "Gemelos térmicos. El Impulsor acelera por A y el Blindaje activa un escudo en B. Prepara lentitud en A y reserva el pulso para B."
-          : BOSS_TIP,
+          : this.mission && this.level === 10
+            ? "El Núcleo Espejo anunciará refuerzos primero por A y después por B."
+            : BOSS_TIP,
     };
   }
 
   addATP(amount) {
     this.atp += amount;
     this.grossATP += amount;
+  }
+
+  moveHero(x, y) {
+    if (!this.hero || !["build", "wave"].includes(this.state) ||
+        x < 19 || x > WIDTH - 19 || y < 19 || y > HEIGHT - 19)
+      return false;
+    if (this.state === "wave") this.hero.destination = { x, y };
+    else Object.assign(this.hero, { x, y, destination: null });
+    return true;
+  }
+
+  heroAbility() {
+    const hero = this.hero;
+    if (!hero || this.state !== "wave" || hero.abilityCooldown) return false;
+    const hits = this.enemies.filter((enemy) => enemy.hp > 0 &&
+      Math.hypot(hero.x - enemy.x, hero.y - enemy.y) <= hero.abilityRange);
+    if (!hits.length) return false;
+    hero.abilityCooldown = hero.recharge;
+    for (const enemy of hits) {
+      if (hero.stripShield && enemy.shield) {
+        enemy.shield = 0;
+        hero.shieldsBroken = (hero.shieldsBroken || 0) + 1;
+      }
+      if (hero.stun) enemy.stun = Math.max(enemy.stun, enemy.boss ? 34 : hero.stun);
+      this.damage(enemy, hero.abilityDamage, hero.color, {}, hero);
+    }
+    this.effect(hero.x, hero.y, hero.color, hero.abilityRange);
+    return true;
+  }
+
+  closeBarrier() {
+    if (!this.barrier || this.barrier.used || this.state !== "wave") return false;
+    this.barrier.used = true;
+    this.barrier.until = this.time + 240;
+    this.effect(this.barrier.x, this.barrier.y, "#ffcf84", 115);
+    return true;
   }
 
   activatePulse(x, y) {
@@ -685,6 +740,8 @@ export class Match {
   checkPlacement(type, x, y) {
     if (!type || !["build", "wave"].includes(this.state))
       return "La partida está detenida.";
+    if (this.towers.length >= (this.contract?.towerLimit ?? Infinity))
+      return "Has alcanzado el máximo de torres del contrato.";
     if (type.unlock > this.techLevel)
       return "Esta torre se habilita en otro sector.";
     if (x < 24 || x > WIDTH - 24 || y < 24 || y > HEIGHT - 24)
@@ -710,6 +767,9 @@ export class Match {
       inflicted: 0,
       defeated: 0,
       produced: 0,
+      slowTicks: 0,
+      shieldsBroken: 0,
+      synergyHits: 0,
     };
     this.towers.push(tower);
     if (this.state === "build") this.lastBuild = tower;
@@ -790,6 +850,7 @@ export class Match {
       shield = 0,
       speed = 1,
       coolingBoss,
+      mirror = false,
     } = order;
     const scale =
       0.96 +
@@ -817,6 +878,7 @@ export class Match {
       lane,
       boss,
       coolingBoss,
+      mirror,
       hp,
       maxHp: hp,
       speed: spec.speed * speed * (this.daily?.speed || 1),
@@ -845,7 +907,10 @@ export class Match {
       const shield = enemy.shield;
       const absorbed = Math.min(shield, amount * (piercing ? 0.45 : 1));
       enemy.shield = Math.max(0, enemy.shield - absorbed * (shred ? 2 : 1));
-      if (tower) tower.inflicted += shield - enemy.shield;
+      if (tower) {
+        tower.inflicted += shield - enemy.shield;
+        if (enemy.shield === 0) tower.shieldsBroken = (tower.shieldsBroken || 0) + 1;
+      }
       amount -= absorbed;
     }
     if (amount <= 0) return;
@@ -873,6 +938,17 @@ export class Match {
     if (phase <= enemy.phase) return;
     const enteredSecondPhase = enemy.phase === 1;
     enemy.phase = phase;
+    if (enemy.mirror) {
+      if (enteredSecondPhase) {
+        enemy.shield = Math.round(enemy.maxHp * 0.19);
+        this.mirrorOrders.push({ lane: 0, ticks: 125 });
+      }
+      if (phase === 3) {
+        this.mirrorOrders.push({ lane: 1, ticks: 125 });
+        enemy.speed *= 1.28;
+      }
+      return;
+    }
     if (enemy.coolingBoss) {
       if (enemy.coolingBoss === "runner") {
         if (enteredSecondPhase) enemy.speed *= 1.25;
@@ -900,7 +976,9 @@ export class Match {
     const spreadDebuff = branch.splashSlow || branch.splashBurn;
     const applyDebuff = (target) => {
       if (type === "slow") {
-        target.slow = Math.max(target.slow, branch.slow || 95);
+        const duration = branch.slow || 95;
+        if (duration >= target.slow) target.slowTower = tower;
+        target.slow = Math.max(target.slow, duration);
         target.slowFactor = Math.min(
           target.slowFactor,
           target.boss ? 0.72 : branch.slowFactor || 0.52,
@@ -916,6 +994,7 @@ export class Match {
         target.burnPierces ||= !!branch.piercing;
       }
     };
+    let chilled = Number(type === "splash" && enemy.slow > 0 && enemy.hp > 0);
     this.damage(enemy, damage, color, branch, tower);
     applyDebuff(enemy);
     if (type === "splash" || spreadDebuff) {
@@ -926,7 +1005,8 @@ export class Match {
           Math.hypot(other.x - enemy.x, other.y - enemy.y) >= radius
         )
           continue;
-        if (type === "splash")
+        if (type === "splash") {
+          if (other.hp > 0 && other.slow > 0) chilled++;
           this.damage(
             other,
             Math.round(damage * (branch.splash || 0.62)),
@@ -934,8 +1014,14 @@ export class Match {
             branch,
             tower,
           );
+        }
         if (spreadDebuff) applyDebuff(other);
       }
+    }
+    if (chilled && tower) {
+      tower.synergyHits = (tower.synergyHits || 0) + chilled;
+      if (chilled >= 2)
+        this.comboNotice = { count: chilled, until: this.time + 145 };
     }
     if (type !== "chain") return;
     let previous = enemy;
@@ -961,6 +1047,27 @@ export class Match {
     for (const effect of this.effects) effect.life--;
     this.effects = this.effects.filter((e) => e.life > 0);
     if (this.state !== "wave") return;
+    if (this.hero) {
+      if (this.hero.abilityCooldown > 0) this.hero.abilityCooldown--;
+      const goal = this.hero.destination;
+      if (goal) {
+        const dx = goal.x - this.hero.x;
+        const dy = goal.y - this.hero.y;
+        const distance = Math.hypot(dx, dy);
+        if (distance <= 4) Object.assign(this.hero, { ...goal, destination: null });
+        else {
+          this.hero.x += dx / distance * 4;
+          this.hero.y += dy / distance * 4;
+        }
+      }
+    }
+    const order = this.mirrorOrders[0];
+    if (order && --order.ticks <= 0) {
+      this.mirrorOrders.shift();
+      const fresh = !this.queue.length;
+      for (let i = 0; i < 4; i++) nextEnemy(this.queue, PATHOGEN_TYPES[2], order.lane, { speed: 1.25 });
+      if (fresh) this.spawnIn = 7;
+    }
     if (this.comboTime > 0 && --this.comboTime === 0) this.combo = 0;
     if (this.queue.length && --this.spawnIn <= 0) {
       const pair =
@@ -991,6 +1098,9 @@ export class Match {
         }
         if (enemy.hp <= 0) continue;
       }
+      if (this.barrier?.until > this.time &&
+          Math.hypot(enemy.x - this.barrier.x, enemy.y - this.barrier.y) < 115)
+        continue;
       if (enemy.stun > 0) {
         enemy.stun--;
         continue;
@@ -1001,13 +1111,23 @@ export class Match {
         dy = y - enemy.y;
       const distance = Math.hypot(dx, dy);
       const advance = Math.min(distance, enemy.speed * enemy.slowFactor);
-      if (enemy.slow > 0 && --enemy.slow === 0) enemy.slowFactor = 1;
+      if (enemy.slow > 0) {
+        if (enemy.slowTower)
+          enemy.slowTower.slowTicks = (enemy.slowTower.slowTicks || 0) + 1;
+        if (--enemy.slow === 0) {
+          enemy.slowFactor = 1;
+          enemy.slowTower = null;
+        }
+      }
       enemy.angle = Math.atan2(dy, dx);
       enemy.remaining = enemy.path.remaining[enemy.wp] + distance - advance;
       if (advance >= distance) {
         enemy.x = x;
         enemy.y = y;
-        if (++enemy.wp === points.length) {
+        enemy.wp++;
+        if (this.console && !this.console.complete && enemy.wp === 3)
+          this.console.hp = Math.max(0, this.console.hp - 1);
+        if (enemy.wp === points.length) {
           enemy.escaped = true;
           const loss = Math.min(this.hp, enemy.coolingBoss ? 18 : enemy.boss ? 30 : 10);
           this.hp -= loss;
@@ -1021,12 +1141,13 @@ export class Match {
       }
     }
     this.enemies = this.enemies.filter((e) => e.hp > 0 && !e.escaped);
-    if (this.hp === 0) {
+    if (this.hp === 0 || this.console?.hp === 0) {
       this.state = "lost";
       return;
     }
 
-    for (const tower of this.towers) {
+    for (let index = 0; index < this.towers.length + Number(!!this.hero); index++) {
+      const tower = this.towers[index] || this.hero;
       tower.cooldown -= this.combo >= 5 ? 1.28 : 1;
       if (tower.cooldown > 0) continue;
       if (tower.type === "eco") {
@@ -1091,7 +1212,11 @@ export class Match {
       return true;
     });
     this.enemies = this.enemies.filter((e) => e.hp > 0);
-    if (!this.enemies.length && !this.queue.length) {
+    if (!this.enemies.length && !this.queue.length && !this.mirrorOrders.length) {
+      if (this.console) this.console.complete = true;
+      if (this.hero?.destination) Object.assign(this.hero, {
+        ...this.hero.destination, destination: null,
+      });
       this.shots = [];
       this.addATP(
         25 + 5 * this.wave + (this.daily ? 0 : Math.max(0, this.level - 4) * 4),

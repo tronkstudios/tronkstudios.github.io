@@ -1,5 +1,5 @@
-import { WIDTH, HEIGHT } from "./engine.js?v=6";
-import { drawEnemyModel, drawTurretModel } from "./art.js?v=1";
+import { WIDTH, HEIGHT } from "./engine.js?v=7";
+import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=2";
 
 function trace(ctx, points) {
   ctx.beginPath();
@@ -270,6 +270,41 @@ function target(ctx, enemy) {
   ctx.restore();
 }
 
+function drawMissionEquipment(ctx, match) {
+  const objective = match.console;
+  if (objective && !objective.complete) {
+    ctx.save();
+    ctx.translate(objective.x, objective.y);
+    circle(ctx, 0, 0, 23, "#11282c", "#80f8c8", 2);
+    ctx.fillStyle = "#07121e";
+    ctx.fillRect(-12, -11, 24, 15);
+    ctx.fillStyle = "#a3ffe2";
+    ctx.fillRect(-9, -8, 18, 8);
+    for (let i = 0; i < 4; i++)
+      circle(ctx, (i - 1.5) * 6, 9, 2, i < objective.hp ? "#89fac2" : "#4a394a");
+    ctx.restore();
+  }
+  const barrier = match.barrier;
+  if (barrier && (!barrier.used || barrier.until > match.time)) {
+    const active = barrier.until > match.time;
+    circle(ctx, barrier.x, barrier.y, active ? 115 : 23,
+      active ? "#ffe4a02a" : "#332839", "#ffc979", active ? 3 : 2);
+    ctx.strokeStyle = "#ffcf84";
+    ctx.lineWidth = 4;
+    trace(ctx, [[barrier.x - 17, barrier.y + 10], [barrier.x + 17, barrier.y - 10]]);
+    ctx.stroke();
+  }
+}
+
+function drawHero(ctx, hero) {
+  if (hero.destination) circle(ctx, hero.destination.x, hero.destination.y, 14, null, hero.color, 2);
+  ctx.save();
+  ctx.translate(hero.x, hero.y);
+  circle(ctx, 0, 3, 21, "#060d1ad9");
+  drawHeroModel(ctx, hero);
+  ctx.restore();
+}
+
 function highlightCoverage(ctx, tower, routes) {
   ctx.save();
   ctx.beginPath();
@@ -312,6 +347,7 @@ export class Board {
         background(match.map, match.routes, match.mapIndex),
       );
     ctx.drawImage(this.buffers.get(key), 0, 0);
+    drawMissionEquipment(ctx, match);
     if (gatePreview && match.alternateRoute) {
       ctx.save();
       trace(ctx, match.alternateRoute.points);
@@ -364,6 +400,7 @@ export class Board {
     match.towers.forEach((tower) =>
       turret(ctx, tower, tower === selected || tower === hovered),
     );
+    if (match.hero) drawHero(ctx, match.hero);
     match.enemies.forEach((enemy) => target(ctx, enemy));
     match.shots.forEach((shot) => {
       if (!reduced) {

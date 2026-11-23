@@ -83,7 +83,7 @@ export const MISSIONS = [
     speaker: "Ivo · Ingeniería",
     briefing:
       "El registro se quedó en una consola sin batería. Dale tiempo para completar la copia. La avería también ha invertido el sentido de los conductos.",
-    cue: "La ruta sale por abajo y gira hacia arriba. Revisa el trazado antes de colocar las torres.",
+    cue: "Protege la consola en el primer giro vertical durante la oleada inicial. Cuatro enemigos que la alcancen cancelan la copia.",
     transmission:
       "Copia al cincuenta por ciento. Ya veo qué máquina se activó primero.",
     end: "Tenemos el registro. Algo está reabriendo las puertas después de cada cierre.",
@@ -167,7 +167,7 @@ export const MISSIONS = [
     speaker: "Mara · Operaciones",
     briefing:
       "El Centinela de la Galería ha tomado el puente. Primero intentará resistir el fuego; si le bajas la integridad, cargará hacia el núcleo.",
-    cue: "Deja algún alcance cerca de la salida. La última fase del Centinela acelera.",
+    cue: "El cierre de contención del puente retiene enemigos cercanos durante cuatro segundos. Puedes activarlo una vez por misión.",
     transmission:
       "Puente preparado. En cuanto el Centinela caiga, levanto el cierre de acceso.",
     end: "El puente está libre. Ivo lleva el repuesto y yo tomaré el mando del cierre.",
@@ -195,7 +195,7 @@ export const MISSIONS = [
     speaker: "Ivo · Ingeniería",
     briefing:
       "El Espejo está sosteniendo el fallo desde dentro. Mara cerrará el complejo en cuanto lo derribes. Aquí se decide si el laboratorio vuelve a estar bajo nuestro control.",
-    cue: "Distribuye las torres entre las dos entradas y guarda el pulso para el escudo del Espejo.",
+    cue: "El Espejo anuncia refuerzos por A y después por B. Aprovecha el aviso para reforzar el próximo flanco.",
     transmission:
       "El cierre responde. Mara, espera mi señal. Que nadie baje el ritmo en el último tramo.",
     end: "Complejo sellado. El equipo ha salido y el laboratorio vuelve a estar bajo nuestro control.",

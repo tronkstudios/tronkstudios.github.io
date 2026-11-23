@@ -135,3 +135,38 @@ export function drawEnemyModel(ctx, enemy) {
   const width = enemy.boss ? size * 1.1 : size * 0.76;
   ctx.drawImage(model, -width / 2, -width / 2, width, width);
 }
+
+const heroModels = {
+  iris: ["M-12-8L-16-2V9L-9 15H8L13 8V-5L8-12H-7Z", "M-17 6L-9 0 M11 2L20-6V-11 M-5 5H6"],
+  mara: ["M-15-8L-20 0L-13 13H13L20 0L15-8L8-13H-8Z", "M-17 0L-10 6 M17 0L10 6 M-7 6H7 M0 1V11"],
+  ivo: ["M-14-10L-19-4V7L-12 14H12L19 7V-4L14-10L5-14H-5Z", "M-19-4L-23-10 M19-4L23-10 M-12 7L-6 3L0 8L6 3L12 7"],
+  vega: ["M-17-9L-13-13H13L17-9L22 3L14 15H-14L-22 3Z", "M-19 3L-11 8 M19 3L11 8 M-7 6L0 11L7 6"],
+};
+
+function heroModel(hero) {
+  return sprite(`hero:${hero.id}`, (ctx) => {
+    const [armor, trim] = heroModels[hero.id];
+    paint(ctx, "M0-29L27-12V13L0 29L-27 13V-12Z", "#102135", hero.color, 2);
+    const metal = ctx.createLinearGradient(0, -16, 0, 17);
+    metal.addColorStop(0, "#8197aa");
+    metal.addColorStop(0.55, "#354e68");
+    metal.addColorStop(1, "#192535");
+    paint(ctx, armor, metal, "#08111d", 2.5);
+    paint(ctx, "M-10-9L-7-16H7L10-9L8 0L4 4H-4L-8 0Z", "#283f56", "#091523", 2);
+    line(ctx, "M-6-7H6", hero.color, 3.5);
+    line(ctx, trim, hero.color, 2);
+  });
+}
+
+export function heroIcon(hero) {
+  const icon = document.createElement("canvas");
+  icon.width = icon.height = 76;
+  icon.className = "hero-art";
+  icon.setAttribute("aria-hidden", "true");
+  icon.getContext("2d").drawImage(heroModel(hero), 0, 0, 76, 76);
+  return icon;
+}
+
+export function drawHeroModel(ctx, hero) {
+  ctx.drawImage(heroModel(hero), -31, -31, 62, 62);
+}

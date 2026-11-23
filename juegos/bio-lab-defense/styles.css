@@ -844,3 +844,120 @@ dialog p {
   font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
 }
+
+.board-wrap {
+  position: relative;
+}
+.wave-beacon,
+.map-alert {
+  position: absolute;
+  z-index: 1;
+  top: clamp(24px, var(--map-y), calc(100% - 24px));
+  transform: translateY(-50%);
+}
+.wave-beacon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  left: 6px;
+  min-width: 50px;
+  min-height: 44px;
+  padding: 0.3rem 0.48rem;
+  border-color: #a8e9ff;
+  background: #183b54;
+  color: #e5faff;
+  box-shadow: 0 0 0 2px #091826ab;
+}
+.wave-beacon::before {
+  content: "";
+  border: 5px solid transparent;
+  border-right: 0;
+  border-left: 8px solid currentColor;
+}
+#entry-start-b {
+  left: 62px;
+  border-color: #d3b0ff;
+  background: #3c2659;
+}
+.map-alert {
+  left: 6px;
+  padding: 0.28rem 0.5rem;
+  border: 1px solid #ffd48c;
+  border-radius: 8px;
+  background: #38271be8;
+  color: #ffe2a4;
+  font-size: 0.72rem;
+  pointer-events: none;
+}
+#core-warning {
+  right: 6px;
+  left: auto;
+  border-color: #ff867f;
+  background: #451923ed;
+  color: #ffd0c9;
+}
+#field-alerts {
+  margin-top: 0.4rem;
+  color: #bdefdb;
+  font-size: 0.83rem;
+}
+.field-specials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+}
+#move-hero[aria-pressed="true"],
+#pulse.pulse-ready {
+  border-color: #88f5d1;
+  background: #143e3f;
+}
+.operations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(225px, 100%), 1fr));
+  gap: 0.7rem;
+  margin: 0.6rem 0 1.3rem;
+}
+.operation-card {
+  display: grid;
+  gap: 0.45rem;
+  align-content: start;
+  padding: 0.85rem;
+  border: 1px solid #324d69;
+  border-top: 2px solid var(--operation-color, #788ed8);
+  border-radius: 12px;
+  background: linear-gradient(148deg, #142a42, #0e1929 74%);
+}
+.operation-card h3 {
+  margin: 0;
+  color: var(--operation-color, #dbe5ff);
+}
+.operation-card p,
+#operations-status {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+#operations-status:not(:empty) {
+  padding-top: 0.4rem;
+  color: #ffe0a3;
+}
+.hero-art {
+  width: 64px;
+  height: 64px;
+  border-color: var(--operation-color);
+  border-radius: 12px;
+  cursor: inherit;
+}
+#entry-warning:not([hidden]) {
+  animation: entry-arrival 420ms ease-out;
+}
+@keyframes entry-arrival {
+  from { box-shadow: 0 0 0 7px #ffd88875; }
+  to { box-shadow: 0 0 0 0 #ffd88800; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #entry-warning:not([hidden]) {
+    animation: none;
+  }
+}

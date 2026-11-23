@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=9" />
+    <link rel="stylesheet" href="./styles.css?v=10" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -64,6 +64,7 @@
                 Retomar partida
               </button>
               <button type="button" id="challenge-button">Reto de hoy</button>
+              <button type="button" id="operations-button" disabled>Héroes y contratos</button>
               <button type="button" id="daily-button">Suministro diario</button>
             </div>
           </div>
@@ -135,6 +136,20 @@
           </div>
         </div>
       </section>
+      <section id="operations" aria-labelledby="operations-title" hidden>
+        <div class="section-head">
+          <div>
+            <h1 id="operations-title">Héroes y contratos</h1>
+            <p id="operations-balance"></p>
+          </div>
+          <button type="button" id="back-operations">Volver</button>
+        </div>
+        <h2>Héroes de campaña</h2>
+        <p id="operations-status" role="status"></p>
+        <div class="operations-grid" id="heroes"></div>
+        <h2>Contratos de élite</h2>
+        <div class="operations-grid" id="contracts"></div>
+      </section>
       <section id="field" hidden aria-label="Partida">
         <div class="section-head field-head">
           <div>
@@ -173,13 +188,19 @@
             <div id="dock"></div>
           </section>
           <div class="arena">
-            <canvas
-              id="board"
-              width="900"
-              height="540"
-              tabindex="0"
-              aria-label="Tablero. Flechas para mover el cursor y Espacio para colocar o elegir torre."
-            ></canvas>
+            <div class="board-wrap">
+              <canvas
+                id="board"
+                width="900"
+                height="540"
+                tabindex="0"
+                aria-label="Tablero. Flechas para mover el cursor y Espacio para colocar o elegir torre."
+              ></canvas>
+              <button type="button" class="wave-beacon" id="entry-start-a" hidden></button>
+              <button type="button" class="wave-beacon" id="entry-start-b" hidden></button>
+              <b id="entry-warning" class="map-alert" role="status" hidden></b>
+              <b id="core-warning" class="map-alert" hidden>¡Núcleo en peligro!</b>
+            </div>
             <div class="wave-actions">
               <button type="button" id="next" class="primary">
                 Iniciar oleada
@@ -198,6 +219,15 @@
               >
                 Pausa táctica
               </button>
+            </div>
+            <div id="field-specials" class="field-specials" hidden>
+              <button type="button" id="move-hero" aria-pressed="false" hidden></button>
+              <button type="button" id="hero-ability" hidden></button>
+              <button type="button" id="barrier-action" hidden>Cerrar barrera · 4 s</button>
+            </div>
+            <div id="field-alerts" aria-live="polite" hidden>
+              <p id="mission-objective" hidden></p>
+              <p id="battle-notice" hidden></p>
             </div>
             <div id="boss-status" class="boss-status" hidden>
               <div>
@@ -269,6 +299,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=10"></script>
+    <script type="module" src="./game.js?v=11"></script>
   </body>
 </html>

@@ -9,18 +9,20 @@ import {
   specializations,
   TARGETING,
   dailySetup,
-} from "./engine.js?v=6";
-import { Board } from "./board.js?v=9";
-import { towerIcon } from "./art.js?v=1";
-import { Profile, dayKey } from "./profile.js?v=3";
+} from "./engine.js?v=7";
+import { Board } from "./board.js?v=10";
+import { towerIcon, heroIcon } from "./art.js?v=2";
+import { Profile, dayKey } from "./profile.js?v=4";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=3";
-import { CHAPTERS, MISSIONS } from "./campaign.js?v=2";
-import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=1";
+import { CHAPTERS, MISSIONS } from "./campaign.js?v=3";
+import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=2";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=2";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=3";
+
+import { HEROES, CONTRACTS } from "./operations.js?v=1";
 
 const $ = (id) => document.getElementById(id);
-const panels = ["home", "campaign", "briefing", "field"];
+const panels = ["home", "campaign", "briefing", "operations", "field"];
 const canvas = $("board");
 const board = new Board(canvas);
 const briefingBoard = new Board($("briefing-map"));
@@ -41,7 +43,8 @@ let adPreparing = false,
 let aiming = false,
   challengeDay = null,
   tacticalPaused = false,
-  gatePreview = false;
+  gatePreview = false,
+  movingHero = false;
 let atpBought,
   repaired,
   prepared = false;
@@ -50,7 +53,10 @@ let lastTick = performance.now(),
 let selectionKey = "";
 let briefingLevel = 1,
   lastBoss = false,
-  lastPreview;
+  lastPreview,
+  lastPulseReady = false,
+  lastMirrorOrder = null;
+let operationsMessage = "";
 const profile = new Profile(refreshProfile);
 let checkpoint,
   checkpointLost = false;
@@ -103,6 +109,114 @@ function refreshProfile() {
     `${complete}/${MISSIONS.length} misiones · ${medals} insignias`,
   );
   if (screen === "campaign") renderLevels();
+  if (screen === "operations") renderOperations();
+}
+
+function openOperations() {
+  if (!prepared || adBusy) return;
+  operationsMessage = "";
+  view("operations");
+  if (HEROES.some((hero) => !profile.data.heroOwned[hero.id])) prepareAd();
+  renderOperations();
+}
+
+function renderOperations() {
+  updateText("operations-balance", `${profile.data.bioGems} biogemas`);
+  updateText("operations-status", operationsMessage || adError);
+  const focusedAction = document.activeElement?.dataset.operation;
+  const card = (title, detail) => {
+    const tile = document.createElement("article");
+    tile.className = "operation-card";
+    const heading = document.createElement("h3");
+    heading.textContent = title;
+    const text = document.createElement("p");
+    text.textContent = detail;
+    tile.append(heading, text);
+    return tile;
+  };
+  const action = (id, label, handler, disabled = false) => {
+    const button = makeButton(label, handler);
+    button.dataset.operation = id;
+    button.disabled = disabled;
+    return button;
+  };
+  $("heroes").replaceChildren(...HEROES.map((hero) => {
+    const tile = card(`${hero.name} · ${hero.role}`, `${hero.ability}. ${hero.detail}`);
+    tile.style.setProperty("--operation-color", hero.color);
+    tile.prepend(heroIcon(hero));
+    const stats = document.createElement("p");
+    stats.textContent = `${hero.damage} daño · Alcance ${hero.range} · Recarga ${Math.ceil(hero.recharge / 60)} s`;
+    tile.append(stats);
+    if (profile.data.heroOwned[hero.id]) {
+      const equipped = profile.data.heroEquipped === hero.id;
+      tile.append(action(`equip-${hero.id}`, equipped ? "En el equipo" : "Equipar",
+        () => profile.equipHero(hero.id), equipped || adBusy));
+    } else {
+      const count = profile.data.heroAds[hero.id];
+      const label = adPreparing ? "Preparando anuncio…"
+        : ad?.prepared ? `Ver anuncio · ${count}/${hero.ads}`
+        : `Preparar anuncio · ${count}/${hero.ads}`;
+      tile.append(
+        action(`buy-${hero.id}`, `Desbloquear · ${hero.cost} biogemas`, () => {
+          if (profile.buyHero(hero.id)) {
+            operationsMessage = `${hero.name} ya está disponible.`;
+            renderOperations();
+          }
+        }, adBusy || profile.data.bioGems < hero.cost),
+        action(`ad-${hero.id}`, label, () => requestHeroAd(hero), !ad || adBusy || adPreparing),
+      );
+    }
+    return tile;
+  }));
+  $("contracts").replaceChildren(...CONTRACTS.map((contract) => {
+    const score = profile.data.contracts[contract.id];
+    const unlocked = profile.data.stars[contract.level - 1] > 0;
+    const tile = card(contract.name, contract.detail);
+    const record = document.createElement("p");
+    record.textContent = score ? `Récord personal · ${score.toLocaleString("es-ES")}` : "Récord personal · —";
+    tile.append(record, action(`contract-${contract.id}`, unlocked ? "Jugar contrato" : `Supera el sector ${contract.level}`,
+      () => startContract(contract), !unlocked || adBusy));
+    return tile;
+  }));
+  if (focusedAction) $("operations").querySelector(`[data-operation="${focusedAction}"]:enabled`)?.focus({preventScroll:true});
+}
+
+function startContract(contract) {
+  if (adBusy || !profile.data.stars[contract.level - 1]) return;
+  begin(new Match(contract.level, null, { contract }));
+}
+
+function requestHeroAd(hero) {
+  if (!ad || adBusy || adPreparing || profile.data.heroOwned[hero.id]) return;
+  operationsMessage = "";
+  if (!ad.prepared) {
+    prepareAd();
+    renderOperations();
+    return;
+  }
+  const close = (text) => {
+    adBusy = false;
+    $("operations").inert = false;
+    operationsMessage = text;
+    if (screen === "operations") renderOperations();
+  };
+  adBusy = true;
+  adError = "";
+  operationsMessage = "Buscando anuncio…";
+  renderOperations();
+  ad.showPreparedReward({
+    placementName: `bio-lab-hero-${hero.id}`,
+    canShow: () => screen === "operations" && !modal.open,
+    onShow() { $("operations").inert = true; },
+    onReward() {
+      profile.recordHeroAd(hero.id);
+      close(profile.data.heroOwned[hero.id]
+        ? `${hero.name} desbloqueado.`
+        : `${hero.name} · ${profile.data.heroAds[hero.id]}/${hero.ads} anuncios completados.`);
+    },
+    onCancel: () => close("Anuncio cancelado."),
+    onError: (reason) => close(adMessage(reason)),
+  });
 }
 
 function renderLevels() {
@@ -216,7 +330,7 @@ function persistPreparation() {
     !checkpoint ||
     checkpointLost ||
     !match ||
-    match.daily ||
+    match.ranked ||
     match.state !== "build"
   )
     return;
@@ -240,7 +354,7 @@ function resumePreparation() {
 function start(level, day = null) {
   if (day) return begin(new Match(level, dailySetup(day)), day);
   const saved = savedPreparation();
-  const launch = () => begin(new Match(level));
+  const launch = () => begin(new Match(level, null, { heroId: profile.data.heroEquipped }));
   if (!saved) return launch();
   ask(
     "Hay una partida guardada",
@@ -263,6 +377,9 @@ function begin(next, day = null, restored = null) {
   aiming = false;
   tacticalPaused = false;
   gatePreview = false;
+  movingHero = false;
+  lastPulseReady = false;
+  lastMirrorOrder = null;
   blueprint = BLUEPRINTS[0];
   selected = null;
   cursor = null;
@@ -272,7 +389,7 @@ function begin(next, day = null, restored = null) {
   selectionKey = "";
   $("sector").textContent = day
     ? `Reto · ${match.daily.name}`
-    : `Sector ${level} · ${match.mission.name}`;
+    : match.contract ? match.contract.name : `Sector ${level} · ${match.mission.name}`;
   unlockAudio();
   $("radio-log").hidden = !match.mission;
   if (match.mission) {
@@ -289,11 +406,12 @@ function begin(next, day = null, restored = null) {
       ? `Partida retomada. Prepara la oleada ${match.wave + 1}.`
       : "Elige una torre y toca fuera del conducto para colocarla.",
   );
-  $("checkpoint-state").hidden = !!day;
-  if (!day) persistPreparation();
-  $("supplies").hidden = !!day;
+  $("checkpoint-state").hidden = match.ranked;
+  if (!match.ranked) persistPreparation();
+  $("supplies").hidden = match.ranked;
   adError = "";
-  if (!day) prepareAd();
+  if (!match.ranked) prepareAd();
+  positionMapControls();
   renderHUD();
   board.draw(match, blueprint, selected, cursor, reduced.matches, aiming);
 }
@@ -309,6 +427,7 @@ function renderDock() {
       const button = makeButton("", () => {
         blueprint = type;
         aiming = false;
+        movingHero = false;
         selected = null;
         selectionKey = "";
         renderSelection();
@@ -345,6 +464,14 @@ function highlightDock() {
 
 function place(x, y) {
   if (!match || modal.open || !["build", "wave"].includes(match.state)) return;
+  if (movingHero) {
+    if (!match.moveHero(x, y)) return message("Elige un punto dentro del tablero.", true);
+    movingHero = false;
+    message(match.state === "wave" ? `${match.hero.name} en movimiento.` : `${match.hero.name} en posición.`);
+    persistPreparation();
+    renderHUD();
+    return;
+  }
   if (aiming) {
     if (match.activatePulse(x, y)) {
       aiming = false;
@@ -483,7 +610,12 @@ function upgradeForecast(tower, branch) {
 function towerReport(tower) {
   if (tower.type === "eco")
     return `ATP generado · ${tower.produced.toLocaleString("es-ES")}`;
-  return `Daño infligido · ${Math.round(tower.inflicted).toLocaleString("es-ES")} · Bajas ${tower.defeated}`;
+  const basic = `Daño infligido · ${Math.round(tower.inflicted).toLocaleString("es-ES")} · Bajas ${tower.defeated}`;
+  const extras = [];
+  if (tower.slowTicks) extras.push(`${cadence.format(tower.slowTicks / 60)} s de ralentización acumulada`);
+  if (tower.shieldsBroken) extras.push(`Escudos rotos ${tower.shieldsBroken}`);
+  if (tower.synergyHits) extras.push(`Impactos sobre ralentizados ${tower.synergyHits}`);
+  return [basic, ...extras].join(" · ");
 }
 
 function elPerformance(tower) {
@@ -562,6 +694,71 @@ function renderGate(waiting) {
       : "Trazado amarillo: atajo. Junta las entradas antes y reduce el tiempo hasta el núcleo.";
   }
   updateText("gate-status", status);
+}
+
+function positionMapControl(node, point) {
+  node.style.setProperty("--map-y", `${point[1] * 100 / HEIGHT}%`);
+}
+
+function positionMapControls() {
+  for (const [index, path] of match.routes.entries()) {
+    positionMapControl($(index ? "entry-start-b" : "entry-start-a"), path.points[0]);
+  }
+  positionMapControl($("core-warning"), match.routes[0].points.at(-1));
+}
+
+function renderFieldControls(waiting) {
+  for (const [lane, id] of ["entry-start-a", "entry-start-b"].entries()) {
+    const beacon = $(id);
+    const active = waiting && match.preview.lanes[lane] > 0;
+    beacon.hidden = !active;
+    beacon.disabled = adBusy;
+    if (active) {
+      const letter = lane ? "B" : "A";
+      updateText(id, letter);
+      beacon.setAttribute("aria-label", `Iniciar oleada ${match.wave + 1} desde la entrada ${letter}`);
+    }
+  }
+  const live = match.state === "wave";
+  const order = live ? match.mirrorOrders[0] : null;
+  $("entry-warning").hidden = !order;
+  if (order && order !== lastMirrorOrder) {
+    positionMapControl($("entry-warning"), match.routes[order.lane].points[0]);
+    updateText("entry-warning", `Refuerzos · ${order.lane ? "B" : "A"}`);
+    sound("alert");
+  }
+  lastMirrorOrder = order;
+  $("core-warning").hidden = !live || !match.enemies.some((enemy) => enemy.hp > 0 && enemy.remaining < 105);
+  const pulseReady = live && match.charge >= 100;
+  if (pulseReady && !lastPulseReady) sound("ready");
+  lastPulseReady = pulseReady;
+  $("pulse").classList.toggle("pulse-ready", pulseReady);
+  const hero = match.hero;
+  $("field-specials").hidden = !hero && !match.barrier;
+  $("move-hero").hidden = $("hero-ability").hidden = !hero;
+  if (hero) {
+    $("move-hero").disabled = !waiting && !live;
+    $("move-hero").setAttribute("aria-pressed", String(movingHero));
+    updateText("move-hero", movingHero ? "Cancelar movimiento" : `Mover a ${hero.name}`);
+    $("hero-ability").disabled = !live || tacticalPaused || hero.abilityCooldown > 0;
+    const cooldown = hero.abilityCooldown ? ` · ${Math.ceil(hero.abilityCooldown / 60)} s` : "";
+    updateText("hero-ability", hero.ability + cooldown);
+  }
+  const barrier = match.barrier;
+  $("barrier-action").hidden = !barrier;
+  if (barrier) {
+    $("barrier-action").disabled = !live || tacticalPaused || barrier.used;
+    updateText("barrier-action", barrier.used ? "Barrera utilizada" : "Cerrar barrera · 4 s");
+  }
+  const objective = match.console;
+  const combo = live && match.comboNotice?.until > match.time;
+  $("field-alerts").hidden = !objective && !combo;
+  $("mission-objective").hidden = !objective;
+  $("battle-notice").hidden = !combo;
+  if (objective)
+    updateText("mission-objective", objective.complete ? "Copia recuperada" : `Protege la consola · Integridad ${objective.hp}/4`);
+  if (combo)
+    updateText("battle-notice", `Combo de torres · ${match.comboNotice.count} enemigos ralentizados alcanzados`);
 }
 
 function renderHUD() {
@@ -644,7 +841,8 @@ function renderHUD() {
   $("tactical-pause").disabled = match.state !== "wave";
   $("tactical-pause").classList.toggle("engaged", tacticalPaused);
   updateText("tactical-pause", tacticalPaused ? "Reanudar" : "Pausa táctica");
-  const canRequestAd = ad && waiting && !match.daily && !match.adUsed;
+  renderFieldControls(waiting);
+  const canRequestAd = ad && waiting && !match.ranked && !match.adUsed;
   $("boost").hidden = !canRequestAd;
   $("boost").disabled = adBusy || adPreparing;
   updateText(
@@ -694,11 +892,11 @@ function frame(now) {
         message(announce());
       }
     }
-    const hovered = cursor && !aiming ? towerAt(cursor.x, cursor.y) : null;
+    const hovered = cursor && !aiming && !movingHero ? towerAt(cursor.x, cursor.y) : null;
     board.draw(
       match,
-      blueprint,
-      selected,
+      movingHero ? null : blueprint,
+      movingHero ? null : selected,
       cursor,
       reduced.matches,
       aiming,
@@ -717,6 +915,15 @@ function finish() {
   const stars = won ? (match.hp >= 90 ? 3 : match.hp >= 55 ? 2 : 1) : 0;
   const { level } = match;
   sound(won ? "victory" : "defeat");
+  if (match.contract) {
+    const contract = match.contract;
+    const score = match.score();
+    const record = won && profile.recordContract(contract.id, score);
+    ask(record ? "Nuevo récord de élite" : won ? "Contrato completado" : "Contrato fallido",
+      `${contract.name} · ${score.toLocaleString("es-ES")} puntos · Núcleo ${match.hp} %.`,
+      [["Reintentar", () => startContract(contract)], ["Volver a contratos", openOperations]]);
+    return;
+  }
   if (challengeDay) {
     const score = match.score();
     const record = profile.recordDaily(challengeDay, score);
@@ -781,7 +988,7 @@ ${mission.end}${
 Insignia: ${mission.medal.title}. +35 ATP de reserva y +2 biogemas.`
           : ""
       }`
-    : `El núcleo cayó en la oleada ${match.wave} de ${match.maxWaves}.
+    : `${match.console?.hp === 0 ? "La consola de Muestreo fue destruida." : `El núcleo cayó en la oleada ${match.wave} de ${match.maxWaves}.`}
 
 ${lossReport()}
 
@@ -890,6 +1097,30 @@ function showSoundState(enabled) {
 }
 showSoundState(soundEnabled());
 $("sound-toggle").onclick = () => showSoundState(toggleSound());
+$("operations-button").onclick = openOperations;
+$("back-operations").onclick = () => {
+  if (!adBusy) view("home");
+};
+$("move-hero").onclick = () => {
+  movingHero = !movingHero;
+  aiming = false;
+  message(movingHero ? "Toca el tablero para posicionar al héroe." : "Movimiento cancelado.");
+  renderHUD();
+};
+$("hero-ability").onclick = () => {
+  if (tacticalPaused) return;
+  if (match.heroAbility()) {
+    sound("pulse", true);
+    message(`${match.hero.ability} activada.`);
+  } else message("Acerca el héroe a los enemigos para usar su habilidad.", true);
+  renderHUD();
+};
+$("barrier-action").onclick = () => {
+  if (tacticalPaused || !match.closeBarrier()) return;
+  sound("pulse", true);
+  message("Barrera cerrada durante cuatro segundos.");
+  renderHUD();
+};
 $("challenge-button").onclick = () => {
   if (!prepared) return;
   const day = dayKey();
@@ -922,7 +1153,7 @@ $("daily-button").onclick = () => {
     ["Volver"],
   ]);
 };
-$("next").onclick = () => {
+function startNextWave() {
   if (adBusy) return;
   if (match.startWave()) {
     gatePreview = false;
@@ -932,6 +1163,11 @@ $("next").onclick = () => {
     message(`Oleada ${match.wave} iniciada.`);
   }
   renderHUD();
+}
+$("next").onclick = startNextWave;
+for (const id of ["entry-start-a", "entry-start-b"]) $(id).onclick = () => {
+  startNextWave();
+  canvas.focus({ preventScroll: true });
 };
 $("gate-preview").onclick = () => {
   gatePreview = !gatePreview;
@@ -959,6 +1195,7 @@ $("undo-build").onclick = () => {
 };
 $("pulse").onclick = () => {
   if (match.charge !== 100 || match.state !== "wave") return;
+  movingHero = false;
   aiming = !aiming;
   message(
     aiming
@@ -1001,12 +1238,13 @@ document.addEventListener("keydown", (event) => {
 });
 $("pause").onclick = () => {
   const actions = [["Continuar"]];
-  if (!match.daily && !checkpointLost && checkpoint?.raw)
+  if (!match.ranked && !checkpointLost && checkpoint?.raw)
     actions.push(["Volver con guardado", campaign]);
   actions.push([
     "Abandonar partida",
     () => {
-      if (match.daily) view("home");
+      if (match.contract) openOperations();
+      else if (match.daily) view("home");
       else {
         checkpoint?.clear();
         campaign();
@@ -1015,15 +1253,15 @@ $("pause").onclick = () => {
   ]);
   ask(
     "Partida en pausa",
-    match.daily
-      ? "Puedes continuar el reto o abandonarlo."
+    match.ranked
+      ? "Puedes continuar la partida o abandonarla."
       : "Puedes retomar la misión desde la última preparación guardada. Abandonar descarta el punto de esta partida.",
     actions,
   );
 };
 $("buy-atp").onclick = () => {
   if (
-    match.daily ||
+    match.ranked ||
     match.state !== "build" ||
     atpBought ||
     profile.data.atpBank < 100
@@ -1039,7 +1277,7 @@ $("buy-atp").onclick = () => {
 };
 $("heal").onclick = () => {
   if (
-    match.daily ||
+    match.ranked ||
     match.state !== "build" ||
     repaired ||
     match.hp === 100 ||
@@ -1066,6 +1304,7 @@ function prepareAd() {
     .finally(() => {
       adPreparing = false;
       if (screen === "field") renderHUD();
+      else if (screen === "operations") renderOperations();
     });
 }
 
@@ -1074,7 +1313,7 @@ $("boost").onclick = () => {
     !ad ||
     adBusy ||
     adPreparing ||
-    match.daily ||
+    match.ranked ||
     match.adUsed ||
     match.state !== "build"
   )
@@ -1139,7 +1378,7 @@ void profile.init().finally(() => {
   prepared = true;
   checkpoint = new Checkpoint(profile.user);
   refreshCheckpoint();
-  $("campaign-button").disabled = $("challenge-button").disabled = false;
+  $("campaign-button").disabled = $("challenge-button").disabled = $("operations-button").disabled = false;
   refreshProfile();
 });
 requestAnimationFrame(frame);
