@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT } from "./engine.js?v=10";
+import { WIDTH, HEIGHT } from "./engine.js?v=11";
 import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=3";
 
 function trace(ctx, points) {
@@ -33,6 +33,9 @@ const floors = [
   { light: "#173958", dark: "#061322", grid: "#32648848", fixture: "#18425b" },
   { light: "#153c37", dark: "#061b20", grid: "#37776b48", fixture: "#1e5245" },
   { light: "#392c55", dark: "#120c24", grid: "#705b9a4f", fixture: "#483767" },
+  { light: "#433827", dark: "#181522", grid: "#a87d6148", fixture: "#67463c" },
+  { light: "#203e58", dark: "#051321", grid: "#4186964c", fixture: "#26536a" },
+  { light: "#47324e", dark: "#180d24", grid: "#ae71944a", fixture: "#684366" },
 ];
 
 function floorTile(ctx, x, y, chapter, palette, accent) {

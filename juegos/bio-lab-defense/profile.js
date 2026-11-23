@@ -1,4 +1,6 @@
-import { HEROES, HERO_BY_ID, CONTRACT_BY_ID } from "./operations.js?v=2";
+import { HEROES, HERO_BY_ID, CONTRACT_BY_ID } from "./operations.js?v=3";
+
+import { MISSIONS } from "./campaign.js?v=4";
 
 const KEY = "biolab_save_v1";
 const bounded = (value, max, fallback = 0) =>
@@ -24,20 +26,22 @@ export function normalize(data = {}) {
   const contracts = Object.fromEntries(
     [...CONTRACT_BY_ID.keys()].map((id) => [id, bounded(data?.contracts?.[id], 1000000)]),
   );
+  const stars = Array.from({ length: MISSIONS.length }, (_, i) => bounded(data?.stars?.[i], 3));
+  const nextSector = Math.min(MISSIONS.length, stars.findLastIndex(Boolean) + 2);
   return {
     heroAds,
     heroOwned,
     heroEquipped: heroOwned[data?.heroEquipped] === true ? data.heroEquipped : "iris",
     contracts,
-    unlockedLevel: Math.max(1, bounded(data?.unlockedLevel, 10, 1)),
+    unlockedLevel: Math.max(nextSector, bounded(data?.unlockedLevel, MISSIONS.length, 1)),
     atpBank: bounded(data?.atpBank, 99999, 500),
     bioGems: bounded(data?.bioGems, 9999, 25),
     lastDaily: /^\d{4}-\d{2}-\d{2}$/.test(data?.lastDaily || "")
       ? data.lastDaily
       : "",
     dailyRecords: dailyRecords(data?.dailyRecords),
-    medals: Array.from({ length: 10 }, (_, i) => data?.medals?.[i] === true),
-    stars: Array.from({ length: 10 }, (_, i) => bounded(data?.stars?.[i], 3)),
+    medals: Array.from({ length: MISSIONS.length }, (_, i) => data?.medals?.[i] === true),
+    stars,
   };
 }
 

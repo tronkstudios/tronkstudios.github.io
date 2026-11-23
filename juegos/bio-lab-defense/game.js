@@ -9,17 +9,17 @@ import {
   specializations,
   TARGETING,
   dailySetup,
-} from "./engine.js?v=10";
-import { Board } from "./board.js?v=13";
+} from "./engine.js?v=11";
+import { Board } from "./board.js?v=14";
 import { towerIcon, heroIcon } from "./art.js?v=3";
-import { Profile, dayKey } from "./profile.js?v=5";
+import { Profile, dayKey } from "./profile.js?v=6";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=3";
-import { CHAPTERS, MISSIONS } from "./campaign.js?v=3";
+import { CHAPTERS, MISSIONS } from "./campaign.js?v=4";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=2";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=6";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=7";
 
-import { HEROES, CONTRACTS } from "./operations.js?v=2";
+import { HEROES, CONTRACTS } from "./operations.js?v=3";
 
 const $ = (id) => document.getElementById(id);
 const panels = ["home", "campaign", "briefing", "operations", "field"];
@@ -754,13 +754,23 @@ function updateText(id, value) {
 function renderWavePreview(preview) {
   if (preview === lastPreview) return;
   lastPreview = preview;
-  const { count, theme, final, lanes, bossTip, order } = preview;
+  const { count, theme, final, lanes, bossTip, order, timeline } = preview;
   const finale = match.gateRoutes ? " · Gemelos térmicos" : " · Jefe";
   updateText(
     "wave-preview-title",
     `${theme.name} · ${count} enemigos${lanes[1] ? " · Dos entradas" : ""}${final ? finale : ""}`,
   );
   updateText("wave-preview-tip", `${theme.tip} ${bossTip}`.trim());
+  $("wave-timeline").replaceChildren(...timeline.map((group) => {
+    const item = document.createElement("li");
+    const when = document.createElement("time");
+    when.textContent = group.time < 60 ? "Inicio" : `+${Math.round(group.time / 60)} s`;
+    const directions = group.lanes.flatMap((n, lane) => n ? [`${lane ? "B" : "A"} · ${n}`] : []);
+    const detail = document.createElement("span");
+    detail.textContent = `${group.name} · ${directions.join(" / ")}`;
+    item.append(when, detail);
+    return item;
+  }));
   const groups = new Map();
   for (const { spec, boss, armor, shield } of order) {
     const label = boss
@@ -943,9 +953,12 @@ function renderHUD() {
     const core = debrief.damage
       ? `núcleo −${debrief.damage} %`
       : "núcleo intacto";
+    const budget = debrief.reserve
+      ? ` · Refuerzo +${debrief.reserve} ATP${debrief.recovery ? ` · Contención +${debrief.recovery} ATP` : ""}`
+      : "";
     updateText(
       "wave-debrief",
-      `Oleada ${match.wave}: ${debrief.kills} abatidos · +${debrief.atp} ATP · ${core}.`,
+      `Oleada ${match.wave}: ${debrief.kills} abatidos · +${debrief.atp} ATP · ${core}${budget}.`,
     );
   }
   $("undo-build").hidden = !match.undoable;
@@ -1220,7 +1233,10 @@ canvas.onpointerup = (event) => {
   if (boardPointer?.id !== event.pointerId) return;
   const point = pointer(event);
   boardPointer = null;
-  if (event.pointerType === "touch") cursor = null;
+  if (event.pointerType === "touch") {
+    cursor = null;
+    $("placement-preview").hidden = true;
+  }
   if (point.x < 0 || point.x > WIDTH || point.y < 0 || point.y > HEIGHT) return;
   place(point.x, point.y);
 };
@@ -1228,6 +1244,7 @@ canvas.onpointercancel = (event) => {
   if (boardPointer?.id === event.pointerId) {
     boardPointer = null;
     cursor = null;
+    $("placement-preview").hidden = true;
   }
 };
 canvas.onpointerleave = () => {

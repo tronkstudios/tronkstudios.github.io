@@ -45,7 +45,7 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8791";
     const atpBeforeMove = await page.locator("#atp").textContent();
     await page.getByRole("button", { name: "Reubicar gratis" }).tap();
     await tapBoard(220, 243);
-    await page.getByText("Deja despejado el conducto.", { exact: true }).waitFor();
+    await page.locator("#board-status").getByText("Deja despejado el conducto.", { exact: true }).waitFor();
     await tapBoard(330, 255);
     await page.getByText("Nano-Láser reubicada.", { exact: true }).waitFor();
     assert.equal(await page.locator("#atp").textContent(), atpBeforeMove);

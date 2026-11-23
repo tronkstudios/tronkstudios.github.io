@@ -85,11 +85,11 @@ window.forceRunnerLeak = () => {
       });
       await page.goto(base + "/juegos/bio-lab-defense/");
       await page.locator("#campaign-button").click();
-      assert.equal(await page.locator(".chapter").count(), 3);
-      assert.equal(await page.locator(".level").count(), 10);
+      assert.equal(await page.locator(".chapter").count(), 6);
+      assert.equal(await page.locator(".level").count(), 22);
       assert.match(
         await page.locator("#campaign-progress").textContent(),
-        /1\/10 misiones · 2 estrellas/,
+        /1\/22 misiones · 2 estrellas/,
       );
       assert.equal(await page.locator(".level").nth(2).isDisabled(), true);
       await page.locator("#resume-mission").click();
@@ -257,6 +257,25 @@ window.forceRunnerLeak = () => {
       await page.getByRole("button", { name: "Repreparar la oleada" }).click();
       await page.getByText("Atajo activo", { exact: true }).waitFor();
       assert.equal(await page.locator("#wave").textContent(), "0/5");
+      await page.evaluate(() => {
+        const save = JSON.parse(localStorage.getItem("biolab_save_v1"));
+        localStorage.setItem(
+          "biolab_save_v1",
+          JSON.stringify({ ...save, unlockedLevel: 10, stars: Array(10).fill(1) }),
+        );
+      });
+      await page.reload();
+      await page.locator("#campaign-button").click();
+      await page.locator("#resume-mission").click();
+      await page.getByRole("heading", { name: "Eco de fondo" }).waitFor();
+      await page.locator("#launch-mission").click();
+      await page.getByRole("button", { name: "Empezar y reemplazar" }).click();
+      await page.getByRole("heading", { name: "Sector 11 · Eco de fondo" }).waitFor();
+      assert.equal(await page.locator("#wave-timeline li").count(), 3);
+      assert.match(await page.locator("#wave-timeline li").first().textContent(), /Columna blindada/);
+      await page.reload();
+      await page.locator("#home-resume-run").click();
+      await page.getByRole("heading", { name: "Sector 11 · Eco de fondo" }).waitFor();
       assert.deepEqual(errors, []);
       console.log(
         `Bio-Lab gate controls, boss phases, loss report and checkpoint retry passed at ${width}px.`,

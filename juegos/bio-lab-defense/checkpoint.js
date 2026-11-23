@@ -1,4 +1,6 @@
-import { BLUEPRINTS, Match, TARGETING, specializations } from "./engine.js?v=10";
+import { BLUEPRINTS, Match, TARGETING, specializations } from "./engine.js?v=11";
+
+import { MISSIONS } from "./campaign.js?v=4";
 
 const version = 1;
 const blueprintById = new Map(BLUEPRINTS.map((type) => [type.id, type]));
@@ -96,7 +98,7 @@ export class Checkpoint {
 }
 
 export function restoreCheckpoint(data) {
-  if (!data || !integer(data.level, 1, 10)) return null;
+  if (!data || !integer(data.level, 1, MISSIONS.length)) return null;
   const match = new Match(data.level, null, { heroId: data.hero?.id });
   if (
     !integer(data.wave, 0, match.maxWaves - 1) ||

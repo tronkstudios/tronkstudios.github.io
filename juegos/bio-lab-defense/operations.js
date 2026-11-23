@@ -81,6 +81,7 @@ export const CONTRACTS = [
     name: "Guardia mínima",
     detail: "Defiende Conductos con un máximo de cuatro torres.",
     towerLimit: 4,
+    formation: "convoy",
   },
   {
     id: "reserva",
@@ -88,6 +89,7 @@ export const CONTRACTS = [
     name: "Reserva crítica",
     detail: "Supera Refrigeración con el núcleo al 50 % desde el inicio.",
     hp: 50,
+    formation: "surge",
   },
   {
     id: "flanco",
@@ -95,6 +97,31 @@ export const CONTRACTS = [
     name: "Presión violeta",
     detail: "En Sellado, la entrada B concentra los refuerzos rápidos.",
     pressure: true,
+    formation: "cross",
+  },
+  {
+    id: "escolta",
+    level: 14,
+    name: "Columna de Sal",
+    detail: "En Prisma de sal, oleadas de escolta con un presupuesto inicial de 300 ATP.",
+    formation: "convoy",
+    atp: 300,
+  },
+  {
+    id: "doble",
+    level: 18,
+    name: "Doble amenaza",
+    detail: "En Faro de interferencia, dos entradas coordinadas y un máximo de seis torres.",
+    formation: "cross",
+    towerLimit: 6,
+  },
+  {
+    id: "irrupcion",
+    level: 22,
+    name: "Sin respiro",
+    detail: "En Amanecer cero, tandas rápidas y el núcleo al 65 % desde el inicio.",
+    formation: "surge",
+    hp: 65,
   },
 ];
 

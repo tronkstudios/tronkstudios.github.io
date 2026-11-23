@@ -1055,3 +1055,28 @@ dialog p {
   border-color: #477c83;
   color: #c0f2e8;
 }
+
+.wave-timeline {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0.5rem 0;
+  padding: 0;
+  list-style: none;
+}
+.wave-timeline li {
+  display: grid;
+  grid-template-columns: 3.4rem minmax(0, 1fr);
+  gap: 0.45rem;
+  align-items: baseline;
+  padding: 0.25rem 0.35rem;
+  border-left: 2px solid #5a90ae;
+  background: #081a2d;
+}
+.wave-timeline time {
+  color: #99e9f2;
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+}
+.wave-timeline li span {
+  color: #d6e5f4;
+}
