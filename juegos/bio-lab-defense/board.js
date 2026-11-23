@@ -1,5 +1,5 @@
-import { WIDTH, HEIGHT } from "./engine.js?v=12";
-import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=3";
+import { WIDTH, HEIGHT } from "./engine.js?v=14";
+import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=4";
 
 function trace(ctx, points) {
   ctx.beginPath();
@@ -244,7 +244,34 @@ function turret(ctx, tower, chosen) {
     );
 }
 
-function target(ctx, enemy) {
+function drawSupportNode(ctx, node) {
+  ctx.save();
+  ctx.translate(node.x, node.y);
+  circle(ctx, 0, 3, 27, "#111426cc", node.color, 2);
+  polygon(ctx, 6, 21);
+  ctx.fillStyle = "#233049";
+  ctx.fill();
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = node.color;
+  ctx.stroke();
+  circle(ctx, 0, 0, 11, node.color);
+  ctx.fillStyle = "#14263b";
+  ctx.font = "bold 13px system-ui";
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "center";
+  ctx.fillText(node.lane ? "B" : "A", 0, 0);
+  ctx.fillStyle = "#0a1320";
+  ctx.fillRect(-24, -36, 48, 8);
+  ctx.fillStyle = node.color;
+  ctx.fillRect(-22, -34, 44 * Math.max(0, node.hp / node.maxHp), 4);
+  ctx.restore();
+}
+
+function target(ctx, enemy, time) {
+  if (enemy.supportNode) {
+    drawSupportNode(ctx, enemy);
+    return;
+  }
   ctx.save();
   ctx.translate(enemy.x, enemy.y);
   circle(ctx, 0, 3, enemy.boss ? 27 : 15, "#030811b5");
@@ -255,6 +282,14 @@ function target(ctx, enemy) {
   if (enemy.stun) circle(ctx, 0, 0, enemy.boss ? 30 : 18, null, "#e9edff", 2);
   if (enemy.slow) circle(ctx, 0, 0, enemy.boss ? 29 : 16, null, "#97e9ff", 2);
   if (enemy.burn) circle(ctx, 0, 0, enemy.boss ? 32 : 19, null, "#b4ef68", 1.5);
+  const marker = enemy.markedUntil > time ? "#ffe3a0"
+    : enemy.frozenUntil > time ? "#9be9ff" : enemy.exposedUntil > time ? "#daaaff" : null;
+  if (marker) {
+    ctx.save();
+    ctx.setLineDash([4, 4]);
+    circle(ctx, 0, 0, enemy.boss ? 37 : 24, null, marker, 2);
+    ctx.restore();
+  }
   ctx.save();
   ctx.rotate(enemy.angle);
   drawEnemyModel(ctx, enemy);
@@ -364,7 +399,7 @@ export class Board {
     reduced,
     aiming,
     hovered = null,
-    { gatePreview, movingHero, movingTower, skillPreview, upgradePreview, breach = null } = {},
+    { gatePreview, movingHero, movingTower, skillPreview, upgradePreview, snapOrigin, breach = null } = {},
   ) {
     const ctx = this.ctx;
     const key = match.mission
@@ -417,6 +452,13 @@ export class Board {
       ctx.strokeStyle = validSpot ? movingTower.color : "#ff8a8a";
       ctx.stroke();
       ctx.restore();
+    }
+    if (snapOrigin && ghost) {
+      circle(ctx, snapOrigin.x, snapOrigin.y, 4, "#f6fbffa8");
+      trace(ctx, [[snapOrigin.x, snapOrigin.y], [ghost.x, ghost.y]]);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#b6f8df";
+      ctx.stroke();
     }
     for (const [tower, valid, isGhost] of [
       [aiming || movingTower || upgradePreview ? null : hovered || selected, true, false],
@@ -475,7 +517,7 @@ export class Board {
       circle(ctx, cue.x, cue.y, radius, null, color, 2);
       circle(ctx, cue.x, cue.y, radius + 6, null, color + "66", 2);
     }
-    match.enemies.forEach((enemy) => target(ctx, enemy));
+    match.enemies.forEach((enemy) => target(ctx, enemy, match.time));
     match.shots.forEach((shot) => {
       if (!reduced) {
         const angle = Math.atan2(shot.target.y - shot.y, shot.target.x - shot.x);

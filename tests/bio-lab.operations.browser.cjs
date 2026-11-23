@@ -44,7 +44,7 @@ queue.forEach(handle);
         body: (await response.text()) + `
 window.testRun = {
   get state() { return { state: match.state, wave: match.wave, hero: match.hero?.id,
-    cooldown: match.hero?.abilityCooldown, x: match.hero?.x, y: match.hero?.y, hp: match.hp }; },
+    cooldown: match.hero?.abilityCooldown, x: match.hero?.x, y: match.hero?.y, hp: match.hp, time: match.time }; },
   spawnNearHero() {
     match.spawn();
     Object.assign(match.enemies.at(-1), { x: match.hero.x + 15, y: match.hero.y });
@@ -75,6 +75,15 @@ window.testRun = {
     match.wave = match.maxWaves - 1;
     match.preview = match.planWave(match.maxWaves);
   },
+  awakenViruela() {
+    match.queue = [match.planWave(match.maxWaves).order.find((entry) => entry.zero)];
+    match.spawn();
+    const boss = match.enemies.at(-1);
+    match.damage(boss, boss.maxHp * 0.4, "#fff", { piercing: true });
+  },
+  breakViruelaNodes() {
+    for (const node of match.zeroNodes) match.damage(node, node.hp, "#fff", { piercing: true });
+  },
   finishCurrentWave() {
     match.enemies = [];
     match.queue = [];
@@ -99,6 +108,27 @@ window.testRun = {
         }));
     });
     await page.goto(base + "/juegos/bio-lab-defense/");
+    const codex = page.getByRole("dialog", { name: "Enciclopedia del laboratorio" });
+    await page.locator("#home-codex").tap();
+    const sprites = new Set();
+    for (const [category, total] of [["Torres", 12], ["Enemigos", 10], ["Jefes", 8]]) {
+      await codex.getByRole("button", { name: category, exact: true }).tap();
+      const entries = codex.locator("#codex-list button");
+      assert.equal(await entries.count(), total);
+      for (const entry of await entries.all()) {
+        await entry.tap();
+        assert.equal(await codex.locator("h3").textContent(), await entry.textContent());
+        const sprite = await codex.locator("canvas").evaluate((canvas) => {
+          const hasPixels = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height)
+            .data.some((pixel, index) => index % 4 === 3 && pixel > 0);
+          return hasPixels ? canvas.toDataURL() : null;
+        });
+        assert.ok(sprite);
+        sprites.add(sprite);
+      }
+    }
+    assert.equal(sprites.size, 30);
+    await codex.getByRole("button", { name: "Cerrar" }).tap();
     await page.locator("#operations-button").tap();
     await page.getByRole("heading", { name: "Nanobots de campaña" }).waitFor();
     assert.deepEqual(await page.locator("#heroes h3").allTextContents(), [
@@ -128,6 +158,14 @@ window.testRun = {
     await page.getByText("4/4 instaladas", { exact: true }).waitFor();
     assert.match(await page.locator('[data-type="nanolaser"]').textContent(), /Límite/);
     await page.locator("#entry-start-a").tap();
+    await page.locator("#field-codex").tap();
+    await codex.getByRole("heading", { name: "Nano-Láser" }).waitFor();
+    const guidePausedAt = await page.evaluate(() => testRun.state.time);
+    await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+    assert.equal(await page.evaluate(() => testRun.state.time), guidePausedAt);
+    await page.keyboard.press("Escape");
+    await codex.waitFor({ state: "hidden" });
+    await page.waitForFunction((time) => testRun.state.time > time, guidePausedAt);
     await page.evaluate(() => testRun.winContract());
     await page.getByRole("heading", { name: "Nuevo récord de élite" }).waitFor();
     await page.getByRole("button", { name: "Volver a contratos" }).tap();
@@ -162,6 +200,10 @@ window.testRun = {
       type: "touchMove", touchPoints: [await screenPoint(120, 215)],
     });
     await page.getByText("Suelta para instalar · 50 ATP", { exact: true }).waitFor();
+    await devtools.send("Input.dispatchTouchEvent", {
+      type: "touchMove", touchPoints: [await screenPoint(190, 215)],
+    });
+    await page.getByText("Punto sugerido · suelta para instalar · 50 ATP", { exact: true }).waitFor();
     assert.equal(Number(await page.locator("#atp").textContent()), atpBeforeDrag);
     await devtools.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
     await page.getByText("Nano-Láser instalada.", { exact: true }).waitFor();
@@ -203,6 +245,10 @@ window.testRun = {
     await page.locator(".level").nth(9).tap();
     await page.locator("#launch-mission").tap();
     await page.evaluate(() => testRun.previewFinalWave());
+    await page.locator("#wave-roster").getByRole("button", { name: /Jefe · Gripe de 1918/ }).tap();
+    await codex.getByRole("heading", { name: "Gripe de 1918", exact: true }).waitFor();
+    await codex.getByText("Virus de la gripe A (H1N1)", { exact: true }).waitFor();
+    await codex.getByRole("button", { name: "Cerrar" }).tap();
     const bossBeacon = page.getByRole("button", {
       name: /Iniciar oleada .* completa\. Entrada B: .* incluye jefe/,
     });
@@ -256,6 +302,20 @@ window.testRun = {
     await page.locator("#home-resume-run").tap();
     assert.equal(await page.locator("#cut-b").getAttribute("aria-pressed"), "true");
     assert.equal(await page.locator("#next").isDisabled(), false);
+    await page.locator("#pause").tap();
+    await page.getByRole("button", { name: "Abandonar partida" }).tap();
+    await page.locator(".level").nth(21).tap();
+    await page.locator("#launch-mission").tap();
+    await page.evaluate(() => testRun.previewFinalWave());
+    await page.locator("#wave-roster").getByText(/Jefe · Viruela/).waitFor();
+    await page.locator("#entry-start-b").tap();
+    await page.evaluate(() => testRun.awakenViruela());
+    await page.locator("#boss-name").getByText("Viruela", { exact: true }).waitFor();
+    await page.getByRole("region", { name: "Nodos de la viruela" }).waitFor();
+    await page.evaluate(() => testRun.breakViruelaNodes());
+    await page.getByText("Nodos destruidos · Viruela expuesta").waitFor();
+    assert.equal(await page.locator("#zero-state-a").textContent(), "Destruido");
+    assert.equal(await page.locator("#zero-state-b").textContent(), "Destruido");
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true);
     assert.deepEqual(errors, []);
     console.log("Bio-Lab map beacons, hero payment and ads, contracts, equipment and Mirror warnings passed.");
