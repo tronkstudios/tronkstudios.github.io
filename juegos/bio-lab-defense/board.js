@@ -1,4 +1,5 @@
 import { WIDTH, HEIGHT } from "./engine.js?v=6";
+import { drawEnemyModel, drawTurretModel } from "./art.js?v=1";
 
 function trace(ctx, points) {
   ctx.beginPath();
@@ -105,6 +106,18 @@ function background(map, routes, chapter) {
   glow.addColorStop(1, palette.dark);
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  ctx.lineWidth = 1;
+  for (let y = 12; y < HEIGHT; y += 96) {
+    for (let x = 12; x < WIDTH; x += 144) {
+      ctx.fillStyle = (x + y) % 5 ? "#07172225" : map.accent + "0c";
+      ctx.fillRect(x, y, 120, 72);
+      ctx.strokeStyle = palette.grid;
+      ctx.strokeRect(x + 0.5, y + 0.5, 120, 72);
+      ctx.fillStyle = "#a1b4bc32";
+      ctx.fillRect(x + 7, y + 7, 3, 3);
+      ctx.fillRect(x + 110, y + 62, 3, 3);
+    }
+  }
   ctx.strokeStyle = palette.grid;
   ctx.lineWidth = 1;
   for (let x = 0; x < WIDTH; x += 48) {
@@ -150,14 +163,23 @@ function background(map, routes, chapter) {
   for (const [width, color] of [
     [58, "#060d17"],
     [50, map.accent + "65"],
-    [46, "#102b42"],
-    [32, "#152e49"],
+    [46, "#1c3647"],
+    [38, "#091b29"],
+    [31, "#142e3d"],
   ]) {
     trace(ctx, map.points);
     ctx.lineWidth = width;
     ctx.strokeStyle = color;
     ctx.stroke();
   }
+  ctx.setLineDash([2, 16]);
+  trace(ctx, map.points);
+  ctx.strokeStyle = map.accent + "25";
+  ctx.lineWidth = 29;
+  ctx.lineCap = "butt";
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.lineCap = "round";
   directionMarks(ctx, map.points, map.accent + "ad");
   if (routes.length > 1) {
     ctx.textAlign = "center";
@@ -176,10 +198,20 @@ function background(map, routes, chapter) {
   circle(ctx, sx + 7, sy, 28, "#12233a", map.accent, 3);
   circle(ctx, sx + 7, sy, 14, map.accent + "60");
   const core = ex - 13;
-  circle(ctx, core, ey, 39, "#11203a", map.accent + "65", 5);
-  circle(ctx, core, ey, 27, "#172f46", map.accent, 3);
   ctx.save();
   ctx.translate(core, ey);
+  polygon(ctx, 8, 41);
+  ctx.fillStyle = "#101c2c";
+  ctx.fill();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = map.accent + "75";
+  ctx.stroke();
+  circle(ctx, 0, 0, 31, "#172b40", map.accent, 2);
+  for (let i = 0; i < 8; i++) {
+    const angle = (i * Math.PI) / 4;
+    circle(ctx, Math.cos(angle) * 34, Math.sin(angle) * 34, 2, "#c1d6dd");
+  }
+  circle(ctx, 0, 0, 25, map.accent + "36", map.accent + "66");
   polygon(ctx, 6, 17);
   ctx.fillStyle = map.accent;
   ctx.fill();
@@ -194,40 +226,10 @@ function turret(ctx, tower, chosen) {
   ctx.save();
   ctx.translate(tower.x, tower.y);
   circle(ctx, 0, 3, 20, "#040c19bb");
-  const frame = { single: 8, slow: 6, splash: 8, dot: 7, chain: 4, eco: 6 };
-  polygon(ctx, frame[tower.type], 19);
-  ctx.fillStyle = "#111e31";
-  ctx.fill();
-  ctx.strokeStyle = tower.color;
-  ctx.lineWidth = chosen ? 3 : 2;
-  ctx.stroke();
-  if (chosen) circle(ctx, 0, 0, 23, null, "#e5f4ff88");
-  if (tower.branch) circle(ctx, 0, 0, 15, null, "#f7dfa8", 2);
+  if (chosen) circle(ctx, 0, 0, 26, null, "#d3f7ff", 2);
+  if (tower.branch) circle(ctx, 0, 0, 23, null, "#f7d494", 2);
   ctx.rotate(tower.angle || 0);
-  if (tower.type !== "eco") {
-    ctx.fillStyle = "#07121e";
-    const barrel = tower.id === "sniper" ? 28 : 22;
-    ctx.fillRect(2, -6, barrel, 12);
-    ctx.fillStyle = tower.color;
-    ctx.fillRect(10, -4, barrel - 8, 8);
-  }
-  ctx.fillStyle = "#2b425c";
-  if (tower.type === "slow" || tower.type === "chain" || tower.type === "eco") {
-    polygon(ctx, tower.type === "slow" ? 4 : 6, 11);
-    ctx.strokeStyle = tower.color;
-    ctx.lineWidth = 2;
-    ctx.fill();
-    ctx.stroke();
-  } else circle(ctx, 0, 0, 10, "#2b425c", tower.color, 2);
-  circle(ctx, 0, 0, 4, tower.color);
-  if (tower.type === "eco") {
-    for (const [x, y] of [
-      [-8, -6],
-      [8, -6],
-      [0, 9],
-    ])
-      circle(ctx, x, y, 2, "#ffe2ad");
-  }
+  drawTurretModel(ctx, tower);
   ctx.restore();
   for (let i = 0; i < tower.rank; i++)
     circle(
@@ -245,59 +247,26 @@ function target(ctx, enemy) {
   circle(ctx, 0, 3, enemy.boss ? 27 : 15, "#030811b5");
   if (enemy.shield > 0)
     circle(ctx, 0, 0, enemy.boss ? 33 : 21, "#75d3ff25", "#6bd2ff", 3);
-  if (enemy.armor) circle(ctx, 0, 0, 18, null, "#ffcf81", 3);
+  if (enemy.armor)
+    circle(ctx, 0, 0, enemy.boss ? 31 : 18, null, "#ffcf81", 3);
   if (enemy.stun) circle(ctx, 0, 0, enemy.boss ? 30 : 18, null, "#e9edff", 2);
   if (enemy.slow) circle(ctx, 0, 0, enemy.boss ? 29 : 16, null, "#97e9ff", 2);
   if (enemy.burn) circle(ctx, 0, 0, enemy.boss ? 32 : 19, null, "#b4ef68", 1.5);
   ctx.save();
   ctx.rotate(enemy.angle);
-  if (enemy.boss) ctx.scale(1.62, 1.62);
-  if (enemy.shape === "rod") ctx.scale(1.3, 0.67);
-  if (enemy.shape === "spiral") ctx.scale(1.3, 0.56);
-  const sides = {
-    diplo: 8,
-    rod: 6,
-    spiral: 4,
-    phage: 3,
-    cluster: 6,
-    blob: 9,
-    hex: 6,
-    corona: 10,
-  };
-  polygon(ctx, sides[enemy.shape], 13);
-  ctx.fillStyle = enemy.color;
-  ctx.fill();
-  ctx.strokeStyle = "#fceaff";
-  ctx.lineWidth = 1.35;
-  ctx.stroke();
-  circle(ctx, 0, 0, enemy.boss ? 8 : 6, "#13182e");
-  circle(ctx, 3, -2, enemy.boss ? 4 : 2.6, "#fff3fd");
-  if (enemy.boss) {
-    ctx.strokeStyle = enemy.phase === 3 ? "#ff7d73" : "#fff0a8";
-    ctx.lineWidth = 2.5;
-    for (let i = 0; i < 4; i++) {
-      ctx.rotate(Math.PI / 2);
-      trace(ctx, [
-        [13, -3],
-        [19, 0],
-        [13, 3],
-      ]);
-      ctx.stroke();
-    }
-  }
-  if (enemy.boss) {
-    for (let i = 0; i < 6; i++) {
-      const a = (i * Math.PI) / 3;
-      circle(ctx, Math.cos(a) * 14, Math.sin(a) * 14, 2, "#fff2ca");
-    }
-  }
+  drawEnemyModel(ctx, enemy);
   ctx.restore();
+  if (enemy.shield > 0)
+    circle(ctx, 0, 0, enemy.boss ? 35 : 22, null, "#91dfff", 2);
   const width = enemy.boss ? 52 : 25;
-  const y = enemy.boss ? -37 : -22;
+  const y = enemy.boss ? -39 : -22;
+  const health = Math.max(0, enemy.hp / enemy.maxHp);
   ctx.fillStyle = "#030811";
-  ctx.fillRect(-width / 2 - 1, y - 1, width + 2, 6);
-  ctx.fillStyle = enemy.boss ? "#ffbc79" : "#8af1b7";
-  ctx.fillRect(-width / 2, y, width * Math.max(0, enemy.hp / enemy.maxHp), 4);
+  ctx.fillRect(-width / 2 - 1, y - 1, width + 2, 7);
+  ctx.fillStyle = "#354555";
+  ctx.fillRect(-width / 2, y, width, 5);
+  ctx.fillStyle = health < 0.3 ? "#ff7a70" : enemy.boss ? "#ffbc79" : "#9cf0bd";
+  ctx.fillRect(-width / 2, y, width * health, 5);
   ctx.restore();
 }
 
@@ -397,8 +366,20 @@ export class Board {
     );
     match.enemies.forEach((enemy) => target(ctx, enemy));
     match.shots.forEach((shot) => {
+      if (!reduced) {
+        const angle = Math.atan2(shot.target.y - shot.y, shot.target.x - shot.x);
+        const length = shot.tower.id === "sniper" ? 25 : 13;
+        trace(ctx, [
+          [shot.x - Math.cos(angle) * length, shot.y - Math.sin(angle) * length],
+          [shot.x, shot.y],
+        ]);
+        ctx.strokeStyle = shot.color + "a0";
+        ctx.lineWidth = shot.type === "splash" ? 4 : 2.5;
+        ctx.stroke();
+      }
       circle(ctx, shot.x, shot.y, 7, shot.color + "48");
-      circle(ctx, shot.x, shot.y, 3.5, shot.color);
+      circle(ctx, shot.x, shot.y, shot.type === "splash" ? 4.5 : 3, shot.color);
+      circle(ctx, shot.x, shot.y, 1.5, "#f0fbff");
     });
     if (reduced) return;
     for (const fx of match.effects) {

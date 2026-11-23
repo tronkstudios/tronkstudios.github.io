@@ -10,7 +10,8 @@ import {
   TARGETING,
   dailySetup,
 } from "./engine.js?v=6";
-import { Board } from "./board.js?v=8";
+import { Board } from "./board.js?v=9";
+import { towerIcon } from "./art.js?v=1";
 import { Profile, dayKey } from "./profile.js?v=3";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=3";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=2";
@@ -323,7 +324,10 @@ function renderDock() {
       cost.textContent = button.disabled
         ? `Sector ${type.unlock}`
         : `${type.cost} ATP`;
-      button.append(name, cost);
+      const label = document.createElement("span");
+      label.className = "tower-label";
+      label.append(name, cost);
+      button.append(towerIcon(type), label);
       return button;
     }),
   );

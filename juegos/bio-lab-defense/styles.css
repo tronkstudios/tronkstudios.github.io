@@ -214,11 +214,18 @@ main {
   padding: 0.45rem 0.6rem;
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: var(--panel);
+  background: linear-gradient(155deg, #19283b, var(--panel) 72%);
+  box-shadow: inset 0 1px #d7f1ff10;
 }
 .hud span,
 .hud strong {
   display: block;
+}
+.hud > div:first-child strong {
+  color: var(--green);
+}
+.hud > div:last-child strong {
+  color: #ffcf9a;
 }
 .hud span {
   color: var(--muted);
@@ -298,15 +305,34 @@ canvas {
 }
 .tower {
   display: grid;
-  align-content: center;
-  gap: 0.15rem;
+  grid-template-columns: 29px minmax(0, 1fr);
+  align-items: center;
+  gap: 0.3rem;
   text-align: left;
-  padding: 0.35rem 0.5rem;
-  font-size: 0.77rem;
+  min-height: 52px;
+  padding: 0.28rem 0.35rem;
+  background: linear-gradient(150deg, #1c3042, #122237 75%);
+  font-size: 0.75rem;
 }
 .tower[aria-pressed="true"] {
   border-color: var(--tower-color);
-  background: #203650;
+  background: linear-gradient(145deg, #244358, #15283d 75%);
+  box-shadow: inset 0 0 0 1px #edfaff24;
+}
+.tower-art {
+  width: 29px;
+  height: 29px;
+  border: 0;
+  border-radius: 6px;
+  background: #091523;
+  cursor: inherit;
+}
+.tower-label {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 .tower strong {
   color: var(--tower-color);
@@ -380,7 +406,7 @@ dialog p {
     padding-bottom: 0.5rem;
   }
   .tower {
-    flex: 0 0 106px;
+    flex: 0 0 119px;
   }
   .supplies {
     grid-template-columns: repeat(auto-fit, minmax(131px, 1fr));
@@ -755,7 +781,7 @@ dialog p {
 .field-radio p {
   font-size: 0.79rem;
 }
-#field canvas {
+#board {
   border-color: #477499;
   box-shadow: 0 8px 35px #060d1a8f;
 }
