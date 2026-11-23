@@ -9,15 +9,15 @@ import {
   specializations,
   TARGETING,
   dailySetup,
-} from "./engine.js?v=9";
-import { Board } from "./board.js?v=12";
+} from "./engine.js?v=10";
+import { Board } from "./board.js?v=13";
 import { towerIcon, heroIcon } from "./art.js?v=3";
 import { Profile, dayKey } from "./profile.js?v=5";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=3";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=3";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=2";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=5";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=6";
 
 import { HEROES, CONTRACTS } from "./operations.js?v=2";
 
@@ -29,6 +29,7 @@ const briefingBoard = new Board($("briefing-map"));
 const lossBoard = new Board($("loss-map"));
 const modal = $("modal");
 const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+const compactField = matchMedia("(max-width: 760px)");
 const ad = createAdSenseProvider(
   document.querySelector('meta[name="rewarded-adsense-client"]')?.content,
 );
@@ -61,6 +62,8 @@ let operationsMessage = "";
 let boardPointer = null;
 let upgradePreview = null;
 let abilityPreview = false;
+let movingTower = null;
+let dockBudgetKey;
 const profile = new Profile(refreshProfile);
 let checkpoint,
   checkpointLost = false;
@@ -387,6 +390,7 @@ function begin(next, day = null, restored = null) {
   tacticalPaused = false;
   gatePreview = false;
   movingHero = false;
+  movingTower = null;
   lastPulseReady = false;
   lastMirrorOrder = null;
   blueprint = BLUEPRINTS[0];
@@ -435,13 +439,26 @@ function message(text, warn = false) {
   $("board-status").classList.toggle("warning", warn);
 }
 
+function arrangeTowerPanel() {
+  const panel = $("selection");
+  const focused = panel.contains(document.activeElement) ? document.activeElement : null;
+  if (compactField.matches) $("near-board-selection").append(panel);
+  else $("supply-panel").prepend(panel);
+  $("near-board-selection").hidden = !compactField.matches || !selected;
+  focused?.focus({ preventScroll: true });
+}
+compactField.addEventListener("change", arrangeTowerPanel);
+arrangeTowerPanel();
+
 function renderDock() {
+  dockBudgetKey = null;
   $("dock").replaceChildren(
     ...BLUEPRINTS.map((type) => {
       const button = makeButton("", () => {
         blueprint = type;
         aiming = false;
         movingHero = false;
+        movingTower = null;
         selected = null;
         selectionKey = "";
         renderSelection();
@@ -451,9 +468,11 @@ function renderDock() {
       button.dataset.type = type.id;
       button.style.setProperty("--tower-color", type.color);
       button.disabled = type.unlock > match.techLevel;
+      button.dataset.cost = type.cost;
       const name = document.createElement("strong");
       name.textContent = type.name;
       const cost = document.createElement("small");
+      cost.className = "tower-price";
       cost.textContent = button.disabled
         ? `Sector ${type.unlock}`
         : `${type.cost} ATP`;
@@ -476,7 +495,36 @@ function highlightDock() {
     );
 }
 
+function updateDockBudget() {
+  const limit = match.contract?.towerLimit;
+  const full = limit != null && match.towers.length >= limit;
+  const budgetKey = `${match.atp}:${limit ?? ""}:${match.towers.length}`;
+  if (dockBudgetKey === budgetKey) return;
+  dockBudgetKey = budgetKey;
+  $("tower-limit").hidden = limit == null;
+  if (limit != null) updateText("tower-limit", `${match.towers.length}/${limit} instaladas`);
+  for (const button of $("dock").children) {
+    if (button.disabled) continue;
+    const cost = Number(button.dataset.cost);
+    const blocked = full || match.atp < cost;
+    button.classList.toggle("tower-unaffordable", blocked);
+    const label = full ? `${cost} ATP · Límite` : match.atp < cost
+      ? `Faltan ${cost - match.atp} ATP` : `${cost} ATP`;
+    button.querySelector(".tower-price").textContent = label;
+  }
+}
+
+function toggleTowerMove(tower) {
+  if (match.state !== "build") return;
+  movingTower = movingTower === tower ? null : tower;
+  movingHero = false;
+  aiming = false;
+  renderHUD();
+  message(movingTower ? "Marca una nueva posición para la torre." : "Movimiento cancelado.");
+}
+
 function toggleBotMove() {
+  movingTower = null;
   movingHero = !movingHero;
   aiming = false;
   upgradePreview = null;
@@ -486,6 +534,16 @@ function toggleBotMove() {
 
 function place(x, y) {
   if (!match || modal.open || !["build", "wave"].includes(match.state)) return;
+  if (movingTower) {
+    const problem = match.checkRelocation(movingTower, x, y);
+    if (problem) return message(problem, true);
+    match.relocate(movingTower, x, y);
+    message(`${movingTower.name} reubicada.`);
+    movingTower = null;
+    persistPreparation();
+    renderHUD();
+    return;
+  }
   if (movingHero) {
     if (!match.moveHero(x, y)) return message("Elige un punto dentro del tablero.", true);
     movingHero = false;
@@ -530,12 +588,15 @@ function place(x, y) {
 
 function renderSelection() {
   const panel = $("selection");
+  $("near-board-selection").hidden = !compactField.matches || !selected;
   const key = selected
     ? [
         selected.x,
         selected.y,
         selected.rank,
         selected.targeting,
+        match.state,
+        movingTower === selected,
         match.atp >= upgradeCost(selected),
       ].join(":")
     : blueprint?.id;
@@ -591,6 +652,15 @@ function renderSelection() {
   }
   const actions = document.createElement("div");
   actions.className = "actions";
+  if (match.state === "build") {
+    const moving = movingTower === tower;
+    const relocate = makeButton(moving ? "Cancelar traslado" : "Reubicar gratis", () => {
+      toggleTowerMove(tower);
+      $("relocate-tower")?.focus({ preventScroll: true });
+    });
+    relocate.id = "relocate-tower";
+    actions.append(relocate);
+  }
   if (tower.type !== "eco") {
     const label = document.createElement("label");
     label.className = "tower-targeting";
@@ -615,6 +685,7 @@ function renderSelection() {
         persistPreparation();
       }
       selected = null;
+      movingTower = null;
       renderHUD();
     }),
   );
@@ -635,6 +706,7 @@ function upgradeRow(tower, purchase, branch) {
       control.setAttribute("aria-pressed", String(active && control === toggle));
   });
   toggle.className = "range-preview";
+  toggle.disabled = movingTower === tower;
   if (branch) toggle.setAttribute("aria-label", `Ver alcance · ${branch.name}`);
   toggle.setAttribute("aria-pressed", "false");
   row.append(purchase, toggle);
@@ -877,6 +949,7 @@ function renderHUD() {
     );
   }
   $("undo-build").hidden = !match.undoable;
+  $("supply-panel").hidden = compactField.matches && match.ranked && !match.undoable;
   if (match.state !== "wave") aiming = false;
   $("pulse").disabled =
     match.state !== "wave" || match.charge < 100 || tacticalPaused;
@@ -903,6 +976,7 @@ function renderHUD() {
   $("tactical-pause").classList.toggle("engaged", tacticalPaused);
   updateText("tactical-pause", tacticalPaused ? "Reanudar" : "Pausa táctica");
   renderFieldControls(waiting);
+  updateDockBudget();
   const canRequestAd = ad && waiting && !match.ranked && !match.adUsed;
   $("boost").hidden = !canRequestAd;
   $("boost").disabled = adBusy || adPreparing;
@@ -953,14 +1027,17 @@ function frame(now) {
         message(announce());
       }
     }
-    const hoverTower = cursor && !aiming && !movingHero ? towerAt(cursor.x, cursor.y) : null;
-    const hoverBot = cursor && !aiming && !movingHero && botAt(cursor.x, cursor.y, hoverTower);
+    const hoverTower = cursor && !aiming && !movingHero && !movingTower ? towerAt(cursor.x, cursor.y) : null;
+    const hoverBot = cursor && !aiming && !movingHero && !movingTower && botAt(cursor.x, cursor.y, hoverTower);
     const hovered = hoverBot ? null : hoverTower;
-    const touchPreview = boardPointer?.type === "touch" && cursor && blueprint && !aiming && !movingHero && !hovered && !hoverBot;
+    const touchPreview = boardPointer?.type === "touch" && cursor && (blueprint || movingTower) && !aiming && !movingHero && !hovered && !hoverBot;
     $("placement-preview").hidden = !touchPreview;
     if (touchPreview) {
-      const reason = match.checkPlacement(blueprint, cursor.x, cursor.y);
-      updateText("placement-preview", reason || `Suelta para instalar · ${blueprint.cost} ATP`);
+      const reason = movingTower
+        ? match.checkRelocation(movingTower, cursor.x, cursor.y)
+        : match.checkPlacement(blueprint, cursor.x, cursor.y);
+      const hint = movingTower ? "Suelta para reubicar" : `Suelta para instalar · ${blueprint.cost} ATP`;
+      updateText("placement-preview", reason || hint);
       $("placement-preview").classList.toggle("invalid", !!reason);
     }
     board.draw(
@@ -971,7 +1048,7 @@ function frame(now) {
       reduced.matches,
       aiming,
       hovered,
-      { gatePreview, movingHero, skillPreview: abilityPreview || hoverBot, upgradePreview },
+      { gatePreview, movingHero, movingTower, skillPreview: abilityPreview || hoverBot, upgradePreview },
     );
     renderHUD();
   } else {
@@ -1252,6 +1329,7 @@ function startNextWave() {
   if (adBusy) return;
   if (match.startWave()) {
     gatePreview = false;
+    movingTower = null;
     upgradePreview = null;
     sound("wave", true);
     if (match.mission && match.wave === 2)
@@ -1281,6 +1359,7 @@ $("undo-build").onclick = () => {
   const tower = match.undoPlacement();
   if (!tower) return;
   if (selected === tower) {
+    movingTower = null;
     selected = null;
     blueprint = BLUEPRINTS.find((type) => type.id === tower.id);
     highlightDock();
@@ -1292,6 +1371,7 @@ $("undo-build").onclick = () => {
 $("pulse").onclick = () => {
   if (match.charge !== 100 || match.state !== "wave") return;
   movingHero = false;
+  movingTower = null;
   aiming = !aiming;
   message(
     aiming
@@ -1326,11 +1406,16 @@ document.addEventListener("keydown", (event) => {
     event.repeat ||
     event.ctrlKey ||
     event.altKey ||
-    event.metaKey ||
-    event.key.toLowerCase() !== "p"
+    event.metaKey
   )
     return;
-  $("tactical-pause").click();
+  if (event.key === "Escape") {
+    if (movingTower) toggleTowerMove(movingTower);
+    else if (movingHero) toggleBotMove();
+    else if (aiming) $("pulse").click();
+    else return;
+    event.preventDefault();
+  } else if (event.key.toLowerCase() === "p") $("tactical-pause").click();
 });
 $("pause").onclick = () => {
   const actions = [["Continuar"]];

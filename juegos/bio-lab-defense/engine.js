@@ -744,13 +744,30 @@ export class Match {
       return "Has alcanzado el máximo de torres del contrato.";
     if (type.unlock > this.techLevel)
       return "Esta torre se habilita en otro sector.";
-    if (x < 24 || x > WIDTH - 24 || y < 24 || y > HEIGHT - 24)
+    return this.checkSite(x, y) || (this.atp < type.cost ? "ATP insuficiente." : "");
+  }
+
+  checkSite(x, y, ignored = null) {
+    if (!Number.isFinite(x) || !Number.isFinite(y) ||
+        x < 24 || x > WIDTH - 24 || y < 24 || y > HEIGHT - 24)
       return "Acércate al interior del tablero.";
     if (this.routes.some((path) => nearRoute(path, x, y)))
       return "Deja despejado el conducto.";
-    if (this.towers.some((t) => Math.hypot(t.x - x, t.y - y) < 40))
+    if (this.towers.some((tower) => tower !== ignored && Math.hypot(tower.x - x, tower.y - y) < 40))
       return "Hay otra torre demasiado cerca.";
-    return this.atp < type.cost ? "ATP insuficiente." : "";
+    return "";
+  }
+
+  checkRelocation(tower, x, y) {
+    if (this.state !== "build" || !this.towers.includes(tower))
+      return "Reubica las torres entre oleadas.";
+    return this.checkSite(x, y, tower);
+  }
+
+  relocate(tower, x, y) {
+    if (this.checkRelocation(tower, x, y)) return false;
+    Object.assign(tower, { x, y });
+    return true;
   }
 
   place(type, x, y) {

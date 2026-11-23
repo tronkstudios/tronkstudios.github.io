@@ -24,15 +24,16 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8791";
     await page.locator(".level").first().tap();
     await page.locator("#launch-mission").tap();
 
-    async function firstTower() {
+    async function tapBoard(x = 170, y = 170) {
       const canvas = page.locator("#board");
       const box = await canvas.boundingBox();
       await canvas.tap({
-        position: { x: (box.width * 170) / 900, y: (box.height * 170) / 540 },
+        position: { x: ((box.width - 2) * x) / 900, y: ((box.height - 2) * y) / 540 },
       });
     }
-    await firstTower();
-    await firstTower();
+    await tapBoard();
+    await tapBoard();
+    assert.equal(await page.locator("#near-board-selection #selection").isVisible(), true);
     await page.getByText(/Daño 14 → 20 · Alcance 120 → 133/).waitFor();
     await page.getByRole("button", { name: /^Mejorar/ }).tap();
     await page.getByText(/Daño 20 → 46 · Alcance 133 → 146/).waitFor();
@@ -41,6 +42,13 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8791";
     assert.equal(await range.getAttribute("aria-pressed"), "true");
     await page.getByRole("button", { name: /^Perforante/ }).tap();
     await page.getByLabel("Prioridad de objetivo").selectOption("last");
+    const atpBeforeMove = await page.locator("#atp").textContent();
+    await page.getByRole("button", { name: "Reubicar gratis" }).tap();
+    await tapBoard(220, 243);
+    await page.getByText("Deja despejado el conducto.", { exact: true }).waitFor();
+    await tapBoard(330, 255);
+    await page.getByText("Nano-Láser reubicada.", { exact: true }).waitFor();
+    assert.equal(await page.locator("#atp").textContent(), atpBeforeMove);
     await page.locator("#buy-atp").tap();
     await page.locator("#speed").tap();
     const saved = () =>
@@ -50,9 +58,11 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8791";
     const before = await saved();
     assert.equal(before.towers[0].rank, 3);
     assert.equal(before.towers[0].targeting, "last");
+    assert.ok(before.towers[0].x > 300);
     assert.equal(before.speed, 2);
     assert.equal(before.atpBought, true);
     await page.locator("#next").tap();
+    assert.equal(await page.locator("#relocate-tower").count(), 0);
     await page.reload();
     await page.locator("#home-resume-run").tap();
     assert.equal(await page.locator("#wave").textContent(), "0/4");
@@ -60,7 +70,7 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8791";
     assert.equal(await page.locator("#buy-atp").isDisabled(), true);
     assert.equal(await page.locator("#speed").textContent(), "Velocidad ×2");
     assert.deepEqual(await saved(), before);
-    await firstTower();
+    await tapBoard(330, 255);
     await page.getByText("Nano-Láser · Nivel 3 · Perforante").waitFor();
     await page.getByText(/Daño infligido · 0 · Bajas 0/).waitFor();
     await page.locator("#pause").tap();

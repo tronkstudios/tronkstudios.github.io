@@ -112,6 +112,8 @@ window.testRun = {
     assert.equal(await page.locator("#supplies").isVisible(), false);
     assert.equal(await page.locator("#field-specials").isVisible(), false);
     assert.match(await page.evaluate(() => testRun.towerCap()), /máximo de torres/);
+    await page.getByText("4/4 instaladas", { exact: true }).waitFor();
+    assert.match(await page.locator('[data-type="nanolaser"]').textContent(), /Límite/);
     await page.locator("#entry-start-a").tap();
     await page.evaluate(() => testRun.winContract());
     await page.getByRole("heading", { name: "Nuevo récord de élite" }).waitFor();

@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT } from "./engine.js?v=9";
+import { WIDTH, HEIGHT } from "./engine.js?v=10";
 import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=3";
 
 function trace(ctx, points) {
@@ -356,7 +356,7 @@ export class Board {
     reduced,
     aiming,
     hovered = null,
-    { gatePreview, movingHero, skillPreview, upgradePreview, breach = null } = {},
+    { gatePreview, movingHero, movingTower, skillPreview, upgradePreview, breach = null } = {},
   ) {
     const ctx = this.ctx;
     const key = match.mission
@@ -396,13 +396,25 @@ export class Board {
       circle(ctx, cursor.x, cursor.y, 108, "#71e9ff29", "#89f1ff", 3);
       circle(ctx, cursor.x, cursor.y, 5, "#c8faff");
     }
-    for (const [tower, valid, ghost] of [
-      [aiming || upgradePreview ? null : hovered || selected, true, false],
+    const draft = movingTower || blueprint;
+    const ghost = !aiming && !hovered && cursor && draft ? { ...draft, ...cursor } : null;
+    const validSpot = ghost && !(movingTower
+      ? match.checkRelocation(movingTower, cursor.x, cursor.y)
+      : match.checkPlacement(blueprint, cursor.x, cursor.y));
+    if (movingTower && ghost) {
+      ctx.save();
+      ctx.setLineDash([8, 7]);
+      trace(ctx, [[movingTower.x, movingTower.y], [cursor.x, cursor.y]]);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = validSpot ? movingTower.color : "#ff8a8a";
+      ctx.stroke();
+      ctx.restore();
+    }
+    for (const [tower, valid, isGhost] of [
+      [aiming || movingTower || upgradePreview ? null : hovered || selected, true, false],
       [
-        !aiming && !hovered && cursor && blueprint
-          ? { ...blueprint, ...cursor }
-          : null,
-        cursor && !match.checkPlacement(blueprint, cursor.x, cursor.y),
+        ghost,
+        validSpot,
         true,
       ],
     ]) {
@@ -420,7 +432,7 @@ export class Board {
         );
         if (valid) highlightCoverage(ctx, tower, match.routes);
       }
-      if (ghost)
+      if (isGhost)
         circle(
           ctx,
           tower.x,

@@ -1031,3 +1031,27 @@ dialog p {
   object-fit: contain;
   cursor: default;
 }
+
+.tower-picker-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.5rem;
+}
+#tower-limit {
+  color: #accdf4;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+.tower-unaffordable .tower-price {
+  color: #ffbc9a;
+}
+#near-board-selection #selection {
+  border: 1px solid #354e69;
+  padding: 0.6rem 0.7rem;
+}
+#relocate-tower {
+  border-color: #477c83;
+  color: #c0f2e8;
+}

@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=11" />
+    <link rel="stylesheet" href="./styles.css?v=12" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -184,7 +184,10 @@
         </div>
         <div class="game-layout">
           <section class="tower-picker" aria-labelledby="tower-picker-title">
-            <h2 id="tower-picker-title">Torres</h2>
+            <div class="tower-picker-head">
+              <h2 id="tower-picker-title">Torres</h2>
+              <span id="tower-limit" hidden></span>
+            </div>
             <div id="dock"></div>
           </section>
           <div class="arena">
@@ -227,6 +230,8 @@
               <button type="button" id="hero-ability" hidden></button>
               <button type="button" id="barrier-action" hidden>Cerrar barrera · 4 s</button>
             </div>
+            <p id="board-status" role="status"></p>
+            <div id="near-board-selection" hidden></div>
             <div id="field-alerts" aria-live="polite" hidden>
               <p id="mission-objective" hidden></p>
               <p id="battle-notice" hidden></p>
@@ -249,7 +254,6 @@
               <progress id="boss-health-b" max="100" value="100"
                 aria-label="Vida de Blindaje"></progress>
             </div>
-            <p id="board-status" role="status"></p>
             <div class="lane-brief" id="lane-brief" hidden>
               <b id="lane-a"></b><b id="lane-b"></b>
             </div>
@@ -272,7 +276,7 @@
               </div>
             </section>
           </div>
-          <aside class="controls" aria-label="Mejoras y suministros">
+          <aside id="supply-panel" class="controls" aria-label="Mejoras y suministros">
             <div id="selection"></div>
             <button type="button" id="undo-build" class="undo-build" hidden>
               Deshacer última torre
@@ -302,6 +306,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=13"></script>
+    <script type="module" src="./game.js?v=14"></script>
   </body>
 </html>
