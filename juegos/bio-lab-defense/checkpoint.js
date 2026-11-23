@@ -1,4 +1,4 @@
-import { BLUEPRINTS, Match, TARGETING, specializations } from "./engine.js?v=8";
+import { BLUEPRINTS, Match, TARGETING, specializations } from "./engine.js?v=9";
 
 const version = 1;
 const blueprintById = new Map(BLUEPRINTS.map((type) => [type.id, type]));

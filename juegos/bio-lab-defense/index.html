@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=10" />
+    <link rel="stylesheet" href="./styles.css?v=11" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -200,7 +200,9 @@
               <button type="button" class="wave-beacon" id="entry-start-b" hidden></button>
               <b id="entry-warning" class="map-alert" role="status" hidden></b>
               <b id="core-warning" class="map-alert" hidden>¡Núcleo en peligro!</b>
+              <b id="placement-preview" hidden></b>
             </div>
+            <p id="wave-beacon-hint" hidden>Cualquier baliza inicia la oleada completa.</p>
             <div class="wave-actions">
               <button type="button" id="next" class="primary">
                 Iniciar oleada
@@ -293,12 +295,13 @@
     <dialog id="modal" aria-labelledby="modal-title">
       <h2 id="modal-title"></h2>
       <p id="modal-text"></p>
+      <canvas id="loss-map" width="900" height="540" role="img" hidden></canvas>
       <div id="modal-actions" class="actions"></div>
     </dialog>
     <script
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=12"></script>
+    <script type="module" src="./game.js?v=13"></script>
   </body>
 </html>

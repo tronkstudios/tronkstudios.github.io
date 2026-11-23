@@ -183,6 +183,7 @@ window.forceRunnerLeak = () => {
       assert.equal(await page.evaluate(() => gateLength()), longRoute);
       assert.equal(await page.evaluate(() => installShortcutBlocker()), true);
       await page.getByText(/Una torre ocupa el trazado amarillo/).waitFor();
+      assert.match(await page.locator("#gate-status").textContent(), /Nano-Láser/);
       assert.equal(await page.locator("#gate-apply").isDisabled(), true);
       await page.locator("#undo-build").click();
       await page.locator("#gate-apply").click();
@@ -252,6 +253,7 @@ window.forceRunnerLeak = () => {
       const report = await page.locator("#modal-text").textContent();
       assert.match(report, /Entrada A: 1 · Entrada B: 0/);
       assert.match(report, /Impulsor \(−18 %\)/);
+      await page.getByRole("img", { name: "Recorrido de la fuga por la entrada A" }).waitFor();
       await page.getByRole("button", { name: "Repreparar la oleada" }).click();
       await page.getByText("Atajo activo", { exact: true }).waitFor();
       assert.equal(await page.locator("#wave").textContent(), "0/5");

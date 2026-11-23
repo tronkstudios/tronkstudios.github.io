@@ -233,10 +233,9 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8789";
           await page.getByRole("button", { name: /^Mejorar/ }).tap();
           await page.getByRole("button", { name: /^Perforante/ }).tap();
           await page.getByText("Nano-Láser · Nivel 3 · Perforante").waitFor();
-          await page.getByRole("button", { name: /^Objetivo/ }).tap();
-          await page
-            .getByRole("button", { name: /Más lejos del núcleo/ })
-            .waitFor();
+          const targeting = page.getByLabel("Prioridad de objetivo");
+          await targeting.selectOption("last");
+          assert.equal(await targeting.inputValue(), "last");
           await page.locator("#pause").tap();
           await page.getByRole("button", { name: "Abandonar partida" }).tap();
           await page.locator("#back-home").tap();

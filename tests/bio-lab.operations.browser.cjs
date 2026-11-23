@@ -44,7 +44,7 @@ queue.forEach(handle);
         body: (await response.text()) + `
 window.testRun = {
   get state() { return { state: match.state, wave: match.wave, hero: match.hero?.id,
-    cooldown: match.hero?.abilityCooldown, x: match.hero?.x, hp: match.hp }; },
+    cooldown: match.hero?.abilityCooldown, x: match.hero?.x, y: match.hero?.y, hp: match.hp }; },
   spawnNearHero() {
     match.spawn();
     Object.assign(match.enemies.at(-1), { x: match.hero.x + 15, y: match.hero.y });
@@ -70,6 +70,10 @@ window.testRun = {
     match.spawn();
     const boss = match.enemies.at(-1);
     match.damage(boss, boss.maxHp * 0.8, "#fff", { piercing: true });
+  },
+  previewFinalWave() {
+    match.wave = match.maxWaves - 1;
+    match.preview = match.planWave(match.maxWaves);
   },
   barrierActive() { return match.barrier.until > match.time; },
 };`,
@@ -124,8 +128,38 @@ window.testRun = {
     };
     await launch(1);
     await page.getByText(/Protege la consola · Integridad 4\/4/).waitFor();
-    await page.locator("#move-hero").tap();
-    await page.locator("#board").tap({ position: { x: 125, y: 83 } });
+    const board = page.locator("#board");
+    await board.scrollIntoViewIfNeeded();
+    const screenPoint = async (x, y) => {
+      const bounds = await board.boundingBox();
+      return {
+        x: bounds.x + 1 + ((bounds.width - 2) * x) / 900,
+        y: bounds.y + 1 + ((bounds.height - 2) * y) / 540,
+      };
+    };
+    const devtools = await page.context().newCDPSession(page);
+    const atpBeforeDrag = Number(await page.locator("#atp").textContent());
+    await devtools.send("Input.dispatchTouchEvent", {
+      type: "touchStart", touchPoints: [await screenPoint(220, 240)],
+    });
+    await page.getByText("Deja despejado el conducto.", { exact: true }).waitFor();
+    await devtools.send("Input.dispatchTouchEvent", {
+      type: "touchMove", touchPoints: [await screenPoint(120, 215)],
+    });
+    await page.getByText("Suelta para instalar · 50 ATP", { exact: true }).waitFor();
+    assert.equal(Number(await page.locator("#atp").textContent()), atpBeforeDrag);
+    await devtools.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await page.getByText("Nano-Láser instalada.", { exact: true }).waitFor();
+    assert.equal(Number(await page.locator("#atp").textContent()), atpBeforeDrag - 50);
+    await devtools.detach();
+    const { x, y } = await page.evaluate(() => testRun.state);
+    const bounds = await board.boundingBox();
+    await board.tap({ position: {
+      x: ((bounds.width - 2) * x) / 900,
+      y: ((bounds.height - 2) * y) / 540,
+    } });
+    assert.equal(await page.locator("#move-hero").getAttribute("aria-pressed"), "true");
+    await board.tap({ position: { x: 125, y: 83 } });
     const heroPosition = await page.evaluate(() => testRun.state.x);
     assert.ok(heroPosition < 400);
     await page.reload();
@@ -153,6 +187,11 @@ window.testRun = {
     await page.getByRole("button", { name: "Abandonar partida" }).tap();
     await page.locator(".level").nth(9).tap();
     await page.locator("#launch-mission").tap();
+    await page.evaluate(() => testRun.previewFinalWave());
+    const bossBeacon = page.getByRole("button", {
+      name: /Iniciar oleada .* completa\. Entrada B: .* incluye jefe/,
+    });
+    await bossBeacon.waitFor();
     await page.locator("#entry-start-a").tap();
     await page.evaluate(() => testRun.mirrorPhase());
     await page.getByText("Refuerzos · A", { exact: true }).waitFor();

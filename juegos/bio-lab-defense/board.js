@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT } from "./engine.js?v=8";
+import { WIDTH, HEIGHT } from "./engine.js?v=9";
 import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=3";
 
 function trace(ctx, points) {
@@ -296,8 +296,25 @@ function drawMissionEquipment(ctx, match) {
   }
 }
 
-function drawHero(ctx, hero) {
-  if (hero.destination) circle(ctx, hero.destination.x, hero.destination.y, 14, null, hero.color, 2);
+function drawHero(ctx, hero, cursor, moving, showSkill) {
+  const point = moving && cursor && cursor.x >= 19 && cursor.x <= WIDTH - 19 &&
+      cursor.y >= 19 && cursor.y <= HEIGHT - 19
+    ? cursor
+    : hero.destination;
+  if (point) {
+    ctx.save();
+    ctx.setLineDash([8, 7]);
+    trace(ctx, [[hero.x, hero.y], [point.x, point.y]]);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = hero.color;
+    ctx.stroke();
+    ctx.restore();
+    circle(ctx, point.x, point.y, 13, "#0a1725aa", hero.color, 2);
+  }
+  if (moving || showSkill) {
+    const center = moving && point ? point : hero;
+    circle(ctx, center.x, center.y, hero.abilityRange, hero.color + "13", hero.color + "bd", 2);
+  }
   ctx.save();
   ctx.translate(hero.x, hero.y);
   circle(ctx, 0, 3, 21, "#060d1ad9");
@@ -305,15 +322,19 @@ function drawHero(ctx, hero) {
   ctx.restore();
 }
 
-function highlightCoverage(ctx, tower, routes) {
+function highlightCoverage(ctx, tower, routes, range = tower.range, color = tower.color, minRange = 0) {
   ctx.save();
   ctx.beginPath();
-  ctx.arc(tower.x, tower.y, tower.range, 0, Math.PI * 2);
-  ctx.clip();
+  ctx.arc(tower.x, tower.y, range, 0, Math.PI * 2);
+  if (minRange) {
+    ctx.moveTo(tower.x + minRange, tower.y);
+    ctx.arc(tower.x, tower.y, minRange, 0, Math.PI * 2);
+  }
+  ctx.clip("evenodd");
   ctx.lineWidth = 8;
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
-  ctx.strokeStyle = tower.color;
+  ctx.strokeStyle = color;
   for (const { points } of routes) {
     trace(ctx, points);
     ctx.stroke();
@@ -335,7 +356,7 @@ export class Board {
     reduced,
     aiming,
     hovered = null,
-    gatePreview = false,
+    { gatePreview, movingHero, skillPreview, upgradePreview, breach = null } = {},
   ) {
     const ctx = this.ctx;
     const key = match.mission
@@ -347,6 +368,19 @@ export class Board {
         background(match.map, match.routes, match.mapIndex),
       );
     ctx.drawImage(this.buffers.get(key), 0, 0);
+    if (breach !== null) {
+      const { points } = match.routes[breach];
+      trace(ctx, points);
+      ctx.lineJoin = "round";
+      ctx.lineWidth = 27;
+      ctx.strokeStyle = "#370e1c";
+      ctx.stroke();
+      ctx.lineWidth = 11;
+      ctx.strokeStyle = "#ff826b";
+      ctx.stroke();
+      circle(ctx, 19, points[0][1], 13, "#ffad86", "#501f2e", 4);
+      return;
+    }
     drawMissionEquipment(ctx, match);
     if (gatePreview && match.alternateRoute) {
       ctx.save();
@@ -363,7 +397,7 @@ export class Board {
       circle(ctx, cursor.x, cursor.y, 5, "#c8faff");
     }
     for (const [tower, valid, ghost] of [
-      [aiming ? null : hovered || selected, true, false],
+      [aiming || upgradePreview ? null : hovered || selected, true, false],
       [
         !aiming && !hovered && cursor && blueprint
           ? { ...blueprint, ...cursor }
@@ -397,10 +431,21 @@ export class Board {
           2,
         );
     }
+    if (upgradePreview) {
+      const { tower, range } = upgradePreview;
+      circle(ctx, tower.x, tower.y, range, null, "#ffd99cba", 2);
+      highlightCoverage(ctx, tower, match.routes, range, "#ffd99c", tower.range);
+    }
     match.towers.forEach((tower) =>
       turret(ctx, tower, tower === selected || tower === hovered),
     );
-    if (match.hero) drawHero(ctx, match.hero);
+    if (gatePreview) {
+      for (const tower of match.gateBlockers) {
+        circle(ctx, tower.x, tower.y, 29, null, "#ffca7b", 3);
+        circle(ctx, tower.x + 20, tower.y - 19, 5, "#ffe6a6", "#432c2c", 2);
+      }
+    }
+    if (match.hero) drawHero(ctx, match.hero, cursor, movingHero, skillPreview);
     match.enemies.forEach((enemy) => target(ctx, enemy));
     match.shots.forEach((shot) => {
       if (!reduced) {

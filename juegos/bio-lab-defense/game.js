@@ -9,15 +9,15 @@ import {
   specializations,
   TARGETING,
   dailySetup,
-} from "./engine.js?v=8";
-import { Board } from "./board.js?v=11";
+} from "./engine.js?v=9";
+import { Board } from "./board.js?v=12";
 import { towerIcon, heroIcon } from "./art.js?v=3";
 import { Profile, dayKey } from "./profile.js?v=5";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=3";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=3";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=2";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=4";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=5";
 
 import { HEROES, CONTRACTS } from "./operations.js?v=2";
 
@@ -26,6 +26,7 @@ const panels = ["home", "campaign", "briefing", "operations", "field"];
 const canvas = $("board");
 const board = new Board(canvas);
 const briefingBoard = new Board($("briefing-map"));
+const lossBoard = new Board($("loss-map"));
 const modal = $("modal");
 const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 const ad = createAdSenseProvider(
@@ -57,6 +58,9 @@ let briefingLevel = 1,
   lastPulseReady = false,
   lastMirrorOrder = null;
 let operationsMessage = "";
+let boardPointer = null;
+let upgradePreview = null;
+let abilityPreview = false;
 const profile = new Profile(refreshProfile);
 let checkpoint,
   checkpointLost = false;
@@ -81,9 +85,14 @@ function view(name) {
   }
 }
 
-function ask(title, message, buttons) {
+function ask(title, message, buttons, breach = null) {
   $("modal-title").textContent = title;
   $("modal-text").textContent = message;
+  $("loss-map").hidden = breach === null;
+  if (breach !== null) {
+    $("loss-map").setAttribute("aria-label", `Recorrido de la fuga por la entrada ${breach ? "B" : "A"}`);
+    lossBoard.draw(match, null, null, null, true, false, null, { breach });
+  }
   $("modal-actions").replaceChildren(
     ...buttons.map(([label, action], i) => {
       const button = makeButton(label, () => {
@@ -383,6 +392,9 @@ function begin(next, day = null, restored = null) {
   blueprint = BLUEPRINTS[0];
   selected = null;
   cursor = null;
+  boardPointer = null;
+  upgradePreview = null;
+  abilityPreview = false;
   speed = restored?.speed || 1;
   atpBought = restored?.atpBought || false;
   repaired = restored?.repaired || false;
@@ -404,7 +416,9 @@ function begin(next, day = null, restored = null) {
   message(
     restored
       ? `Partida retomada. Prepara la oleada ${match.wave + 1}.`
-      : "Elige una torre y toca fuera del conducto para colocarla.",
+      : matchMedia("(any-pointer: coarse)").matches
+        ? "Elige una torre. Mantén pulsado y desliza para previsualizar su posición."
+        : "Elige una torre y haz clic fuera del conducto para colocarla.",
   );
   $("checkpoint-state").hidden = match.ranked;
   if (!match.ranked) persistPreparation();
@@ -462,6 +476,14 @@ function highlightDock() {
     );
 }
 
+function toggleBotMove() {
+  movingHero = !movingHero;
+  aiming = false;
+  upgradePreview = null;
+  message(movingHero ? "Marca en el tablero el destino del nanobot." : "Movimiento cancelado.");
+  renderHUD();
+}
+
 function place(x, y) {
   if (!match || modal.open || !["build", "wave"].includes(match.state)) return;
   if (movingHero) {
@@ -482,6 +504,10 @@ function place(x, y) {
     return;
   }
   const tower = towerAt(x, y);
+  if (botAt(x, y, tower)) {
+    toggleBotMove();
+    return;
+  }
   if (tower) {
     selected = tower;
     blueprint = null;
@@ -515,6 +541,7 @@ function renderSelection() {
     : blueprint?.id;
   if (key === selectionKey) return;
   selectionKey = key;
+  upgradePreview = null;
   const heading = document.createElement("strong");
   const detail = document.createElement("p");
   if (!selected) {
@@ -545,7 +572,7 @@ function renderSelection() {
     });
     improve.disabled = match.atp < cost;
     improve.append(upgradeForecast(tower));
-    options.append(improve);
+    options.append(upgradeRow(tower, improve));
   } else if (tower.rank === 2) {
     for (const [choice, branch] of specializations(tower).entries()) {
       const improve = makeButton(`${branch.name} · ${cost} ATP`, () => {
@@ -559,25 +586,27 @@ function renderSelection() {
       const note = document.createElement("small");
       note.textContent = branch.detail;
       improve.append(note, upgradeForecast(tower, branch));
-      options.append(improve);
+      options.append(upgradeRow(tower, improve, branch));
     }
   }
   const actions = document.createElement("div");
   actions.className = "actions";
   if (tower.type !== "eco") {
-    const targeting = makeButton("", () => {
-      const index = TARGETING.findIndex(([id]) => id === tower.targeting);
-      tower.targeting = TARGETING[(index + 1) % TARGETING.length][0];
+    const label = document.createElement("label");
+    label.className = "tower-targeting";
+    label.textContent = "Prioridad de objetivo";
+    const targeting = document.createElement("select");
+    targeting.id = "tower-targeting";
+    for (const [id, name] of TARGETING) targeting.add(new Option(name, id));
+    targeting.value = tower.targeting;
+    targeting.onchange = () => {
+      tower.targeting = targeting.value;
       persistPreparation();
-      const label = TARGETING.find(([id]) => id === tower.targeting)[1];
-      targeting.textContent = `Objetivo: ${label}`;
-      selectionKey = null;
       renderHUD();
-      $("selection").querySelector(".targeting").focus();
-    });
-    targeting.className = "targeting";
-    targeting.textContent = `Objetivo: ${TARGETING.find(([id]) => id === tower.targeting)[1]}`;
-    actions.append(targeting);
+      $("tower-targeting")?.focus({ preventScroll: true });
+    };
+    label.append(targeting);
+    actions.append(label);
   }
   actions.append(
     makeButton(`Vender · +${Math.floor(tower.paid * 0.65)} ATP`, () => {
@@ -591,6 +620,25 @@ function renderSelection() {
   );
   const performance = elPerformance(tower);
   panel.replaceChildren(heading, detail, performance, options, actions);
+}
+
+function upgradeRow(tower, purchase, branch) {
+  const range = upgradeStats(tower, branch).range;
+  if (range <= tower.range) return purchase;
+  const row = document.createElement("div");
+  row.className = "upgrade-row";
+  const preview = { tower, range };
+  const toggle = makeButton("Ver alcance", () => {
+    const active = upgradePreview !== preview;
+    upgradePreview = active ? preview : null;
+    for (const control of row.parentNode.querySelectorAll(".range-preview"))
+      control.setAttribute("aria-pressed", String(active && control === toggle));
+  });
+  toggle.className = "range-preview";
+  if (branch) toggle.setAttribute("aria-label", `Ver alcance · ${branch.name}`);
+  toggle.setAttribute("aria-pressed", "false");
+  row.append(purchase, toggle);
+  return row;
 }
 
 const cadence = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 2 });
@@ -681,13 +729,16 @@ function renderBoss(boss, suffix = "") {
 function renderGate(waiting) {
   $("gate-panel").hidden = !match.gateRoutes || !waiting;
   if ($("gate-panel").hidden) return;
-  const blocked = gatePreview && match.gateBlocked;
+  const blockers = gatePreview ? match.gateBlockers : [];
   $("gate-preview").setAttribute("aria-pressed", String(gatePreview));
   $("gate-apply").hidden = !gatePreview;
-  $("gate-apply").disabled = blocked;
+  $("gate-apply").disabled = blockers.length > 0;
   let status = match.gateDiverted ? "Atajo activo" : "Conducto largo activo";
-  if (blocked) {
-    status = "Una torre ocupa el trazado amarillo. Retírala para poder cambiarlo.";
+  if (blockers.length) {
+    const names = blockers.map((tower) => tower.name).join(", ");
+    status = blockers.length === 1
+      ? `Una torre ocupa el trazado amarillo. Marcada en el mapa: ${names}.`
+      : `Torres marcadas que bloquean el trazado: ${names}.`;
   } else if (gatePreview) {
     status = match.gateDiverted
       ? "Trazado amarillo: conducto largo. Da más tiempo para frenar la entrada B."
@@ -715,10 +766,20 @@ function renderFieldControls(waiting) {
     beacon.disabled = adBusy;
     if (active) {
       const letter = lane ? "B" : "A";
-      updateText(id, letter);
-      beacon.setAttribute("aria-label", `Iniciar oleada ${match.wave + 1} desde la entrada ${letter}`);
+      const count = match.preview.lanes[lane];
+      const boss = match.preview.order.some((entry) => entry.lane === lane && entry.boss);
+      updateText(id, `${letter} · ${count}${boss ? " ★" : ""}`);
+      beacon.classList.toggle("wave-beacon-boss", boss);
+      const label = `Iniciar oleada ${match.wave + 1} completa. Entrada ${letter}: ${count} enemigos${boss ? ", incluye jefe" : ""}.`;
+      if (beacon.getAttribute("aria-label") !== label)
+        beacon.setAttribute("aria-label", label);
     }
   }
+  $("wave-beacon-hint").hidden = !waiting;
+  if (waiting)
+    updateText("wave-beacon-hint", match.preview.final
+      ? "Cualquier baliza inicia la oleada completa. ★ Jefe"
+      : "Cualquier baliza inicia la oleada completa.");
   const live = match.state === "wave";
   const order = live ? match.mirrorOrders[0] : null;
   $("entry-warning").hidden = !order;
@@ -892,16 +953,25 @@ function frame(now) {
         message(announce());
       }
     }
-    const hovered = cursor && !aiming && !movingHero ? towerAt(cursor.x, cursor.y) : null;
+    const hoverTower = cursor && !aiming && !movingHero ? towerAt(cursor.x, cursor.y) : null;
+    const hoverBot = cursor && !aiming && !movingHero && botAt(cursor.x, cursor.y, hoverTower);
+    const hovered = hoverBot ? null : hoverTower;
+    const touchPreview = boardPointer?.type === "touch" && cursor && blueprint && !aiming && !movingHero && !hovered && !hoverBot;
+    $("placement-preview").hidden = !touchPreview;
+    if (touchPreview) {
+      const reason = match.checkPlacement(blueprint, cursor.x, cursor.y);
+      updateText("placement-preview", reason || `Suelta para instalar · ${blueprint.cost} ATP`);
+      $("placement-preview").classList.toggle("invalid", !!reason);
+    }
     board.draw(
       match,
-      movingHero ? null : blueprint,
+      movingHero || hoverBot || upgradePreview ? null : blueprint,
       movingHero ? null : selected,
       cursor,
       reduced.matches,
       aiming,
       hovered,
-      gatePreview,
+      { gatePreview, movingHero, skillPreview: abilityPreview || hoverBot, upgradePreview },
     );
     renderHUD();
   } else {
@@ -1001,6 +1071,7 @@ ${mission.cue}`;
       : "Brecha de contención",
     summary,
     buttons,
+    won ? null : match.waveLeaks?.worst?.lane ?? null,
   );
 }
 
@@ -1015,7 +1086,7 @@ function lossReport() {
   ).length;
   const details = [
     `Fugas de esta oleada · ${routes.join(" · ")}`,
-    `Mayor golpe al núcleo · ${leaks.worst.name} (−${leaks.worst.loss} %)`,
+    `Mayor golpe al núcleo · ${leaks.worst.name} (−${leaks.worst.loss} %) · Entrada ${leaks.worst.lane ? "B" : "A"}`,
   ];
   if (idle) details.push(`Torres sin daño registrado en la misión · ${idle}`);
   return details.join("\n");
@@ -1038,6 +1109,13 @@ function towerAt(x, y) {
   return nearest;
 }
 
+function botAt(x, y, tower) {
+  const bot = match.hero;
+  if (!bot) return false;
+  const distance = Math.hypot(bot.x - x, bot.y - y);
+  return distance <= 29 && (!tower || distance <= Math.hypot(tower.x - x, tower.y - y));
+}
+
 function pointer(e) {
   const rect = canvas.getBoundingClientRect();
   const scaleX = rect.width / canvas.offsetWidth;
@@ -1051,18 +1129,38 @@ function pointer(e) {
       (canvas.clientHeight * scaleY),
   };
 }
-canvas.onclick = (e) => {
-  const { x, y } = pointer(e);
-  place(x, y);
+canvas.onpointerdown = (event) => {
+  if (!event.isPrimary || event.button !== 0) return;
+  boardPointer = { id: event.pointerId, type: event.pointerType };
+  cursor = pointer(event);
+  if (event.pointerType === "touch") canvas.setPointerCapture(event.pointerId);
 };
-canvas.onpointermove = (e) => {
-  if (e.pointerType !== "touch") cursor = pointer(e);
+canvas.onpointermove = (event) => {
+  if (boardPointer?.id === event.pointerId || event.pointerType !== "touch")
+    cursor = pointer(event);
+};
+canvas.onpointerup = (event) => {
+  if (boardPointer?.id !== event.pointerId) return;
+  const point = pointer(event);
+  boardPointer = null;
+  if (event.pointerType === "touch") cursor = null;
+  if (point.x < 0 || point.x > WIDTH || point.y < 0 || point.y > HEIGHT) return;
+  place(point.x, point.y);
+};
+canvas.onpointercancel = (event) => {
+  if (boardPointer?.id === event.pointerId) {
+    boardPointer = null;
+    cursor = null;
+  }
 };
 canvas.onpointerleave = () => {
-  if (document.activeElement !== canvas) cursor = null;
+  if (!boardPointer || boardPointer.type !== "touch") {
+    boardPointer = null;
+    if (document.activeElement !== canvas) cursor = null;
+  }
 };
 canvas.onblur = () => {
-  cursor = null;
+  if (!boardPointer) cursor = null;
 };
 canvas.onkeydown = (e) => {
   const delta = {
@@ -1101,12 +1199,9 @@ $("operations-button").onclick = openOperations;
 $("back-operations").onclick = () => {
   if (!adBusy) view("home");
 };
-$("move-hero").onclick = () => {
-  movingHero = !movingHero;
-  aiming = false;
-  message(movingHero ? "Toca el tablero para posicionar al nanobot." : "Movimiento cancelado.");
-  renderHUD();
-};
+$("move-hero").onclick = toggleBotMove;
+$("hero-ability").onpointerenter = $("hero-ability").onfocus = () => { abilityPreview = true; };
+$("hero-ability").onpointerleave = $("hero-ability").onblur = () => { abilityPreview = false; };
 $("hero-ability").onclick = () => {
   if (tacticalPaused) return;
   if (match.heroAbility()) {
@@ -1157,6 +1252,7 @@ function startNextWave() {
   if (adBusy) return;
   if (match.startWave()) {
     gatePreview = false;
+    upgradePreview = null;
     sound("wave", true);
     if (match.mission && match.wave === 2)
       updateText("radio-text", match.mission.transmission);

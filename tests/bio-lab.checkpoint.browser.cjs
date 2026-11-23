@@ -36,8 +36,11 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8791";
     await page.getByText(/Daño 14 → 20 · Alcance 120 → 133/).waitFor();
     await page.getByRole("button", { name: /^Mejorar/ }).tap();
     await page.getByText(/Daño 20 → 46 · Alcance 133 → 146/).waitFor();
+    const range = page.getByRole("button", { name: "Ver alcance · Cadencia" });
+    await range.tap();
+    assert.equal(await range.getAttribute("aria-pressed"), "true");
     await page.getByRole("button", { name: /^Perforante/ }).tap();
-    await page.getByRole("button", { name: /^Objetivo/ }).tap();
+    await page.getByLabel("Prioridad de objetivo").selectOption("last");
     await page.locator("#buy-atp").tap();
     await page.locator("#speed").tap();
     const saved = () =>

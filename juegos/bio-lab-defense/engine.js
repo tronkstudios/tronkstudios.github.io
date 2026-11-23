@@ -580,13 +580,13 @@ export class Match {
     return this.gateRoutes?.[Number(!this.gateDiverted)];
   }
 
-  get gateBlocked() {
+  get gateBlockers() {
     const next = this.alternateRoute;
-    return !!next && this.towers.some(({ x, y }) => nearRoute(next, x, y));
+    return next ? this.towers.filter(({ x, y }) => nearRoute(next, x, y)) : [];
   }
 
   toggleGate() {
-    if (!this.gateRoutes || this.state !== "build" || this.gateBlocked)
+    if (!this.gateRoutes || this.state !== "build" || this.gateBlockers.length)
       return false;
     this.routes[1] = this.alternateRoute;
     this.gateDiverted = !this.gateDiverted;
@@ -1133,7 +1133,7 @@ export class Match {
           this.hp -= loss;
           this.waveLeaks.lanes[enemy.lane]++;
           if (loss > (this.waveLeaks.worst?.loss || 0))
-            this.waveLeaks.worst = { name: enemy.name, loss };
+            this.waveLeaks.worst = { name: enemy.name, loss, lane: enemy.lane };
         }
       } else {
         enemy.x += (dx / distance) * advance;
