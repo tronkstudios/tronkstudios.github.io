@@ -1,6 +1,6 @@
 import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=3";
 
-import { HERO_BY_ID } from "./operations.js?v=1";
+import { HERO_BY_ID } from "./operations.js?v=2";
 
 export const TOWER_TYPES = [
   {

@@ -83,6 +83,10 @@ window.testRun = {
     });
     await page.goto(base + "/juegos/bio-lab-defense/");
     await page.locator("#operations-button").tap();
+    await page.getByRole("heading", { name: "Nanobots de campaña" }).waitFor();
+    assert.deepEqual(await page.locator("#heroes h3").allTextContents(), [
+      "Óptix · Reconocimiento", "Crión · Control térmico", "Volt · Antiescudos", "Helio · Asalto",
+    ]);
     assert.equal(await page.locator(".hero-art").count(), 4);
     await page.locator('[data-operation="buy-vega"]').tap();
     await page.locator('[data-operation="equip-vega"]').tap();
@@ -128,6 +132,7 @@ window.testRun = {
     await page.locator("#home-resume-run").tap();
     assert.equal(await page.evaluate(() => testRun.state.hero), "vega");
     assert.equal(await page.evaluate(() => testRun.state.x), heroPosition);
+    await page.getByRole("button", { name: "Mover a Helio" }).waitFor();
     await page.locator("#entry-start-a").tap();
     await page.evaluate(() => testRun.spawnNearHero());
     await page.locator("#hero-ability").tap();

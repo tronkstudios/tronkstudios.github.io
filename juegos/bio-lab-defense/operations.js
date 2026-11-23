@@ -1,8 +1,9 @@
 export const HEROES = [
   {
+    // Stable IDs are shared by checkpoints, profile unlocks and ad placements.
     id: "iris",
-    name: "Iris",
-    role: "Exploradora",
+    name: "Óptix",
+    role: "Reconocimiento",
     color: "#68e6ff",
     cost: 0,
     ads: 0,
@@ -18,8 +19,8 @@ export const HEROES = [
   },
   {
     id: "mara",
-    name: "Mara",
-    role: "Control",
+    name: "Crión",
+    role: "Control térmico",
     color: "#ace9ff",
     cost: 20,
     ads: 2,
@@ -36,7 +37,7 @@ export const HEROES = [
   },
   {
     id: "ivo",
-    name: "Ivo",
+    name: "Volt",
     role: "Antiescudos",
     color: "#d1a8ff",
     cost: 36,
@@ -54,7 +55,7 @@ export const HEROES = [
   },
   {
     id: "vega",
-    name: "Vega",
+    name: "Helio",
     role: "Asalto",
     color: "#ffad71",
     cost: 55,

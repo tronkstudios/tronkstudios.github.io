@@ -1,5 +1,5 @@
-import { WIDTH, HEIGHT } from "./engine.js?v=7";
-import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=2";
+import { WIDTH, HEIGHT } from "./engine.js?v=8";
+import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=3";
 
 function trace(ctx, points) {
   ctx.beginPath();

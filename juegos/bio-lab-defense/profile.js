@@ -1,4 +1,4 @@
-import { HEROES, HERO_BY_ID, CONTRACT_BY_ID } from "./operations.js?v=1";
+import { HEROES, HERO_BY_ID, CONTRACT_BY_ID } from "./operations.js?v=2";
 
 const KEY = "biolab_save_v1";
 const bounded = (value, max, fallback = 0) =>

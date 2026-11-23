@@ -136,25 +136,50 @@ export function drawEnemyModel(ctx, enemy) {
   ctx.drawImage(model, -width / 2, -width / 2, width, width);
 }
 
-const heroModels = {
-  iris: ["M-12-8L-16-2V9L-9 15H8L13 8V-5L8-12H-7Z", "M-17 6L-9 0 M11 2L20-6V-11 M-5 5H6"],
-  mara: ["M-15-8L-20 0L-13 13H13L20 0L15-8L8-13H-8Z", "M-17 0L-10 6 M17 0L10 6 M-7 6H7 M0 1V11"],
-  ivo: ["M-14-10L-19-4V7L-12 14H12L19 7V-4L14-10L5-14H-5Z", "M-19-4L-23-10 M19-4L23-10 M-12 7L-6 3L0 8L6 3L12 7"],
-  vega: ["M-17-9L-13-13H13L17-9L22 3L14 15H-14L-22 3Z", "M-19 3L-11 8 M19 3L11 8 M-7 6L0 11L7 6"],
+const botModels = {
+  iris: {
+    chassis: "M-24-12H-12L-6-6H7L15-22L29 0L15 22L7 6H-6L-12 12H-24L-30 5V-5Z",
+    circuits: "M-22-7L-17-2H-8 M-22 7L-17 2H-8 M12-8L18-13L24 0L18 13L12 8",
+    ports: [[-22, -6], [-22, 6], [21, 0]],
+  },
+  mara: {
+    chassis: "M-7-29H7V-17L13-12L24-17L30-7L19-1V1L30 7L24 17L13 12L7 17V29H-7V17L-13 12L-24 17L-30 7L-19 1V-1L-30-7L-24-17L-13-12L-7-17Z",
+    circuits: "M0-23V-11 M0 11V23 M-24-10L-11-4 M11 4L24 10 M-24 10L-11 4 M11-4L24-10",
+    ports: [[0, -23], [0, 23], [-22, -10], [22, 10], [-22, 10], [22, -10]],
+  },
+  ivo: {
+    chassis: "M-9-27H9V-18L18-12V-17H29V17H18V12L9 18V27H-9V18L-18 12V17H-29V-17H-18V-12L-9-18Z",
+    circuits: "M-24-10V10 M-19-9V9 M19-9V9 M24-10V10 M0-20V-10 M0 10V20",
+    ports: [[-24, 0], [24, 0], [0, -20], [0, 20]],
+  },
+  vega: {
+    chassis: "M-11-28H11L15-19L25-17L31-7L25 0L31 7L25 17L15 19L11 28H-11L-15 19L-25 17L-31 7L-25 0L-31-7L-25-17L-15-19Z",
+    circuits: "M-9-21H9 M-9 21H9 M-24-9L-14-5 M14-5L24-9 M-24 9L-14 5 M14 5L24 9",
+    ports: [[0, -21], [0, 21], [-22, -9], [22, -9], [-22, 9], [22, 9]],
+  },
 };
 
 function heroModel(hero) {
-  return sprite(`hero:${hero.id}`, (ctx) => {
-    const [armor, trim] = heroModels[hero.id];
-    paint(ctx, "M0-29L27-12V13L0 29L-27 13V-12Z", "#102135", hero.color, 2);
-    const metal = ctx.createLinearGradient(0, -16, 0, 17);
-    metal.addColorStop(0, "#8197aa");
-    metal.addColorStop(0.55, "#354e68");
-    metal.addColorStop(1, "#192535");
-    paint(ctx, armor, metal, "#08111d", 2.5);
-    paint(ctx, "M-10-9L-7-16H7L10-9L8 0L4 4H-4L-8 0Z", "#283f56", "#091523", 2);
-    line(ctx, "M-6-7H6", hero.color, 3.5);
-    line(ctx, trim, hero.color, 2);
+  return sprite(`bot:${hero.id}`, (ctx) => {
+    const { chassis, circuits, ports } = botModels[hero.id];
+    const metal = ctx.createLinearGradient(0, -28, 0, 28);
+    metal.addColorStop(0, "#88a4b6");
+    metal.addColorStop(0.45, "#3b5367");
+    metal.addColorStop(1, "#122435");
+    paint(ctx, chassis, metal, "#08111d", 5);
+    line(ctx, chassis, hero.color, 1.5);
+    line(ctx, circuits, "#07141f", 5);
+    line(ctx, circuits, hero.color, 2);
+    for (const [x, y] of ports) {
+      glow(ctx, x, y, 3.8, "#07141f");
+      glow(ctx, x, y, 2.2, hero.color);
+    }
+    const reactor = ctx.createRadialGradient(-2, -2, 0, 0, 0, 9);
+    reactor.addColorStop(0, "#f0fbff");
+    reactor.addColorStop(0.35, hero.color);
+    reactor.addColorStop(1, "#142835");
+    glow(ctx, 0, 0, 12, "#07141f");
+    glow(ctx, 0, 0, 9, reactor);
   });
 }
 

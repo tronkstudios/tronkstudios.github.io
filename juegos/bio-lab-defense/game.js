@@ -9,17 +9,17 @@ import {
   specializations,
   TARGETING,
   dailySetup,
-} from "./engine.js?v=7";
-import { Board } from "./board.js?v=10";
-import { towerIcon, heroIcon } from "./art.js?v=2";
-import { Profile, dayKey } from "./profile.js?v=4";
+} from "./engine.js?v=8";
+import { Board } from "./board.js?v=11";
+import { towerIcon, heroIcon } from "./art.js?v=3";
+import { Profile, dayKey } from "./profile.js?v=5";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=3";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=3";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=2";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=3";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=4";
 
-import { HEROES, CONTRACTS } from "./operations.js?v=1";
+import { HEROES, CONTRACTS } from "./operations.js?v=2";
 
 const $ = (id) => document.getElementById(id);
 const panels = ["home", "campaign", "briefing", "operations", "field"];
@@ -1104,7 +1104,7 @@ $("back-operations").onclick = () => {
 $("move-hero").onclick = () => {
   movingHero = !movingHero;
   aiming = false;
-  message(movingHero ? "Toca el tablero para posicionar al héroe." : "Movimiento cancelado.");
+  message(movingHero ? "Toca el tablero para posicionar al nanobot." : "Movimiento cancelado.");
   renderHUD();
 };
 $("hero-ability").onclick = () => {
@@ -1112,7 +1112,7 @@ $("hero-ability").onclick = () => {
   if (match.heroAbility()) {
     sound("pulse", true);
     message(`${match.hero.ability} activada.`);
-  } else message("Acerca el héroe a los enemigos para usar su habilidad.", true);
+  } else message("Acerca el nanobot a los enemigos para usar su habilidad.", true);
   renderHUD();
 };
 $("barrier-action").onclick = () => {
