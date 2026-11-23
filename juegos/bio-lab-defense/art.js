@@ -135,3 +135,63 @@ export function drawEnemyModel(ctx, enemy) {
   const width = enemy.boss ? size * 1.1 : size * 0.76;
   ctx.drawImage(model, -width / 2, -width / 2, width, width);
 }
+
+const botModels = {
+  iris: {
+    chassis: "M-24-12H-12L-6-6H7L15-22L29 0L15 22L7 6H-6L-12 12H-24L-30 5V-5Z",
+    circuits: "M-22-7L-17-2H-8 M-22 7L-17 2H-8 M12-8L18-13L24 0L18 13L12 8",
+    ports: [[-22, -6], [-22, 6], [21, 0]],
+  },
+  mara: {
+    chassis: "M-7-29H7V-17L13-12L24-17L30-7L19-1V1L30 7L24 17L13 12L7 17V29H-7V17L-13 12L-24 17L-30 7L-19 1V-1L-30-7L-24-17L-13-12L-7-17Z",
+    circuits: "M0-23V-11 M0 11V23 M-24-10L-11-4 M11 4L24 10 M-24 10L-11 4 M11-4L24-10",
+    ports: [[0, -23], [0, 23], [-22, -10], [22, 10], [-22, 10], [22, -10]],
+  },
+  ivo: {
+    chassis: "M-9-27H9V-18L18-12V-17H29V17H18V12L9 18V27H-9V18L-18 12V17H-29V-17H-18V-12L-9-18Z",
+    circuits: "M-24-10V10 M-19-9V9 M19-9V9 M24-10V10 M0-20V-10 M0 10V20",
+    ports: [[-24, 0], [24, 0], [0, -20], [0, 20]],
+  },
+  vega: {
+    chassis: "M-11-28H11L15-19L25-17L31-7L25 0L31 7L25 17L15 19L11 28H-11L-15 19L-25 17L-31 7L-25 0L-31-7L-25-17L-15-19Z",
+    circuits: "M-9-21H9 M-9 21H9 M-24-9L-14-5 M14-5L24-9 M-24 9L-14 5 M14 5L24 9",
+    ports: [[0, -21], [0, 21], [-22, -9], [22, -9], [-22, 9], [22, 9]],
+  },
+};
+
+function heroModel(hero) {
+  return sprite(`bot:${hero.id}`, (ctx) => {
+    const { chassis, circuits, ports } = botModels[hero.id];
+    const metal = ctx.createLinearGradient(0, -28, 0, 28);
+    metal.addColorStop(0, "#88a4b6");
+    metal.addColorStop(0.45, "#3b5367");
+    metal.addColorStop(1, "#122435");
+    paint(ctx, chassis, metal, "#08111d", 5);
+    line(ctx, chassis, hero.color, 1.5);
+    line(ctx, circuits, "#07141f", 5);
+    line(ctx, circuits, hero.color, 2);
+    for (const [x, y] of ports) {
+      glow(ctx, x, y, 3.8, "#07141f");
+      glow(ctx, x, y, 2.2, hero.color);
+    }
+    const reactor = ctx.createRadialGradient(-2, -2, 0, 0, 0, 9);
+    reactor.addColorStop(0, "#f0fbff");
+    reactor.addColorStop(0.35, hero.color);
+    reactor.addColorStop(1, "#142835");
+    glow(ctx, 0, 0, 12, "#07141f");
+    glow(ctx, 0, 0, 9, reactor);
+  });
+}
+
+export function heroIcon(hero) {
+  const icon = document.createElement("canvas");
+  icon.width = icon.height = 76;
+  icon.className = "hero-art";
+  icon.setAttribute("aria-hidden", "true");
+  icon.getContext("2d").drawImage(heroModel(hero), 0, 0, 76, 76);
+  return icon;
+}
+
+export function drawHeroModel(ctx, hero) {
+  ctx.drawImage(heroModel(hero), -31, -31, 62, 62);
+}

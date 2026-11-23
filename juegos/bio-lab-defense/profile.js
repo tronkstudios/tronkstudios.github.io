@@ -1,3 +1,7 @@
+import { HEROES, HERO_BY_ID, CONTRACT_BY_ID } from "./operations.js?v=4";
+
+import { MISSIONS } from "./campaign.js?v=5";
+
 const KEY = "biolab_save_v1";
 const bounded = (value, max, fallback = 0) =>
   Number.isInteger(value) ? Math.min(max, Math.max(0, value)) : fallback;
@@ -13,16 +17,32 @@ function dailyRecords(value) {
 }
 
 export function normalize(data = {}) {
+  const heroAds = Object.fromEntries(HEROES.filter((hero) => hero.ads).map((hero) => [
+    hero.id, bounded(data?.heroAds?.[hero.id], hero.ads),
+  ]));
+  const heroOwned = Object.fromEntries(HEROES.map((hero) => [
+    hero.id, hero.cost === 0 || data?.heroOwned?.[hero.id] === true || heroAds[hero.id] === hero.ads,
+  ]));
+  const contracts = Object.fromEntries(
+    [...CONTRACT_BY_ID.keys()].map((id) => [id, bounded(data?.contracts?.[id], 1000000)]),
+  );
+  const stars = Array.from({ length: MISSIONS.length }, (_, i) => bounded(data?.stars?.[i], 3));
+  const nextSector = Math.min(MISSIONS.length, stars.findLastIndex(Boolean) + 2);
   return {
-    unlockedLevel: Math.max(1, bounded(data?.unlockedLevel, 10, 1)),
+    heroAds,
+    heroOwned,
+    heroEquipped: heroOwned[data?.heroEquipped] === true ? data.heroEquipped : "iris",
+    contracts,
+    veteranRecords: Array.from({ length: MISSIONS.length }, (_, i) => bounded(data?.veteranRecords?.[i], 1000000)),
+    unlockedLevel: Math.max(nextSector, bounded(data?.unlockedLevel, MISSIONS.length, 1)),
     atpBank: bounded(data?.atpBank, 99999, 500),
     bioGems: bounded(data?.bioGems, 9999, 25),
     lastDaily: /^\d{4}-\d{2}-\d{2}$/.test(data?.lastDaily || "")
       ? data.lastDaily
       : "",
     dailyRecords: dailyRecords(data?.dailyRecords),
-    medals: Array.from({ length: 10 }, (_, i) => data?.medals?.[i] === true),
-    stars: Array.from({ length: 10 }, (_, i) => bounded(data?.stars?.[i], 3)),
+    medals: Array.from({ length: MISSIONS.length }, (_, i) => data?.medals?.[i] === true),
+    stars,
   };
 }
 
@@ -132,6 +152,22 @@ export class Profile {
         shared[day] = Math.max(shared[day] || 0, points);
       }
       next.dailyRecords = dailyRecords(shared);
+      next.veteranRecords = next.veteranRecords.map((score, i) =>
+        Math.max(score, this.data.veteranRecords[i]),
+      );
+      for (const hero of HEROES) {
+        if (!hero.ads) continue;
+        next.heroAds[hero.id] = Math.max(next.heroAds[hero.id], this.data.heroAds[hero.id]);
+        if (next.heroAds[hero.id] >= hero.ads) next.heroOwned[hero.id] = true;
+        if (!next.heroOwned[hero.id] && this.data.heroOwned[hero.id] && next.bioGems >= hero.cost) {
+          next.bioGems -= hero.cost;
+          next.heroOwned[hero.id] = true;
+        }
+      }
+      if (next.heroOwned[this.data.heroEquipped])
+        next.heroEquipped = this.data.heroEquipped;
+      for (const [id, score] of Object.entries(this.data.contracts))
+        next.contracts[id] = Math.max(next.contracts[id], score);
     }
     // Keep one wallet when two devices have spent or earned from the same version.
     Object.assign(this.data, next);
@@ -156,6 +192,46 @@ export class Profile {
       ...this.data.dailyRecords,
       [day]: score,
     });
+    this.commit();
+    return true;
+  }
+
+  buyHero(id) {
+    const hero = HERO_BY_ID.get(id);
+    if (!hero || this.data.heroOwned[id] || this.data.bioGems < hero.cost) return false;
+    this.data.bioGems -= hero.cost;
+    this.data.heroOwned[id] = true;
+    this.commit();
+    return true;
+  }
+
+  recordHeroAd(id) {
+    const hero = HERO_BY_ID.get(id);
+    if (!hero?.ads || this.data.heroOwned[id]) return false;
+    this.data.heroAds[id] = Math.min(hero.ads, this.data.heroAds[id] + 1);
+    this.data.heroOwned[id] = this.data.heroAds[id] >= hero.ads;
+    this.commit();
+    return true;
+  }
+
+  equipHero(id) {
+    if (!HERO_BY_ID.has(id) || !this.data.heroOwned[id]) return false;
+    this.data.heroEquipped = id;
+    this.commit();
+    return true;
+  }
+
+  recordContract(id, points) {
+    if (!CONTRACT_BY_ID.has(id) || points <= this.data.contracts[id]) return false;
+    this.data.contracts[id] = points;
+    this.commit();
+    return true;
+  }
+
+  recordVeteran(level, points) {
+    const index = level - 1;
+    if (!this.data.stars[index] || points <= this.data.veteranRecords[index]) return false;
+    this.data.veteranRecords[index] = points;
     this.commit();
     return true;
   }

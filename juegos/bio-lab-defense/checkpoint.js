@@ -1,4 +1,6 @@
-import { BLUEPRINTS, Match, TARGETING, specializations } from "./engine.js?v=6";
+import { BLUEPRINTS, Match, TARGETING, specializations } from "./engine.js?v=12";
+
+import { MISSIONS } from "./campaign.js?v=5";
 
 const version = 1;
 const blueprintById = new Map(BLUEPRINTS.map((type) => [type.id, type]));
@@ -28,7 +30,7 @@ export class Checkpoint {
   }
 
   write(match, { atpBought, repaired, speed }) {
-    if (match.daily || match.state !== "build") return false;
+    if (match.ranked || match.state !== "build") return false;
     const data = {
       version,
       level: match.level,
@@ -46,6 +48,13 @@ export class Checkpoint {
       atpBought,
       repaired,
       speed,
+      hero: match.hero ? {
+        id: match.hero.id, x: match.hero.x, y: match.hero.y,
+        abilityCooldown: match.hero.abilityCooldown, cooldown: match.hero.cooldown,
+      } : undefined,
+      barrierUsed: match.barrier?.used,
+      powerFirst: match.power?.first,
+
       gateDiverted: match.gateRoutes ? match.gateDiverted : undefined,
       debrief: match.debrief,
       lastBuild: match.undoable ? match.towers.indexOf(match.lastBuild) : -1,
@@ -61,6 +70,9 @@ export class Checkpoint {
         inflicted: t.inflicted,
         defeated: t.defeated,
         produced: t.produced,
+        slowTicks: t.slowTicks,
+        shieldsBroken: t.shieldsBroken,
+        synergyHits: t.synergyHits,
       })),
     };
     try {
@@ -87,8 +99,8 @@ export class Checkpoint {
 }
 
 export function restoreCheckpoint(data) {
-  if (!data || !integer(data.level, 1, 10)) return null;
-  const match = new Match(data.level);
+  if (!data || !integer(data.level, 1, MISSIONS.length)) return null;
+  const match = new Match(data.level, null, { heroId: data.hero?.id });
   if (
     !integer(data.wave, 0, match.maxWaves - 1) ||
     !integer(data.hp, 1, 100) ||
@@ -104,6 +116,20 @@ export function restoreCheckpoint(data) {
     data.towers.length > 256
   )
     return null;
+  if (match.hero && number(data.hero.x, 19, 881) && number(data.hero.y, 19, 521)) {
+    match.moveHero(data.hero.x, data.hero.y);
+    if (integer(data.hero.abilityCooldown, 0, match.hero.recharge))
+      match.hero.abilityCooldown = data.hero.abilityCooldown;
+    if (number(data.hero.cooldown, -100000, 2000)) match.hero.cooldown = data.hero.cooldown;
+  }
+  if (match.console) match.console.complete = data.wave > 0;
+  if (match.barrier) match.barrier.used = data.barrierUsed === true;
+  if (match.archive)
+    for (const terminal of match.archive) terminal.complete = data.wave > terminal.lane;
+  if (match.power) {
+    // Older saves for this sector can already be between the planned cuts.
+    match.power.first = [0, 1].includes(data.powerFirst) ? data.powerFirst : data.wave > 0 ? 0 : null;
+  }
   if (data.gateDiverted === true && !match.toggleGate()) return null;
   match.atp = 100000;
   for (const item of data.towers) {
@@ -131,6 +157,9 @@ export function restoreCheckpoint(data) {
       inflicted: item.inflicted,
       defeated: item.defeated,
       produced: item.produced,
+      slowTicks: integer(item.slowTicks, 0, 1000000) ? item.slowTicks : 0,
+      shieldsBroken: integer(item.shieldsBroken, 0, 2000) ? item.shieldsBroken : 0,
+      synergyHits: integer(item.synergyHits, 0, 200000) ? item.synergyHits : 0,
     });
   }
   for (const key of [
