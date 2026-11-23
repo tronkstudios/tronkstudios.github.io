@@ -459,14 +459,6 @@ dialog p {
   padding: 0;
   margin: 0.35rem 0;
 }
-.wave-roster li {
-  border: 1px solid #365374;
-  border-radius: 6px;
-  padding: 0.12rem 0.4rem;
-  background: #142e46;
-  color: #d8f3ff;
-  font-size: 0.74rem;
-}
 .boss-status {
   margin-top: 0.55rem;
   border-color: #935848;
@@ -1132,4 +1124,193 @@ dialog p {
 }
 .combat-cue[data-kind="phase"] {
   color: #ffb5a1;
+}
+
+.zero-nodes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0.45rem 0;
+}
+.zero-nodes > div {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid #518c84;
+  border-radius: 9px;
+  background: #142e35;
+  color: #c5faf0;
+  font-size: 0.79rem;
+}
+.zero-nodes > div + div {
+  border-color: #8773ac;
+  background: #302642;
+  color: #ecd7ff;
+}
+.zero-nodes progress {
+  width: 100%;
+  height: 0.45rem;
+  accent-color: #8deedb;
+}
+.zero-nodes > div + div progress {
+  accent-color: #c9a2ff;
+}
+
+.field-actions,
+.codex-head,
+.codex-filters {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.field-actions {
+  justify-content: flex-end;
+}
+#codex {
+  width: min(770px, calc(100% - 1rem));
+  max-height: calc(100dvh - 1rem);
+  overscroll-behavior: contain;
+  padding: clamp(0.7rem, 3vw, 1.4rem);
+}
+.codex-head {
+  justify-content: space-between;
+  flex-wrap: nowrap;
+}
+.codex-head h2 {
+  margin: 0;
+  font-size: clamp(1.15rem, 4vw, 1.65rem);
+  line-height: 1.15;
+}
+.codex-filters {
+  margin: 0.9rem 0 0;
+}
+.codex-filters button[aria-pressed="true"],
+#codex-list button[aria-pressed="true"] {
+  border-color: var(--cyan);
+  background: #183d55;
+  color: #f0fbff;
+}
+#codex-caption {
+  margin: 0.65rem 0;
+  font-size: 0.8rem;
+}
+.codex-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.6fr);
+  align-items: start;
+  gap: 0.7rem;
+}
+#codex-list {
+  list-style: none;
+  display: grid;
+  gap: 0.28rem;
+  margin: 0;
+  padding: 0.25rem;
+  overflow-y: auto;
+  max-height: 52dvh;
+  scrollbar-color: #365374 #101e30;
+}
+#codex-list button {
+  width: 100%;
+  min-height: 39px;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+#codex-detail {
+  min-width: 0;
+  padding: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #101e30;
+}
+.codex-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.codex-identity h3 {
+  margin: 0.1rem 0 0;
+  font-size: clamp(1rem, 4vw, 1.35rem);
+  overflow-wrap: anywhere;
+}
+.codex-model {
+  flex: none;
+  width: clamp(64px, 16vw, 96px);
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--model-color) 32%, #0a182a), #0a182a 74%);
+}
+.codex-entry-type {
+  font-size: 0.8rem;
+  color: var(--cyan);
+}
+.codex-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin: 0.65rem 0;
+}
+.codex-stats > div,
+.codex-paths li {
+  padding: 0.38rem 0.55rem;
+  border-radius: 7px;
+  background: #192c42;
+}
+.codex-stats dt,
+.codex-paths p,
+#codex-detail > p {
+  font-size: 0.83rem;
+}
+.codex-stats dt {
+  color: var(--muted);
+}
+.codex-stats dd {
+  margin: 0;
+  font-weight: 650;
+}
+#codex-detail h4 {
+  margin: 0.7rem 0 0;
+}
+.codex-paths {
+  list-style: none;
+  display: grid;
+  gap: 0.3rem;
+  padding: 0;
+  margin: 0;
+}
+.codex-paths p {
+  margin: 0.15rem 0 0;
+}
+.wave-roster button {
+  min-height: 30px;
+  border-color: #365374;
+  border-radius: 6px;
+  padding: 0.15rem 0.42rem;
+  background: #142e46;
+  color: #d8f3ff;
+  font-size: 0.74rem;
+}
+@media (max-width: 580px) {
+  .codex-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #codex-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-height: 23dvh;
+  }
+  #codex-list button {
+    min-height: 44px;
+    height: 100%;
+    padding: 0.35rem;
+    line-height: 1.2;
+    font-size: 0.78rem;
+  }
+  .field-actions {
+    gap: 0.25rem;
+  }
+  .field-actions button {
+    padding-inline: 0.45rem;
+  }
 }

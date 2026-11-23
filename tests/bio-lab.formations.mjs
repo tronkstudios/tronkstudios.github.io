@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { Match, BLUEPRINTS, dailySetup } from "../juegos/bio-lab-defense/engine.js";
+import { Match, BLUEPRINTS, dailySetup, suggestPlacement } from "../juegos/bio-lab-defense/engine.js";
 import { CONTRACTS } from "../juegos/bio-lab-defense/operations.js";
 import { MISSIONS } from "../juegos/bio-lab-defense/campaign.js";
 import { normalize } from "../juegos/bio-lab-defense/profile.js";
@@ -142,4 +142,89 @@ test("Carga inversa requires a choice and reverses the effect on the third wave"
   assert.equal(match.isolatedLane(5), null);
   assert.equal(match.startWave(), true);
   assert.equal(match.selectPowerLine(0), false);
+});
+
+test("bosses display real disease names and have distinct sprite silhouettes", () => {
+  const levels = [4, 6, 8, 10, 14, 18, 22];
+  const bosses = levels.flatMap((level) => {
+    const match = new Match(level);
+    return match.planWave(match.maxWaves).order.filter((entry) => entry.boss).map((entry) => entry.spec);
+  });
+  assert.deepEqual(bosses.map((spec) => spec.name), [
+    "Peste bubónica", "Sarampión", "Difteria", "Cólera", "Gripe de 1918",
+    "Tuberculosis", "Poliomielitis", "Viruela",
+  ]);
+  assert.equal(new Set(bosses.map((spec) => spec.shape)).size, 8);
+  const match = new Match(22);
+  const normals = match.planWave(5).order.filter((entry) => !entry.boss);
+  assert.ok(normals.some((entry) => entry.spec.name === "Norovirus"));
+});
+
+function openSmallpoxNodes() {
+  const match = new Match(22);
+  match.wave = match.maxWaves - 1;
+  match.preview = match.planWave(match.maxWaves);
+  match.startWave();
+  match.queue = [match.queue.find((entry) => entry.zero)];
+  match.spawn();
+  const boss = match.enemies[0];
+  match.damage(boss, boss.hp * 0.4, "#fff", { piercing: true });
+  assert.equal(boss.name, "Viruela");
+  assert.ok(boss.shield > 0);
+  assert.equal(match.zeroNodes.length, 2);
+  return { match, boss };
+}
+
+test("destroying both nodes exposes the smallpox boss before any reinforcements", () => {
+  const { match, boss } = openSmallpoxNodes();
+  for (const node of match.zeroNodes)
+    match.damage(node, node.hp, "#fff", { piercing: true });
+  assert.equal(boss.shield, 0);
+  assert.ok(boss.stun >= 170);
+  assert.equal(match.queue.length, 0);
+  assert.equal(match.kills, 0);
+});
+
+test("surviving one node produces reinforcements from that lane only", () => {
+  const { match, boss } = openSmallpoxNodes();
+  const [left, right] = match.zeroNodes;
+  match.damage(left, left.hp, "#fff", { piercing: true });
+  while (match.time < right.nextPulse) {
+    match.tick();
+    if (match.queue.length) break;
+  }
+  assert.ok(match.queue.length > 0);
+  assert.ok(match.queue.every((entry) => entry.lane === 1));
+  assert.ok(boss.shield > 0);
+  assert.equal(right.destroyed, undefined);
+});
+
+test("nanobot abilities boost the expected tower attacks", () => {
+  for (const [heroId, flag, type, expected] of [
+    ["iris", "markedUntil", "single", 57.5],
+    ["mara", "frozenUntil", "splash", 60],
+    ["ivo", "exposedUntil", "single", 45],
+  ]) {
+    const match = new Match(4, null, { heroId });
+    match.startWave();
+    match.spawn();
+    const enemy = match.enemies[0];
+    Object.assign(enemy, { hp: 500, x: match.hero.x, y: match.hero.y, armor: heroId === "ivo" ? 10 : 0 });
+    assert.equal(match.heroAbility(), true);
+    assert.ok(enemy[flag] > match.time);
+    const before = enemy.hp;
+    match.damage(enemy, 50, "#fff", {}, { rank: 1, type, inflicted: 0, defeated: 0 });
+    assert.ok(Math.abs(before - enemy.hp - expected) < 0.001);
+  }
+});
+
+test("touch snapping only suggests nearby positions that pass placement checks", () => {
+  const match = new Match(1);
+  const type = BLUEPRINTS[0];
+  const check = (x, y) => match.checkPlacement(type, x, y);
+  assert.equal(suggestPlacement({ x: 220, y: 200 }, check), null);
+  const point = suggestPlacement({ x: 190, y: 200 }, check);
+  assert.ok(point);
+  assert.equal(check(point.x, point.y), "");
+  assert.ok(Math.hypot(point.x - 190, point.y - 200) <= 30);
 });

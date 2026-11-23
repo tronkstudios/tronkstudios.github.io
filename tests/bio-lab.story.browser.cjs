@@ -242,8 +242,8 @@ window.forceRunnerLeak = () => {
       await page.evaluate(() => spawnTestBoss());
       await page.locator("#boss-status").waitFor();
       await page.locator("#boss-status-b").waitFor();
-      assert.match(await page.locator("#boss-name").textContent(), /Impulsor · Entrada A/);
-      assert.match(await page.locator("#boss-name-b").textContent(), /Blindaje · Entrada B/);
+      assert.match(await page.locator("#boss-name").textContent(), /Sarampión · Entrada A/);
+      assert.match(await page.locator("#boss-name-b").textContent(), /Difteria · Entrada B/);
       await page.evaluate(() => triggerBossPhases());
       await page.getByText("Acelerado", { exact: true }).waitFor();
       await page.getByText("Escudo activo", { exact: true }).waitFor();
@@ -252,7 +252,7 @@ window.forceRunnerLeak = () => {
       await page.getByRole("heading", { name: "Brecha de contención" }).waitFor();
       const report = await page.locator("#modal-text").textContent();
       assert.match(report, /Entrada A: 1 · Entrada B: 0/);
-      assert.match(report, /Impulsor \(−18 %\)/);
+      assert.match(report, /Sarampión \(−18 %\)/);
       await page.getByRole("img", { name: "Recorrido de la fuga por la entrada A" }).waitFor();
       await page.getByRole("button", { name: "Repreparar la oleada" }).click();
       await page.getByText("Atajo activo", { exact: true }).waitFor();

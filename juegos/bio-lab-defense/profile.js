@@ -1,6 +1,6 @@
-import { HEROES, HERO_BY_ID, CONTRACT_BY_ID } from "./operations.js?v=4";
+import { HEROES, HERO_BY_ID, CONTRACT_BY_ID } from "./operations.js?v=5";
 
-import { MISSIONS } from "./campaign.js?v=5";
+import { MISSIONS } from "./campaign.js?v=6";
 
 const KEY = "biolab_save_v1";
 const bounded = (value, max, fallback = 0) =>

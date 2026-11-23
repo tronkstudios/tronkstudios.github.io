@@ -6,20 +6,22 @@ import {
   upgradeCost,
   upgradeStats,
   reactorOutput,
+  suggestPlacement,
   specializations,
   TARGETING,
   dailySetup,
-} from "./engine.js?v=12";
-import { Board } from "./board.js?v=15";
-import { towerIcon, heroIcon } from "./art.js?v=3";
-import { Profile, dayKey } from "./profile.js?v=7";
+} from "./engine.js?v=14";
+import { Board } from "./board.js?v=17";
+import { towerIcon, heroIcon } from "./art.js?v=4";
+import { createCodex } from "./codex.js?v=1";
+import { Profile, dayKey } from "./profile.js?v=8";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=3";
-import { CHAPTERS, MISSIONS } from "./campaign.js?v=5";
+import { CHAPTERS, MISSIONS } from "./campaign.js?v=6";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=8";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=10";
 
-import { HEROES, CONTRACTS } from "./operations.js?v=4";
+import { HEROES, CONTRACTS } from "./operations.js?v=5";
 
 const $ = (id) => document.getElementById(id);
 const panels = ["home", "campaign", "briefing", "operations", "field"];
@@ -28,6 +30,7 @@ const board = new Board(canvas);
 const briefingBoard = new Board($("briefing-map"));
 const lossBoard = new Board($("loss-map"));
 const modal = $("modal");
+const codex = createCodex($("codex"));
 const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 const compactField = matchMedia("(max-width: 760px)");
 const ad = createAdSenseProvider(
@@ -68,6 +71,14 @@ let dockBudgetKey;
 const profile = new Profile(refreshProfile);
 let checkpoint,
   checkpointLost = false;
+
+$("home-codex").onclick = () => codex.show();
+$("field-codex").onclick = () => {
+  if (adBusy) return;
+  const tower = selected || blueprint;
+  if (tower) codex.show("tower", tower.id);
+  else codex.show();
+};
 
 function makeButton(text, handler) {
   const button = document.createElement("button");
@@ -544,7 +555,7 @@ function toggleBotMove() {
   renderHUD();
 }
 
-function place(x, y) {
+function place(x, y, draftOnly = false) {
   if (!match || modal.open || !["build", "wave"].includes(match.state)) return;
   if (movingTower) {
     const problem = match.checkRelocation(movingTower, x, y);
@@ -573,8 +584,8 @@ function place(x, y) {
     renderHUD();
     return;
   }
-  const tower = towerAt(x, y);
-  if (botAt(x, y, tower)) {
+  const tower = draftOnly ? null : towerAt(x, y);
+  if (!draftOnly && botAt(x, y, tower)) {
     toggleBotMove();
     return;
   }
@@ -679,7 +690,10 @@ function renderSelection() {
     label.textContent = "Prioridad de objetivo";
     const targeting = document.createElement("select");
     targeting.id = "tower-targeting";
-    for (const [id, name] of TARGETING) targeting.add(new Option(name, id));
+    for (const [id, name] of TARGETING) {
+      if (id !== "support" || (match.level === 22 && !match.daily))
+        targeting.add(new Option(name, id));
+    }
     targeting.value = tower.targeting;
     targeting.onchange = () => {
       tower.targeting = targeting.value;
@@ -767,7 +781,7 @@ function renderWavePreview(preview) {
   if (preview === lastPreview) return;
   lastPreview = preview;
   const { count, theme, final, lanes, bossTip, order, timeline } = preview;
-  const finale = match.gateRoutes ? " · Gemelos térmicos" : " · Jefe";
+  const finale = match.gateRoutes ? " · Dos jefes" : " · Jefe";
   updateText(
     "wave-preview-title",
     `${theme.name} · ${count} enemigos${lanes[1] ? " · Dos entradas" : ""}${final ? finale : ""}`,
@@ -786,14 +800,18 @@ function renderWavePreview(preview) {
   const groups = new Map();
   for (const { spec, boss, armor, shield } of order) {
     const label = boss
-      ? "Jefe"
+      ? `Jefe · ${spec.name}`
       : spec.name + (armor ? " con blindaje" : shield ? " con escudo" : "");
-    groups.set(label, (groups.get(label) || 0) + 1);
+    const group = groups.get(label);
+    if (group) group.count++;
+    else groups.set(label, { count: 1, shape: spec.shape, boss });
   }
   $("wave-roster").replaceChildren(
-    ...Array.from(groups, ([label, n]) => {
+    ...Array.from(groups, ([label, { count, shape, boss }]) => {
       const item = document.createElement("li");
-      item.textContent = `${n} × ${label}`;
+      const button = makeButton(`${count} × ${label}`, () => codex.show(boss ? "boss" : "enemy", shape));
+      button.setAttribute("aria-haspopup", "dialog");
+      item.append(button);
       return item;
     }),
   );
@@ -883,6 +901,15 @@ function renderFieldControls(waiting) {
     $(id).hidden = !group || group.ticks > 270 || match.mirrorOrders[0]?.lane === lane;
     if (!$(id).hidden)
       updateText(id, `${lane ? "B" : "A"} · ${group.name} en ${Math.max(1, Math.ceil(group.ticks / (speed * 60)))} s`);
+  }
+  $("zero-nodes").hidden = !live || !match.zeroNodes.some((node) => node.bossOwner.hp > 0);
+  for (const node of match.zeroNodes) {
+    const seconds = Math.max(1, Math.ceil((node.nextPulse - match.time) / (speed * 60)));
+    const state = node.destroyed ? "Destruido" : node.hp <= 0 ? "Agotado"
+      : node.nextPulse >= node.expires ? "Se agota pronto" : `Refuerzos en ${seconds} s`;
+    const suffix = node.lane ? "b" : "a";
+    updateText(`zero-state-${suffix}`, state);
+    $(`zero-hp-${suffix}`).value = Math.ceil(Math.max(0, node.hp) / node.maxHp * 100);
   }
   const cue = match.combatCue;
   $("combat-cue").hidden = !cue || cue.until <= match.time;
@@ -1068,10 +1095,22 @@ function announce() {
 }
 
 let lastState;
+function touchDraft(point, dragging) {
+  const check = movingTower
+    ? (x, y) => match.checkRelocation(movingTower, x, y)
+    : (x, y) => match.checkPlacement(blueprint, x, y);
+  const reason = check(point.x, point.y);
+  const geometry = ["Acércate al interior del tablero.", "Deja despejado el conducto.", "Hay otra torre demasiado cerca."];
+  const canSuggest = dragging && geometry.includes(reason) &&
+    point.x >= 0 && point.x <= WIDTH && point.y >= 0 && point.y <= HEIGHT;
+  const suggestion = canSuggest ? suggestPlacement(point, check) : null;
+  return { point: suggestion || point, reason: suggestion ? "" : reason, snapped: !!suggestion };
+}
+
 function frame(now) {
   const elapsed = Math.min(100, now - lastTick);
   lastTick = now;
-  if (screen === "field" && !modal.open && !document.hidden) {
+  if (screen === "field" && !modal.open && !codex.open && !document.hidden) {
     accumulator = tacticalPaused ? 0 : accumulator + elapsed;
     while (accumulator >= 1000 / 60) {
       for (let i = 0; i < speed; i++) match.tick();
@@ -1086,28 +1125,29 @@ function frame(now) {
         message(announce());
       }
     }
-    const hoverTower = cursor && !aiming && !movingHero && !movingTower ? towerAt(cursor.x, cursor.y) : null;
-    const hoverBot = cursor && !aiming && !movingHero && !movingTower && botAt(cursor.x, cursor.y, hoverTower);
+    const dragging = boardPointer?.type === "touch" && boardPointer.dragging && (blueprint || movingTower)
+      && !aiming && !movingHero;
+    const canHover = cursor && !aiming && !movingHero && !movingTower && !dragging;
+    const hoverTower = canHover ? towerAt(cursor.x, cursor.y) : null;
+    const hoverBot = canHover && botAt(cursor.x, cursor.y, hoverTower);
     const hovered = hoverBot ? null : hoverTower;
     const touchPreview = boardPointer?.type === "touch" && cursor && (blueprint || movingTower) && !aiming && !movingHero && !hovered && !hoverBot;
     $("placement-preview").hidden = !touchPreview;
-    if (touchPreview) {
-      const reason = movingTower
-        ? match.checkRelocation(movingTower, cursor.x, cursor.y)
-        : match.checkPlacement(blueprint, cursor.x, cursor.y);
+    const draft = touchPreview ? touchDraft(cursor, dragging) : null;
+    if (draft) {
       const hint = movingTower ? "Suelta para reubicar" : `Suelta para instalar · ${blueprint.cost} ATP`;
-      updateText("placement-preview", reason || hint);
-      $("placement-preview").classList.toggle("invalid", !!reason);
+      updateText("placement-preview", draft.reason || (draft.snapped ? `Punto sugerido · s${hint.slice(1)}` : hint));
+      $("placement-preview").classList.toggle("invalid", !!draft.reason);
     }
     board.draw(
       match,
       movingHero || hoverBot || upgradePreview ? null : blueprint,
       movingHero ? null : selected,
-      cursor,
+      draft?.point || cursor,
       reduced.matches,
       aiming,
       hovered,
-      { gatePreview, movingHero, movingTower, skillPreview: abilityPreview || hoverBot, upgradePreview },
+      { gatePreview, movingHero, movingTower, skillPreview: abilityPreview || hoverBot, upgradePreview, snapOrigin: draft?.snapped ? cursor : null },
     );
     renderHUD();
   } else {
@@ -1275,24 +1315,30 @@ function pointer(e) {
 }
 canvas.onpointerdown = (event) => {
   if (!event.isPrimary || event.button !== 0) return;
-  boardPointer = { id: event.pointerId, type: event.pointerType };
+  boardPointer = { id: event.pointerId, type: event.pointerType, x: event.clientX, y: event.clientY, dragging: false };
   cursor = pointer(event);
   if (event.pointerType === "touch") canvas.setPointerCapture(event.pointerId);
 };
 canvas.onpointermove = (event) => {
+  if (boardPointer?.id === event.pointerId && event.pointerType === "touch" &&
+      Math.hypot(event.clientX - boardPointer.x, event.clientY - boardPointer.y) >= 7)
+    boardPointer.dragging = true;
   if (boardPointer?.id === event.pointerId || event.pointerType !== "touch")
     cursor = pointer(event);
 };
 canvas.onpointerup = (event) => {
   if (boardPointer?.id !== event.pointerId) return;
   const point = pointer(event);
+  const dragging = event.pointerType === "touch" && boardPointer.dragging &&
+    (blueprint || movingTower) && !movingHero && !aiming;
   boardPointer = null;
   if (event.pointerType === "touch") {
     cursor = null;
     $("placement-preview").hidden = true;
   }
   if (point.x < 0 || point.x > WIDTH || point.y < 0 || point.y > HEIGHT) return;
-  place(point.x, point.y);
+  const destination = dragging ? touchDraft(point, true).point : point;
+  place(destination.x, destination.y, !!dragging);
 };
 canvas.onpointercancel = (event) => {
   if (boardPointer?.id === event.pointerId) {
@@ -1479,6 +1525,7 @@ document.addEventListener("keydown", (event) => {
   if (
     screen !== "field" ||
     modal.open ||
+    codex.open ||
     event.defaultPrevented ||
     event.repeat ||
     event.ctrlKey ||

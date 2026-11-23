@@ -1,6 +1,6 @@
-import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=5";
+import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=6";
 
-import { HERO_BY_ID } from "./operations.js?v=4";
+import { HERO_BY_ID } from "./operations.js?v=5";
 
 export const TOWER_TYPES = [
   {
@@ -126,10 +126,10 @@ export const TOWER_TYPES = [
   },
 ];
 
-const PATHOGEN_TYPES = [
+export const PATHOGEN_TYPES = [
   {
-    id: "diplococcus",
-    name: "Diplococo",
+    id: "pneumococcus",
+    name: "Streptococcus pneumoniae",
     hp: 45,
     speed: 1.35,
     reward: 12,
@@ -137,8 +137,8 @@ const PATHOGEN_TYPES = [
     shape: "diplo",
   },
   {
-    id: "bacillus",
-    name: "Bacilo",
+    id: "subtilis",
+    name: "Bacillus subtilis",
     hp: 70,
     speed: 1.15,
     reward: 15,
@@ -146,8 +146,8 @@ const PATHOGEN_TYPES = [
     shape: "rod",
   },
   {
-    id: "spirochete",
-    name: "Espiroqueta",
+    id: "borrelia",
+    name: "Borrelia burgdorferi",
     hp: 55,
     speed: 1.9,
     reward: 18,
@@ -155,8 +155,8 @@ const PATHOGEN_TYPES = [
     shape: "spiral",
   },
   {
-    id: "phage",
-    name: "Bacteriófago",
+    id: "phage-t4",
+    name: "Bacteriófago T4",
     hp: 95,
     speed: 1.45,
     reward: 22,
@@ -164,8 +164,8 @@ const PATHOGEN_TYPES = [
     shape: "phage",
   },
   {
-    id: "staph",
-    name: "Estafilococo",
+    id: "staph-epi",
+    name: "Staphylococcus epidermidis",
     hp: 140,
     speed: 0.95,
     reward: 26,
@@ -173,17 +173,17 @@ const PATHOGEN_TYPES = [
     shape: "cluster",
   },
   {
-    id: "amoeba",
-    name: "Ameba Mutante",
+    id: "lactobacillus",
+    name: "Lactobacillus acidophilus",
     hp: 220,
     speed: 0.75,
     reward: 32,
     color: "#4ade80",
-    shape: "blob",
+    shape: "lactobacillus",
   },
   {
-    id: "retrovirus",
-    name: "Retrovirus",
+    id: "adenovirus",
+    name: "Adenovirus humano",
     hp: 110,
     speed: 2.1,
     reward: 28,
@@ -191,31 +191,31 @@ const PATHOGEN_TYPES = [
     shape: "hex",
   },
   {
-    id: "prion",
-    name: "Prión Tóxico",
+    id: "rhinovirus",
+    name: "Rinovirus humano",
     hp: 180,
     speed: 1.5,
     reward: 35,
     color: "#facc15",
-    shape: "diplo",
+    shape: "rhinovirus",
   },
   {
-    id: "superbug",
-    name: "Superbacteria",
+    id: "e-coli",
+    name: "Escherichia coli",
     hp: 340,
     speed: 0.85,
     reward: 45,
     color: "#f97316",
-    shape: "rod",
+    shape: "e-coli",
   },
   {
-    id: "coronaviridae",
-    name: "Coronaviridae",
-    hp: 650,
-    speed: 0.7,
-    reward: 90,
+    id: "norovirus",
+    name: "Norovirus",
+    hp: 165,
+    speed: 1.72,
+    reward: 29,
     color: "#ff003c",
-    shape: "corona",
+    shape: "norovirus",
   },
 ];
 
@@ -390,6 +390,7 @@ export const TARGETING = [
   ["first", "Más cerca del núcleo"],
   ["last", "Más lejos del núcleo"],
   ["strong", "Mayor resistencia"],
+  ["support", "Nodos de apoyo"],
 ];
 
 export function specializations(tower) {
@@ -413,21 +414,22 @@ const SWARM = {
   tip: "El daño en área y el Arco Iónico aprovechan los grupos.",
 };
 const BOSS_TIP = "El jefe cambia de fase al 66 % y al 33 % de vida.";
-const BOSS_NAMES = [
-  "Custodio Ámbar",
-  "Centinela de la Galería",
-  "Núcleo Espejo",
-];
 const BOSS_LOADOUTS = [
-  { spec: 5 }, { spec: 8 }, { spec: 9 },
-  { spec: 8, armor: 8, shield: 0.16 },
-  { spec: 7, speed: 0.72, hpFactor: 1.9 },
-  { spec: 9 },
+  { spec: 5, name: "Peste bubónica", shape: "plague", color: "#d8d882" },
+  { spec: 8, name: "Cólera", shape: "cholera", color: "#5fd5bc" },
+  { spec: 9, name: "Gripe de 1918", shape: "influenza", color: "#fa9070", stats: { hp: 650, speed: 0.7, reward: 90 } },
+  { spec: 8, name: "Tuberculosis", shape: "tuberculosis", color: "#fac575", armor: 8, shield: 0.16 },
+  { spec: 7, name: "Poliomielitis", shape: "polio", color: "#ccabff", speed: 0.72, hpFactor: 1.9 },
+  { spec: 9, name: "Viruela", shape: "smallpox", color: "#ff83ac", stats: { hp: 650, speed: 0.7, reward: 90 } },
 ];
 const COOLING_BOSSES = {
-  runner: "Impulsor",
-  guard: "Blindaje",
+  runner: { name: "Sarampión", shape: "measles", color: "#ff865a" },
+  guard: { name: "Difteria", shape: "diphtheria", color: "#ba9bff" },
 };
+export const BOSS_CATALOG = [
+  ...BOSS_LOADOUTS.map(({ name, shape, color }) => ({ name, shape, color, boss: true })),
+  ...Object.entries(COOLING_BOSSES).map(([coolingBoss, spec]) => ({ ...spec, coolingBoss, boss: true })),
+];
 const COOLING_SHORTCUT = [
   [0, 469],
   [310, 469],
@@ -576,27 +578,37 @@ function formWave(order, formation, theme, level, { pressure, veteran, archiveLa
         enemy.delay = index === 0 ? (veteran ? 72 : formation ? 92 : interval) : 0;
       lanes[enemy.lane]++;
     }
-    const event = { name: bosses.length === 2 ? "Gemelos térmicos" : "Jefe", time: elapsed + bosses[0].delay, lanes };
+    const event = {
+      name: bosses.map((enemy) => enemy.spec.name).join(" + "),
+      time: elapsed + bosses[0].delay,
+      lanes,
+    };
     bosses[0].group = event;
     timeline.push(event);
   }
   return timeline;
 }
 
-function resolveImpact(enemy, shield, amount, { piercing = false, shred = false }) {
+function resolveImpact(enemy, shield, amount, { piercing = false, shred = false }, tower, time) {
+  let armor = enemy.armor;
+  if (tower?.rank) {
+    if (enemy.markedUntil > time) amount *= 1.15;
+    if (enemy.frozenUntil > time && tower.type === "splash") amount *= 1.2;
+    if (enemy.exposedUntil > time) armor *= 0.5;
+  }
   const absorbed = Math.min(shield, amount * (piercing ? 0.45 : 1));
   const unblocked = amount - absorbed;
   return {
     shield: Math.max(0, shield - absorbed * (shred ? 2 : 1)),
-    damage: piercing ? unblocked : Math.max(unblocked * 0.35, unblocked - enemy.armor),
+    damage: piercing ? unblocked : Math.max(unblocked * 0.35, unblocked - armor),
   };
 }
 
-function reserveImpact(book, shot) {
+function reserveImpact(book, shot, time) {
   const enemy = shot.target;
   if (enemy.hp <= 0 || enemy.escaped) return;
   const pending = book.get(enemy) || { hp: enemy.hp, shield: enemy.shield };
-  const impact = resolveImpact(enemy, pending.shield, shot.damage, shot.branch);
+  const impact = resolveImpact(enemy, pending.shield, shot.damage, shot.branch, shot.tower, time);
   pending.shield = impact.shield;
   pending.hp -= impact.damage;
   book.set(enemy, pending);
@@ -616,6 +628,23 @@ function nearRoute({ points }, x, y) {
   return points
     .slice(1)
     .some((point, i) => segmentDistance(x, y, points[i], point) < 39);
+}
+
+const placementOffsets = [];
+for (let y = -30; y <= 30; y += 6) {
+  for (let x = -30; x <= 30; x += 6) {
+    const distance = x * x + y * y;
+    if (distance > 0 && distance <= 30 * 30) placementOffsets.push({ x, y, distance });
+  }
+}
+placementOffsets.sort((a, b) => a.distance - b.distance);
+
+export function suggestPlacement(point, check) {
+  for (const offset of placementOffsets) {
+    const candidate = { x: point.x + offset.x, y: point.y + offset.y };
+    if (!check(candidate.x, candidate.y)) return candidate;
+  }
+  return null;
 }
 
 export function upgradeCost(tower) {
@@ -684,6 +713,7 @@ export class Match {
         }))
       : null;
     this.combatCue = null;
+    this.zeroNodes = [];
     this.preview = this.planWave(1);
     this.lastBuild = null;
     this.waveStart = null;
@@ -798,7 +828,7 @@ export class Match {
     const count =
       5 + wave * 2 + Math.floor(this.combatLevel * 0.55) + (this.daily?.extra || 0) + (veteranPressure ? 2 : 0);
     const order = [];
-    const pool = Math.min(wave < 3 ? 4 : level > 10 ? 9 : 7, Math.ceil((level + wave) / 2));
+    const pool = Math.min(wave < 3 ? 4 : level >= 18 ? 10 : level > 10 ? 9 : 7, Math.ceil((level + wave) / 2));
     for (let n = 0; n < count; n++) {
       const lane =
         this.routes.length > 1 &&
@@ -820,24 +850,24 @@ export class Match {
       });
     }
     if (final && this.gateRoutes) {
-      nextEnemy(order, PATHOGEN_TYPES[8], 0, {
+      nextEnemy(order, { ...PATHOGEN_TYPES[8], ...COOLING_BOSSES.runner }, 0, {
         boss: true,
         coolingBoss: "runner",
         speed: 1.35,
       });
-      nextEnemy(order, PATHOGEN_TYPES[8], 1, {
+      nextEnemy(order, { ...PATHOGEN_TYPES[8], ...COOLING_BOSSES.guard }, 1, {
         boss: true,
         coolingBoss: "guard",
         armor: 5,
       });
     } else if (final) {
-      const { spec, ...loadout } = BOSS_LOADOUTS[this.mapIndex];
-      const zero = this.mission?.boss === "Cero";
-      nextEnemy(order, PATHOGEN_TYPES[spec], this.routes.length - 1, {
+      const { spec, name, shape, color, stats, ...loadout } = BOSS_LOADOUTS[this.mapIndex];
+      const zero = this.level === 22 && !this.daily;
+      nextEnemy(order, { ...PATHOGEN_TYPES[spec], ...stats, name, shape, color }, this.routes.length - 1, {
         ...loadout,
-        ...(zero ? { hpFactor: 1.26, reinforced: true } : {}),
+        ...(zero ? { hpFactor: 1.26, zero: true } : {}),
         boss: true,
-        mirror: !this.daily && (this.level === 10 || zero || (this.veteran && this.routes.length > 1)),
+        mirror: !this.daily && !zero && (this.level === 10 || (this.veteran && this.routes.length > 1)),
       });
     }
     const formation = this.daily ? null : veteranPressure
@@ -864,8 +894,10 @@ export class Match {
       bossTip: !final
         ? ""
         : this.gateRoutes
-          ? "Gemelos térmicos. El Impulsor acelera por A y el Blindaje activa un escudo en B. Prepara lentitud en A y reserva el pulso para B."
-          : (this.level === 10 && !this.daily) || this.mission?.boss === "Cero"
+          ? "El sarampión acelera por A y la difteria activa un escudo en B. Prepara lentitud en A y reserva el pulso para B."
+          : this.level === 22 && !this.daily
+            ? "La viruela abre dos nodos. Prioriza Nodos de apoyo en tus torres para romper su escudo, o resiste los refuerzos hasta que se agoten."
+            : this.level === 10 && !this.daily
             ? this.veteran
               ? "El jefe anunciará refuerzos primero por B y después por A."
               : "El jefe anunciará refuerzos primero por A y después por B."
@@ -894,7 +926,15 @@ export class Match {
       Math.hypot(hero.x - enemy.x, hero.y - enemy.y) <= hero.abilityRange);
     if (!hits.length) return false;
     hero.abilityCooldown = hero.recharge;
+    if (hero.id === "iris") {
+      const target = hits.reduce((best, enemy) =>
+        enemy.hp + enemy.shield > best.hp + best.shield ? enemy : best);
+      target.markedUntil = this.time + 200;
+      this.cue("objective", "Objetivo marcado por Óptix", target);
+    }
     for (const enemy of hits) {
+      if (hero.id === "mara") enemy.frozenUntil = this.time + 230;
+      if (hero.id === "ivo") enemy.exposedUntil = this.time + 210;
       if (hero.stripShield && enemy.shield) {
         this.cue("shield", "Escudo roto", enemy);
         enemy.shield = 0;
@@ -1049,6 +1089,7 @@ export class Match {
     this.waveStart = { hp: this.hp, kills: this.kills, atp: this.grossATP, count: this.preview.count };
     this.waveLeaks = { lanes: this.routes.map(() => 0), worst: null };
     this.debrief = null;
+    this.zeroNodes = [];
     this.queue = [...this.preview.order];
     this.interval =
       this.preview.theme === SWARM ? 24 : this.preview.theme === RUSH ? 31 : 39;
@@ -1073,7 +1114,7 @@ export class Match {
       speed = 1,
       coolingBoss,
       mirror = false,
-      reinforced = false,
+      zero = false,
       hpFactor = 1,
     } = order;
     const scale =
@@ -1085,19 +1126,8 @@ export class Match {
     const hp = Math.round(spec.hp * scale * bossScale * hpFactor * veteranHealth);
     const path = this.routes[lane];
     const [[x, y]] = path.points;
-    const bossName = this.mission?.boss ??
-      (this.mission && ![4, 8, 10].includes(this.level)
-        ? ["Custodio de sector", "Centinela auxiliar", "Eco del Espejo", "Guardián de arrecife",
-            "Custodio del enlace", "Vigía del retorno"][this.mapIndex]
-        : BOSS_NAMES[this.mapIndex]);
-    const color = coolingBoss === "runner"
-      ? "#ff865a"
-      : coolingBoss === "guard" ? "#ba9bff" : spec.color;
     this.enemies.push({
       ...spec,
-      color,
-      shape: coolingBoss === "runner" ? "spiral" : spec.shape,
-      name: boss ? (COOLING_BOSSES[coolingBoss] || bossName) : spec.name,
       x,
       y,
       path,
@@ -1105,7 +1135,7 @@ export class Match {
       boss,
       coolingBoss,
       mirror,
-      reinforced,
+      zero,
       hp,
       maxHp: hp,
       speed: spec.speed * speed * (this.daily?.speed || 1),
@@ -1131,7 +1161,7 @@ export class Match {
   ) {
     if (enemy.hp <= 0) return;
     const shield = enemy.shield;
-    const { shield: remainingShield, damage } = resolveImpact(enemy, shield, amount, { piercing, shred });
+    const { shield: remainingShield, damage } = resolveImpact(enemy, shield, amount, { piercing, shred }, tower, this.time);
     enemy.shield = remainingShield;
     if (tower && shield > 0) {
       tower.inflicted += shield - remainingShield;
@@ -1145,6 +1175,14 @@ export class Match {
       if (enemy.boss) this.advanceBoss(enemy);
       return;
     }
+    if (enemy.supportNode) {
+      enemy.destroyed = true;
+      this.resolveNodeDestruction(enemy);
+      this.effect(enemy.x, enemy.y, enemy.color, 45);
+      return;
+    }
+    if (enemy.zero)
+      for (const node of this.zeroNodes) node.hp = 0;
     this.kills++;
     if (tower) tower.defeated++;
     this.combo = Math.min(10, this.combo + 1);
@@ -1154,6 +1192,51 @@ export class Match {
     this.effect(enemy.x, enemy.y, color, enemy.boss ? 56 : 27);
   }
 
+  deployZeroNodes(boss) {
+    const hp = this.veteran ? 250 : 200;
+    this.zeroNodes = this.routes.map((path, lane) => {
+      const index = 2;
+      const [x, y] = path.points[index];
+      return {
+        supportNode: true, lane, x, y, hp, maxHp: hp, armor: 3, shield: 0,
+        remaining: path.remaining[index], bossOwner: boss, slow: 0, slowFactor: 1, burn: 0, stun: 0,
+        name: `Nodo ${lane ? "B" : "A"}`, color: lane ? "#c9a2ff" : "#8deedb",
+        expires: this.time + 430, nextPulse: this.time + 105,
+      };
+    });
+    this.enemies.push(...this.zeroNodes);
+    this.cue("phase", "La viruela activa los nodos A y B", boss);
+  }
+
+  resolveNodeDestruction(node) {
+    const boss = node.bossOwner;
+    if (this.zeroNodes.every((entry) => entry.destroyed) && boss.hp > 0) {
+      boss.shield = 0;
+      boss.stun = Math.max(boss.stun, 170);
+      this.cue("objective", "Nodos destruidos · Viruela expuesta", boss);
+    } else {
+      this.cue("objective", `${node.name} destruido`, node);
+    }
+  }
+
+  tickZeroNodes() {
+    for (const node of this.zeroNodes) {
+      if (node.hp <= 0) continue;
+      if (node.bossOwner.hp <= 0 || node.expires <= this.time) {
+        node.hp = 0;
+        continue;
+      }
+      if (this.time < node.nextPulse) continue;
+      node.nextPulse += 150;
+      const idle = !this.queue.length;
+      for (let i = 0; i < 3; i++)
+        nextEnemy(this.queue, PATHOGEN_TYPES[i === 0 ? 4 : 2], node.lane, {
+          armor: i === 0 ? 8 : 0, speed: 1.18, delay: 16,
+        });
+      if (idle) this.spawnIn = 8;
+    }
+  }
+
   advanceBoss(enemy) {
     const ratio = enemy.hp / enemy.maxHp;
     const phase = ratio <= 1 / 3 ? 3 : ratio <= 2 / 3 ? 2 : 1;
@@ -1161,13 +1244,21 @@ export class Match {
     const enteredSecondPhase = enemy.phase === 1;
     enemy.phase = phase;
     if (phase === 3) this.cue("phase", `${enemy.name} · Fase final`, enemy);
+    if (enemy.zero) {
+      if (enteredSecondPhase) {
+        enemy.shield = Math.round(enemy.maxHp * 0.19);
+        this.deployZeroNodes(enemy);
+      }
+      if (phase === 3) enemy.speed *= 1.28;
+      return;
+    }
     if (enemy.mirror) {
       if (enteredSecondPhase) {
         enemy.shield = Math.round(enemy.maxHp * 0.19);
-        this.mirrorOrders.push({ lane: this.veteran ? 1 : 0, ticks: this.veteran ? 100 : 125, reinforced: enemy.reinforced });
+        this.mirrorOrders.push({ lane: this.veteran ? 1 : 0, ticks: this.veteran ? 100 : 125 });
       }
       if (phase === 3) {
-        this.mirrorOrders.push({ lane: this.veteran ? 0 : 1, ticks: this.veteran ? 100 : 125, reinforced: enemy.reinforced });
+        this.mirrorOrders.push({ lane: this.veteran ? 0 : 1, ticks: this.veteran ? 100 : 125 });
         enemy.speed *= 1.28;
       }
       return;
@@ -1288,17 +1379,10 @@ export class Match {
     if (order && --order.ticks <= 0) {
       this.mirrorOrders.shift();
       const fresh = !this.queue.length;
-      const count = order.reinforced ? 6 : 4;
-      for (let i = 0; i < count; i++) {
-        const lead = order.reinforced && i === 0;
-        nextEnemy(this.queue, PATHOGEN_TYPES[lead ? 4 : 2], order.lane, {
-          speed: lead ? 1.12 : 1.25,
-          armor: lead ? 12 : 0,
-          delay: order.reinforced ? 17 : undefined,
-        });
-      }
+      for (let i = 0; i < 4; i++) nextEnemy(this.queue, PATHOGEN_TYPES[2], order.lane, { speed: 1.25 });
       if (fresh) this.spawnIn = 7;
     }
+    this.tickZeroNodes();
     if (this.comboTime > 0 && --this.comboTime === 0) this.combo = 0;
     if (this.queue.length && --this.spawnIn <= 0) {
       const pair =
@@ -1331,6 +1415,7 @@ export class Match {
         }
         if (enemy.hp <= 0) continue;
       }
+      if (enemy.supportNode) continue;
       if (this.barrier?.until > this.time &&
           Math.hypot(enemy.x - this.barrier.x, enemy.y - this.barrier.y) < 115)
         continue;
@@ -1382,7 +1467,7 @@ export class Match {
     }
 
     const committed = new Map();
-    if (!this.daily) for (const shot of this.shots) reserveImpact(committed, shot);
+    if (!this.daily) for (const shot of this.shots) reserveImpact(committed, shot, this.time);
     for (let index = 0; index < this.towers.length + Number(!!this.hero); index++) {
       const tower = this.towers[index] || this.hero;
       tower.cooldown -= this.combo >= 5 ? 1.28 : 1;
@@ -1404,6 +1489,7 @@ export class Match {
       }
       let target;
       let best = -Infinity;
+      let bestFocus = 0;
       for (const enemy of this.enemies) {
         const pending = committed.get(enemy) || enemy;
         if (pending.hp <= 0) continue;
@@ -1415,9 +1501,12 @@ export class Match {
             : tower.targeting === "last"
               ? enemy.remaining
               : -enemy.remaining;
-        if (priority > best) {
+        const focus = tower.targeting === "support" && enemy.supportNode ? 2
+          : tower.rank && enemy.markedUntil > this.time ? 1 : 0;
+        if (focus > bestFocus || (focus === bestFocus && priority > best)) {
           target = enemy;
           best = priority;
+          bestFocus = focus;
         }
       }
       if (!target) continue;
@@ -1435,7 +1524,7 @@ export class Match {
         radius: tower.branch?.radius || (tower.id === "uv" ? 73 : 57),
       };
       this.shots.push(shot);
-      if (!this.daily) reserveImpact(committed, shot);
+      if (!this.daily) reserveImpact(committed, shot, this.time);
     }
 
     this.shots = this.shots.filter((shot) => {

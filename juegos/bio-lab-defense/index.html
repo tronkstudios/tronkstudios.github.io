@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=14" />
+    <link rel="stylesheet" href="./styles.css?v=16" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -65,6 +65,7 @@
               </button>
               <button type="button" id="challenge-button">Reto de hoy</button>
               <button type="button" id="operations-button" disabled>Nanobots y contratos</button>
+              <button type="button" id="home-codex" aria-haspopup="dialog">Enciclopedia</button>
               <button type="button" id="daily-button">Suministro diario</button>
             </div>
           </div>
@@ -161,7 +162,10 @@
             <p id="phase"></p>
             <p id="checkpoint-state" hidden></p>
           </div>
-          <button type="button" id="pause">Pausa</button>
+          <div class="field-actions">
+            <button type="button" id="field-codex" aria-haspopup="dialog">Enciclopedia</button>
+            <button type="button" id="pause">Pausa</button>
+          </div>
         </div>
         <div class="hud">
           <div>
@@ -245,6 +249,14 @@
               <button type="button" id="hero-ability" hidden></button>
               <button type="button" id="barrier-action" hidden>Cerrar barrera · 4 s</button>
             </div>
+            <section id="zero-nodes" class="zero-nodes" aria-label="Nodos de la viruela" hidden>
+              <div><strong>Nodo A</strong><span id="zero-state-a"></span>
+                <progress id="zero-hp-a" max="100" value="100" aria-label="Vida del nodo A"></progress>
+              </div>
+              <div><strong>Nodo B</strong><span id="zero-state-b"></span>
+                <progress id="zero-hp-b" max="100" value="100" aria-label="Vida del nodo B"></progress>
+              </div>
+            </section>
             <p id="board-status" role="status"></p>
             <div id="near-board-selection" hidden></div>
             <div id="field-alerts" aria-live="polite" hidden>
@@ -267,7 +279,7 @@
                 <strong id="boss-name-b"></strong><span id="boss-phase-b"></span>
               </div>
               <progress id="boss-health-b" max="100" value="100"
-                aria-label="Vida de Blindaje"></progress>
+                aria-label="Vida del segundo jefe"></progress>
             </div>
             <div class="lane-brief" id="lane-brief" hidden>
               <b id="lane-a"></b><b id="lane-b"></b>
@@ -312,6 +324,24 @@
       </section>
       <p id="account-status" role="status">Comprobando cuenta…</p>
     </main>
+    <dialog id="codex" aria-labelledby="codex-title">
+      <div class="codex-head">
+        <h2 id="codex-title">Enciclopedia del laboratorio</h2>
+        <form method="dialog">
+          <button type="submit" autofocus>Cerrar</button>
+        </form>
+      </div>
+      <div class="codex-filters" role="group" aria-label="Categorías de la enciclopedia">
+        <button type="button" data-codex-kind="tower" aria-pressed="true">Torres</button>
+        <button type="button" data-codex-kind="enemy" aria-pressed="false">Enemigos</button>
+        <button type="button" data-codex-kind="boss" aria-pressed="false">Jefes</button>
+      </div>
+      <p id="codex-caption"></p>
+      <div class="codex-layout">
+        <ul id="codex-list" aria-label="Fichas"></ul>
+        <article id="codex-detail" aria-labelledby="codex-entry-title"></article>
+      </div>
+    </dialog>
     <dialog id="modal" aria-labelledby="modal-title">
       <h2 id="modal-title"></h2>
       <p id="modal-text"></p>
@@ -322,6 +352,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=16"></script>
+    <script type="module" src="./game.js?v=18"></script>
   </body>
 </html>
