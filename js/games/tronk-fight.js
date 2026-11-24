@@ -2302,7 +2302,12 @@ function setCursor(i) {
   previewF = makePreview(app.sel.cursor);
   updateSelect();
 }
-function pips(n) { return Array.from({ length: 5 }, (_, k) => `<span class="${C("pip")}${k < n ? " " + C("on") : ""}"></span>`).join(""); }
+function pips(value) {
+  const bars = Array.from({ length: 5 }, (_, index) =>
+    `<span aria-hidden="true" class="${C("pip")}${index < value ? " " + C("on") : ""}"></span>`
+  );
+  return bars.join("") + `<strong class="tf-stat-value">${value}/5</strong>`;
+}
 function statsOf(w) {
   const m = w.normal, total = m.startup + m.active + m.recovery;
   const dmg = clamp(Math.round((m.dmg - 4) / 2), 1, 5);

@@ -73,3 +73,5 @@
   color: #fff;
   font: inherit;
 }
+
+#tf-root .tf-stat-value{align-self:center;color:var(--ink);font:700 1.9cqh/1 Rubik,system-ui,sans-serif;white-space:nowrap}
