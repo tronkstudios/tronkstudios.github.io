@@ -6,9 +6,11 @@ resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 ## Próxima versión
 
 - Los duelos locales de Tronk Fight permiten elegir una ronda, al mejor de tres
-  o al mejor de cinco. El marcador muestra cuántas rondas hacen falta.
+  o al mejor de cinco. El marcador muestra cuántas rondas hacen falta y se
+  guarda el formato elegido.
 - Gravity Runners compara el resultado con el récord anterior del modo elegido.
-  Se puede reintentar con R y la nueva carrera empieza con una cuenta atrás.
+  La referencia se mantiene al continuar con un escudo. Se puede reintentar
+  con R y la nueva carrera empieza con una cuenta atrás.
 
 - Tronk Fight pausa el combate al cambiar de ventana, restablece los mandos al
   volver y recuerda la preferencia de controles táctiles. Las teclas equivalentes

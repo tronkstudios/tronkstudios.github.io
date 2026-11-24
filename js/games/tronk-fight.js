@@ -2378,6 +2378,11 @@ function setStage(i) {
   const fake = { frame: 120 };
   c.save(); c.scale(0.5, 0.5); drawBgDynamic(c, fake, i, 120); c.restore();
 }
+const formatSelect = $("#tf-format");
+const savedFormat = store.get("duelFormat", 2);
+if ([1, 2, 3].includes(savedFormat)) formatSelect.value = String(savedFormat);
+formatSelect.addEventListener("change", () => store.set("duelFormat", Number(formatSelect.value)));
+
 function openStages() {
   stagesUl.querySelectorAll("canvas").forEach((c, i) => { const g = c.getContext("2d"); g.drawImage(getBG(i), 0, 0, 320, 180); g.save(); g.scale(0.25, 0.25); drawBgDynamic(g, { frame: 120 }, i, 120); g.restore(); });
   $("#tf-matchup").textContent = `${CHARS[app.sel.p1].name} contra ${CHARS[app.sel.cpu].name}`;
@@ -2392,7 +2397,7 @@ function startFight() {
   Sound.init();
   const s = app.sel;
   const pvp = s.mode === "pvp";
-  const roundsToWin = pvp ? Number($("#tf-format").value) : 2;
+  const roundsToWin = pvp ? Number(formatSelect.value) : 2;
   app.match = newMatch(s.p1, s.cpu, s.stage, "play", s.diff, pvp, roundsToWin);
   app.paused = false; app.overShown = false;
   resetInputs();
@@ -2523,7 +2528,7 @@ window.addEventListener("keydown", e => {
     if (e.code === "ArrowRight" || e.code === "KeyD") { setCursor(app.sel.cursor + 1); Sound.play("ui"); e.preventDefault(); }
     if (e.code === "ArrowLeft" || e.code === "KeyA") { setCursor(app.sel.cursor - 1); Sound.play("ui"); e.preventDefault(); }
   }
-  if (app.screen === "scr-stagesel" && e.target !== $("#tf-format")) {
+  if (app.screen === "scr-stagesel" && e.target !== formatSelect) {
     if (e.code === "ArrowRight" || e.code === "KeyD") { setStage((app.sel.stage + 1) % 5); e.preventDefault(); }
     if (e.code === "ArrowLeft" || e.code === "KeyA") { setStage((app.sel.stage + 4) % 5); e.preventDefault(); }
   }
