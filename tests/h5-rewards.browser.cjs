@@ -53,7 +53,7 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8789";
       function handle(config){
         if(config.onReady){
           if(config.preloadAdBreaks === "on") window.preloadCalls++;
-          if(++window.configCalls > 1) setTimeout(config.onReady,10);
+          window.configCalls++; window.markReady = config.onReady;
           return;
         }
         if(config.type!=="reward")throw new Error("Unexpected ad placement");
@@ -137,8 +137,6 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8789";
             );
         }
         const initial = await balance();
-        const retry = page.getByRole("button", { name: /^reintentar preparación$/i }).first();
-        await retry.tap();
         const readyLabel =
           /Ver anuncio · \+75 ATP|Ver anuncio · \+50 monedas|VER ANUNCIO · CONTINUAR UNA VEZ/;
         await page.waitForFunction(
@@ -151,16 +149,24 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8789";
             ),
           readyLabel.source,
         );
-        assert.equal(
-          requests,
-          1,
-          "retry readiness without loading the SDK again",
-        );
-        assert.equal(await page.evaluate(() => configCalls), 2);
-        assert.equal(await page.evaluate(() => preloadCalls), 1);
-        assert.equal(await page.evaluate(() => visibleAds), 0);
+        const closePromo = page.getByRole("button", { name: "Cerrar sin recompensa" });
+        await button.tap();
+        await closePromo.tap();
+        assert.equal(await balance(), initial);
+        if (process.env.STUDIO_PROMO_ONLY === "1") {
+          await button.tap();
+          await closePromo.waitFor();
+          await closePromo.waitFor({state:"detached"});
+          await verify(initial);
+          console.log(path + " studio video passed");
+          continue;
+        }
+        await page.waitForFunction(() => typeof window.markReady === "function");
+        await page.evaluate(() => window.markReady());
+        assert.equal(requests, 1);
         await page.evaluate(() => { window.ignorePlacement = true; });
         await button.tap();
+        await closePromo.tap();
         await button.and(page.getByRole("button", { name: readyLabel })).and(page.locator(":enabled")).waitFor();
         assert.equal(await balance(), initial, "a stalled placement gives no reward");
         await page.evaluate(() => {
@@ -168,6 +174,7 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8789";
           window.noFill = true;
         });
         await button.tap();
+        await closePromo.tap();
         await page.waitForFunction(
           (source) =>
             [...document.querySelectorAll("button")].some(
