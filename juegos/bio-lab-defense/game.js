@@ -12,18 +12,18 @@ import {
   TARGETING,
   VARIANT_NAMES,
   dailySetup,
-} from "./engine.js?v=22";
+} from "./engine.js?v=23";
 import { routeCoverage } from "./coverage.js?v=1";
 import { attachDrill } from "./drill.js?v=2";
-import { Board } from "./board.js?v=28";
+import { Board } from "./board.js?v=29";
 import { towerIcon, heroIcon } from "./art.js?v=4";
-import { createCodex } from "./codex.js?v=10";
+import { createCodex } from "./codex.js?v=11";
 import { Profile, dayKey } from "./profile.js?v=11";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=6";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=8";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=18";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=19";
 
 import { HEROES, CONTRACTS } from "./operations.js?v=7";
 
@@ -48,6 +48,7 @@ $("run-drill").onclick = attachDrill(drill, new Board($("drill-map")), () => mat
   renderHUD();
   $("selection").scrollIntoView({ block: "nearest" });
   $("selection").focus({ preventScroll: true });
+  persistPreparation();
 });
 const fireOrders = $("fire-orders");
 const fireMap = $("fire-map");
@@ -533,7 +534,7 @@ function persistPreparation() {
     match.state !== "build"
   )
     return false;
-  if (!checkpoint.write(match, { atpBought, repaired, speed })) {
+  if (!checkpoint.write(match, { atpBought, repaired, speed, selected, blueprint })) {
     checkpointLost = true;
     updateText(
       "checkpoint-state",
@@ -594,8 +595,8 @@ function begin(next, day = null, restored = null) {
   lastPulseReady = false;
   lastMirrorOrder = null;
   lastCombatCue = null;
-  blueprint = BLUEPRINTS[0];
-  selected = null;
+  selected = restored?.selected || null;
+  blueprint = selected ? null : restored?.blueprint || BLUEPRINTS[0];
   cursor = null;
   boardPointer = null;
   upgradePreview = null;
@@ -665,6 +666,7 @@ function renderDock() {
         selectionKey = "";
         renderSelection();
         highlightDock();
+        persistPreparation();
       });
       button.className = "tower";
       button.dataset.type = type.id;
@@ -772,6 +774,7 @@ function place(x, y, draftOnly = false) {
     selected = tower;
     blueprint = null;
     message("Torre seleccionada. Puedes mejorarla o venderla.");
+    persistPreparation();
   } else {
     const problem = match.checkPlacement(blueprint, x, y);
     if (problem)
@@ -889,10 +892,10 @@ function renderSelection() {
     makeButton(`Vender · +${Math.floor(tower.paid * 0.65)} ATP`, () => {
       if (match.sell(tower)) {
         message(`${tower.name} retirada.`);
-        persistPreparation();
       }
       selected = null;
       movingTower = null;
+      persistPreparation();
       renderHUD();
     }),
   );
@@ -1841,7 +1844,7 @@ $("undo-build").onclick = () => {
     blueprint = BLUEPRINTS.find((type) => type.id === tower.id);
     highlightDock();
   }
-  message(`${tower.name} retirada. Recuperas ${tower.cost} ATP.`);
+  message(`${tower.name} retirada. Recuperas ${tower.paid} ATP.`);
   persistPreparation();
   renderHUD();
 };

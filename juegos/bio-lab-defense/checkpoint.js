@@ -1,4 +1,4 @@
-import { BLUEPRINTS, Match, TARGETING, specializations } from "./engine.js?v=22";
+import { BLUEPRINTS, Match, TARGETING, specializations } from "./engine.js?v=23";
 
 import { MISSIONS } from "./campaign.js?v=8";
 
@@ -29,7 +29,7 @@ export class Checkpoint {
     }
   }
 
-  write(match, { atpBought, repaired, speed }) {
+  write(match, { atpBought, repaired, speed, selected, blueprint }) {
     if (match.ranked || match.state !== "build") return false;
     const data = {
       version,
@@ -48,6 +48,8 @@ export class Checkpoint {
       atpBought,
       repaired,
       speed,
+      selected: match.towers.indexOf(selected),
+      blueprint: blueprint?.id,
       hero: match.hero ? {
         id: match.hero.id, x: match.hero.x, y: match.hero.y,
         abilityCooldown: match.hero.abilityCooldown, cooldown: match.hero.cooldown,
@@ -64,6 +66,7 @@ export class Checkpoint {
         x: t.x,
         y: t.y,
         rank: t.rank,
+        paid: t.paid,
         branch: specializations(t).indexOf(t.branch),
         targeting: t.targeting,
         angle: t.angle || 0,
@@ -154,6 +157,7 @@ export function restoreCheckpoint(data) {
     if (item.rank >= 2 && !match.upgrade(tower)) return null;
     if (item.rank === 3 && !match.upgrade(tower, item.branch)) return null;
     Object.assign(tower, {
+      paid: integer(item.paid, 1, 100000) ? item.paid : tower.paid,
       targeting: item.targeting,
       angle: item.angle,
       cooldown: item.cooldown,
@@ -199,8 +203,12 @@ export function restoreCheckpoint(data) {
         leaks.every(count => integer(count, 0, 2000)))
       match.debrief.leaks = leaks;
   }
+  const selected = integer(data.selected, 0, match.towers.length - 1) ? match.towers[data.selected] : null;
+  const blueprint = blueprintById.get(data.blueprint);
   return {
     match,
+    selected,
+    blueprint: blueprint?.unlock <= match.techLevel ? blueprint : BLUEPRINTS[0],
     atpBought: data.atpBought === true,
     repaired: data.repaired === true,
     speed: data.speed === 2 ? 2 : 1,

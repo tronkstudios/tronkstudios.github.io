@@ -1183,7 +1183,7 @@ export class Match {
     if (!this.undoable) return null;
     const tower = this.lastBuild;
     this.towers.splice(this.towers.indexOf(tower), 1);
-    this.atp += tower.cost;
+    this.atp += tower.paid;
     this.lastBuild = null;
     return tower;
   }

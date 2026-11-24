@@ -3,6 +3,7 @@ import test from "node:test";
 import { Match, BLUEPRINTS, dailySetup, suggestPlacement } from "../juegos/bio-lab-defense/engine.js";
 import { CONTRACTS } from "../juegos/bio-lab-defense/operations.js";
 import { MISSIONS } from "../juegos/bio-lab-defense/campaign.js";
+import { restoreCheckpoint } from "../juegos/bio-lab-defense/checkpoint.js";
 import { normalize } from "../juegos/bio-lab-defense/profile.js";
 
 test("legacy completion opens the next chapter with expanded profile slots", () => {
@@ -431,4 +432,20 @@ test("a rehearsal reproduces an unattended wave without changing the prepared de
     assert.deepEqual([sim.hp, sim.kills, sim.state, sim.waveLeaks], [match.hp, match.kills, match.state, match.waveLeaks]);
   }
   assert.equal(startDrill(new Match(20)), null);
+});
+
+test("restored towers keep their investment and legacy saves keep the catalog price", () => {
+  const match = new Match(1);
+  const tower = match.place(BLUEPRINTS[0], 145, 171);
+  const data = { ...match, towers: [{ ...tower, branch: -1, angle: 0, paid: 42 }], selected: 0, lastBuild: 0 };
+  const restored = restoreCheckpoint(data);
+  assert.equal(restored.selected, restored.match.towers[0]);
+  assert.equal(restored.match.undoPlacement().paid, 42);
+  assert.equal(restored.match.atp, match.atp + 42);
+
+  delete data.towers[0].paid;
+  delete data.selected;
+  const legacy = restoreCheckpoint(data);
+  assert.equal(legacy.selected, null);
+  assert.equal(legacy.match.towers[0].paid, tower.cost);
 });
