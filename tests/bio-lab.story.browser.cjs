@@ -150,9 +150,13 @@ window.forceRunnerLeak = () => {
       await page.evaluate(() => completeStoryMission());
       await page.getByRole("heading", { name: "Misión completada" }).waitFor();
       assert.match(
-        await page.locator("#modal-text").textContent(),
+        await page.locator("#modal-medal").textContent(),
         /Insignia: Sin fugas/,
       );
+      assert.equal(await page.locator("#modal").getAttribute("data-tone"), "victory");
+      assert.equal(await page.locator("#modal-stars").getAttribute("aria-label"), "3 de 3 estrellas");
+      assert.deepEqual(await page.locator("#modal-reward-stats dd").allTextContents(), ["+90", "+4"]);
+      assert.equal(await page.locator("#modal").evaluate(dialog => dialog.scrollWidth <= dialog.clientWidth), true);
       const readSave = () =>
         page.evaluate(() => JSON.parse(localStorage.getItem("biolab_save_v1")));
       const save = await readSave();
@@ -165,6 +169,7 @@ window.forceRunnerLeak = () => {
         .click();
       await page.evaluate(() => completeStoryMission());
       await page.getByRole("heading", { name: "Misión completada" }).waitFor();
+      assert.equal(await page.locator("#modal-rewards").isVisible(), false);
       assert.deepEqual(
         await readSave(),
         save,
@@ -283,6 +288,8 @@ window.forceRunnerLeak = () => {
       await page.getByRole("heading", { name: "Brecha de contención" }).waitFor();
       await page.keyboard.press("Escape");
       assert.equal(await page.locator("#modal").isVisible(), true);
+      assert.equal(await page.locator("#modal").getAttribute("data-tone"), "defeat");
+      assert.equal(await page.locator("#modal-stars").isVisible(), false);
       const report = await page.locator("#modal-text").textContent();
       assert.match(report, /Entrada A: 1 · Entrada B: 0/);
       assert.match(report, /Sarampión \(−18 %\)/);

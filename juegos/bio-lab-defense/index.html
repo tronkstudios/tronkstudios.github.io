@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=27" />
+    <link rel="stylesheet" href="./styles.css?v=28" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -438,8 +438,21 @@
       </div>
     </dialog>
     <dialog id="modal" aria-labelledby="modal-title">
-      <h2 id="modal-title"></h2>
+      <header class="modal-heading">
+        <span class="modal-emblem" aria-hidden="true"></span>
+        <div>
+          <p id="modal-context" hidden></p>
+          <h2 id="modal-title"></h2>
+        </div>
+      </header>
+      <p id="modal-stars" role="img" hidden></p>
+      <dl id="modal-stats" class="modal-stats" hidden></dl>
       <p id="modal-text"></p>
+      <section id="modal-rewards" aria-labelledby="modal-rewards-title" hidden>
+        <h3 id="modal-rewards-title">Recompensas</h3>
+        <p id="modal-medal" hidden></p>
+        <dl id="modal-reward-stats" class="modal-stats"></dl>
+      </section>
       <canvas id="loss-map" width="900" height="540" role="img" hidden></canvas>
       <section id="loss-coverage" aria-labelledby="loss-coverage-title" hidden>
         <h3 id="loss-coverage-title">Enemigos que llegaron al núcleo</h3>
@@ -452,6 +465,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=33"></script>
+    <script type="module" src="./game.js?v=34"></script>
   </body>
 </html>

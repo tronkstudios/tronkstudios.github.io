@@ -124,8 +124,41 @@ function view(name) {
   }
 }
 
-function ask(title, message, buttons, breach = null) {
+function dialogStats(id, entries) {
+  const list = $(id);
+  list.hidden = entries.length === 0;
+  list.replaceChildren(...entries.map(([label, value]) => {
+    const tile = document.createElement("div");
+    const term = document.createElement("dt");
+    const description = document.createElement("dd");
+    term.textContent = label;
+    description.textContent = value;
+    tile.append(term, description);
+    return tile;
+  }));
+}
+
+function combatDialog(tone, context, stats = []) {
+  return { tone, context, stats: [["Núcleo", `${match.hp} %`], ...stats] };
+}
+
+function ask(title, message, buttons, breach = null, presentation = {}) {
+  const { tone = "generic", context, stats = [], stars, reward = [], medal } = presentation;
+  modal.dataset.tone = tone;
+  $("modal-context").hidden = !context;
+  updateText("modal-context", context || "");
+  $("modal-stars").hidden = stars == null;
+  if (stars != null) {
+    updateText("modal-stars", "★".repeat(stars) + "☆".repeat(3 - stars));
+    $("modal-stars").setAttribute("aria-label", `${stars} de 3 estrellas`);
+  }
+  dialogStats("modal-stats", stats);
+  $("modal-rewards").hidden = !reward.length;
+  $("modal-medal").hidden = !medal;
+  updateText("modal-medal", medal ? `Insignia: ${medal}` : "");
+  dialogStats("modal-reward-stats", reward);
   $("modal-title").textContent = title;
+  $("modal-text").hidden = !message;
   $("modal-text").textContent = message;
   $("loss-map").hidden = breach === null;
   $("loss-coverage").hidden = breach === null;
@@ -1427,14 +1460,17 @@ function finish() {
   const stars = won ? victoryStars(match.hp) : 0;
   const { level } = match;
   const breach = !won && match.waveLeaks?.worst ? match.waveLeaks : null;
+  const tone = won ? "victory" : "defeat";
+  const outcomeStats = [["Oleadas", `${match.wave}/${match.maxWaves}`], ["Bajas", match.kills]];
   const diagnostics = breach ? `\n\n${lossReport()}` : "";
   sound(won ? "victory" : "defeat");
   if (match.veteran) {
     const score = match.score();
     const record = won && profile.recordVeteran(level, score);
     ask(record ? "Nuevo récord Veterano" : won ? "Sector Veterano superado" : "Intento Veterano terminado",
-      `${match.mission.name} · ${score.toLocaleString("es-ES")} puntos · Núcleo ${match.hp} %.${diagnostics}`,
-      [["Reintentar", () => startVeteran(level)], ["Volver al sector", () => briefing(level)]], breach);
+      diagnostics.trim(),
+      [["Reintentar", () => startVeteran(level)], ["Volver al sector", () => briefing(level)]], breach,
+      combatDialog(tone, match.mission.name, [...outcomeStats, ["Puntos", score.toLocaleString("es-ES")]]));
     return;
   }
   if (match.contract) {
@@ -1442,8 +1478,9 @@ function finish() {
     const score = match.score();
     const record = won && profile.recordContract(contract.id, score);
     ask(record ? "Nuevo récord de élite" : won ? "Contrato completado" : "Contrato fallido",
-      `${contract.name} · ${score.toLocaleString("es-ES")} puntos · Núcleo ${match.hp} %.${diagnostics}`,
-      [["Reintentar", () => startContract(contract)], ["Volver a contratos", openOperations]], breach);
+      diagnostics.trim(),
+      [["Reintentar", () => startContract(contract)], ["Volver a contratos", openOperations]], breach,
+      combatDialog(tone, contract.name, [...outcomeStats, ["Puntos", score.toLocaleString("es-ES")]]));
     return;
   }
   if (challengeDay) {
@@ -1451,18 +1488,21 @@ function finish() {
     const record = profile.recordDaily(challengeDay, score);
     ask(
       record ? "Nuevo récord diario" : "Reto terminado",
-      `${score.toLocaleString("es-ES")} puntos · ${match.kills} eliminados · ${match.wave}/${match.maxWaves} oleadas.${diagnostics}`,
+      diagnostics.trim(),
       [
         ["Reintentar", () => start(level, challengeDay)],
         ["Volver al menú", () => view("home")],
       ],
       breach,
+      combatDialog(tone, match.daily.name, [...outcomeStats, ["Puntos", score.toLocaleString("es-ES")]]),
     );
     return;
   }
   if (won) checkpoint?.clear();
   const mission = match.mission;
   let earnedMedal = false;
+  let earnedATP = 0;
+  let earnedGems = 0;
   if (won) {
     const earnedStars = Math.max(0, stars - profile.data.stars[level - 1]);
     const unlock = Math.min(
@@ -1477,8 +1517,10 @@ function finish() {
       );
       profile.data.unlockedLevel = unlock;
       if (earnedMedal) profile.data.medals[level - 1] = true;
-      profile.data.atpBank += earnedStars * 55 + (earnedMedal ? 35 : 0);
-      profile.data.bioGems += earnedStars * 2 + (earnedMedal ? 2 : 0);
+      earnedATP = earnedStars * 55 + (earnedMedal ? 35 : 0);
+      earnedGems = earnedStars * 2 + (earnedMedal ? 2 : 0);
+      profile.data.atpBank += earnedATP;
+      profile.data.bioGems += earnedGems;
       profile.commit();
     }
   }
@@ -1502,15 +1544,7 @@ function finish() {
     ["Volver a sectores", campaign],
   );
   const summary = won
-    ? `${"★".repeat(stars)}${"☆".repeat(3 - stars)} · Núcleo al ${match.hp}% · ${match.kills} eliminados.
-
-${mission.end}${
-        earnedMedal
-          ? `
-
-Insignia: ${mission.medal.title}. +35 ATP de reserva y +2 biogemas.`
-          : ""
-      }`
+    ? mission.end
     : `${match.activeTerminal?.hp === 0 ? "La terminal activa fue destruida." : match.console?.hp === 0 ? "La consola de Muestreo fue destruida." : `El núcleo cayó en la oleada ${match.wave} de ${match.maxWaves}.`}
 
 ${lossReport()}
@@ -1525,6 +1559,12 @@ ${mission.cue}`;
     summary,
     buttons,
     breach,
+    {
+      ...combatDialog(tone, `Sector ${level} · ${mission.name}`, outcomeStats),
+      stars: won ? stars : null,
+      reward: earnedATP ? [["ATP de reserva", `+${earnedATP}`], ["Biogemas", `+${earnedGems}`]] : [],
+      medal: earnedMedal ? mission.medal.title : null,
+    },
   );
 }
 
@@ -1906,6 +1946,9 @@ $("pause").onclick = () => {
       ? "Puedes continuar la partida o abandonarla."
       : "Puedes retomar la misión desde la última preparación guardada. Abandonar descarta el punto de esta partida.",
     actions,
+    null,
+    combatDialog("pause", $("sector").textContent,
+      [["Oleadas", `${match.wave}/${match.maxWaves}`], ["ATP", match.atp]]),
   );
 };
 $("buy-atp").onclick = () => {
