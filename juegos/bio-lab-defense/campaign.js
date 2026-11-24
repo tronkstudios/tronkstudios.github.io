@@ -50,41 +50,49 @@ const medals = {
   intact: {
     title: "Sin fugas",
     text: "Termina con al menos 90 % de integridad.",
+    progress: m => `${m.hp} % de núcleo`,
     test: (m) => m.hp >= 90,
   },
   reserve: {
     title: "Reserva de emergencia",
     text: "Termina con al menos 115 ATP sin gastar.",
+    progress: m => `${m.atp} ATP en reserva`,
     test: (m) => m.atp >= 115,
   },
   researcher: {
     title: "Prototipo validado",
     text: "Activa una especialización de nivel 3.",
+    progress: m => `${m.specialized} especializaciones`,
     test: (m) => m.specialized >= 1,
   },
   stabilize: {
     title: "Operación pulso",
     text: "Activa dos pulsos tácticos.",
+    progress: m => `${m.pulses} pulsos usados`,
     test: (m) => m.pulses >= 2,
   },
   workshop: {
     title: "Banco de pruebas",
     text: "Termina con cuatro tipos de defensa instalados.",
+    progress: m => `${new Set(m.towers.map(t => t.id)).size} tipos instalados`,
     test: (m) => new Set(m.towers.map((t) => t.id)).size >= 4,
   },
   reserveLarge: {
     title: "Reserva del anillo",
     text: "Termina con al menos 220 ATP sin gastar.",
+    progress: m => `${m.atp} ATP en reserva`,
     test: (m) => m.atp >= 220,
   },
   doubleSpec: {
     title: "Equipo de élite",
     text: "Activa dos especializaciones de nivel 3.",
+    progress: m => `${m.specialized} especializaciones`,
     test: (m) => m.specialized >= 2,
   },
   final: {
     title: "Cierre limpio",
     text: "Termina con 80 % de integridad y usa al menos un pulso.",
+    progress: m => `${m.hp} % de núcleo · Pulsos usados: ${m.pulses}`,
     test: (m) => m.hp >= 80 && m.pulses >= 1,
   },
 };

@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=21" />
+    <link rel="stylesheet" href="./styles.css?v=29" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -38,39 +38,41 @@
     <main>
       <section id="home" aria-labelledby="title">
         <div class="hero">
-          <img
-            class="hero-image"
-            src="/img/juegos/bio-lab-defense.webp"
-            alt=""
-            width="640"
-            height="360"
-          />
           <div class="hero-body">
             <h1 id="title">Bio-Lab <span>Defense</span></h1>
             <p>
               Las compuertas se han abierto. Defiende el laboratorio y recupera
               el control antes de que la avería alcance el núcleo.
             </p>
-            <div class="actions">
-              <button type="button" class="primary" id="campaign-button">
-                Modo historia
-              </button>
+            <div class="actions home-play">
               <button
                 type="button"
-                class="resume-checkpoint"
+                class="primary resume-checkpoint"
                 id="home-resume-run"
                 hidden
               >
                 Retomar partida
               </button>
-              <button type="button" id="challenge-button">Reto de hoy</button>
-              <button type="button" id="operations-button" disabled>Nanobots y contratos</button>
-              <button type="button" id="home-codex" aria-haspopup="dialog">Enciclopedia</button>
-              <button type="button" id="daily-button">Suministro diario</button>
+              <button type="button" class="primary" id="campaign-button">
+                Modo historia
+              </button>
             </div>
           </div>
-          <div class="home-progress" id="home-progress"></div>
+          <figure class="specimen">
+            <canvas id="specimen-art" width="720" height="520" aria-hidden="true"></canvas>
+            <figcaption>Bacteriófago T4</figcaption>
+          </figure>
+          <div class="home-progress">
+            <span id="home-progress"></span>
+            <progress id="home-progress-meter" aria-label="Misiones superadas" value="0" max="38"></progress>
+          </div>
         </div>
+        <nav class="home-tools" aria-label="Modos y recursos">
+          <button type="button" id="challenge-button">Reto de hoy</button>
+          <button type="button" id="operations-button" disabled>Nanobots y contratos</button>
+          <button type="button" id="home-codex" aria-haspopup="dialog">Enciclopedia</button>
+          <button type="button" id="daily-button">Suministro diario</button>
+        </nav>
         <output id="home-status" role="status"></output>
       </section>
       <section id="campaign" hidden aria-labelledby="campaign-title">
@@ -103,29 +105,51 @@
             Retomar partida
           </button>
         </div>
-        <div class="chapter-index">
-          <label for="chapter-jump">Capítulo</label>
-          <select id="chapter-jump"></select>
-          <button type="button" id="go-chapter">Ir al capítulo</button>
+        <div class="campaign-browser">
+          <aside class="chapter-index" aria-label="Explorar sectores">
+            <div class="campaign-filter">
+              <label for="sector-filter">Mostrar</label>
+              <select id="sector-filter">
+                <option value="all">Todos los sectores</option>
+                <option value="new">Disponibles sin completar</option>
+                <option value="stars">Completados con estrellas pendientes</option>
+                <option value="medal">Disponibles sin insignia</option>
+              </select>
+            </div>
+            <div class="campaign-filter">
+              <label for="chapter-jump">Capítulo</label>
+              <select id="chapter-jump"></select>
+              <button type="button" id="go-chapter">Ir al capítulo</button>
+            </div>
+          </aside>
+          <div class="campaign-sectors">
+            <p id="sector-filter-result" role="status" hidden></p>
+            <button type="button" id="reset-sector-filter" hidden>Ver todos los sectores</button>
+            <div id="levels" class="levels"></div>
+          </div>
         </div>
-        <div id="levels" class="levels"></div>
       </section>
       <section id="briefing" hidden aria-labelledby="briefing-title">
         <button type="button" id="back-campaign">← Sectores</button>
         <div class="mission-brief">
-          <div class="mission-plan">
+          <header class="mission-plan">
             <p class="mission-chapter" id="briefing-chapter"></p>
             <h1 id="briefing-title"></h1>
             <p class="mission-task" id="briefing-task"></p>
+          </header>
+          <div class="mission-notes">
             <div class="radio-card">
               <strong id="briefing-speaker"></strong>
               <p id="briefing-voice"></p>
             </div>
             <p class="mission-cue" id="briefing-tip"></p>
             <div class="mission-medal">
+              <p id="briefing-best"></p>
               <strong id="briefing-medal"></strong>
               <p id="briefing-medal-note"></p>
             </div>
+          </div>
+          <div class="mission-deploy">
             <button type="button" class="primary" id="launch-mission">
               Comenzar misión
             </button>
@@ -155,11 +179,25 @@
           </div>
           <button type="button" id="back-operations">Volver</button>
         </div>
-        <h2>Nanobots de campaña</h2>
+        <div class="operations-overview">
+          <p id="fielded-hero"></p>
+          <p id="contract-readiness"></p>
+        </div>
         <p id="operations-status" role="status"></p>
-        <div class="operations-grid" id="heroes"></div>
-        <h2>Contratos de élite</h2>
-        <div class="operations-grid" id="contracts"></div>
+        <nav class="operations-nav" aria-label="Secciones de operaciones">
+          <a href="#operations-heroes">Nanobots</a>
+          <a href="#operations-contracts">Contratos</a>
+        </nav>
+        <div class="operations-layout">
+          <section aria-labelledby="operations-heroes">
+            <h2 id="operations-heroes" tabindex="-1">Nanobots de campaña</h2>
+            <div class="operations-grid" id="heroes"></div>
+          </section>
+          <section aria-labelledby="operations-contracts">
+            <h2 id="operations-contracts" tabindex="-1">Contratos de élite</h2>
+            <div class="operations-grid" id="contracts"></div>
+          </section>
+        </div>
       </section>
       <section id="field" hidden aria-label="Partida">
         <div class="section-head field-head">
@@ -299,7 +337,10 @@
               <b id="lane-a"></b><b id="lane-b"></b>
             </div>
             <div class="wave-preview" id="wave-preview">
-              <strong id="wave-preview-title"></strong>
+              <div class="wave-preview-head">
+                <strong id="wave-preview-title"></strong>
+                <button type="button" id="run-drill" aria-haspopup="dialog">Ensayar oleada</button>
+              </div>
               <ul
                 id="wave-roster"
                 class="wave-roster"
@@ -307,9 +348,17 @@
               ></ul>
               <ol id="wave-timeline" class="wave-timeline" aria-label="Orden de llegada"></ol>
               <span id="wave-preview-tip"></span>
-              <button type="button" id="run-drill" aria-haspopup="dialog">Ensayar oleada</button>
             </div>
-            <p id="wave-debrief" class="wave-debrief" hidden></p>
+            <details id="mission-targets" class="wave-preview" hidden>
+              <summary>Estrellas e insignia</summary>
+              <p id="star-pace"></p>
+              <p id="medal-pace"></p>
+            </details>
+            <details id="wave-debrief" class="wave-debrief" hidden>
+              <summary id="wave-debrief-title"></summary>
+              <p id="wave-debrief-leaks" hidden></p>
+              <dl id="wave-debrief-atp"></dl>
+            </details>
             <section id="gate-panel" class="wave-preview gate-panel" aria-labelledby="gate-title" hidden>
               <strong id="gate-title">Compuerta B</strong>
               <p id="gate-status" role="status"></p>
@@ -324,7 +373,8 @@
             <button type="button" id="undo-build" class="undo-build" hidden>
               Deshacer última torre
             </button>
-            <div class="supplies" id="supplies">
+            <div class="supplies" id="supplies" role="group" aria-label="Suministros">
+              <h2>Suministros</h2>
               <button type="button" id="boost" hidden>
                 Ver anuncio · +75 ATP
               </button>
@@ -380,14 +430,32 @@
         <button type="button" data-codex-kind="boss" aria-pressed="false">Jefes</button>
       </div>
       <p id="codex-caption"></p>
+      <div class="codex-search">
+        <label for="codex-query">Buscar en esta categoría</label>
+        <input type="search" id="codex-query" placeholder="Nombre o tipo" autocomplete="off">
+      </div>
+      <p id="codex-empty" role="status" hidden>No hay fichas que coincidan.</p>
       <div class="codex-layout">
         <ul id="codex-list" aria-label="Fichas"></ul>
         <article id="codex-detail" aria-labelledby="codex-entry-title"></article>
       </div>
     </dialog>
     <dialog id="modal" aria-labelledby="modal-title">
-      <h2 id="modal-title"></h2>
+      <header class="modal-heading">
+        <span class="modal-emblem" aria-hidden="true"></span>
+        <div>
+          <p id="modal-context" hidden></p>
+          <h2 id="modal-title"></h2>
+        </div>
+      </header>
+      <p id="modal-stars" role="img" hidden></p>
+      <dl id="modal-stats" class="modal-stats" hidden></dl>
       <p id="modal-text"></p>
+      <section id="modal-rewards" aria-labelledby="modal-rewards-title" hidden>
+        <h3 id="modal-rewards-title">Recompensas</h3>
+        <p id="modal-medal" hidden></p>
+        <dl id="modal-reward-stats" class="modal-stats"></dl>
+      </section>
       <canvas id="loss-map" width="900" height="540" role="img" hidden></canvas>
       <section id="loss-coverage" aria-labelledby="loss-coverage-title" hidden>
         <h3 id="loss-coverage-title">Enemigos que llegaron al núcleo</h3>
@@ -400,6 +468,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=29"></script>
+    <script type="module" src="./game.js?v=35"></script>
   </body>
 </html>

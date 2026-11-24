@@ -128,6 +128,16 @@ window.testRun = {
       }
     }
     assert.equal(sprites.size, 30);
+    await codex.getByRole("button", { name: "Enemigos", exact: true }).tap();
+    const search = codex.getByRole("searchbox", { name: "Buscar en esta categoría" });
+    await search.fill("bacteriofago");
+    assert.equal(await codex.locator("#codex-list button").count(), 1);
+    await codex.getByRole("heading", { name: "Bacteriófago T4" }).waitFor();
+    await search.fill("sin coincidencias");
+    await codex.getByText("No hay fichas que coincidan.").waitFor();
+    assert.equal(await codex.locator("#codex-detail").isVisible(), false);
+    await codex.getByRole("button", { name: "Torres", exact: true }).tap();
+    assert.equal(await search.inputValue(), "");
     await codex.getByRole("button", { name: "Cerrar" }).tap();
     await page.locator("#operations-button").tap();
     await page.getByRole("heading", { name: "Nanobots de campaña" }).waitFor();
@@ -135,16 +145,23 @@ window.testRun = {
       "Óptix · Reconocimiento", "Crión · Control térmico", "Volt · Antiescudos", "Helio · Asalto",
     ]);
     assert.equal(await page.locator(".hero-art").count(), 4);
+    assert.match(await page.locator("#fielded-hero").textContent(), /Óptix/);
     await page.locator('[data-operation="buy-vega"]').tap();
     await page.locator('[data-operation="equip-vega"]').tap();
     assert.match(await page.locator("#operations-balance").textContent(), /6 biogemas/);
+    assert.match(await page.locator("#fielded-hero").textContent(), /Helio/);
+    const cryoProgress = page.getByRole("progressbar", { name: "Anuncios completados para desbloquear a Crión" });
+    assert.equal(await cryoProgress.getAttribute("max"), "2");
     const ad = page.locator('[data-operation="ad-mara"]');
     for (const [index, viewed] of [false, true, true].entries()) {
       await ad.tap();
       await page.waitForFunction((n) => window.testAds === n, index + 1);
       await page.evaluate((it) => finishTestAd(it), viewed);
       if (index === 0) assert.match(await ad.textContent(), /0\/2/);
-      if (index === 1) assert.match(await ad.textContent(), /1\/2/);
+      if (index === 1) {
+        assert.match(await ad.textContent(), /1\/2/);
+        assert.equal(await cryoProgress.getAttribute("value"), "1");
+      }
     }
     await page.locator('[data-operation="equip-mara"]').waitFor();
     await page.reload();
@@ -285,9 +302,15 @@ window.testRun = {
     await page.evaluate(() => testRun.finishCurrentWave());
     await page.locator("#combat-cue").getByText("Terminal A asegurada").waitFor();
     await page.getByText("Protege la terminal B · Integridad 4/4").waitFor();
+    await page.locator("#wave-debrief-title").tap();
+    await page.getByText("Entrada A · 0 fugas / Entrada B · 0 fugas").waitFor();
+    const payout = await page.locator("#wave-debrief-atp").textContent();
+    assert.match(payout, /Cierre de oleada.*Refuerzo/);
     await page.reload();
     await page.locator("#home-resume-run").tap();
     await page.getByText("Protege la terminal B · Integridad 4/4").waitFor();
+    await page.locator("#wave-debrief-title").tap();
+    assert.equal(await page.locator("#wave-debrief-atp").textContent(), payout);
     await page.locator("#pause").tap();
     await page.getByRole("button", { name: "Volver con guardado" }).tap();
     await page.locator(".level").nth(19).tap();

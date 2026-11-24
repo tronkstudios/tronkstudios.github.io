@@ -1,6 +1,6 @@
-import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=7";
+import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=8";
 
-import { HERO_BY_ID } from "./operations.js?v=5";
+import { HERO_BY_ID } from "./operations.js?v=7";
 
 export const TOWER_TYPES = [
   {
@@ -1213,7 +1213,7 @@ export class Match {
     this.applyRouteEvent(this.wave);
     for (const tower of this.towers) tower.linkReady = 0;
     this.lastBuild = null;
-    this.waveStart = { hp: this.hp, kills: this.kills, atp: this.grossATP, count: this.preview.count };
+    this.waveStart = { hp: this.hp, kills: this.kills, atp: this.grossATP, reactor: 0, count: this.preview.count };
     this.waveLeaks = { lanes: this.routes.map(() => 0), worst: null, entries: new Map(), gaps: new Map() };
     this.debrief = null;
     this.focusTarget = null;
@@ -1641,6 +1641,7 @@ export class Match {
           const output = reactorOutput(tower.rank, tower.branch);
           tower.produced += output;
           this.addATP(output);
+          this.waveStart.reactor += output;
           this.charge = Math.min(
             100,
             this.charge + (tower.branch?.charge || 0),
@@ -1716,7 +1717,9 @@ export class Match {
       this.shots = [];
       const reserve = this.daily ? 0 : this.waveStart.count * 3;
       const recovery = this.daily ? 0 : Math.min(18, this.waveLeaks.lanes.reduce((a, b) => a + b, 0) * 3);
-      this.addATP(25 + 5 * this.wave + (this.daily ? 0 : Math.max(0, this.level - 4) * 4) + reserve + recovery);
+      const payout = 25 + 5 * this.wave + (this.daily ? 0 : Math.max(0, this.level - 4) * 4);
+      const generated = this.grossATP - this.waveStart.atp;
+      this.addATP(payout + reserve + recovery);
       this.charge = Math.min(100, this.charge + 20);
       this.debrief = {
         kills: this.kills - this.waveStart.kills,
@@ -1724,6 +1727,10 @@ export class Match {
         atp: this.grossATP - this.waveStart.atp,
         reserve,
         recovery,
+        payout,
+        reactor: this.waveStart.reactor,
+        bounties: generated - this.waveStart.reactor,
+        leaks: [...this.waveLeaks.lanes],
       };
       this.state = this.wave === this.maxWaves ? "won" : "build";
     }

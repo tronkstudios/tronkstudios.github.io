@@ -85,6 +85,18 @@ window.forceRunnerLeak = () => {
       });
       await page.goto(base + "/juegos/bio-lab-defense/");
       await page.locator("#campaign-button").click();
+      const filter = page.locator("#sector-filter");
+      await filter.selectOption("new");
+      assert.deepEqual(await page.locator(".level strong").allTextContents(), ["Muestreo"]);
+      await filter.selectOption("stars");
+      assert.deepEqual(await page.locator(".level strong").allTextContents(), ["Ingreso"]);
+      await page.locator(".level").first().click();
+      await page.locator("#briefing-best").getByText(/★★☆.*90 %/).waitFor();
+      await page.locator("#back-campaign").click();
+      assert.equal(await filter.inputValue(), "stars");
+      await filter.selectOption("medal");
+      assert.equal(await page.locator(".level").count(), 2);
+      await filter.selectOption("all");
       assert.equal(await page.locator(".chapter").count(), 10);
       await page.locator("#chapter-jump").selectOption("9");
       await page.locator("#go-chapter").click();
@@ -113,6 +125,10 @@ window.forceRunnerLeak = () => {
           ),
       );
       await page.locator("#launch-mission").click();
+      await page.locator("#mission-targets summary").click();
+      await page.locator("#star-pace").getByText(/100 %.*★★★/).waitFor();
+      await page.locator("#medal-pace").getByText(/Sin fugas.*Cumples la condición/).waitFor();
+      await page.locator("#mission-targets summary").click();
       assert.match(await page.locator("#radio-text").textContent(), /Restaura/);
       assert.equal(
         await page.locator("#threat-label").textContent(),
@@ -134,9 +150,13 @@ window.forceRunnerLeak = () => {
       await page.evaluate(() => completeStoryMission());
       await page.getByRole("heading", { name: "Misión completada" }).waitFor();
       assert.match(
-        await page.locator("#modal-text").textContent(),
+        await page.locator("#modal-medal").textContent(),
         /Insignia: Sin fugas/,
       );
+      assert.equal(await page.locator("#modal").getAttribute("data-tone"), "victory");
+      assert.equal(await page.locator("#modal-stars").getAttribute("aria-label"), "3 de 3 estrellas");
+      assert.deepEqual(await page.locator("#modal-reward-stats dd").allTextContents(), ["+90", "+4"]);
+      assert.equal(await page.locator("#modal").evaluate(dialog => dialog.scrollWidth <= dialog.clientWidth), true);
       const readSave = () =>
         page.evaluate(() => JSON.parse(localStorage.getItem("biolab_save_v1")));
       const save = await readSave();
@@ -149,6 +169,7 @@ window.forceRunnerLeak = () => {
         .click();
       await page.evaluate(() => completeStoryMission());
       await page.getByRole("heading", { name: "Misión completada" }).waitFor();
+      assert.equal(await page.locator("#modal-rewards").isVisible(), false);
       assert.deepEqual(
         await readSave(),
         save,
@@ -235,6 +256,18 @@ window.forceRunnerLeak = () => {
       if (width < 400) await tacticalPause.tap();
       else await page.keyboard.press("p");
       await page.waitForFunction((time) => matchTime() > time, frozenAt);
+      const hiddenAt = await page.evaluate(() => {
+        Object.defineProperty(document, "hidden", { configurable: true, value: true });
+        document.dispatchEvent(new Event("visibilitychange"));
+        delete document.hidden;
+        document.dispatchEvent(new Event("visibilitychange"));
+        return matchTime();
+      });
+      await page.getByText(/La partida se pausó al salir/).waitFor();
+      assert.equal(await tacticalPause.getAttribute("aria-pressed"), "true");
+      assert.equal(await page.evaluate(() => matchTime()), hiddenAt);
+      await tacticalPause.click();
+      await page.waitForFunction(time => matchTime() > time, hiddenAt);
       await page.evaluate(() => defeatEnemyAtB());
       await page.waitForFunction(
         (label) => document.querySelector("#lane-b").textContent === label,
@@ -253,6 +286,10 @@ window.forceRunnerLeak = () => {
       assert.equal(await canvas.evaluate((node) => node.offsetTop), boardTop);
       await page.evaluate(() => forceRunnerLeak());
       await page.getByRole("heading", { name: "Brecha de contención" }).waitFor();
+      await page.keyboard.press("Escape");
+      assert.equal(await page.locator("#modal").isVisible(), true);
+      assert.equal(await page.locator("#modal").getAttribute("data-tone"), "defeat");
+      assert.equal(await page.locator("#modal-stars").isVisible(), false);
       const report = await page.locator("#modal-text").textContent();
       assert.match(report, /Entrada A: 1 · Entrada B: 0/);
       assert.match(report, /Sarampión \(−18 %\)/);
@@ -293,6 +330,16 @@ window.forceRunnerLeak = () => {
       await page.getByRole("heading", { name: "Sector 23 · Los primeros brotes" }).waitFor();
       await page.locator("#next").click();
       assert.equal(await page.locator("#tower-limit").textContent(), "0/8 instaladas");
+      await page.evaluate(() => localStorage.setItem("biolab_save_v1", JSON.stringify({
+        unlockedLevel: 38, stars: Array(38).fill(3), medals: Array(38).fill(true),
+      })));
+      await page.reload();
+      await page.locator("#campaign-button").click();
+      await filter.selectOption("medal");
+      assert.equal(await page.locator(".level").count(), 0);
+      assert.equal(await page.locator("#go-chapter").isDisabled(), true);
+      await page.getByRole("button", { name: "Ver todos los sectores" }).click();
+      assert.equal(await page.locator(".level").count(), 38);
       assert.deepEqual(errors, []);
       console.log(
         `Bio-Lab gate controls, boss phases, loss report and checkpoint retry passed at ${width}px.`,
