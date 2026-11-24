@@ -360,9 +360,10 @@ const UPGRADES = {
   chain: [
     {
       name: "Red conductora",
-      detail: "Salta hasta cuatro veces con más alcance entre enemigos.",
+      detail: "Salta hasta cuatro veces. También enlaza con la torre de ataque más cercana a 175 px o menos y golpea hasta tres enemigos que crucen la línea.",
       jumps: 4,
       jumpRange: 100,
+      link: true,
     },
     {
       name: "Cortocircuito",
@@ -391,6 +392,7 @@ export const TARGETING = [
   ["last", "Más lejos del núcleo"],
   ["strong", "Mayor resistencia"],
   ["support", "Nodos de apoyo"],
+  ["escort", "Escoltas"],
 ];
 
 export function specializations(tower) {
@@ -459,6 +461,15 @@ const AUXILIARY_LANES = [
   [[0, 170], [298, 170], [298, 278], [544, 278], [544, 218], [900, 218]],
   [[0, 460], [287, 460], [287, 320], [560, 320], [560, 265], [900, 265]],
 ];
+
+const ROUTE_EVENTS = {
+  11: { wave: 3, name: "Esclusa lateral", shifts: [[-50, -68], [-50, -68], [-45, -68], [-45, 0]] },
+  13: { wave: 4, name: "Retorno de las bombas", shifts: [[-90, 54], [-90, 54], [75, 54], [75, 0]] },
+  19: { wave: 4, name: "Desvío de emergencia", shifts: [[-56, 0], [-56, -74], [112, -74], [112, 0]], blackout: true },
+};
+export const VARIANT_NAMES = { escort: "Escolta", scout: "Explorador" };
+const ESCORT_RANGE = 90;
+const LINK_WIDTH = 18;
 
 function route(points) {
   const remaining = Array(points.length).fill(0);
@@ -590,7 +601,7 @@ function formWave(order, formation, theme, level, { pressure, veteran, archiveLa
 }
 
 function resolveImpact(enemy, shield, amount, { piercing = false, shred = false }, tower, time) {
-  let armor = enemy.armor;
+  let armor = enemy.armor + (enemy.guard?.hp > 0 && !enemy.guard.escaped ? 9 : 0);
   if (tower?.rank) {
     if (enemy.markedUntil > time) amount *= 1.15;
     if (enemy.frozenUntil > time && tower.type === "splash") amount *= 1.2;
@@ -684,6 +695,18 @@ export class Match {
     this.gateRoutes =
       !daily && level === 6 ? [this.routes[1], route(layout(COOLING_SHORTCUT))] : null;
     this.gateDiverted = false;
+    const event = !daily && ROUTE_EVENTS[level];
+    if (event) {
+      const points = AUXILIARY_LANES[this.mapIndex - 1].map(([x, y], i) => {
+        const [dx, dy] = event.shifts[i - 1] || [0, 0];
+        return [x + dx, y + dy];
+      });
+      const [a, b] = this.routes[0].points.slice(2, 4);
+      const blackout = event.blackout
+        ? { x: (a[0] + b[0]) / 2, y: (a[1] + b[1]) / 2, radius: 122 }
+        : null;
+      this.routeEvent = { ...event, original: this.routes[1], alternate: route(layout(points)), blackout };
+    }
     this.hp = contract?.hp ?? 100;
     this.combatLevel = Math.min(level, 10) + Math.max(0, level - 10) * 0.44;
     this.atp = daily?.atp ?? contract?.atp ?? Math.round(180 + this.combatLevel * 12 + Math.max(0, this.combatLevel - 5) * 20);
@@ -736,6 +759,66 @@ export class Match {
 
   get alternateRoute() {
     return this.gateRoutes?.[Number(!this.gateDiverted)];
+  }
+
+  applyRouteEvent(wave) {
+    if (this.routeEvent && wave >= this.routeEvent.wave)
+      this.routes[1] = this.routeEvent.alternate;
+  }
+
+  get routeEventStatus() {
+    const event = this.routeEvent;
+    if (!event) return null;
+    const nextWave = this.state === "build" ? this.wave + 1 : this.wave;
+    if (nextWave < event.wave - 1) return null;
+    return this.routes[1] !== event.alternate ? "warning"
+      : nextWave === event.wave ? "active" : "rerouted";
+  }
+
+  towerOffline(tower) {
+    const area = this.routeEvent?.blackout;
+    return area && this.state === "wave" && this.wave === this.routeEvent.wave &&
+      Math.hypot(tower.x - area.x, tower.y - area.y) <= area.radius;
+  }
+
+  get hasEnemyVariants() {
+    return !this.daily && this.level >= 7;
+  }
+
+  linkPartner(tower) {
+    let partner;
+    let closest = 175;
+    for (const other of this.towers) {
+      if (other === tower || other.type === "eco" || this.towerOffline(other)) continue;
+      const distance = Math.hypot(tower.x - other.x, tower.y - other.y);
+      if (distance <= closest) {
+        closest = distance;
+        partner = other;
+      }
+    }
+    return partner;
+  }
+
+  recordLeak(enemy, loss) {
+    const report = this.waveLeaks;
+    report.lanes[enemy.lane]++;
+    if (loss > (report.worst?.loss || 0))
+      report.worst = { name: enemy.name, loss, lane: enemy.lane };
+    const label = enemy.variant ? `${enemy.name} · ${VARIANT_NAMES[enemy.variant]}` : enemy.name;
+    const key = `${enemy.lane}:${label}`;
+    const entry = report.entries.get(key) || { name: label, lane: enemy.lane, count: 0, uncovered: 0 };
+    entry.count++;
+    let uncovered = false;
+    for (const [waypoint, samples] of (enemy.coverageGaps || []).entries()) {
+      if (!(samples >= 3)) continue;
+      uncovered = true;
+      const gapKey = `${enemy.lane}:${waypoint}`;
+      const gap = report.gaps.get(gapKey) || { lane: enemy.lane, waypoint, count: 0 };
+      gap.count++;
+      report.gaps.set(gapKey, gap);
+    }
+    if (uncovered) entry.uncovered++;
+    report.entries.set(key, entry);
   }
 
   get gateBlockers() {
@@ -879,6 +962,14 @@ export class Match {
       veteran: veteranPressure,
       archiveLane: protectingArchive ? wave - 1 : null,
     });
+    if (this.hasEnemyVariants && wave >= 2 && !protectingArchive) {
+      const escort = order[0];
+      const scout = order.find((entry, i) => i >= 2 && entry.lane !== escort.lane && !entry.boss) || order[2];
+      escort.spec = PATHOGEN_TYPES[4];
+      escort.variant = "escort";
+      scout.spec = PATHOGEN_TYPES[6];
+      scout.variant = "scout";
+    }
     const isolated = this.isolatedLane(wave);
     if (isolated !== null)
       for (const entry of order) entry.speed = (entry.speed || 1) * (entry.lane === isolated ? 0.8 : 1.12);
@@ -982,22 +1073,27 @@ export class Match {
     );
   }
 
-  checkPlacement(type, x, y) {
+  checkPlacement(type, x, y, restoring = false) {
     if (!type || !["build", "wave"].includes(this.state))
       return "La partida está detenida.";
     if (this.towers.length >= (this.contract?.towerLimit ?? Infinity))
       return "Has alcanzado el máximo de torres del contrato.";
     if (type.unlock > this.techLevel)
       return "Esta torre se habilita en otro sector.";
-    return this.checkSite(x, y) || (this.atp < type.cost ? "ATP insuficiente." : "");
+    return this.checkSite(x, y, null, restoring) || (this.atp < type.cost ? "ATP insuficiente." : "");
   }
 
-  checkSite(x, y, ignored = null) {
+  checkSite(x, y, ignored = null, restoring = false) {
     if (!Number.isFinite(x) || !Number.isFinite(y) ||
         x < 24 || x > WIDTH - 24 || y < 24 || y > HEIGHT - 24)
       return "Acércate al interior del tablero.";
-    if (this.routes.some((path) => nearRoute(path, x, y)))
+    if (this.routes.some((path, lane) => nearRoute(path, x, y) &&
+        !(restoring && lane === 1 && this.routeEvent && path === this.routeEvent.alternate &&
+          !nearRoute(this.routeEvent.original, x, y))))
       return "Deja despejado el conducto.";
+    if (!restoring && this.routeEvent && this.routes[1] !== this.routeEvent.alternate &&
+        nearRoute(this.routeEvent.alternate, x, y))
+      return "Deja despejado el futuro desvío.";
     if (this.towers.some((tower) => tower !== ignored && Math.hypot(tower.x - x, tower.y - y) < 40))
       return "Hay otra torre demasiado cerca.";
     return "";
@@ -1015,8 +1111,8 @@ export class Match {
     return true;
   }
 
-  place(type, x, y) {
-    if (this.checkPlacement(type, x, y)) return null;
+  place(type, x, y, restoring = false) {
+    if (this.checkPlacement(type, x, y, restoring)) return null;
     this.atp -= type.cost;
     const tower = {
       ...type,
@@ -1085,9 +1181,11 @@ export class Match {
     if (this.state !== "build" || this.power?.first === null) return false;
     this.state = "wave";
     this.wave++;
+    this.applyRouteEvent(this.wave);
+    for (const tower of this.towers) tower.linkReady = 0;
     this.lastBuild = null;
     this.waveStart = { hp: this.hp, kills: this.kills, atp: this.grossATP, count: this.preview.count };
-    this.waveLeaks = { lanes: this.routes.map(() => 0), worst: null };
+    this.waveLeaks = { lanes: this.routes.map(() => 0), worst: null, entries: new Map(), gaps: new Map() };
     this.debrief = null;
     this.zeroNodes = [];
     this.queue = [...this.preview.order];
@@ -1116,6 +1214,7 @@ export class Match {
       mirror = false,
       zero = false,
       hpFactor = 1,
+      variant,
     } = order;
     const scale =
       0.96 +
@@ -1133,6 +1232,8 @@ export class Match {
       path,
       lane,
       boss,
+      variant,
+      scoutReady: variant === "scout" ? this.time + 120 : null,
       coolingBoss,
       mirror,
       zero,
@@ -1163,6 +1264,8 @@ export class Match {
     const shield = enemy.shield;
     const { shield: remainingShield, damage } = resolveImpact(enemy, shield, amount, { piercing, shred }, tower, this.time);
     enemy.shield = remainingShield;
+    if (enemy.variant === "scout" && (damage > 0 || remainingShield < shield))
+      enemy.scoutReady = this.time + 120;
     if (tower && shield > 0) {
       tower.inflicted += shield - remainingShield;
       if (remainingShield === 0) tower.shieldsBroken = (tower.shieldsBroken || 0) + 1;
@@ -1394,8 +1497,21 @@ export class Match {
       this.spawnIn = this.queue[0]?.delay ?? this.interval;
     }
     const terminal = this.activeTerminal;
+    const escort = this.enemies.find((enemy) => enemy.variant === "escort" && enemy.hp > 0);
+    const activeTowers = this.towers.filter((tower) => !this.towerOffline(tower));
+    const links = new Map();
+    for (const tower of activeTowers) {
+      if (!tower.branch?.link) continue;
+      const partner = this.linkPartner(tower);
+      if (partner) links.set(tower, partner);
+    }
+    const onLink = (enemy, tower, partner) =>
+      segmentDistance(enemy.x, enemy.y, [tower.x, tower.y], [partner.x, partner.y]) <= LINK_WIDTH;
     for (const enemy of this.enemies) {
       if (enemy.hp <= 0) continue;
+      enemy.guard = escort && enemy !== escort && !enemy.boss && !enemy.supportNode &&
+        enemy.lane === escort.lane && Math.hypot(enemy.x - escort.x, enemy.y - escort.y) <= ESCORT_RANGE
+        ? escort : null;
       if (enemy.burn > 0) {
         enemy.burn--;
         if (enemy.burn % 12 === 0)
@@ -1416,6 +1532,13 @@ export class Match {
         if (enemy.hp <= 0) continue;
       }
       if (enemy.supportNode) continue;
+      if (this.time % 12 === 0 && enemy.remaining > 0 &&
+          !activeTowers.some((tower) => tower.type !== "eco" &&
+            (Math.hypot(enemy.x - tower.x, enemy.y - tower.y) <= tower.range ||
+              (links.has(tower) && onLink(enemy, tower, links.get(tower)))))) {
+        enemy.coverageGaps ||= [];
+        enemy.coverageGaps[enemy.wp] = (enemy.coverageGaps[enemy.wp] || 0) + 1;
+      }
       if (this.barrier?.until > this.time &&
           Math.hypot(enemy.x - this.barrier.x, enemy.y - this.barrier.y) < 115)
         continue;
@@ -1428,7 +1551,8 @@ export class Match {
       const dx = x - enemy.x,
         dy = y - enemy.y;
       const distance = Math.hypot(dx, dy);
-      const advance = Math.min(distance, enemy.speed * enemy.slowFactor);
+      const sprint = enemy.variant === "scout" && this.time >= enemy.scoutReady;
+      const advance = Math.min(distance, enemy.speed * enemy.slowFactor * (sprint ? 1.35 : 1));
       if (enemy.slow > 0) {
         if (enemy.slowTower)
           enemy.slowTower.slowTicks = (enemy.slowTower.slowTicks || 0) + 1;
@@ -1451,9 +1575,7 @@ export class Match {
           enemy.escaped = true;
           const loss = Math.min(this.hp, enemy.coolingBoss ? 18 : enemy.boss ? 30 : 10);
           this.hp -= loss;
-          this.waveLeaks.lanes[enemy.lane]++;
-          if (loss > (this.waveLeaks.worst?.loss || 0))
-            this.waveLeaks.worst = { name: enemy.name, loss, lane: enemy.lane };
+          this.recordLeak(enemy, loss);
         }
       } else {
         enemy.x += (dx / distance) * advance;
@@ -1466,10 +1588,19 @@ export class Match {
       return;
     }
 
+    for (const [tower, partner] of links) {
+      if (tower.linkReady > this.time) continue;
+      const hits = this.enemies.filter((enemy) => enemy.hp > 0 && onLink(enemy, tower, partner)).slice(0, 3);
+      if (!hits.length) continue;
+      tower.linkReady = this.time + 48;
+      this.effect(tower.x, tower.y, "#e0b0ff", 0, partner);
+      for (const enemy of hits) this.damage(enemy, Math.round(tower.damage * 0.55), tower.color, tower.branch, tower);
+    }
     const committed = new Map();
     if (!this.daily) for (const shot of this.shots) reserveImpact(committed, shot, this.time);
     for (let index = 0; index < this.towers.length + Number(!!this.hero); index++) {
       const tower = this.towers[index] || this.hero;
+      if (tower.rank && this.towerOffline(tower)) continue;
       tower.cooldown -= this.combo >= 5 ? 1.28 : 1;
       if (tower.cooldown > 0) continue;
       if (tower.type === "eco") {
@@ -1501,7 +1632,8 @@ export class Match {
             : tower.targeting === "last"
               ? enemy.remaining
               : -enemy.remaining;
-        const focus = tower.targeting === "support" && enemy.supportNode ? 2
+        const focus = (tower.targeting === "support" && enemy.supportNode) ||
+          (tower.targeting === "escort" && enemy.variant === "escort") ? 2
           : tower.rank && enemy.markedUntil > this.time ? 1 : 0;
         if (focus > bestFocus || (focus === bestFocus && priority > best)) {
           target = enemy;

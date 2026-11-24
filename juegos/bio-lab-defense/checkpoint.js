@@ -1,4 +1,4 @@
-import { BLUEPRINTS, Match, TARGETING, specializations } from "./engine.js?v=14";
+import { BLUEPRINTS, Match, TARGETING, specializations } from "./engine.js?v=15";
 
 import { MISSIONS } from "./campaign.js?v=6";
 
@@ -56,6 +56,7 @@ export class Checkpoint {
       powerFirst: match.power?.first,
 
       gateDiverted: match.gateRoutes ? match.gateDiverted : undefined,
+      routeDiverted: match.routeEvent ? match.routes[1] === match.routeEvent.alternate : undefined,
       debrief: match.debrief,
       lastBuild: match.undoable ? match.towers.indexOf(match.lastBuild) : -1,
       towers: match.towers.map((t) => ({
@@ -131,6 +132,7 @@ export function restoreCheckpoint(data) {
     match.power.first = [0, 1].includes(data.powerFirst) ? data.powerFirst : data.wave > 0 ? 0 : null;
   }
   if (data.gateDiverted === true && !match.toggleGate()) return null;
+  if (data.routeDiverted === true) match.applyRouteEvent(data.wave);
   match.atp = 100000;
   for (const item of data.towers) {
     if (
@@ -146,7 +148,8 @@ export function restoreCheckpoint(data) {
       !integer(item.produced, 0, 100000)
     )
       return null;
-    const tower = match.place(blueprintById.get(item.id), item.x, item.y);
+    const type = blueprintById.get(item.id);
+    const tower = match.place(type, item.x, item.y, true);
     if (!tower) return null;
     if (item.rank >= 2 && !match.upgrade(tower)) return null;
     if (item.rank === 3 && !match.upgrade(tower, item.branch)) return null;

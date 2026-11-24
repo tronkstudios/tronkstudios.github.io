@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=16" />
+    <link rel="stylesheet" href="./styles.css?v=17" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -138,6 +138,7 @@
               aria-label="Plano del sector"
             ></canvas>
             <p id="briefing-waves"></p>
+            <p id="briefing-route-event" class="route-event" hidden></p>
           </div>
         </div>
       </section>
@@ -190,6 +191,7 @@
           <strong id="radio-speaker"></strong>
           <p id="radio-text" role="status"></p>
         </div>
+        <p id="route-event" class="route-event" role="status" hidden></p>
         <div class="game-layout">
           <section class="tower-picker" aria-labelledby="tower-picker-title">
             <div class="tower-picker-head">
@@ -346,12 +348,17 @@
       <h2 id="modal-title"></h2>
       <p id="modal-text"></p>
       <canvas id="loss-map" width="900" height="540" role="img" hidden></canvas>
+      <section id="loss-coverage" aria-labelledby="loss-coverage-title" hidden>
+        <h3 id="loss-coverage-title">Enemigos que llegaron al núcleo</h3>
+        <ul id="loss-entries"></ul>
+        <p id="loss-gap-summary"></p>
+      </section>
       <div id="modal-actions" class="actions"></div>
     </dialog>
     <script
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=18"></script>
+    <script type="module" src="./game.js?v=19"></script>
   </body>
 </html>

@@ -9,17 +9,18 @@ import {
   suggestPlacement,
   specializations,
   TARGETING,
+  VARIANT_NAMES,
   dailySetup,
-} from "./engine.js?v=14";
-import { Board } from "./board.js?v=17";
+} from "./engine.js?v=15";
+import { Board } from "./board.js?v=18";
 import { towerIcon, heroIcon } from "./art.js?v=4";
-import { createCodex } from "./codex.js?v=1";
+import { createCodex } from "./codex.js?v=2";
 import { Profile, dayKey } from "./profile.js?v=8";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=3";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=6";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=10";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=11";
 
 import { HEROES, CONTRACTS } from "./operations.js?v=5";
 
@@ -104,9 +105,21 @@ function ask(title, message, buttons, breach = null) {
   $("modal-title").textContent = title;
   $("modal-text").textContent = message;
   $("loss-map").hidden = breach === null;
+  $("loss-coverage").hidden = breach === null;
   if (breach !== null) {
-    $("loss-map").setAttribute("aria-label", `Recorrido de la fuga por la entrada ${breach ? "B" : "A"}`);
+    const lanes = breach.lanes.flatMap((count, lane) => count ? [lane ? "B" : "A"] : []);
+    $("loss-map").setAttribute("aria-label",
+      lanes.length === 1 ? `Recorrido de la fuga por la entrada ${lanes[0]}` : "Recorridos de las fugas por las entradas A y B");
     lossBoard.draw(match, null, null, null, true, false, null, { breach });
+    $("loss-entries").replaceChildren(...Array.from(breach.entries.values(), ({ name, count, lane, uncovered }) => {
+      const item = document.createElement("li");
+      item.textContent = `Entrada ${lane ? "B" : "A"} · ${count} × ${name}${uncovered
+        ? ` · ${uncovered} ${uncovered === 1 ? "pasó" : "pasaron"} por un tramo sin cobertura` : ""}`;
+      return item;
+    }));
+    updateText("loss-gap-summary", breach.gaps.size
+      ? "Los trazos amarillos marcan los tramos donde estos enemigos avanzaron sin cobertura de torres."
+      : "Las fugas ocurrieron sin que se detectaran tramos prolongados fuera del alcance de las torres.");
   }
   $("modal-actions").replaceChildren(
     ...buttons.map(([label, action], i) => {
@@ -332,8 +345,17 @@ function briefing(level) {
     "briefing-waves",
     `${preview.maxWaves} oleadas · ${preview.routes.length === 2 ? "Dos entradas" : "Una entrada"}`,
   );
+  $("briefing-route-event").hidden = !preview.routeEvent;
+  if (preview.routeEvent) updateText("briefing-route-event", describeRouteEvent(preview.routeEvent));
   view("briefing");
-  briefingBoard.draw(preview, null, null, null, true, false);
+  briefingBoard.draw(preview, null, null, null, true, false, null, { routePlan: true });
+}
+
+function describeRouteEvent(event, phase = "warning") {
+  const prefix = phase === "warning" ? `Oleada ${event.wave} · ${event.name}` : event.name;
+  if (phase === "rerouted") return `${prefix} · Sigue activa la nueva ruta de la entrada B.`;
+  if (phase === "active") return `${prefix} · La entrada B ya usa la nueva ruta.${event.blackout ? " Torres en la zona ámbar sin energía hasta el final de esta oleada." : ""}`;
+  return `${prefix} · La entrada B se desviará por el trazado punteado.${event.blackout ? " Las torres de la zona ámbar se apagarán durante esa oleada." : ""}`;
 }
 
 function savedPreparation() {
@@ -691,8 +713,9 @@ function renderSelection() {
     const targeting = document.createElement("select");
     targeting.id = "tower-targeting";
     for (const [id, name] of TARGETING) {
-      if (id !== "support" || (match.level === 22 && !match.daily))
-        targeting.add(new Option(name, id));
+      if (id === "support" && (match.level !== 22 || match.daily)) continue;
+      if (id === "escort" && !match.hasEnemyVariants) continue;
+      targeting.add(new Option(name, id));
     }
     targeting.value = tower.targeting;
     targeting.onchange = () => {
@@ -724,7 +747,7 @@ function upgradeRow(tower, purchase, branch) {
   if (range <= tower.range) return purchase;
   const row = document.createElement("div");
   row.className = "upgrade-row";
-  const preview = { tower, range };
+  const preview = { tower, range, branch };
   const toggle = makeButton("Ver alcance", () => {
     const active = upgradePreview !== preview;
     upgradePreview = active ? preview : null;
@@ -798,10 +821,11 @@ function renderWavePreview(preview) {
     return item;
   }));
   const groups = new Map();
-  for (const { spec, boss, armor, shield } of order) {
+  for (const { spec, boss, armor, shield, variant } of order) {
     const label = boss
       ? `Jefe · ${spec.name}`
-      : spec.name + (armor ? " con blindaje" : shield ? " con escudo" : "");
+      : spec.name + (variant ? ` · ${VARIANT_NAMES[variant]}` : "") +
+        (armor ? " con blindaje" : shield ? " con escudo" : "");
     const group = groups.get(label);
     if (group) group.count++;
     else groups.set(label, { count: 1, shape: spec.shape, boss });
@@ -983,6 +1007,9 @@ function renderHUD() {
   updateText("atp", match.atp);
   updateText("wave", `${match.wave}/${match.maxWaves}`);
   const waiting = match.state === "build";
+  const routeStatus = match.routeEventStatus;
+  $("route-event").hidden = !routeStatus;
+  if (routeStatus) updateText("route-event", describeRouteEvent(match.routeEvent, routeStatus));
   updateText("threat-label", waiting ? "Próxima oleada" : "Quedan");
   const remaining = match.enemies.length + match.queue.length;
   updateText("threats", waiting ? match.preview.count : remaining);
@@ -1100,7 +1127,7 @@ function touchDraft(point, dragging) {
     ? (x, y) => match.checkRelocation(movingTower, x, y)
     : (x, y) => match.checkPlacement(blueprint, x, y);
   const reason = check(point.x, point.y);
-  const geometry = ["Acércate al interior del tablero.", "Deja despejado el conducto.", "Hay otra torre demasiado cerca."];
+  const geometry = ["Acércate al interior del tablero.", "Deja despejado el conducto.", "Deja despejado el futuro desvío.", "Hay otra torre demasiado cerca."];
   const canSuggest = dragging && geometry.includes(reason) &&
     point.x >= 0 && point.x <= WIDTH && point.y >= 0 && point.y <= HEIGHT;
   const suggestion = canSuggest ? suggestPlacement(point, check) : null;
@@ -1160,13 +1187,15 @@ function finish() {
   const won = match.state === "won";
   const stars = won ? (match.hp >= 90 ? 3 : match.hp >= 55 ? 2 : 1) : 0;
   const { level } = match;
+  const breach = !won && match.waveLeaks?.worst ? match.waveLeaks : null;
+  const diagnostics = breach ? `\n\n${lossReport()}` : "";
   sound(won ? "victory" : "defeat");
   if (match.veteran) {
     const score = match.score();
     const record = won && profile.recordVeteran(level, score);
     ask(record ? "Nuevo récord Veterano" : won ? "Sector Veterano superado" : "Intento Veterano terminado",
-      `${match.mission.name} · ${score.toLocaleString("es-ES")} puntos · Núcleo ${match.hp} %.`,
-      [["Reintentar", () => startVeteran(level)], ["Volver al sector", () => briefing(level)]]);
+      `${match.mission.name} · ${score.toLocaleString("es-ES")} puntos · Núcleo ${match.hp} %.${diagnostics}`,
+      [["Reintentar", () => startVeteran(level)], ["Volver al sector", () => briefing(level)]], breach);
     return;
   }
   if (match.contract) {
@@ -1174,8 +1203,8 @@ function finish() {
     const score = match.score();
     const record = won && profile.recordContract(contract.id, score);
     ask(record ? "Nuevo récord de élite" : won ? "Contrato completado" : "Contrato fallido",
-      `${contract.name} · ${score.toLocaleString("es-ES")} puntos · Núcleo ${match.hp} %.`,
-      [["Reintentar", () => startContract(contract)], ["Volver a contratos", openOperations]]);
+      `${contract.name} · ${score.toLocaleString("es-ES")} puntos · Núcleo ${match.hp} %.${diagnostics}`,
+      [["Reintentar", () => startContract(contract)], ["Volver a contratos", openOperations]], breach);
     return;
   }
   if (challengeDay) {
@@ -1183,11 +1212,12 @@ function finish() {
     const record = profile.recordDaily(challengeDay, score);
     ask(
       record ? "Nuevo récord diario" : "Reto terminado",
-      `${score.toLocaleString("es-ES")} puntos · ${match.kills} eliminados · ${match.wave}/${match.maxWaves} oleadas.`,
+      `${score.toLocaleString("es-ES")} puntos · ${match.kills} eliminados · ${match.wave}/${match.maxWaves} oleadas.${diagnostics}`,
       [
         ["Reintentar", () => start(level, challengeDay)],
         ["Volver al menú", () => view("home")],
       ],
+      breach,
     );
     return;
   }
@@ -1255,7 +1285,7 @@ ${mission.cue}`;
       : "Brecha de contención",
     summary,
     buttons,
-    won ? null : match.waveLeaks?.worst?.lane ?? null,
+    breach,
   );
 }
 

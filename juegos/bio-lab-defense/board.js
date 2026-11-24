@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT } from "./engine.js?v=14";
+import { WIDTH, HEIGHT } from "./engine.js?v=15";
 import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=4";
 
 function trace(ctx, points) {
@@ -277,6 +277,17 @@ function target(ctx, enemy, time) {
   circle(ctx, 0, 3, enemy.boss ? 27 : 15, "#030811b5");
   if (enemy.shield > 0)
     circle(ctx, 0, 0, enemy.boss ? 33 : 21, "#75d3ff25", "#6bd2ff", 3);
+  if (enemy.variant === "escort")
+    circle(ctx, 0, 0, 90, "#e9b07d0e", "#e9b07d80", 2);
+  if (enemy.variant === "scout" && time >= enemy.scoutReady) {
+    ctx.save();
+    ctx.rotate(enemy.angle);
+    trace(ctx, [[-21, -9], [-16, 0], [-21, 9]]);
+    ctx.strokeStyle = "#b9f4ff";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.restore();
+  }
   if (enemy.armor)
     circle(ctx, 0, 0, enemy.boss ? 31 : 18, null, "#ffcf81", 3);
   if (enemy.stun) circle(ctx, 0, 0, enemy.boss ? 30 : 18, null, "#e9edff", 2);
@@ -339,6 +350,19 @@ function drawMissionEquipment(ctx, match) {
   }
 }
 
+function drawCircuit(ctx, tower, partner, preview = false) {
+  ctx.save();
+  trace(ctx, [[tower.x, tower.y], [partner.x, partner.y]]);
+  ctx.lineWidth = 13;
+  ctx.strokeStyle = "#a66eff36";
+  ctx.stroke();
+  ctx.setLineDash([8, 5]);
+  ctx.lineWidth = preview ? 4 : 2;
+  ctx.strokeStyle = preview ? "#f5d1ff" : "#c494ffce";
+  ctx.stroke();
+  ctx.restore();
+}
+
 function drawHero(ctx, hero, cursor, moving, showSkill) {
   const point = moving && cursor && cursor.x >= 19 && cursor.x <= WIDTH - 19 &&
       cursor.y >= 19 && cursor.y <= HEIGHT - 19
@@ -399,11 +423,11 @@ export class Board {
     reduced,
     aiming,
     hovered = null,
-    { gatePreview, movingHero, movingTower, skillPreview, upgradePreview, snapOrigin, breach = null } = {},
+    { gatePreview, movingHero, movingTower, skillPreview, upgradePreview, snapOrigin, breach = null, routePlan = false } = {},
   ) {
     const ctx = this.ctx;
     const key = match.mission
-      ? `${match.level}:${match.gateDiverted}`
+      ? `${match.level}:${match.gateDiverted}:${!!match.routeEvent && match.routes[1] === match.routeEvent.alternate}`
       : `reto-${match.mapIndex}`;
     if (!this.buffers.has(key))
       this.buffers.set(
@@ -412,17 +436,42 @@ export class Board {
       );
     ctx.drawImage(this.buffers.get(key), 0, 0);
     if (breach !== null) {
-      const { points } = match.routes[breach];
-      trace(ctx, points);
-      ctx.lineJoin = "round";
-      ctx.lineWidth = 27;
-      ctx.strokeStyle = "#370e1c";
-      ctx.stroke();
-      ctx.lineWidth = 11;
-      ctx.strokeStyle = "#ff826b";
-      ctx.stroke();
-      circle(ctx, 19, points[0][1], 13, "#ffad86", "#501f2e", 4);
+      ctx.save();
+      for (const [lane, count] of breach.lanes.entries()) {
+        if (!count) continue;
+        const { points } = match.routes[lane];
+        trace(ctx, points);
+        ctx.lineJoin = "round";
+        ctx.lineWidth = 11;
+        ctx.strokeStyle = lane ? "#f0a6ff" : "#ff826b";
+        ctx.stroke();
+        circle(ctx, 19, points[0][1], 13, ctx.strokeStyle, "#501f2e", 4);
+      }
+      ctx.setLineDash([11, 6]);
+      for (const { lane, waypoint } of breach.gaps.values()) {
+        const { points } = match.routes[lane];
+        trace(ctx, points.slice(waypoint - 1, waypoint + 1));
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = "#fff0a6";
+        ctx.stroke();
+      }
+      ctx.restore();
       return;
+    }
+    const routeEvent = match.routeEvent;
+    const routeStatus = match.routeEventStatus;
+    if (routeEvent && (routePlan || routeStatus === "warning" || routeStatus === "active")) {
+      ctx.save();
+      ctx.setLineDash([12, 7]);
+      if (routePlan || routeStatus === "warning") {
+        trace(ctx, routeEvent.alternate.points);
+        ctx.strokeStyle = "#fff0aa";
+        ctx.lineWidth = 4;
+        ctx.stroke();
+      }
+      const area = routeEvent.blackout;
+      if (area) circle(ctx, area.x, area.y, area.radius, "#d79b421c", "#ffd277c9", 4);
+      ctx.restore();
     }
     drawMissionEquipment(ctx, match);
     if (gatePreview && match.alternateRoute) {
@@ -494,13 +543,31 @@ export class Board {
         );
     }
     if (upgradePreview) {
-      const { tower, range } = upgradePreview;
+      const { tower, range, branch } = upgradePreview;
       circle(ctx, tower.x, tower.y, range, null, "#ffd99cba", 2);
       highlightCoverage(ctx, tower, match.routes, range, "#ffd99c", tower.range);
+      if (branch?.link) {
+        const partner = match.linkPartner(tower);
+        if (partner) drawCircuit(ctx, tower, partner, true);
+        else circle(ctx, tower.x, tower.y, 175, null, "#ca94ff", 2);
+      }
+    }
+    for (const tower of match.towers) {
+      if (!tower.branch?.link || match.towerOffline(tower)) continue;
+      const partner = match.linkPartner(tower);
+      if (partner) drawCircuit(ctx, tower, partner);
     }
     match.towers.forEach((tower) =>
       turret(ctx, tower, tower === selected || tower === hovered),
     );
+    for (const tower of match.towers) {
+      if (!match.towerOffline(tower)) continue;
+      circle(ctx, tower.x, tower.y, 24, "#091024a6", "#ffd890", 2);
+      trace(ctx, [[tower.x - 12, tower.y + 9], [tower.x + 12, tower.y - 9]]);
+      ctx.strokeStyle = "#ffd890";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
     if (gatePreview) {
       for (const tower of match.gateBlockers) {
         circle(ctx, tower.x, tower.y, 29, null, "#ffca7b", 3);

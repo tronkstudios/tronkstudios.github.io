@@ -1314,3 +1314,28 @@ dialog p {
     padding-inline: 0.45rem;
   }
 }
+
+.route-event {
+  margin: 0.5rem 0;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #886f43;
+  border-radius: 9px;
+  background: #342a21;
+  color: #ffe6b4;
+  font-size: 0.84rem;
+}
+#loss-coverage {
+  margin: 0.65rem 0 0.85rem;
+  font-size: 0.83rem;
+}
+#loss-coverage h3 {
+  margin: 0 0 0.3rem;
+  font-size: 0.9rem;
+}
+#loss-entries {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+#loss-entries li + li {
+  margin-top: 0.25rem;
+}
