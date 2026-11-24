@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT } from "./engine.js?v=24";
+import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=25";
 import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=4";
 
 function trace(ctx, points) {
@@ -337,6 +337,12 @@ function target(ctx, enemy, time) {
   }
   if (enemy.armor)
     circle(ctx, 0, 0, enemy.boss ? 31 : 18, null, "#ffcf81", 3);
+  if (escortArmor(enemy)) {
+    ctx.save();
+    ctx.setLineDash([3, 4]);
+    circle(ctx, 0, 0, 20, null, "#ffc286", 2);
+    ctx.restore();
+  }
   if (enemy.stun) circle(ctx, 0, 0, enemy.boss ? 30 : 18, null, "#e9edff", 2);
   if (enemy.slow) circle(ctx, 0, 0, enemy.boss ? 29 : 16, null, "#97e9ff", 2);
   if (enemy.burn) circle(ctx, 0, 0, enemy.boss ? 32 : 19, null, "#b4ef68", 1.5);

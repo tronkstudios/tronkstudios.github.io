@@ -1934,3 +1934,15 @@ dialog::backdrop { background: #031016cf; }
   .home-tools button { gap: 0.45rem; min-height: 53px; }
   #home-progress-meter { width: 100%; }
 }
+
+#core-impact {
+  margin: 0.38rem 0;
+  padding: 0.42rem 0.65rem;
+  border: 1px solid #9a5050;
+  border-left: 3px solid #ff9382;
+  border-radius: 6px;
+  background: #3c1c29;
+  color: #ffd0c7;
+  font-size: 0.82rem;
+  font-weight: 700;
+}

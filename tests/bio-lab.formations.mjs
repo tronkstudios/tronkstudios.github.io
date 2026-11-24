@@ -362,6 +362,8 @@ test("the loss report distinguishes a repeated coverage gap from a brief uncover
   enemy.coverageGaps = [, 6, 2];
   match.recordLeak(enemy, 10);
   match.recordLeak({ ...enemy, lane: 1 - enemy.lane, coverageGaps: [, 2] }, 10);
+  assert.equal(match.waveLeaks.impact.loss, 20);
+  assert.ok(match.waveLeaks.impact.lanes.includes(0) && match.waveLeaks.impact.lanes.includes(1));
   assert.deepEqual(match.waveLeaks.lanes, [1, 1]);
   assert.deepEqual([...match.waveLeaks.entries.values()].map(({ uncovered }) => uncovered), [1, 0]);
   assert.deepEqual([...match.waveLeaks.gaps.values()], [{ lane: enemy.lane, waypoint: 1, count: 1 }]);

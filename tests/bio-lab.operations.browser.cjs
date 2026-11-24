@@ -98,6 +98,13 @@ window.testRun = {
     match.damage(target, 8, "#fff");
   },
   barrierActive() { return match.barrier.until > match.time; },
+  leakRegularEnemy() {
+    match.spawn();
+    const enemy = match.enemies.at(-1);
+    enemy.wp = enemy.path.points.length - 1;
+    [enemy.x, enemy.y] = enemy.path.points.at(-1);
+    return enemy.name;
+  },
   prepareBlackout() {
     const { x, y } = match.routeEvent.blackout;
     selected = match.place(BLUEPRINTS[0], x, y + 56) || match.place(BLUEPRINTS[0], x, y - 56);
@@ -365,6 +372,9 @@ window.testRun = {
     await forecast.getByText("Recorrido al alcance · A 0 % / B 0 %").waitFor();
     await page.locator("#next").tap();
     await forecast.getByText("Sin energía hasta el final de la oleada").waitFor();
+    const leakedEnemy = await page.evaluate(() => testRun.leakRegularEnemy());
+    await page.locator("#core-impact").getByText(`Núcleo −10 % · ${leakedEnemy} · Entrada`, { exact: false }).waitFor();
+    assert.equal(await page.locator("#hp").textContent(), "90%");
     await page.locator("#pause").tap();
     await page.getByRole("button", { name: "Abandonar partida" }).tap();
     await page.locator(".level").nth(21).tap();

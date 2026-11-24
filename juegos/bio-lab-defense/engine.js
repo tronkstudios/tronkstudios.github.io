@@ -612,8 +612,12 @@ function nextArrivals(queue, firstDelay, interval, lanes) {
   return upcoming;
 }
 
+export function escortArmor(enemy) {
+  return enemy.guard?.hp > 0 && !enemy.guard.escaped ? 9 : 0;
+}
+
 function resolveImpact(enemy, shield, amount, { piercing = false, shred = false }, tower, time) {
-  let armor = enemy.armor + (enemy.guard?.hp > 0 && !enemy.guard.escaped ? 9 : 0);
+  let armor = enemy.armor + escortArmor(enemy);
   if (tower?.rank) {
     if (enemy.markedUntil > time) amount *= 1.15;
     if (enemy.frozenUntil > time && tower.type === "splash") amount *= 1.2;
@@ -854,6 +858,14 @@ export class Match {
   recordLeak(enemy, loss) {
     const report = this.waveLeaks;
     report.lanes[enemy.lane]++;
+    if (loss > 0) {
+      if (report.impact?.tick !== this.time)
+        report.impact = { tick: this.time, name: enemy.name, loss: 0, count: 0, lanes: [] };
+      const impact = report.impact;
+      impact.loss += loss;
+      impact.count++;
+      if (!impact.lanes.includes(enemy.lane)) impact.lanes.push(enemy.lane);
+    }
     if (loss > (report.worst?.loss || 0))
       report.worst = { name: enemy.name, loss, lane: enemy.lane };
     const label = enemy.variant ? `${enemy.name} · ${VARIANT_NAMES[enemy.variant]}` : enemy.name;

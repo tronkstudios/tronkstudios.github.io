@@ -12,19 +12,20 @@ import {
   specializations,
   TARGETING,
   VARIANT_NAMES,
+  escortArmor,
   dailySetup,
-} from "./engine.js?v=24";
+} from "./engine.js?v=25";
 import { routeCoverage } from "./coverage.js?v=1";
 import { attachDrill } from "./drill.js?v=2";
-import { Board } from "./board.js?v=30";
+import { Board } from "./board.js?v=31";
 import { towerIcon, heroIcon } from "./art.js?v=4";
-import { createCodex } from "./codex.js?v=12";
+import { createCodex } from "./codex.js?v=13";
 import { Profile, dayKey } from "./profile.js?v=11";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=6";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=8";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=20";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=21";
 
 import { HEROES, CONTRACTS } from "./operations.js?v=7";
 
@@ -1180,7 +1181,16 @@ function renderFieldControls(waiting) {
     sound("alert");
   }
   lastMirrorOrder = order;
-  $("core-warning").hidden = !live || !match.enemies.some((enemy) => enemy.hp > 0 && !enemy.supportNode && enemy.remaining < 105);
+  const hit = match.waveLeaks?.impact;
+  const recentHit = live && hit && match.time - hit.tick < 150;
+  const danger = live && match.enemies.some((enemy) => enemy.hp > 0 && !enemy.supportNode && enemy.remaining < 105);
+  $("core-warning").hidden = !danger || !!recentHit;
+  $("core-impact").hidden = !recentHit;
+  if (recentHit) {
+    const lanes = hit.lanes.map(lane => lane ? "B" : "A").join(" y ");
+    const enemies = hit.count === 1 ? hit.name : `${hit.count} enemigos`;
+    updateText("core-impact", `Núcleo −${hit.loss} % · ${enemies} · ${hit.lanes.length > 1 ? "Entradas" : "Entrada"} ${lanes}`);
+  }
   const pulseReady = live && match.charge >= 100;
   if (pulseReady && !lastPulseReady) sound("ready");
   lastPulseReady = pulseReady;
@@ -1883,6 +1893,8 @@ function inspectFireTarget() {
   const stats = [`Vida ${Math.ceil(enemy.hp)} / ${enemy.maxHp}`];
   if (enemy.shield > 0) stats.push(`Escudo ${Math.ceil(enemy.shield)}`);
   if (enemy.armor > 0) stats.push(`Blindaje ${Math.ceil(enemy.armor)}`);
+  const extraArmor = escortArmor(enemy);
+  if (extraArmor) stats.push(`Escolta +${extraArmor} de blindaje`);
   stats.push(`${towers} ${towers === 1 ? "torre con alcance" : "torres con alcance"}`);
   updateText("fire-details", stats.join(" · "));
 }
