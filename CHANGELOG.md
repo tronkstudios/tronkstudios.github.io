@@ -5,6 +5,9 @@ resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 
 ## Próxima versión
 
+- Tronk Fight añade Réplica después de un bloqueo perfecto. En Gravity Runners,
+  tres cambios perfectos cargan un escudo de tres segundos.
+
 - Los duelos locales de Tronk Fight permiten elegir una ronda, al mejor de tres
   o al mejor de cinco. El marcador muestra cuántas rondas hacen falta y se
   guarda el formato elegido.

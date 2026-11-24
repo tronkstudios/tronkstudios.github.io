@@ -315,7 +315,7 @@ function makeFighter(ch, x, face, side) {
     ch, w: WEAPONS[ch.weapon], side, x, y: GROUND, vx: 0, vy: 0, face,
     hp: 100, trail: 100, trailWait: 0, meter: 0, guard: 100,
     state: "idle", t: 0, stun: 0, input: {}, prev: {},
-    parryWin: 0, parryLock: 0, dodgeCd: 0, hitDone: false, sd: {},
+    riposteFrames: 0, parryWin: 0, parryLock: 0, dodgeCd: 0, hitDone: false, sd: {},
     combo: 0, comboT: 0, flash: 0, hideWeapon: false,
     pose: null, walkPh: 0, tips: [], ai: null
   };
@@ -632,6 +632,7 @@ function updateFighter(f, o, M) {
   const pressed = k => raw(k) || (f.buf && f.buf.k === k);
   const useBuf = () => { f.buf = null; };
   f.t++;
+  if (f.riposteFrames > 0) f.riposteFrames--;
   if (f.parryLock > 0) f.parryLock--;
   if (f.parryWin > 0) f.parryWin--;
   if (f.dodgeCd > 0) f.dodgeCd--;
@@ -759,6 +760,7 @@ function resolveHit(M, a, d, h, proj) {
     // PARRY
     d.parryWin = 0; d.parryLock = 0; setState(d, "idle");
     d.meter = Math.min(100, d.meter + 15);
+    d.riposteFrames = 60;
     M.stats[d.side].parries++;
     if (!proj) {
       const wasSpecial = a.state === "special";
@@ -773,6 +775,11 @@ function resolveHit(M, a, d, h, proj) {
     return "parry";
   }
 
+  if (!blocking && !proj && a.state === "attack" && a.riposteFrames > 0) {
+    a.riposteFrames = 0;
+    h = { ...h, dmg: h.dmg * 1.3 };
+    if (M.mode !== "sim") popText(M, "¡Réplica!", a.x, a.y - 185, "#7fe9ff");
+  }
   if (blocking) {
     const chip = h.dmg * h.chip;
     d.hp = Math.max(1, d.hp - chip); d.trailWait = 30;
@@ -2068,6 +2075,13 @@ function bar(ctx, M, f, side) {
   const mf = f.meter / 100 * mw; ctx.fillRect(side ? mx + mw - mf : mx, my, mf, 10);
   ctx.font = "16px Rubik, sans-serif"; ctx.textAlign = side ? "right" : "left"; ctx.fillStyle = full ? "#9ff3ff" : "#cfcaf7";
   ctx.fillText(full ? "¡Especial listo!" : "Especial", side ? mx - 10 : mx + mw + 10, my + 11);
+  if (f.riposteFrames > 0) {
+    const edge = side ? x0 + w : x0;
+    outlineText(ctx, "RÉPLICA", edge, 132, 20, "#7fe9ff", side ? "right" : "left");
+    const remaining = 80 * f.riposteFrames / 60;
+    ctx.fillStyle = "#7fe9ff";
+    ctx.fillRect(side ? edge - remaining : edge, 137, remaining, 3);
+  }
   // retrato con icono del personaje
   const px = side ? 1192 : 88, py = 66;
   ctx.fillStyle = "#14112b"; ctx.beginPath(); ctx.arc(px, py, 46, 0, Math.PI * 2); ctx.fill();

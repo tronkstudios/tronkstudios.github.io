@@ -3014,3 +3014,5 @@ body:has(#practice-panel:not(.hidden)) #danger-cue {
     font-size: 15px;
   }
 }
+
+.perfect-feedback.shield-ready{color:#60f5cf;border-color:currentColor;box-shadow:0 0 18px #60f5cf55}

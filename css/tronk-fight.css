@@ -37,3 +37,39 @@
 #tf-root .tf-tb .tf-ico{width:2.6em;height:2.6em;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
 #tf-root .tf-tb span{display:block;max-width:92%;font-size:1em;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:clip;pointer-events:none}
 #tf-root .tf-tb.tf-on{transform:scale(.92)}
+
+#tf-root .tf-stage-tile {
+  position: relative;
+}
+#tf-root .tf-stage-tile[aria-pressed="true"] span {
+  background: var(--gold);
+  color: #14112b;
+  width: 100%;
+}
+#tf-root .tf-stage-tile[aria-pressed="true"]::after {
+  content: "✓";
+  position: absolute;
+  top: .75cqh;
+  right: .75cqh;
+  display: grid;
+  place-items: center;
+  width: 3.5cqh;
+  height: 3.5cqh;
+  border-radius: 50%;
+  color: #14112b;
+  background: var(--gold);
+  font: bold 2.5cqh/1 system-ui, sans-serif;
+}
+#tf-root #tf-format-wrap {
+  background: #211d40;
+  color: #fff;
+  align-self: center;
+}
+#tf-root #tf-format {
+  margin-inline-start: .5em;
+  border: 1px solid #aca4cf;
+  border-radius: .4em;
+  background: #14112b;
+  color: #fff;
+  font: inherit;
+}
