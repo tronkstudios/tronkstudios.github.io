@@ -342,3 +342,12 @@ test("expansion sectors have two buildable fire pads and preserve previous compl
     }
   }
 });
+
+test("coverage clips at endpoints and counts both arms of a bend", async () => {
+  const { routeCoverage } = await import("../juegos/bio-lab-defense/coverage.js");
+  const route = { points: [[0, 0], [100, 0], [100, 100]], remaining: [200, 100, 0] };
+  assert.equal(routeCoverage(route, { x: 100, y: 0, range: 30 }), 30);
+  assert.equal(routeCoverage(route, { x: 0, y: 0, range: 30 }), 15);
+  assert.equal(routeCoverage(route, { x: 30, y: -30, range: 30 }), 0);
+  assert.equal(routeCoverage(route, { x: 0, y: 0, range: 200 }), 100);
+});

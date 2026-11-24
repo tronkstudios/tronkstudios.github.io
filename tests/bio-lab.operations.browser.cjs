@@ -200,6 +200,8 @@ window.testRun = {
       type: "touchMove", touchPoints: [await screenPoint(120, 215)],
     });
     await page.getByText("Suelta para instalar · 50 ATP", { exact: true }).waitFor();
+    await page.locator("#placement-analysis").getByText(/Recorrido al alcance · A/).waitFor();
+    assert.match(await page.locator("#placement-analysis").textContent(), /14 de daño por impacto/);
     await devtools.send("Input.dispatchTouchEvent", {
       type: "touchMove", touchPoints: [await screenPoint(190, 215)],
     });

@@ -12,7 +12,8 @@ import {
   VARIANT_NAMES,
   dailySetup,
 } from "./engine.js?v=16";
-import { Board } from "./board.js?v=19";
+import { routeCoverage } from "./coverage.js?v=1";
+import { Board } from "./board.js?v=20";
 import { towerIcon, heroIcon } from "./art.js?v=4";
 import { createCodex } from "./codex.js?v=3";
 import { Profile, dayKey } from "./profile.js?v=9";
@@ -773,12 +774,45 @@ function upgradeRow(tower, purchase, branch) {
 }
 
 const cadence = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 2 });
+function placementForecast(tower, point) {
+  const panel = $("placement-analysis");
+  panel.hidden = !tower;
+  if (!tower) return;
+  const candidate = { ...tower, ...point, rank: tower.rank || 1 };
+  const event = match.routeEvent;
+  const phase = match.routeEventStatus;
+  const key = [candidate.id, candidate.rank, candidate.damage, candidate.range, candidate.x, candidate.y,
+    match.level, match.mapIndex, match.gateDiverted, phase, match.state, match.wave].join("|");
+  if (panel.dataset.key === key) return;
+  panel.dataset.key = key;
+  const lines = [];
+  if (candidate.type === "eco") {
+    lines.push(`${reactorOutput(candidate.rank, candidate.branch)} ATP por ciclo`);
+  } else {
+    const bonus = match.padBonus(candidate);
+    lines.push(`${Math.round(candidate.damage * bonus)} de daño por impacto${bonus > 1 ? " · Plataforma +25 %" : ""}`);
+    const lanes = match.routes.map((route, index) =>
+      `${index ? "B" : "A"} ${routeCoverage(route, candidate)} %`);
+    lines.push(`Recorrido al alcance · ${lanes.join(" / ")}`);
+    if (phase === "warning") lines.push(`B tras el desvío · ${routeCoverage(event.alternate, candidate)} %`);
+  }
+  if (match.towerOffline(candidate)) lines.push("Sin energía hasta el final de la oleada");
+  else if (event?.blackout && phase === "warning" &&
+      Math.hypot(candidate.x - event.blackout.x, candidate.y - event.blackout.y) <= event.blackout.radius)
+    lines.push(`Apagón aquí en la oleada ${event.wave}`);
+  panel.replaceChildren(...[candidate.name, ...lines].map((value, i) => {
+    const text = document.createElement(i ? "span" : "strong");
+    text.textContent = value;
+    return text;
+  }));
+}
+
 function upgradeForecast(tower, branch) {
   const next = upgradeStats(tower, branch);
   const interval = (ticks) => cadence.format(ticks / 60);
   const stats = tower.type === "eco"
     ? `ATP por ciclo ${reactorOutput(tower.rank, tower.branch)} → ${reactorOutput(tower.rank + 1, branch)}`
-    : `Daño ${tower.damage} → ${next.damage} · Alcance ${tower.range} → ${next.range}`;
+    : `Daño ${Math.round(tower.damage * match.padBonus(tower))} → ${Math.round(next.damage * match.padBonus(tower))} · Alcance ${tower.range} → ${next.range}`;
   const preview = document.createElement("small");
   preview.className = "upgrade-forecast";
   const action = tower.type === "eco" ? "ciclo" : "disparo";
@@ -1176,6 +1210,11 @@ function frame(now) {
       updateText("placement-preview", draft.reason || (draft.snapped ? `Punto sugerido · s${hint.slice(1)}` : hint));
       $("placement-preview").classList.toggle("invalid", !!draft.reason);
     }
+    const point = draft?.point || cursor;
+    const planned = !aiming && !movingHero && !hoverBot && !hovered && !upgradePreview && point && (movingTower || blueprint);
+    const validPlan = planned && !(movingTower ? match.checkRelocation(movingTower, point.x, point.y)
+      : match.checkPlacement(planned, point.x, point.y));
+    placementForecast(validPlan ? planned : !planned && (hovered || selected), validPlan ? point : null);
     board.draw(
       match,
       movingHero || hoverBot || upgradePreview ? null : blueprint,

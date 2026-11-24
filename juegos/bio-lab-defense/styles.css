@@ -1339,3 +1339,18 @@ dialog p {
 #loss-entries li + li {
   margin-top: 0.25rem;
 }
+
+#placement-analysis {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.8rem;
+  margin-top: 0.35rem;
+  padding: 0.45rem 0.65rem;
+  border-inline-start: 3px solid var(--cyan);
+  border-radius: 4px;
+  background: #112437;
+  color: #c2dbeb;
+  font-size: 0.8rem;
+}
+#placement-analysis strong { color: var(--cyan); }

@@ -594,16 +594,16 @@ export class Board {
         );
         if (valid) highlightCoverage(ctx, tower, match.routes);
       }
-      if (isGhost)
-        circle(
-          ctx,
-          tower.x,
-          tower.y,
-          16,
-          valid ? "#bbf7e35c" : "#f69d9d5c",
-          "#f1f7ff",
-          2,
-        );
+      if (isGhost) {
+        ctx.save();
+        circle(ctx, tower.x, tower.y, 22, valid ? "#19352dde" : "#55232be0",
+          valid ? "#a5eed3" : "#ff9a95", 2);
+        ctx.translate(tower.x, tower.y);
+        ctx.rotate(tower.angle || 0);
+        ctx.globalAlpha = valid ? 0.85 : 0.5;
+        drawTurretModel(ctx, tower);
+        ctx.restore();
+      }
     }
     if (upgradePreview) {
       const { tower, range, branch } = upgradePreview;
