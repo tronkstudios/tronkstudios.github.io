@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=18" />
+    <link rel="stylesheet" href="./styles.css?v=19" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -235,6 +235,7 @@
               <button type="button" id="pulse" aria-pressed="false">
                 Pulso táctico
               </button>
+              <button type="button" id="focus-fire" aria-haspopup="dialog" hidden>Concentrar fuego</button>
               <button type="button" id="speed" aria-pressed="false">
                 Velocidad ×1
               </button>
@@ -246,6 +247,11 @@
               >
                 Pausa táctica
               </button>
+            </div>
+            <div id="focused-vitals" hidden>
+              <label for="focused-hp">Vida del objetivo</label>
+              <progress id="focused-hp" value="0" max="1"></progress>
+              <span id="focused-values"></span>
             </div>
             <div id="field-specials" class="field-specials" hidden>
               <button type="button" id="move-hero" aria-pressed="false" hidden></button>
@@ -327,6 +333,19 @@
       </section>
       <p id="account-status" role="status">Comprobando cuenta…</p>
     </main>
+    <dialog id="fire-orders" aria-labelledby="fire-heading">
+      <h2 id="fire-heading">Concentrar fuego</h2>
+      <p>Toca una amenaza en el plano o elígela en la lista. Las torres a su alcance la atacarán primero.</p>
+      <canvas id="fire-map" width="900" height="540" aria-hidden="true"></canvas>
+      <label for="fire-choice">Objetivo</label>
+      <select id="fire-choice"></select>
+      <p id="fire-details" aria-live="polite"></p>
+      <div class="actions">
+        <button type="button" id="fire-confirm" class="primary">Fijar objetivo</button>
+        <button type="button" id="fire-clear" hidden>Retirar orden</button>
+        <form method="dialog"><button>Cerrar</button></form>
+      </div>
+    </dialog>
     <dialog id="codex" aria-labelledby="codex-title">
       <div class="codex-head">
         <h2 id="codex-title">Enciclopedia del laboratorio</h2>
@@ -360,6 +379,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=22"></script>
+    <script type="module" src="./game.js?v=23"></script>
   </body>
 </html>

@@ -753,6 +753,7 @@ export class Match {
         }))
       : null;
     this.combatCue = null;
+    this.focusTarget = null;
     this.zeroNodes = [];
     this.preview = this.planWave(1);
     this.lastBuild = null;
@@ -1198,6 +1199,13 @@ export class Match {
     return true;
   }
 
+  focusFire(enemy) {
+    if (this.state !== "wave" || (enemy !== null &&
+        (!this.enemies.includes(enemy) || enemy.hp <= 0 || enemy.escaped))) return false;
+    this.focusTarget = enemy;
+    return true;
+  }
+
   startWave() {
     if (this.state !== "build" || this.power?.first === null) return false;
     this.state = "wave";
@@ -1208,6 +1216,7 @@ export class Match {
     this.waveStart = { hp: this.hp, kills: this.kills, atp: this.grossATP, count: this.preview.count };
     this.waveLeaks = { lanes: this.routes.map(() => 0), worst: null, entries: new Map(), gaps: new Map() };
     this.debrief = null;
+    this.focusTarget = null;
     this.zeroNodes = [];
     this.queue = [...this.preview.order];
     this.interval =
@@ -1299,6 +1308,7 @@ export class Match {
       if (enemy.boss) this.advanceBoss(enemy);
       return;
     }
+    if (enemy === this.focusTarget) this.focusTarget = null;
     if (enemy.supportNode) {
       enemy.destroyed = true;
       this.resolveNodeDestruction(enemy);
@@ -1604,6 +1614,7 @@ export class Match {
       }
     }
     this.enemies = this.enemies.filter((e) => e.hp > 0 && !e.escaped);
+    if (this.focusTarget?.escaped || this.focusTarget?.hp <= 0) this.focusTarget = null;
     if (this.hp === 0 || this.console?.hp === 0 || terminal?.hp === 0) {
       this.state = "lost";
       return;
@@ -1653,7 +1664,8 @@ export class Match {
             : tower.targeting === "last"
               ? enemy.remaining
               : -enemy.remaining;
-        const focus = (tower.targeting === "support" && enemy.supportNode) ||
+        const focus = tower.rank && enemy === this.focusTarget ? 3
+          : (tower.targeting === "support" && enemy.supportNode) ||
           (tower.targeting === "escort" && enemy.variant === "escort") ? 2
           : tower.rank && enemy.markedUntil > this.time ? 1 : 0;
         if (focus > bestFocus || (focus === bestFocus && priority > best)) {
@@ -1695,6 +1707,7 @@ export class Match {
       return true;
     });
     this.enemies = this.enemies.filter((e) => e.hp > 0);
+    if (this.focusTarget?.hp <= 0) this.focusTarget = null;
     if (!this.enemies.length && !this.queue.length && !this.mirrorOrders.length) {
       this.finishMissionObjectives();
       if (this.hero?.destination) Object.assign(this.hero, {

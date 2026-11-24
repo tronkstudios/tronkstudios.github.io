@@ -11,17 +11,17 @@ import {
   TARGETING,
   VARIANT_NAMES,
   dailySetup,
-} from "./engine.js?v=16";
+} from "./engine.js?v=17";
 import { routeCoverage } from "./coverage.js?v=1";
-import { Board } from "./board.js?v=21";
+import { Board } from "./board.js?v=22";
 import { towerIcon, heroIcon } from "./art.js?v=4";
-import { createCodex } from "./codex.js?v=3";
+import { createCodex } from "./codex.js?v=4";
 import { Profile, dayKey } from "./profile.js?v=9";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=3";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=7";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=12";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=13";
 
 import { HEROES, CONTRACTS } from "./operations.js?v=5";
 
@@ -32,6 +32,11 @@ const board = new Board(canvas);
 const briefingBoard = new Board($("briefing-map"));
 const lossBoard = new Board($("loss-map"));
 const modal = $("modal");
+const fireOrders = $("fire-orders");
+const fireMap = $("fire-map");
+const fireBoard = new Board(fireMap);
+let fireChoices = [];
+
 const codex = createCodex($("codex"));
 const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 const compactField = matchMedia("(max-width: 760px)");
@@ -1057,6 +1062,18 @@ function renderFieldControls(waiting) {
 }
 
 function renderHUD() {
+  const focused = match.state === "wave" && match.focusTarget;
+  $("focused-vitals").hidden = !focused;
+  if (focused) {
+    const hp = Math.ceil(focused.hp);
+    const meter = $("focused-hp");
+    if (meter.max !== focused.maxHp) meter.max = focused.maxHp;
+    if (meter.value !== hp) meter.value = hp;
+    updateText("focused-values", `${hp} / ${focused.maxHp}${focused.shield ? ` · Escudo ${Math.ceil(focused.shield)}` : ""}`);
+  }
+  $("focus-fire").hidden = match.state !== "wave";
+  $("focus-fire").disabled = !match.enemies.some(enemy => enemy.hp > 0 && !enemy.escaped);
+  updateText("focus-fire", match.focusTarget ? `Objetivo · ${match.focusTarget.name}` : "Concentrar fuego");
   updateText("hp", `${match.hp}%`);
   $("integrity").value = match.hp;
   updateText("atp", match.atp);
@@ -1192,7 +1209,7 @@ function touchDraft(point, dragging) {
 function frame(now) {
   const elapsed = Math.min(100, now - lastTick);
   lastTick = now;
-  if (screen === "field" && !modal.open && !codex.open && !document.hidden) {
+  if (screen === "field" && !modal.open && !codex.open && !fireOrders.open && !document.hidden) {
     accumulator = tacticalPaused ? 0 : accumulator + elapsed;
     while (accumulator >= 1000 / 60) {
       for (let i = 0; i < speed; i++) match.tick();
@@ -1600,6 +1617,59 @@ $("pulse").onclick = () => {
   );
   renderHUD();
 };
+function inspectFireTarget() {
+  const enemy = fireChoices[$("fire-choice").selectedIndex];
+  if (!enemy) return;
+  fireBoard.draw(match, null, null, null, true, false, null, { focusTarget: enemy });
+  const towers = match.towers.filter(tower => tower.type !== "eco" && !match.towerOffline(tower) &&
+    Math.hypot(enemy.x - tower.x, enemy.y - tower.y) <= tower.range).length;
+  const stats = [`Vida ${Math.ceil(enemy.hp)} / ${enemy.maxHp}`];
+  if (enemy.shield > 0) stats.push(`Escudo ${Math.ceil(enemy.shield)}`);
+  if (enemy.armor > 0) stats.push(`Blindaje ${Math.ceil(enemy.armor)}`);
+  stats.push(`${towers} ${towers === 1 ? "torre con alcance" : "torres con alcance"}`);
+  updateText("fire-details", stats.join(" · "));
+}
+$("focus-fire").onclick = () => {
+  fireChoices = match.enemies.filter(enemy => enemy.hp > 0 && !enemy.escaped)
+    .sort((a, b) => a.remaining - b.remaining);
+  if (!fireChoices.length || match.state !== "wave") return;
+  const select = $("fire-choice");
+  select.replaceChildren(...fireChoices.map((enemy, index) => {
+    const role = enemy.boss ? "Jefe" : VARIANT_NAMES[enemy.variant];
+    const position = enemy.supportNode ? "Nodo fijo" : `${Math.round(enemy.remaining)} px al núcleo`;
+    return new Option(`${enemy.name}${role ? " · " + role : ""} · Entrada ${enemy.lane ? "B" : "A"} · ${position}`, index);
+  }));
+  select.selectedIndex = Math.max(0, fireChoices.indexOf(match.focusTarget));
+  $("fire-clear").hidden = !match.focusTarget;
+  fireOrders.showModal();
+  inspectFireTarget();
+};
+$("fire-choice").onchange = inspectFireTarget;
+fireMap.onclick = event => {
+  const bounds = fireMap.getBoundingClientRect();
+  const x = (event.clientX - bounds.left) * WIDTH / bounds.width;
+  const y = (event.clientY - bounds.top) * HEIGHT / bounds.height;
+  let closest = Math.max(28, 22 * WIDTH / bounds.width);
+  let index = -1;
+  for (const [i, enemy] of fireChoices.entries()) {
+    const distance = Math.hypot(x - enemy.x, y - enemy.y);
+    if (distance <= closest) { closest = distance; index = i; }
+  }
+  if (index < 0) return;
+  $("fire-choice").selectedIndex = index;
+  inspectFireTarget();
+};
+$("fire-confirm").onclick = () => {
+  match.focusFire(fireChoices[$("fire-choice").selectedIndex]);
+  fireOrders.close();
+  renderHUD();
+};
+$("fire-clear").onclick = () => {
+  match.focusFire(null);
+  fireOrders.close();
+  renderHUD();
+};
+fireOrders.onclose = () => { fireChoices = []; };
 $("speed").onclick = () => {
   speed = speed === 1 ? 2 : 1;
   persistPreparation();
@@ -1622,7 +1692,7 @@ document.addEventListener("keydown", (event) => {
   if (
     screen !== "field" ||
     modal.open ||
-    codex.open ||
+    codex.open || fireOrders.open ||
     event.defaultPrevented ||
     event.repeat ||
     event.ctrlKey ||

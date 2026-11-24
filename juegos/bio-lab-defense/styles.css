@@ -1354,3 +1354,20 @@ dialog p {
   font-size: 0.8rem;
 }
 #placement-analysis strong { color: var(--cyan); }
+
+#fire-orders { width: min(640px, calc(100% - 1rem)); }
+#fire-orders h2 { margin: 0; }
+#fire-map { display: block; width: 100%; height: auto; border: 0; cursor: crosshair; }
+#fire-orders label { display: block; margin: 0.6rem 0 0.25rem; }
+#fire-choice { width: 100%; min-height: 44px; }
+#fire-details { font-variant-numeric: tabular-nums; color: var(--cyan); }
+#focused-vitals {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.6rem;
+  margin: 0.45rem 0;
+  color: #ffe292;
+  font-size: 0.8rem;
+}
+#focused-hp { flex: 1 1 4rem; min-width: 0; accent-color: #e6bf6e; }

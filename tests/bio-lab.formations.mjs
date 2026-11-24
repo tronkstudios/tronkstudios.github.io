@@ -351,3 +351,26 @@ test("coverage clips at endpoints and counts both arms of a bend", async () => {
   assert.equal(routeCoverage(route, { x: 30, y: -30, range: 30 }), 0);
   assert.equal(routeCoverage(route, { x: 0, y: 0, range: 200 }), 100);
 });
+
+test("focus fire overrides route priority in range and releases a defeated target", () => {
+  const match = new Match(1);
+  const tower = match.place(BLUEPRINTS[0], 145, 171);
+  assert.equal(match.focusFire({}), false);
+  match.startWave();
+  match.spawn();
+  match.spawn();
+  const [front, back] = match.enemies;
+  Object.assign(front, { x: 220, y: 205, wp: 2 });
+  Object.assign(back, { x: 220, y: 182, wp: 2 });
+  assert.equal(match.focusFire(back), true);
+  match.tick();
+  assert.equal(match.shots[0].target, back);
+  Object.assign(back, { x: 510, y: 182 });
+  tower.cooldown = 0;
+  match.tick();
+  assert.equal(match.shots.at(-1).target, front);
+  match.damage(back, 10000, "#fff");
+  match.tick();
+  assert.equal(match.focusTarget, null);
+  assert.equal(match.focusFire(back), false);
+});

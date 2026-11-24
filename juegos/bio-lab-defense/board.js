@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT } from "./engine.js?v=16";
+import { WIDTH, HEIGHT } from "./engine.js?v=17";
 import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=4";
 
 function trace(ctx, points) {
@@ -470,7 +470,7 @@ export class Board {
     reduced,
     aiming,
     hovered = null,
-    { gatePreview, movingHero, movingTower, skillPreview, upgradePreview, snapOrigin, breach = null, routePlan = false } = {},
+    { gatePreview, movingHero, movingTower, skillPreview, upgradePreview, snapOrigin, breach = null, routePlan = false, focusTarget = match.focusTarget } = {},
   ) {
     const ctx = this.ctx;
     const key = match.mission
@@ -654,6 +654,22 @@ export class Board {
       circle(ctx, cue.x, cue.y, radius + 6, null, color + "66", 2);
     }
     match.enemies.forEach((enemy) => target(ctx, enemy, match.time));
+    if (focusTarget?.hp > 0 && !focusTarget.escaped) {
+      ctx.save();
+      ctx.translate(focusTarget.x, focusTarget.y);
+      const size = focusTarget.boss ? 39 : 25;
+      for (let i = 0; i < 4; i++) {
+        trace(ctx, [[size - 10, -size], [size, -size], [size, 10 - size]]);
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = "#142235";
+        ctx.stroke();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "#ffe292";
+        ctx.stroke();
+        ctx.rotate(Math.PI / 2);
+      }
+      ctx.restore();
+    }
     match.shots.forEach((shot) => {
       if (!reduced) {
         const angle = Math.atan2(shot.target.y - shot.y, shot.target.x - shot.x);

@@ -228,6 +228,17 @@ window.testRun = {
     await page.getByRole("button", { name: "Mover a Helio" }).waitFor();
     await page.locator("#entry-start-a").tap();
     await page.evaluate(() => testRun.spawnNearHero());
+    await page.locator("#focus-fire").tap();
+    await page.getByRole("dialog", { name: "Concentrar fuego" }).waitFor();
+    const stopped = await page.evaluate(() => testRun.state.time);
+    await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+    assert.equal(await page.evaluate(() => testRun.state.time), stopped);
+    await page.locator("#fire-details").getByText(/Vida .* con alcance/).waitFor();
+    await page.locator("#fire-confirm").tap();
+    await page.locator("#focus-fire").getByText(/Objetivo ·/).waitFor();
+    await page.locator("#focus-fire").tap();
+    await page.locator("#fire-clear").tap();
+    await page.locator("#focus-fire").getByText("Concentrar fuego").waitFor();
     await page.locator("#hero-ability").tap();
     assert.ok(await page.evaluate(() => testRun.state.cooldown) > 0);
     await page.evaluate(() => testRun.loseConsole());
