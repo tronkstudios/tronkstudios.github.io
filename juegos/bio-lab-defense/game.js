@@ -1,3 +1,4 @@
+import { drawSpecimen, routeThumbnail } from "./menu-art.js?v=1";
 import {
   BLUEPRINTS,
   Match,
@@ -27,6 +28,8 @@ import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=14";
 import { HEROES, CONTRACTS } from "./operations.js?v=5";
 
 const $ = (id) => document.getElementById(id);
+drawSpecimen($("specimen-art"));
+const sectorThumbnails = new Map();
 const panels = ["home", "campaign", "briefing", "operations", "field"];
 const canvas = $("board");
 const board = new Board(canvas);
@@ -343,7 +346,9 @@ function renderLevels() {
         : stars
           ? `${"★".repeat(stars)}${"☆".repeat(3 - stars)}${profile.data.medals[i] ? " · Insignia" : ""}`
           : "Disponible";
-      button.append(number, label);
+      if (!sectorThumbnails.has(level))
+        sectorThumbnails.set(level, routeThumbnail(new Match(level).routes, chapter.color));
+      button.append(number, sectorThumbnails.get(level), label);
       if (chapter.scenery) {
         const objective = document.createElement("small");
         objective.textContent = mission.objective === "archive" ? "Proteger terminales"

@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=22" />
+    <link rel="stylesheet" href="./styles.css?v=23" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -38,13 +38,6 @@
     <main>
       <section id="home" aria-labelledby="title">
         <div class="hero">
-          <img
-            class="hero-image"
-            src="/img/juegos/bio-lab-defense.webp"
-            alt=""
-            width="640"
-            height="360"
-          />
           <div class="hero-body">
             <h1 id="title">Bio-Lab <span>Defense</span></h1>
             <p>
@@ -63,14 +56,20 @@
               >
                 Retomar partida
               </button>
+            </div>
+          </div>
+          <figure class="specimen">
+            <canvas id="specimen-art" width="720" height="520" aria-hidden="true"></canvas>
+            <figcaption>Bacteriófago T4</figcaption>
+          </figure>
+          <div class="home-progress" id="home-progress"></div>
+        </div>
+        <nav class="home-tools" aria-label="Modos y recursos">
               <button type="button" id="challenge-button">Reto de hoy</button>
               <button type="button" id="operations-button" disabled>Nanobots y contratos</button>
               <button type="button" id="home-codex" aria-haspopup="dialog">Enciclopedia</button>
               <button type="button" id="daily-button">Suministro diario</button>
-            </div>
-          </div>
-          <div class="home-progress" id="home-progress"></div>
-        </div>
+        </nav>
         <output id="home-status" role="status"></output>
       </section>
       <section id="campaign" hidden aria-labelledby="campaign-title">
@@ -415,6 +414,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=28"></script>
+    <script type="module" src="./game.js?v=29"></script>
   </body>
 </html>

@@ -1397,3 +1397,154 @@ dialog p {
 #mission-targets p { margin: 0.4rem 0; }
 #briefing-best { color: #ffda94; }
 #sector-filter-result { color: var(--muted); }
+
+/* Laboratory menus share the etched grid and indicator colors of the arena. */
+#home, #campaign, #briefing, #operations, dialog {
+  --glass: #0c222a;
+  --seam: #35565b;
+  --phosphor: #91ead0;
+  --instrument-font: ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+.hero {
+  grid-template-columns: 1.1fr 1fr;
+  align-items: center;
+  min-height: 380px;
+  border-radius: 16px;
+  border-color: #42706c;
+  background: radial-gradient(ellipse at 85% 55%, #1b4244, transparent 63%), #0a1b24;
+}
+.hero::before, .chapter, .mission-preview, .operation-card {
+  background-image: linear-gradient(#74d5cc0b 1px, transparent 1px),
+    linear-gradient(90deg, #74d5cc0b 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+.hero-body { padding: clamp(1.25rem, 4vw, 3.5rem); }
+.hero h1 {
+  font-size: clamp(3.6rem, 7vw, 6.2rem);
+  line-height: 0.92;
+  letter-spacing: -0.065em;
+  font-weight: 850;
+}
+.hero h1 span { display: block; color: var(--phosphor); }
+.hero p { margin-top: 1.1rem; line-height: 1.55; }
+#home button.primary, #campaign button.primary, #briefing button.primary, dialog button.primary {
+  color: #082326;
+  background: #96ead0;
+  border-color: #c2f5df;
+  box-shadow: inset 0 -2px #67b69e;
+}
+#home button.primary:hover, #campaign button.primary:hover, #briefing button.primary:hover, dialog button.primary:hover {
+  background: #bcf7e4;
+}
+#campaign-button::after { content: " →"; margin-left: 1em; }
+.specimen { margin: 2.8rem 1rem 1.8rem; min-width: 0; text-align: center; }
+#specimen-art, .chapter canvas.sector-route {
+  border: 0;
+  background: transparent;
+  cursor: inherit;
+  pointer-events: none;
+}
+#specimen-art { max-width: 470px; margin: auto; }
+.specimen figcaption, .home-progress, .level small, .mission-chapter, #briefing-waves {
+  font: 600 0.78rem/1.4 var(--instrument-font);
+  letter-spacing: 0.025em;
+}
+.specimen figcaption { display: inline-block; color: #c5dedd; border-bottom: 1px solid #598785; }
+.home-progress { color: #beedda; background: #122b30; border-color: var(--seam); }
+.home-tools {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 0.65rem;
+  margin-top: 0.75rem;
+}
+.home-tools button {
+  display: flex;
+  align-items: center;
+  text-align: left;
+  gap: 0.65rem;
+  padding: 0.85rem;
+  border-radius: 8px;
+  border-color: var(--seam);
+  background: linear-gradient(135deg, #193139, #10202c);
+}
+.home-tools button::before {
+  content: "";
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--indicator, #91ead0);
+  border-radius: 3px;
+}
+#challenge-button::before { transform: rotate(45deg); --indicator: #ffce88; }
+#operations-button::before { border-radius: 50%; box-shadow: inset 0 0 0 2px #142a32, inset 0 0 0 5px #91ead0; }
+#home-codex::before { width: 15px; --indicator: #adc7ff; border-inline-width: 4px; }
+#daily-button::before { --indicator: #d6abdc; border-top-width: 5px; }
+.chapter-index, .campaign-resume, .mission-brief, dialog, .operation-card {
+  border-color: var(--seam);
+  background-color: var(--glass);
+}
+.chapter-index {
+  border: 1px solid var(--seam);
+  border-radius: 9px;
+  padding: 0.65rem;
+}
+.chapter-index label, .codex-entry-type { color: var(--phosphor); font: 600 0.8rem var(--instrument-font); }
+#campaign select, dialog select {
+  color: var(--text);
+  border: 1px solid #4c6e71;
+  border-radius: 6px;
+  padding: 0.45rem 0.6rem;
+  background-color: #10272e;
+  font: inherit;
+  font-size: 0.88rem;
+}
+.campaign-resume, .mission-brief {
+  background-image: linear-gradient(120deg, #19383d, #0b1b26 78%);
+}
+.chapter { background-color: #10212a; border-left-color: var(--chapter); }
+.chapter .level {
+  align-content: start;
+  gap: 0.28rem;
+  border-radius: 7px;
+  border-color: #314851;
+  background: #101e29;
+}
+.chapter .level:disabled { opacity: 0.78; }
+.chapter canvas.sector-route { width: min(100%, 132px); height: 40px; object-fit: contain; object-position: left; }
+.chapter .level-current {
+  border-color: var(--chapter);
+  box-shadow: inset 0 3px var(--chapter);
+  background: #172e36;
+}
+.chapter .level:hover:enabled { background: #1b333b; border-color: var(--chapter); }
+.mission-preview { padding: 0.8rem; border: 1px solid var(--seam); border-radius: 9px; background-color: #0d2029; }
+.mission-medal { padding: 0.65rem 0.85rem; border-left: 2px solid #d6a76c; background: #242924; }
+.operation-card { background-color: var(--glass); border-top-color: var(--operation-color, var(--phosphor)); }
+dialog { border-top: 3px solid var(--phosphor); border-radius: 12px; box-shadow: 0 22px 75px #01070bc9; }
+dialog::backdrop { background: #031016cf; }
+@media (max-width: 760px) {
+  .hero { grid-template-columns: 1.2fr 0.8fr; min-height: 0; padding-top: 2.1rem; }
+  .hero-body { padding: 1rem 0 1.4rem 1rem; }
+  .hero h1 { font-size: clamp(2.25rem, 9vw, 4rem); }
+  .hero p { font-size: 0.88rem; margin-top: 0.8rem; }
+  .specimen { margin: 0 -0.25rem 0 0; }
+  .specimen figcaption { font-size: 0.65rem; }
+  .home-tools { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0.4rem; }
+  .home-tools button { font-size: 0.82rem; padding: 0.65rem; }
+  .chapter-index { display: grid; grid-template-columns: auto minmax(0,1fr); }
+  .chapter-index select { width: 100%; }
+  .chapter-index button { grid-column: 2; }
+  .mission-preview { padding: 0.5rem; }
+}
+@media (max-width: 480px) {
+  .hero {
+    grid-template-columns: minmax(0, 1fr) minmax(100px, 0.8fr);
+    row-gap: 0.65rem;
+    padding: 3rem 1rem 1.1rem;
+  }
+  .hero-body { display: contents; }
+  .hero h1 { grid-area: 1 / 1; }
+  .specimen { grid-area: 1 / 2; margin: 0; }
+  .hero-body > p { grid-area: 2 / 1 / 3 / -1; margin: 0; }
+  .hero-body .actions { grid-area: 3 / 1 / 4 / -1; margin-top: 0.1rem; }
+}
