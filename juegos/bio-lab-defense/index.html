@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=19" />
+    <link rel="stylesheet" href="./styles.css?v=20" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -302,6 +302,7 @@
               ></ul>
               <ol id="wave-timeline" class="wave-timeline" aria-label="Orden de llegada"></ol>
               <span id="wave-preview-tip"></span>
+              <button type="button" id="run-drill" aria-haspopup="dialog">Ensayar oleada</button>
             </div>
             <p id="wave-debrief" class="wave-debrief" hidden></p>
             <section id="gate-panel" class="wave-preview gate-panel" aria-labelledby="gate-title" hidden>
@@ -333,6 +334,16 @@
       </section>
       <p id="account-status" role="status">Comprobando cuenta…</p>
     </main>
+    <dialog id="drill" aria-labelledby="drill-title">
+      <h2 id="drill-title">Ensayo de oleada</h2>
+      <p>Prueba tu defensa actual en combate automático. Puedes volver, mover torres y repetir el ensayo gratis.</p>
+      <canvas id="drill-map" width="900" height="540" aria-label="Simulación de la próxima oleada" role="img"></canvas>
+      <strong role="status"></strong>
+      <ul aria-label="Fugas por entrada"></ul>
+      <p class="drill-gap" hidden></p>
+      <p class="drill-comparison" hidden></p>
+      <form method="dialog"><button autofocus>Volver a preparar</button></form>
+    </dialog>
     <dialog id="fire-orders" aria-labelledby="fire-heading">
       <h2 id="fire-heading">Concentrar fuego</h2>
       <p>Toca una amenaza en el plano o elígela en la lista. Las torres a su alcance la atacarán primero.</p>
@@ -379,6 +390,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=23"></script>
+    <script type="module" src="./game.js?v=24"></script>
   </body>
 </html>

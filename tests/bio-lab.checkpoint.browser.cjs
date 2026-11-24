@@ -31,7 +31,18 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8791";
         position: { x: ((box.width - 2) * x) / 900, y: ((box.height - 2) * y) / 540 },
       });
     }
+    const drill = page.getByRole("dialog", { name: "Ensayo de la oleada 1" });
+    const beforeDrill = await page.locator("#atp").textContent();
+    await page.locator("#run-drill").tap();
+    await drill.getByRole("status").getByText(/Núcleo .* % →/).waitFor();
+    await drill.getByText(/Entrada A · .*fugas?/).waitFor();
+    await drill.getByRole("button", { name: "Volver a preparar" }).tap();
+    assert.equal(await page.locator("#atp").textContent(), beforeDrill);
+    assert.equal(await page.locator("#wave").textContent(), "0/4");
     await tapBoard();
+    await page.locator("#run-drill").tap();
+    await drill.getByText(/Ensayo anterior/).waitFor();
+    await drill.getByRole("button", { name: "Volver a preparar" }).tap();
     await tapBoard();
     assert.equal(await page.locator("#near-board-selection #selection").isVisible(), true);
     await page.getByText(/Daño 14 → 20 · Alcance 120 → 133/).waitFor();

@@ -374,3 +374,23 @@ test("focus fire overrides route priority in range and releases a defeated targe
   assert.equal(match.focusTarget, null);
   assert.equal(match.focusFire(back), false);
 });
+
+test("a rehearsal reproduces an unattended wave without changing the prepared defense", async () => {
+  const { startDrill } = await import("../juegos/bio-lab-defense/drill.js");
+  for (const level of [1, 2, 11, 19, 22, 38]) {
+    const match = new Match(level, null, { heroId: "iris" });
+    if (level === 22) match.wave = match.maxWaves - 1;
+    if (match.routeEvent) match.wave = match.routeEvent.wave - 1;
+    match.preview = match.planWave(match.wave + 1);
+    const pad = match.firePads[0];
+    if (pad) match.place(BLUEPRINTS[0], pad.x, pad.y);
+    const before = JSON.stringify(match);
+    const sim = startDrill(match);
+    while (sim.state === "wave") sim.tick();
+    assert.equal(JSON.stringify(match), before);
+    match.startWave();
+    while (match.state === "wave") match.tick();
+    assert.deepEqual([sim.hp, sim.kills, sim.state, sim.waveLeaks], [match.hp, match.kills, match.state, match.waveLeaks]);
+  }
+  assert.equal(startDrill(new Match(20)), null);
+});

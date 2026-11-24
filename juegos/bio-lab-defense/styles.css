@@ -1371,3 +1371,10 @@ dialog p {
   font-size: 0.8rem;
 }
 #focused-hp { flex: 1 1 4rem; min-width: 0; accent-color: #e6bf6e; }
+
+#run-drill { margin-top: 0.55rem; }
+#drill { width: min(660px, calc(100% - 1rem)); }
+#drill h2 { margin-top: 0; }
+#drill-map { display: block; width: 100%; height: auto; margin-bottom: 0.6rem; }
+#drill [role="status"] { color: var(--cyan); }
+#drill ul { padding-inline-start: 1.25rem; }

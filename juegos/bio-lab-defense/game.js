@@ -13,6 +13,7 @@ import {
   dailySetup,
 } from "./engine.js?v=17";
 import { routeCoverage } from "./coverage.js?v=1";
+import { attachDrill } from "./drill.js?v=1";
 import { Board } from "./board.js?v=22";
 import { towerIcon, heroIcon } from "./art.js?v=4";
 import { createCodex } from "./codex.js?v=4";
@@ -32,6 +33,8 @@ const board = new Board(canvas);
 const briefingBoard = new Board($("briefing-map"));
 const lossBoard = new Board($("loss-map"));
 const modal = $("modal");
+const drill = $("drill");
+$("run-drill").onclick = attachDrill(drill, new Board($("drill-map")), () => match);
 const fireOrders = $("fire-orders");
 const fireMap = $("fire-map");
 const fireBoard = new Board(fireMap);
@@ -1102,6 +1105,7 @@ function renderHUD() {
   renderBoss(secondBoss, "-b");
   renderGate(waiting);
   $("wave-preview").hidden = !waiting;
+  $("run-drill").disabled = match.power?.first === null || adBusy;
   if (waiting) renderWavePreview(match.preview);
   const split = match.routes.length > 1 && (waiting || match.state === "wave");
   $("lane-brief").hidden = !split;
@@ -1209,7 +1213,7 @@ function touchDraft(point, dragging) {
 function frame(now) {
   const elapsed = Math.min(100, now - lastTick);
   lastTick = now;
-  if (screen === "field" && !modal.open && !codex.open && !fireOrders.open && !document.hidden) {
+  if (screen === "field" && !modal.open && !codex.open && !fireOrders.open && !drill.open && !document.hidden) {
     accumulator = tacticalPaused ? 0 : accumulator + elapsed;
     while (accumulator >= 1000 / 60) {
       for (let i = 0; i < speed; i++) match.tick();
@@ -1692,7 +1696,7 @@ document.addEventListener("keydown", (event) => {
   if (
     screen !== "field" ||
     modal.open ||
-    codex.open || fireOrders.open ||
+    codex.open || fireOrders.open || drill.open ||
     event.defaultPrevented ||
     event.repeat ||
     event.ctrlKey ||
