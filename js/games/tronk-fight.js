@@ -2178,7 +2178,7 @@ if (window.ResizeObserver) new ResizeObserver(() => resize()).observe(root);
 const app = {
   screen: "title", match: null, demo: null, paused: false,
   sel: { mode: "cpu", step: "p1", p1: store.get("p1", 0), cpu: store.get("cpu", 1), cursor: 0, diff: store.get("diff", "normal"), stage: store.get("stage", 0) },
-  touchOn: isTouch, overShown: false
+  touchOn: store.get("touch", isTouch), overShown: false
 };
 Settings.blood = store.get("blood", true);
 Settings.music = store.get("music", true);
@@ -2391,7 +2391,7 @@ function startFight() {
   const s = app.sel;
   app.match = newMatch(s.p1, s.cpu, s.stage, "play", s.diff, s.mode === "pvp");
   app.paused = false; app.overShown = false;
-  touch.reset();
+  resetInputs();
   $("#tf-touch").classList.toggle(C("duo"), s.mode === "pvp");
   Sound.music.start(s.stage);
   show("fight");
@@ -2400,6 +2400,7 @@ function startFight() {
 /* ---------- pausa y resultado ---------- */
 function pause() {
   if (app.screen !== "fight" || !app.match || app.match.phase === "over") return;
+  resetInputs();
   app.paused = true; Sound.music.pause(true); show("scr-pause");
 }
 function resume() { app.paused = false; Sound.music.pause(false); show("fight"); }
@@ -2423,7 +2424,11 @@ for (const [id, key] of [["#tf-opt-music", "music"], ["#tf-opt-blood", "blood"]]
   });
 }
 optTouch.checked = app.touchOn;
-optTouch.addEventListener("change", () => { app.touchOn = optTouch.checked; resize(); });
+optTouch.addEventListener("change", () => {
+  app.touchOn = optTouch.checked;
+  store.set("touch", app.touchOn);
+  resize();
+});
 if (!document.fullscreenEnabled) $("#tf-opt-fs-wrap").hidden = true;
 optFs.addEventListener("change", () => {
   try { if (optFs.checked) modal.querySelector(".tronkfight-window").requestFullscreen(); else if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {}
@@ -2478,7 +2483,11 @@ const KEYS_P2 = {
   Numpad1: "attack", Numpad2: "block", Numpad3: "dodge", Numpad0: "special"
 };
 const KEYS_SOLO = { ...KEYS_P1, ...KEYS_P2, Space: "up", KeyZ: "attack", KeyX: "block", KeyC: "dodge", KeyV: "special" };
-const keys = [{}, {}];
+const heldKeys = new Map();
+function resetInputs() {
+  heldKeys.clear();
+  touch.reset();
+}
 function keyTarget(code) {
   if (app.match && app.match.pvp) {
     if (KEYS_P1[code]) return [0, KEYS_P1[code]];
@@ -2491,6 +2500,7 @@ window.addEventListener("keydown", e => {
   if (modal.classList.contains("hidden")) return;
   if (e.code === "Escape" || e.code === "KeyP") {
     e.preventDefault();
+    if (e.repeat) return;
     if (app.screen === "fight") pause(); else if (app.screen === "scr-pause") resume();
     else if (app.screen === "scr-help") $("#tf-btn-help-close").click();
     else if (e.code === "Escape" && app.screen === "scr-title") closeGame();
@@ -2499,7 +2509,10 @@ window.addEventListener("keydown", e => {
   }
   if (app.screen === "fight") {
     const k = keyTarget(e.code);
-    if (k) { keys[k[0]][k[1]] = true; e.preventDefault(); }
+    if (k) {
+      e.preventDefault();
+      if (!e.repeat) heldKeys.set(e.code, k);
+    }
     return;
   }
   if (app.screen === "scr-select") {
@@ -2511,14 +2524,14 @@ window.addEventListener("keydown", e => {
     if (e.code === "ArrowLeft" || e.code === "KeyA") { setStage((app.sel.stage + 4) % 5); e.preventDefault(); }
   }
 });
-window.addEventListener("keyup", e => {
-  for (const map of [KEYS_SOLO, KEYS_P1, KEYS_P2]) if (map[e.code]) { keys[0][map[e.code]] = false; keys[1][map[e.code]] = false; }
+window.addEventListener("keyup", e => heldKeys.delete(e.code));
+function pauseOnFocusLoss() {
+  if (!modal.classList.contains("hidden")) pause();
+}
+window.addEventListener("blur", pauseOnFocusLoss);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) pauseOnFocusLoss();
 });
-window.addEventListener("blur", () => { keys[0] = {}; keys[1] = {}; touch.reset(); });
-// con el juego abierto, las flechas y el espacio no mueven la página
-window.addEventListener("keydown", e => {
-  if (!modal.classList.contains("hidden") && ["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code) && e.target.tagName !== "INPUT") e.preventDefault();
-}, true);
 
 /* ---------- controles táctiles ----------
    Un mando por jugador. Contra el bot solo se ve el del J1; con dos
@@ -2526,8 +2539,10 @@ window.addEventListener("keydown", e => {
 const touch = {
   pads: [{ state: {}, stickId: null }, { state: {}, stickId: null }],
   reset() {
-    for (const p of this.pads) { p.state = {}; p.stickId = null; }
-    root.querySelectorAll("." + C("knob")).forEach(k => { k.style.transform = ""; });
+    for (const p of this.pads) {
+      p.resetStick();
+      p.state = {};
+    }
     root.querySelectorAll("." + C("tb")).forEach(b => b.classList.remove(C("on")));
   }
 };
@@ -2545,7 +2560,14 @@ root.querySelectorAll("." + C("pad")).forEach(pad => {
     T.state.left = dx < -0.3; T.state.right = dx > 0.3;
     T.state.up = dy < -0.55; T.state.down = dy > 0.6;
   };
-  const begin = (e, el) => { e.preventDefault(); Sound.init(); T.stickId = e.pointerId; el.setPointerCapture(e.pointerId); move(e); };
+  const begin = (e, el) => {
+    if (T.stickId !== null) return;
+    e.preventDefault();
+    Sound.init();
+    T.stickId = e.pointerId;
+    el.setPointerCapture(e.pointerId);
+    move(e);
+  };
   stick.addEventListener("pointerdown", e => begin(e, stick));
   // Joystick flotante: si tocas en tu lado fuera del círculo, el joystick aparece bajo el dedo
   zone.addEventListener("pointerdown", e => {
@@ -2560,17 +2582,31 @@ root.querySelectorAll("." + C("pad")).forEach(pad => {
   });
   const moveAny = e => { if (e.pointerId === T.stickId) move(e); };
   stick.addEventListener("pointermove", moveAny); zone.addEventListener("pointermove", moveAny);
-  const end = e => {
-    if (e.pointerId !== T.stickId) return;
-    T.stickId = null; knob.style.transform = ""; T.state.left = T.state.right = T.state.up = T.state.down = false;
-    if (home) { stick.style.left = home.left; stick.style.top = home.top; home = null; stick.classList.remove(C("floating")); }
+  T.resetStick = () => {
+    T.stickId = null;
+    knob.style.transform = "";
+    T.state.left = T.state.right = T.state.up = T.state.down = false;
+    if (home) {
+      stick.style.left = home.left;
+      stick.style.top = home.top;
+      home = null;
+      stick.classList.remove(C("floating"));
+    }
   };
-  for (const el of [stick, zone]) { el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end); }
+  const end = e => {
+    if (e.pointerId === T.stickId) T.resetStick();
+  };
+  for (const el of [stick, zone]) {
+    el.addEventListener("pointerup", end);
+    el.addEventListener("pointercancel", end);
+    el.addEventListener("lostpointercapture", end);
+  }
   pad.querySelectorAll("." + C("tb")).forEach(b => {
     const k = b.dataset.k;
     b.addEventListener("pointerdown", e => { e.preventDefault(); Sound.init(); b.setPointerCapture(e.pointerId); T.state[k] = true; b.classList.add(C("on")); if (navigator.vibrate) navigator.vibrate(8); });
     const up = () => { T.state[k] = false; b.classList.remove(C("on")); };
     b.addEventListener("pointerup", up); b.addEventListener("pointercancel", up);
+    b.addEventListener("lostpointercapture", up);
     b.addEventListener("contextmenu", e => e.preventDefault());
   });
 });
@@ -2596,11 +2632,16 @@ function loop(now) {
     if (app.screen === "fight" && app.match && !app.paused) {
       const M = app.match;
       for (let p = 0; p < (M.pvp ? 2 : 1); p++) {
-        M.f[p].input = { ...keys[p] };
-        if (app.touchOn) for (const k in touch.pads[p].state) if (touch.pads[p].state[k]) M.f[p].input[k] = true;
+        M.f[p].input = app.touchOn ? { ...touch.pads[p].state } : {};
       }
+      for (const [player, action] of heldKeys.values()) M.f[player].input[action] = true;
       step(M);
-      if (M.phase === "over" && !app.overShown && M.phaseT > 0) { app.overShown = true; setTimeout(() => showResult(M), 900); }
+      if (M.phase === "over" && !app.overShown && M.phaseT > 0) {
+        app.overShown = true;
+        setTimeout(() => {
+          if (app.match === M && app.screen === "fight") showResult(M);
+        }, 900);
+      }
     } else if (!app.match || app.screen === "scr-title" || app.screen === "scr-help" && !app.paused) {
       if (!app.demo || app.demo.phase === "over") newDemo();
       step(app.demo);
@@ -2636,8 +2677,7 @@ function closeGame() {
   running = false; cancelAnimationFrame(raf);
   Sound.music.stop();
   app.match = null; app.paused = false;
-  keys[0] = {}; keys[1] = {};
-  touch.reset();
+  resetInputs();
   if (document.fullscreenElement) { try { document.exitFullscreen(); } catch (e) {} }
   optFs.checked = false;
   modal.classList.add("hidden");

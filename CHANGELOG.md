@@ -3,6 +3,14 @@
 Historia de la web de TronkStudios agrupada por versiones. Cada versión
 resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 
+## Próxima versión
+
+- Tronk Fight pausa el combate al cambiar de ventana, restablece los mandos al
+  volver y recuerda la preferencia de controles táctiles. Las teclas equivalentes
+  funcionan de forma independiente y Espacio activa los botones de los menús.
+- Tronk Gravity Runners conserva el modo, el reto y la partida cuando se
+  interrumpe la cuenta atrás. Al volver, el jugador puede reanudar desde la pausa.
+
 ## [v6] · Octubre de 2026 · La nueva web de TronkStudios
 
 La mayor actualización de la web: portada nueva, perfiles, comunidad con panel

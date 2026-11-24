@@ -660,6 +660,7 @@
          ========================================== -->
       <div
         id="modal-pause"
+        role="dialog" aria-modal="true" aria-labelledby="pause-title"
         class="hidden fixed inset-0 bg-void/85 backdrop-blur-md z-40 flex items-center justify-center p-4 pointer-auto"
       >
         <div
@@ -671,7 +672,7 @@
             <i class="fa-solid fa-pause"></i>
           </div>
           <div>
-            <h2 class="text-2xl font-extrabold text-coldwhite">
+            <h2 id="pause-title" class="text-2xl font-extrabold text-coldwhite">
               SIMULACIÓN EN PAUSA
             </h2>
             <p class="text-xs font-mono text-coldwhite/60 mt-1">
@@ -1369,6 +1370,6 @@
     <!-- =========================================================================
        MODULAR GAME ENGINE IMPLEMENTATION
        ========================================================================= -->
-    <script defer id="engine-script" src="./game.222815d8b3be.js"></script>
+    <script defer id="engine-script" src="./game.ce40292b65db.js"></script>
   </body>
 </html>
