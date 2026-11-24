@@ -7,10 +7,10 @@ import { normalize } from "../juegos/bio-lab-defense/profile.js";
 
 test("legacy completion opens the next chapter with expanded profile slots", () => {
   const profile = normalize({ unlockedLevel: 10, stars: Array(10).fill(2) });
-  assert.equal(MISSIONS.length, 22);
+  assert.equal(MISSIONS.length, 38);
   assert.equal(profile.unlockedLevel, 11);
-  assert.equal(profile.stars.length, 22);
-  assert.equal(profile.medals.length, 22);
+  assert.equal(profile.stars.length, 38);
+  assert.equal(profile.medals.length, 38);
   assert.deepEqual(profile.stars.slice(0, 10), Array(10).fill(2));
 });
 
@@ -227,4 +227,170 @@ test("touch snapping only suggests nearby positions that pass placement checks",
   assert.ok(point);
   assert.equal(check(point.x, point.y), "");
   assert.ok(Math.hypot(point.x - 190, point.y - 200) <= 30);
+});
+
+test("three sectors disclose and apply a new B route at the announced wave", () => {
+  for (const [level, wave] of [[11, 3], [13, 4], [19, 4]]) {
+    const match = new Match(level);
+    const original = match.routes[1];
+    const alternate = match.routeEvent.alternate;
+    assert.notDeepEqual(alternate.points, original.points);
+    assert.deepEqual(alternate.points.at(0), original.points.at(0));
+    assert.deepEqual(alternate.points.at(-1), original.points.at(-1));
+    assert.equal(match.routeEventStatus, null);
+    match.wave = wave - 2;
+    assert.equal(match.routeEventStatus, "warning");
+    assert.equal(match.routes[1], original);
+    match.wave++;
+    match.preview = match.planWave(wave);
+    assert.equal(match.startWave(), true);
+    assert.equal(match.routes[1], alternate);
+    assert.equal(match.routeEventStatus, "active");
+    const { blackout } = match.routeEvent;
+    if (level === 19) {
+      assert.equal(match.towerOffline(blackout), true);
+      assert.equal(match.towerOffline({ x: 876, y: 516 }), false);
+      match.state = "build";
+      assert.equal(match.towerOffline(blackout), false);
+    }
+    match.queue = [match.planWave(wave).order.find((entry) => entry.lane === 1)];
+    match.spawn();
+    assert.equal(match.enemies.at(-1).path, alternate);
+  }
+  assert.equal(new Match(11, dailySetup("2026-11-23")).routeEvent, undefined);
+});
+
+test("escorts protect their lane and scout acceleration stops when hit", () => {
+  const match = new Match(11);
+  const preview = match.planWave(2);
+  const escort = preview.order.find((entry) => entry.variant === "escort");
+  const scout = preview.order.find((entry) => entry.variant === "scout");
+  const other = preview.order.find((entry) => entry.lane === escort.lane && !entry.variant);
+  assert.notEqual(escort.lane, scout.lane);
+  match.preview = preview;
+  match.startWave();
+  match.queue = [escort, other, scout];
+  match.spawn();
+  match.spawn();
+  match.spawn();
+  const [guard, ally, runner] = match.enemies;
+  ally.shield = 0;
+  ally.armor = 0;
+  match.tick();
+  const hp = ally.hp;
+  match.damage(ally, 20, "#fff");
+  assert.equal(hp - ally.hp, 11);
+  match.damage(guard, guard.hp * 5, "#fff", { piercing: true });
+  match.damage(ally, 20, "#fff");
+  assert.equal(hp - ally.hp, 31);
+
+  match.time = runner.scoutReady;
+  const fastX = runner.x;
+  match.tick();
+  assert.ok(Math.abs(runner.x - fastX - runner.speed * 1.35) < 1e-6);
+  match.damage(runner, 1, "#fff");
+  const regularX = runner.x;
+  match.tick();
+  assert.ok(Math.abs(runner.x - regularX - runner.speed) < 1e-6);
+});
+
+test("the conductive line hits a crossing enemy and reconnects after selling its partner", () => {
+  const match = new Match(3);
+  const coil = { ...BLUEPRINTS[5], x: 100, y: 100, rank: 3, cooldown: 99,
+    branch: { link: true }, targeting: "first", inflicted: 0, defeated: 0, paid: 100 };
+  const near = { ...BLUEPRINTS[0], x: 257, y: 100, rank: 1, cooldown: 99, paid: 50 };
+  const far = { ...BLUEPRINTS[0], x: 260, y: 152, rank: 1, cooldown: 99, paid: 50 };
+  match.towers.push(coil, near, far);
+  match.startWave();
+  match.spawn();
+  const enemy = match.enemies.at(-1);
+  Object.assign(enemy, { x: 168, y: 100, hp: 100, shield: 0, armor: 0, stun: 3 });
+  assert.equal(match.linkPartner(coil), near);
+  match.tick();
+  const hp = 100 - Math.round(coil.damage * 0.55);
+  assert.equal(enemy.hp, hp);
+  match.tick();
+  assert.equal(enemy.hp, hp);
+  match.sell(near);
+  assert.equal(match.linkPartner(coil), far);
+});
+
+test("the loss report distinguishes a repeated coverage gap from a brief uncovered moment", () => {
+  const match = new Match(11);
+  match.startWave();
+  match.spawn();
+  const enemy = match.enemies.at(-1);
+  enemy.coverageGaps = [, 6, 2];
+  match.recordLeak(enemy, 10);
+  match.recordLeak({ ...enemy, lane: 1 - enemy.lane, coverageGaps: [, 2] }, 10);
+  assert.deepEqual(match.waveLeaks.lanes, [1, 1]);
+  assert.deepEqual([...match.waveLeaks.entries.values()].map(({ uncovered }) => uncovered), [1, 0]);
+  assert.deepEqual([...match.waveLeaks.gaps.values()], [{ lane: enemy.lane, waypoint: 1, count: 1 }]);
+});
+
+test("expansion sectors have two buildable fire pads and preserve previous completions", () => {
+  assert.equal(normalize({ unlockedLevel: 22, stars: Array(22).fill(2) }).unlockedLevel, 23);
+  for (let level = 23; level <= MISSIONS.length; level++) {
+    const match = new Match(level);
+    assert.equal(match.firePads.length, 2);
+    for (const pad of match.firePads) {
+      const tower = match.place(BLUEPRINTS[0], pad.x, pad.y);
+      assert.ok(tower);
+      assert.equal(match.padBonus(tower), 1.25);
+      assert.equal(match.padBonus({ ...tower, type: "eco" }), 1);
+      assert.equal(match.padBonus({ ...tower, x: -100 }), 1);
+    }
+  }
+});
+
+test("coverage clips at endpoints and counts both arms of a bend", async () => {
+  const { routeCoverage } = await import("../juegos/bio-lab-defense/coverage.js");
+  const route = { points: [[0, 0], [100, 0], [100, 100]], remaining: [200, 100, 0] };
+  assert.equal(routeCoverage(route, { x: 100, y: 0, range: 30 }), 30);
+  assert.equal(routeCoverage(route, { x: 0, y: 0, range: 30 }), 15);
+  assert.equal(routeCoverage(route, { x: 30, y: -30, range: 30 }), 0);
+  assert.equal(routeCoverage(route, { x: 0, y: 0, range: 200 }), 100);
+});
+
+test("focus fire overrides route priority in range and releases a defeated target", () => {
+  const match = new Match(1);
+  const tower = match.place(BLUEPRINTS[0], 145, 171);
+  assert.equal(match.focusFire({}), false);
+  match.startWave();
+  match.spawn();
+  match.spawn();
+  const [front, back] = match.enemies;
+  Object.assign(front, { x: 220, y: 205, wp: 2 });
+  Object.assign(back, { x: 220, y: 182, wp: 2 });
+  assert.equal(match.focusFire(back), true);
+  match.tick();
+  assert.equal(match.shots[0].target, back);
+  Object.assign(back, { x: 510, y: 182 });
+  tower.cooldown = 0;
+  match.tick();
+  assert.equal(match.shots.at(-1).target, front);
+  match.damage(back, 10000, "#fff");
+  match.tick();
+  assert.equal(match.focusTarget, null);
+  assert.equal(match.focusFire(back), false);
+});
+
+test("a rehearsal reproduces an unattended wave without changing the prepared defense", async () => {
+  const { startDrill } = await import("../juegos/bio-lab-defense/drill.js");
+  for (const level of [1, 2, 11, 19, 22, 38]) {
+    const match = new Match(level, null, { heroId: "iris" });
+    if (level === 22) match.wave = match.maxWaves - 1;
+    if (match.routeEvent) match.wave = match.routeEvent.wave - 1;
+    match.preview = match.planWave(match.wave + 1);
+    const pad = match.firePads[0];
+    if (pad) match.place(BLUEPRINTS[0], pad.x, pad.y);
+    const before = JSON.stringify(match);
+    const sim = startDrill(match);
+    while (sim.state === "wave") sim.tick();
+    assert.equal(JSON.stringify(match), before);
+    match.startWave();
+    while (match.state === "wave") match.tick();
+    assert.deepEqual([sim.hp, sim.kills, sim.state, sim.waveLeaks], [match.hp, match.kills, match.state, match.waveLeaks]);
+  }
+  assert.equal(startDrill(new Match(20)), null);
 });

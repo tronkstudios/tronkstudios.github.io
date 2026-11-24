@@ -1,4 +1,4 @@
-import { BLUEPRINTS, PATHOGEN_TYPES, BOSS_CATALOG, reactorOutput, specializations, upgradeCost } from "./engine.js?v=14";
+import { BLUEPRINTS, PATHOGEN_TYPES, BOSS_CATALOG, reactorOutput, specializations, upgradeCost } from "./engine.js?v=17";
 import { drawEnemyModel, drawTurretModel } from "./art.js?v=4";
 
 const towerAdvice = {
@@ -21,9 +21,9 @@ const enemyAdvice = {
   rod: ["Bacteria", "Más resistente y lento que el neumococo. Fagocito puede aprovechar su paso por curvas cortas."],
   spiral: ["Bacteria", "Avanza deprisa y aparece como refuerzo de varios jefes. Cubre las entradas con Crio-Gel."],
   phage: ["Virus", "Combina velocidad media y más vida que los primeros enemigos. Acumula cobertura en las curvas."],
-  cluster: ["Bacteria", "Avanza despacio. Si llega con blindaje como refuerzo de Viruela, usa golpes fuertes o Perforante."],
+  cluster: ["Bacteria", "La variante Escolta protege a los enemigos cercanos de su carril con blindaje adicional. Usa la prioridad Escoltas o torres Perforantes."],
   lactobacillus: ["Bacteria", "Tiene mucha vida y avanza despacio. Aplica Ácido Lítico al inicio del recorrido."],
-  hex: ["Virus", "El enemigo común más rápido. Coloca Crio-Gel o Imán Químico cerca de su entrada."],
+  hex: ["Virus", "La variante Explorador acelera tras dos segundos sin recibir daño. Coloca torres con buena cadencia a lo largo del recorrido."],
   rhinovirus: ["Virus", "Tiene buena resistencia sin perder movilidad. Combina daño sostenido y ralentización."],
   "e-coli": ["Bacteria", "Es el enemigo común con más vida base. Enfócalo con CRISPR-Beam o varias torres en el mismo tramo."],
   norovirus: ["Virus", "Se incorpora al tramo final de la campaña. Frena su avance antes de los últimos cruces."],
