@@ -556,6 +556,12 @@ export class Board {
     const validSpot = ghost && !(movingTower
       ? match.checkRelocation(movingTower, cursor.x, cursor.y)
       : match.checkPlacement(blueprint, cursor.x, cursor.y));
+    if (movingTower?.range && validSpot) {
+      ctx.save();
+      ctx.setLineDash([7, 6]);
+      highlightCoverage(ctx, movingTower, match.routes, movingTower.range, "#ffac91");
+      ctx.restore();
+    }
     if (movingTower && ghost) {
       ctx.save();
       ctx.setLineDash([8, 7]);
@@ -605,7 +611,7 @@ export class Board {
         ctx.restore();
       }
     }
-    if (upgradePreview) {
+    if (upgradePreview?.range) {
       const { tower, range, branch } = upgradePreview;
       circle(ctx, tower.x, tower.y, range, null, "#ffd99cba", 2);
       highlightCoverage(ctx, tower, match.routes, range, "#ffd99c", tower.range);

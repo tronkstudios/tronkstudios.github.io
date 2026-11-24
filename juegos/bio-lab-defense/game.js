@@ -13,7 +13,7 @@ import {
   dailySetup,
 } from "./engine.js?v=16";
 import { routeCoverage } from "./coverage.js?v=1";
-import { Board } from "./board.js?v=20";
+import { Board } from "./board.js?v=21";
 import { towerIcon, heroIcon } from "./art.js?v=4";
 import { createCodex } from "./codex.js?v=3";
 import { Profile, dayKey } from "./profile.js?v=9";
@@ -755,11 +755,12 @@ function renderSelection() {
 
 function upgradeRow(tower, purchase, branch) {
   const range = upgradeStats(tower, branch).range;
-  if (range <= tower.range) return purchase;
+  const economy = tower.type === "eco";
   const row = document.createElement("div");
   row.className = "upgrade-row";
-  const preview = { tower, range, branch };
-  const toggle = makeButton("Ver alcance", () => {
+  const preview = { tower, range, branch, candidate: { ...tower, ...upgradeStats(tower, branch), branch, rank: tower.rank + 1 } };
+  const label = economy ? "Ver producción" : "Ver alcance";
+  const toggle = makeButton(label, () => {
     const active = upgradePreview !== preview;
     upgradePreview = active ? preview : null;
     for (const control of row.parentNode.querySelectorAll(".range-preview"))
@@ -767,14 +768,14 @@ function upgradeRow(tower, purchase, branch) {
   });
   toggle.className = "range-preview";
   toggle.disabled = movingTower === tower;
-  if (branch) toggle.setAttribute("aria-label", `Ver alcance · ${branch.name}`);
+  if (branch) toggle.setAttribute("aria-label", `${label} · ${branch.name}`);
   toggle.setAttribute("aria-pressed", "false");
   row.append(purchase, toggle);
   return row;
 }
 
 const cadence = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 2 });
-function placementForecast(tower, point) {
+function placementForecast(tower, point, original = null, action = "") {
   const panel = $("placement-analysis");
   panel.hidden = !tower;
   if (!tower) return;
@@ -782,25 +783,35 @@ function placementForecast(tower, point) {
   const event = match.routeEvent;
   const phase = match.routeEventStatus;
   const key = [candidate.id, candidate.rank, candidate.damage, candidate.range, candidate.x, candidate.y,
+    candidate.branch?.name, candidate.fireRate, original?.x, original?.y, original?.rank, action,
     match.level, match.mapIndex, match.gateDiverted, phase, match.state, match.wave].join("|");
   if (panel.dataset.key === key) return;
   panel.dataset.key = key;
   const lines = [];
+  const compare = (read) => {
+    const after = read(candidate);
+    if (!original) return after;
+    const before = read(original);
+    return before === after ? after : `${before} → ${after}`;
+  };
   if (candidate.type === "eco") {
-    lines.push(`${reactorOutput(candidate.rank, candidate.branch)} ATP por ciclo`);
+    lines.push(`${compare(t => reactorOutput(t.rank, t.branch))} ATP por ciclo`);
   } else {
-    const bonus = match.padBonus(candidate);
-    lines.push(`${Math.round(candidate.damage * bonus)} de daño por impacto${bonus > 1 ? " · Plataforma +25 %" : ""}`);
+    const damage = compare(t => Math.round(t.damage * match.padBonus(t)));
+    lines.push(`${damage} de daño por impacto${match.padBonus(candidate) > 1 ? " · Plataforma +25 %" : ""}`);
+    if (action === "Traslado") lines.push("Trazo discontinuo · cobertura que pierdes");
     const lanes = match.routes.map((route, index) =>
-      `${index ? "B" : "A"} ${routeCoverage(route, candidate)} %`);
+      `${index ? "B" : "A"} ${compare(t => routeCoverage(route, t))} %`);
     lines.push(`Recorrido al alcance · ${lanes.join(" / ")}`);
-    if (phase === "warning") lines.push(`B tras el desvío · ${routeCoverage(event.alternate, candidate)} %`);
+    if (phase === "warning") lines.push(`B tras el desvío · ${compare(t => routeCoverage(event.alternate, t))} %`);
   }
+  if (original && candidate.fireRate !== original.fireRate)
+    lines.push(`${compare(t => cadence.format(t.fireRate / 60))} s por ${candidate.type === "eco" ? "ciclo" : "disparo"}`);
   if (match.towerOffline(candidate)) lines.push("Sin energía hasta el final de la oleada");
   else if (event?.blackout && phase === "warning" &&
       Math.hypot(candidate.x - event.blackout.x, candidate.y - event.blackout.y) <= event.blackout.radius)
     lines.push(`Apagón aquí en la oleada ${event.wave}`);
-  panel.replaceChildren(...[candidate.name, ...lines].map((value, i) => {
+  panel.replaceChildren(...[action ? `${candidate.name} · ${action}` : candidate.name, ...lines].map((value, i) => {
     const text = document.createElement(i ? "span" : "strong");
     text.textContent = value;
     return text;
@@ -1214,7 +1225,14 @@ function frame(now) {
     const planned = !aiming && !movingHero && !hoverBot && !hovered && !upgradePreview && point && (movingTower || blueprint);
     const validPlan = planned && !(movingTower ? match.checkRelocation(movingTower, point.x, point.y)
       : match.checkPlacement(planned, point.x, point.y));
-    placementForecast(validPlan ? planned : !planned && (hovered || selected), validPlan ? point : null);
+    if (upgradePreview) {
+      placementForecast(upgradePreview.candidate, null, upgradePreview.tower,
+        upgradePreview.branch?.name || `Rango ${upgradePreview.candidate.rank}`);
+    } else {
+      const relocating = validPlan && movingTower;
+      placementForecast(validPlan ? planned : !planned && (hovered || selected), validPlan ? point : null,
+        relocating || null, relocating ? "Traslado" : "");
+    }
     board.draw(
       match,
       movingHero || hoverBot || upgradePreview ? null : blueprint,
@@ -1614,6 +1632,7 @@ document.addEventListener("keydown", (event) => {
     return;
   if (event.key === "Escape") {
     if (movingTower) toggleTowerMove(movingTower);
+    else if (upgradePreview) $("selection").querySelector('.range-preview[aria-pressed="true"]')?.click();
     else if (movingHero) toggleBotMove();
     else if (aiming) $("pulse").click();
     else return;
