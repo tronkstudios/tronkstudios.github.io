@@ -1,4 +1,5 @@
-import { BLUEPRINTS, PATHOGEN_TYPES, BOSS_CATALOG, reactorProduction, REACTOR_FIRST_CYCLE, specializations, upgradeCost } from "./engine.js?v=25";
+import { affinityFor, towerAttack, WEAKNESS, RESISTANCE } from "./affinities.js?v=1";
+import { BLUEPRINTS, PATHOGEN_TYPES, BOSS_CATALOG, reactorProduction, REACTOR_FIRST_CYCLE, specializations, upgradeCost } from "./engine.js?v=26";
 import { drawEnemyModel, drawTurretModel } from "./art.js?v=4";
 
 const towerAdvice = {
@@ -78,6 +79,7 @@ function towerStats(tower) {
   }
   return [
     ["Coste", `${tower.cost} ATP`],
+    ["Tipo de ataque", towerAttack[tower.id]],
     ["Daño por impacto", tower.damage],
     ["Tiempo entre disparos", `${number.format(tower.fireRate / 60)} s`],
     ["Alcance", tower.range],
@@ -130,6 +132,13 @@ export function createCodex(dialog) {
       ["Velocidad base", `${number.format(entry.speed * 60)} px/s`],
       ["Recompensa base", `${entry.reward} ATP`],
     ]));
+    if (!tower && affinityFor(entry.shape)) {
+      const affinity = affinityFor(entry.shape);
+      detail.append(statistics([
+        ["Debilidad", `${affinity.weak} · +${Math.round((WEAKNESS - 1) * 100)} %`],
+        ["Resistencia", `${affinity.resist} · −${Math.round((1 - RESISTANCE) * 100)} %`],
+      ]), element("p", "Se aplica desde el sector 3 de campaña, en Veterano y en contratos de esos sectores."));
+    }
     detail.append(element("p", advice, "codex-advice"));
     if (tower) {
       const paths = element("ul", undefined, "codex-paths");

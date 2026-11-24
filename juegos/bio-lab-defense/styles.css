@@ -1946,3 +1946,10 @@ dialog::backdrop { background: #031016cf; }
   font-size: 0.82rem;
   font-weight: 700;
 }
+
+.roster-affinity {
+  display: block;
+  padding: 0.12rem 0.3rem 0.25rem;
+  color: #b3e8da;
+  font-size: 0.69rem;
+}

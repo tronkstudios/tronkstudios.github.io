@@ -152,6 +152,8 @@ window.testRun = {
     await search.fill("bacteriofago");
     assert.equal(await codex.locator("#codex-list button").count(), 1);
     await codex.getByRole("heading", { name: "Bacteriófago T4" }).waitFor();
+    await codex.getByText("Láser · +25 %", { exact: true }).waitFor();
+    await codex.getByText("Térmico · −25 %", { exact: true }).waitFor();
     await search.fill("sin coincidencias");
     await codex.getByText("No hay fichas que coincidan.").waitFor();
     assert.equal(await codex.locator("#codex-detail").isVisible(), false);

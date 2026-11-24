@@ -1,3 +1,4 @@
+import { affinityFor, towerAttack } from "./affinities.js?v=1";
 import { drawSpecimen, routeThumbnail } from "./menu-art.js?v=2";
 import {
   BLUEPRINTS,
@@ -14,18 +15,18 @@ import {
   VARIANT_NAMES,
   escortArmor,
   dailySetup,
-} from "./engine.js?v=25";
+} from "./engine.js?v=26";
 import { routeCoverage } from "./coverage.js?v=1";
 import { attachDrill } from "./drill.js?v=2";
-import { Board } from "./board.js?v=31";
+import { Board } from "./board.js?v=32";
 import { towerIcon, heroIcon } from "./art.js?v=4";
-import { createCodex } from "./codex.js?v=13";
+import { createCodex } from "./codex.js?v=14";
 import { Profile, dayKey } from "./profile.js?v=11";
-import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=6";
+import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=7";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=8";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=21";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=22";
 
 import { HEROES, CONTRACTS } from "./operations.js?v=7";
 
@@ -815,7 +816,8 @@ function renderSelection() {
   if (!selected) {
     heading.textContent = blueprint?.name || "Elige una torre";
     detail.textContent =
-      blueprint?.note || "Toca una torre instalada para gestionarla.";
+      blueprint ? [blueprint.note, towerAttack[blueprint.id]].filter(Boolean).join(" · ")
+        : "Toca una torre instalada para gestionarla.";
     panel.replaceChildren(heading, detail);
     return;
   }
@@ -826,6 +828,7 @@ function renderSelection() {
     (tower.type === "eco"
       ? tower.note
       : `${tower.note} · ${tower.damage} daño · ${tower.range} alcance`);
+  if (towerAttack[tower.id]) detail.textContent += ` · ${towerAttack[tower.id]}`;
   if (match.padBonus(tower) > 1) detail.textContent += " · Plataforma de tiro +25 %";
   if (tower.branch) heading.textContent += ` · ${tower.branch.name}`;
   const cost = upgradeCost(tower);
@@ -1059,6 +1062,13 @@ function renderWavePreview(preview) {
       const button = makeButton(`${count} × ${label}`, () => codex.show(boss ? "boss" : "enemy", shape));
       button.setAttribute("aria-haspopup", "dialog");
       item.append(button);
+      const affinity = match.hasAffinities && affinityFor(shape);
+      if (affinity) {
+        const hint = document.createElement("small");
+        hint.className = "roster-affinity";
+        hint.textContent = `Débil a ${affinity.weak} · Resiste ${affinity.resist}`;
+        item.append(hint);
+      }
       return item;
     }),
   );
@@ -1893,6 +1903,7 @@ function inspectFireTarget() {
   const stats = [`Vida ${Math.ceil(enemy.hp)} / ${enemy.maxHp}`];
   if (enemy.shield > 0) stats.push(`Escudo ${Math.ceil(enemy.shield)}`);
   if (enemy.armor > 0) stats.push(`Blindaje ${Math.ceil(enemy.armor)}`);
+  if (enemy.affinity) stats.push(`Débil a ${enemy.affinity.weak}`, `Resiste ${enemy.affinity.resist}`);
   const extraArmor = escortArmor(enemy);
   if (extraArmor) stats.push(`Escolta +${extraArmor} de blindaje`);
   stats.push(`${towers} ${towers === 1 ? "torre con alcance" : "torres con alcance"}`);

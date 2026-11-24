@@ -1,3 +1,4 @@
+import { affinityFor, towerMultiplier } from "./affinities.js?v=1";
 import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=8";
 
 import { HERO_BY_ID } from "./operations.js?v=7";
@@ -619,6 +620,7 @@ export function escortArmor(enemy) {
 function resolveImpact(enemy, shield, amount, { piercing = false, shred = false }, tower, time) {
   let armor = enemy.armor + escortArmor(enemy);
   if (tower?.rank) {
+    amount *= towerMultiplier(enemy, tower);
     if (enemy.markedUntil > time) amount *= 1.15;
     if (enemy.frozenUntil > time && tower.type === "splash") amount *= 1.2;
     if (enemy.exposedUntil > time) armor *= 0.5;
@@ -835,6 +837,10 @@ export class Match {
     const area = this.routeEvent?.blackout;
     return !!area && wave === this.routeEvent.wave &&
       Math.hypot(tower.x - area.x, tower.y - area.y) <= area.radius;
+  }
+
+  get hasAffinities() {
+    return !this.daily && this.level >= 3;
   }
 
   get hasEnemyVariants() {
@@ -1297,6 +1303,7 @@ export class Match {
       lane,
       boss,
       variant,
+      affinity: this.hasAffinities ? affinityFor(spec.shape) : undefined,
       scoutReady: variant === "scout" ? this.time + 120 : null,
       coolingBoss,
       mirror,

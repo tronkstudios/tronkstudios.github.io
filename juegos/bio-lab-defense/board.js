@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=25";
+import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=26";
 import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=4";
 
 function trace(ctx, points) {

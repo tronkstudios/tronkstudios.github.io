@@ -476,3 +476,23 @@ test("reactor production forecasts match the first cycle and both specialization
     assert.equal(reactor.produced, 2 * forecast.output);
   }
 });
+
+test("campaign affinities modify tower damage without changing nanobot damage", () => {
+  const match = new Match(6);
+  match.startWave();
+  const phage = match.preview.order.find(entry => entry.spec.shape === "phage");
+  assert.ok(phage);
+  match.queue.unshift(phage);
+  match.spawn();
+  const enemy = match.enemies.at(-1);
+  assert.deepEqual(enemy.affinity, { weak: "Láser", resist: "Térmico" });
+  const tower = { rank: 1, inflicted: 0 };
+  for (const [id, expected] of [["nanolaser", 25], ["plasma", 15], ["tesla", 20], ["iris", 20]]) {
+    Object.assign(enemy, { hp: 100, armor: 0, shield: 0 });
+    const source = id === "iris" ? { id, inflicted: 0 } : { ...tower, id };
+    match.damage(enemy, 20, "#fff", {}, source);
+    assert.equal(enemy.hp, 100 - expected);
+  }
+  assert.equal(new Match(2).hasAffinities, false);
+  assert.equal(new Match(6, dailySetup("2026-11-24")).hasAffinities, false);
+});

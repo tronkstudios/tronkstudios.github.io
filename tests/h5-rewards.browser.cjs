@@ -139,42 +139,22 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8789";
         const initial = await balance();
         const readyLabel =
           /Ver anuncio · \+75 ATP|Ver anuncio · \+50 monedas|VER ANUNCIO · CONTINUAR UNA VEZ/;
-        await page.waitForFunction(
-          (source) =>
-            [...document.querySelectorAll("button")].some(
-              (b) =>
-                !b.disabled &&
-                b.getClientRects().length &&
-                new RegExp(source).test(b.textContent),
-            ),
-          readyLabel.source,
-        );
-        const closePromo = page.getByRole("button", { name: "Cerrar sin recompensa" });
-        await button.tap();
-        await closePromo.tap();
-        assert.equal(await balance(), initial);
-        if (process.env.STUDIO_PROMO_ONLY === "1") {
-          await button.tap();
-          await closePromo.waitFor();
-          await closePromo.waitFor({state:"detached"});
-          await verify(initial);
-          console.log(path + " studio video passed");
-          continue;
-        }
         await page.waitForFunction(() => typeof window.markReady === "function");
+        assert.equal(await page.locator("dialog video").count(), 0);
+        assert.equal(await balance(), initial);
         await page.evaluate(() => window.markReady());
+        await button.and(page.getByRole("button", { name: readyLabel })).and(page.locator(":enabled")).waitFor();
         assert.equal(requests, 1);
         await page.evaluate(() => { window.ignorePlacement = true; });
         await button.tap();
-        await closePromo.tap();
         await button.and(page.getByRole("button", { name: readyLabel })).and(page.locator(":enabled")).waitFor();
         assert.equal(await balance(), initial, "a stalled placement gives no reward");
+        assert.equal(await page.locator("dialog video").count(), 0);
         await page.evaluate(() => {
           window.ignorePlacement = false;
           window.noFill = true;
         });
         await button.tap();
-        await closePromo.tap();
         await page.waitForFunction(
           (source) =>
             [...document.querySelectorAll("button")].some(
