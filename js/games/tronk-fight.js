@@ -214,6 +214,14 @@ const Sound = {
         this.noise(t, 0.04, 0.5, { type: "highpass", f: 3000 });
         break;
       }
+      case "riposte":
+        this.osc("triangle", 620, t, 0.09, 0.19, { slide: 1.5 });
+        this.osc("sine", 1240, t + 0.07, 0.16, 0.14);
+        break;
+      case "meterReady":
+        this.osc("sine", 440, t, 0.11, 0.14);
+        this.osc("sine", 660, t + 0.1, 0.19, 0.16);
+        break;
       case "parry": {
         for (const [f, v] of [[1320, 0.25], [1980, 0.18], [2640, 0.12], [3960, 0.08]]) this.osc("sine", f, t, 0.7, v);
         this.osc("triangle", 660, t, 0.25, 0.25, { slide: 2 });
@@ -778,6 +786,7 @@ function resolveHit(M, a, d, h, proj) {
   if (!blocking && !proj && a.state === "attack" && a.riposteFrames > 0) {
     a.riposteFrames = 0;
     h = { ...h, dmg: h.dmg * 1.3 };
+    fx(M, "riposte");
     if (M.mode !== "sim") popText(M, "¡Réplica!", a.x, a.y - 185, "#7fe9ff");
   }
   if (blocking) {
@@ -1138,11 +1147,16 @@ function step(M) {
   }
   if (M.phase === "over" && M.mode === "sim") return;
 
+  const chargingA = a.meter < 100;
+  const chargingB = b.meter < 100;
   updateFighter(a, b, M);
   updateFighter(b, a, M);
   separate(M);
   updateProjectiles(M);
   if (M.phase === "fight") combat(M);
+  if (M.phase === "fight" && ((chargingA && a.meter >= 100) || (M.pvp && chargingB && b.meter >= 100))) {
+    fx(M, "meterReady");
+  }
 }
 
 /* ---------- SIMULACIÓN (equilibrado) ---------- */
@@ -2057,7 +2071,7 @@ function bar(ctx, M, f, side) {
   // la vida se vacía hacia el centro, como en Street Fighter
   const seg = (frac, color) => { ctx.fillStyle = color; if (side) ctx.fillRect(x0 + w * (1 - frac), y, w * frac, h); else ctx.fillRect(x0, y, w * frac, h); };
   seg(tr, "#e63946");
-  const low = hp < 0.25 && M.frame % 20 < 10;
+  const low = hp < 0.25 && (reduceMotion || M.frame % 20 < 10);
   const gr = ctx.createLinearGradient(0, y, 0, y + h);
   gr.addColorStop(0, low ? "#ff8a8a" : "#ffe36b"); gr.addColorStop(1, low ? "#e63946" : "#f2a81d");
   seg(hp, gr);
@@ -2071,7 +2085,7 @@ function bar(ctx, M, f, side) {
   const mw = 260, mx = side ? x0 + w - mw : x0, my = y + h + 18;
   ctx.fillStyle = "#14112b"; rr(ctx, mx - 3, my - 3, mw + 6, 16, 4); ctx.fill();
   const full = f.meter >= 100;
-  ctx.fillStyle = full ? (M.frame % 16 < 8 ? "#4fd8ff" : "#9ff3ff") : "#1e6fe8";
+  ctx.fillStyle = full ? (!reduceMotion && M.frame % 16 < 8 ? "#4fd8ff" : "#9ff3ff") : "#1e6fe8";
   const mf = f.meter / 100 * mw; ctx.fillRect(side ? mx + mw - mf : mx, my, mf, 10);
   ctx.font = "16px Rubik, sans-serif"; ctx.textAlign = side ? "right" : "left"; ctx.fillStyle = full ? "#9ff3ff" : "#cfcaf7";
   ctx.fillText(full ? "¡Especial listo!" : "Especial", side ? mx - 10 : mx + mw + 10, my + 11);

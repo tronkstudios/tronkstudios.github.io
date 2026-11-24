@@ -5,6 +5,9 @@ resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 
 ## Próxima versión
 
+- Avisos sonoros de Réplica y especial disponible en Tronk Fight. La cuenta
+  atrás y las tres cargas del escudo de Gravity Runners tienen sonidos propios.
+
 - Los botones táctiles de Tronk Fight admiten dos dedos sobre el mismo botón.
   Gravity Runners protege el reintento por teclado mientras se solicita un anuncio.
   Las recompensas admiten confirmaciones que llegan justo después del cierre.
