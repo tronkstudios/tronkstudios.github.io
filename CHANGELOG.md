@@ -5,6 +5,9 @@ resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 
 ## Próxima versión
 
+- El hangar sincroniza filtros y vista previa y se puede recorrer y cerrar con teclado.
+  Tronk Fight recupera preferencias inválidas y sincroniza la pantalla completa y el movimiento reducido con el navegador.
+
 - La pausa muestra el marcador del combate o las cifras de la carrera.
   Los resultados identifican a los jugadores del duelo y cuentan los escudos de precisión.
 
