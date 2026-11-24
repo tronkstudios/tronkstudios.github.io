@@ -1,4 +1,4 @@
-import { HEROES, HERO_BY_ID, CONTRACT_BY_ID } from "./operations.js?v=5";
+import { HEROES, HERO_BY_ID, CONTRACT_BY_ID } from "./operations.js?v=7";
 
 import { MISSIONS } from "./campaign.js?v=8";
 

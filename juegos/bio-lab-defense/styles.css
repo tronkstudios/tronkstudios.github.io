@@ -1702,3 +1702,33 @@ dialog::backdrop { background: #031016cf; }
   #codex-list { max-height: 7.2rem; }
   .codex-stats { gap: 0.25rem; }
 }
+
+.operations-overview {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.35rem 1rem;
+  padding: 0.65rem 0.85rem;
+  color: #c8eade;
+  background: #112830;
+  border: 1px solid var(--seam);
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+#fielded-hero { font-weight: 750; color: var(--phosphor); }
+.hero-profile { display: flex; align-items: center; gap: 0.65rem; }
+.hero-profile canvas { flex-shrink: 0; }
+.hero-profile h3 { font-size: 0.98rem; line-height: 1.2; overflow-wrap: anywhere; }
+.hero-profile p { margin-top: 0.2rem; }
+.hero-equipped { box-shadow: inset 0 0 0 1px var(--operation-color); }
+.hero-ability-label { color: #daeee9; font-size: 0.85rem; }
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0.2rem 0;
+  gap: 0.3rem;
+}
+.hero-stats > div { background: #0b2028; border-radius: 6px; padding: 0.35rem; }
+.hero-stats dt { color: var(--muted); font-size: 0.71rem; overflow-wrap: anywhere; }
+.hero-stats dd { margin: 0; font-size: 0.86rem; font-weight: 750; }
+.operation-card progress { width: 100%; height: 0.55rem; accent-color: var(--operation-color); }

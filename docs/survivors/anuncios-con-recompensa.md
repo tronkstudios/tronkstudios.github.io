@@ -11,3 +11,5 @@ Los anuncios son voluntarios. En el cofre se pueden ganar 50 monedas con 15 minu
 En la ficha de cada personaje bloqueado se puede avanzar su desbloqueo completando 1 anuncio si es común, 2 si es raro, 3 si es épico y 5 si es legendario. Cada anuncio acredita un paso para ese personaje. El último lo desbloquea con una estrella. El cofre y los hitos de partida siguen siendo vías de desbloqueo.
 
 La recompensa requiere la confirmación del proveedor y se aplica cuando se cierra el anuncio. Las cancelaciones y las solicitudes sin anuncio disponible no consumen la espera. El progreso usa el guardado actual del juego y el formato web se valida con eventos simulados mediante `node tests/survivors.rewarded.cjs`. La prueba no realiza solicitudes publicitarias de producción.
+
+En el hangar de Gravity Runners, cada chasis acumula sus propios anuncios: 2 para raros, 3 para épicos, 5 para legendarios y 7 para míticos. Aether Valkyrie requiere 1 anuncio. La compra con energía y los hitos siguen disponibles.

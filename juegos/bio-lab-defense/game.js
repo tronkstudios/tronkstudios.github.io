@@ -12,20 +12,20 @@ import {
   TARGETING,
   VARIANT_NAMES,
   dailySetup,
-} from "./engine.js?v=18";
+} from "./engine.js?v=19";
 import { routeCoverage } from "./coverage.js?v=1";
 import { attachDrill } from "./drill.js?v=2";
-import { Board } from "./board.js?v=23";
+import { Board } from "./board.js?v=24";
 import { towerIcon, heroIcon } from "./art.js?v=4";
-import { createCodex } from "./codex.js?v=6";
-import { Profile, dayKey } from "./profile.js?v=10";
+import { createCodex } from "./codex.js?v=7";
+import { Profile, dayKey } from "./profile.js?v=11";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=6";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=8";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=14";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=15";
 
-import { HEROES, CONTRACTS } from "./operations.js?v=5";
+import { HEROES, CONTRACTS } from "./operations.js?v=7";
 
 const $ = (id) => document.getElementById(id);
 drawSpecimen($("specimen-art"));
@@ -183,6 +183,10 @@ function openOperations() {
 function renderOperations() {
   updateText("operations-balance", `${profile.data.bioGems} biogemas`);
   updateText("operations-status", operationsMessage || adError);
+  const deployed = HEROES.find(hero => hero.id === profile.data.heroEquipped);
+  updateText("fielded-hero", `En campaña · ${deployed.name} · ${deployed.role}`);
+  const ready = CONTRACTS.filter(contract => profile.data.stars[contract.level - 1]).length;
+  updateText("contract-readiness", `${ready}/${CONTRACTS.length} contratos disponibles`);
   const focusedAction = document.activeElement?.dataset.operation;
   const card = (title, detail) => {
     const tile = document.createElement("article");
@@ -201,18 +205,49 @@ function renderOperations() {
     return button;
   };
   $("heroes").replaceChildren(...HEROES.map((hero) => {
-    const tile = card(`${hero.name} · ${hero.role}`, `${hero.ability}. ${hero.detail}`);
+    const owned = profile.data.heroOwned[hero.id];
+    const equipped = profile.data.heroEquipped === hero.id;
+    const tile = card(`${hero.name} · ${hero.role}`, hero.detail);
     tile.style.setProperty("--operation-color", hero.color);
-    tile.prepend(heroIcon(hero));
-    const stats = document.createElement("p");
-    stats.textContent = `${hero.damage} daño · Alcance ${hero.range} · Recarga ${Math.ceil(hero.recharge / 60)} s`;
+    tile.classList.toggle("hero-equipped", equipped);
+    const header = document.createElement("header");
+    header.className = "hero-profile";
+    const identity = document.createElement("div");
+    const state = document.createElement("p");
+    state.textContent = `${hero.rarity} · ${equipped ? "En el equipo" : owned ? "Disponible" : "Bloqueado"}`;
+    identity.append(tile.querySelector("h3"), state);
+    header.append(heroIcon(hero), identity);
+    tile.prepend(header);
+    const ability = document.createElement("strong");
+    ability.className = "hero-ability-label";
+    ability.textContent = hero.ability;
+    header.after(ability);
+    const stats = document.createElement("dl");
+    stats.className = "hero-stats";
+    for (const [label, value] of [
+      ["Daño base", hero.damage],
+      ["Alcance", hero.range],
+      ["Recarga", `${Math.ceil(hero.recharge / 60)} s`],
+    ]) {
+      const stat = document.createElement("div");
+      const term = document.createElement("dt");
+      const description = document.createElement("dd");
+      term.textContent = label;
+      description.textContent = value;
+      stat.append(term, description);
+      stats.append(stat);
+    }
     tile.append(stats);
-    if (profile.data.heroOwned[hero.id]) {
-      const equipped = profile.data.heroEquipped === hero.id;
+    if (owned) {
       tile.append(action(`equip-${hero.id}`, equipped ? "En el equipo" : "Equipar",
         () => profile.equipHero(hero.id), equipped || adBusy));
     } else {
       const count = profile.data.heroAds[hero.id];
+      const progress = document.createElement("progress");
+      progress.max = hero.ads;
+      progress.value = count;
+      progress.setAttribute("aria-label", `Anuncios completados para desbloquear a ${hero.name}`);
+      tile.append(progress);
       const label = adPreparing ? "Preparando anuncio…"
         : ad?.prepared ? `Ver anuncio · ${count}/${hero.ads}`
         : `Preparar anuncio · ${count}/${hero.ads}`;

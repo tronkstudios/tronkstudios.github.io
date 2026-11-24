@@ -145,16 +145,23 @@ window.testRun = {
       "Óptix · Reconocimiento", "Crión · Control térmico", "Volt · Antiescudos", "Helio · Asalto",
     ]);
     assert.equal(await page.locator(".hero-art").count(), 4);
+    assert.match(await page.locator("#fielded-hero").textContent(), /Óptix/);
     await page.locator('[data-operation="buy-vega"]').tap();
     await page.locator('[data-operation="equip-vega"]').tap();
     assert.match(await page.locator("#operations-balance").textContent(), /6 biogemas/);
+    assert.match(await page.locator("#fielded-hero").textContent(), /Helio/);
+    const cryoProgress = page.getByRole("progressbar", { name: "Anuncios completados para desbloquear a Crión" });
+    assert.equal(await cryoProgress.getAttribute("max"), "2");
     const ad = page.locator('[data-operation="ad-mara"]');
     for (const [index, viewed] of [false, true, true].entries()) {
       await ad.tap();
       await page.waitForFunction((n) => window.testAds === n, index + 1);
       await page.evaluate((it) => finishTestAd(it), viewed);
       if (index === 0) assert.match(await ad.textContent(), /0\/2/);
-      if (index === 1) assert.match(await ad.textContent(), /1\/2/);
+      if (index === 1) {
+        assert.match(await ad.textContent(), /1\/2/);
+        assert.equal(await cryoProgress.getAttribute("value"), "1");
+      }
     }
     await page.locator('[data-operation="equip-mara"]').waitFor();
     await page.reload();
