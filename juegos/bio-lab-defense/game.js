@@ -15,18 +15,18 @@ import {
   VARIANT_NAMES,
   escortArmor,
   dailySetup,
-} from "./engine.js?v=26";
+} from "./engine.js?v=27";
 import { routeCoverage } from "./coverage.js?v=1";
 import { attachDrill } from "./drill.js?v=2";
-import { Board } from "./board.js?v=32";
+import { Board } from "./board.js?v=33";
 import { towerIcon, heroIcon } from "./art.js?v=4";
-import { createCodex } from "./codex.js?v=14";
+import { createCodex } from "./codex.js?v=15";
 import { Profile, dayKey } from "./profile.js?v=11";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=7";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=8";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=22";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=23";
 
 import { HEROES, CONTRACTS } from "./operations.js?v=7";
 
@@ -588,6 +588,7 @@ function begin(next, day = null, restored = null) {
   lastState = next.state;
   lastBoss = false;
   match = next;
+  $("wave-impact-choice").value = "";
   const level = match.level;
   checkpointLost = false;
   aiming = false;
@@ -932,19 +933,29 @@ function upgradeRow(tower, purchase, branch) {
 const cadence = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 2 });
 function placementForecast(tower, point, original = null, action = "") {
   const panel = $("placement-analysis");
+  const resultStatus = $("wave-impact-result");
   panel.hidden = !tower;
-  if (!tower) return;
+  if (!tower) {
+    resultStatus.hidden = true;
+    delete panel.dataset.key;
+    return;
+  }
   const candidate = { ...tower, ...point, rank: tower.rank || 1 };
   const event = match.routeEvent;
   const phase = match.routeEventStatus;
   const wave = match.coverageWave;
   const routes = match.routesForWave(wave);
   const offline = match.towerOffline(candidate, wave);
+  const impactChoice = $("wave-impact-choice");
+  const targetIndex = Number(impactChoice.value);
+  const target = match.state === "build" && impactChoice.value !== "" ? match.preview.order[targetIndex] : null;
+  const hasPosition = Number.isFinite(candidate.x) && Number.isFinite(candidate.y);
   const key = [candidate.id, candidate.rank, candidate.damage, candidate.range, candidate.x, candidate.y,
     candidate.branch?.name, candidate.fireRate, original?.x, original?.y, original?.rank, action,
-    match.level, match.mapIndex, match.gateDiverted, phase, match.state, match.wave, match.preview === lastPreview].join("|");
+    match.level, match.mapIndex, match.gateDiverted, phase, match.state, match.wave, match.preview === lastPreview, impactChoice.value].join("|");
   if (panel.dataset.key === key) return;
   panel.dataset.key = key;
+  resultStatus.hidden = !target || candidate.type === "eco";
   const lines = [];
   const compare = (read) => {
     const after = read(candidate);
@@ -970,9 +981,22 @@ function placementForecast(tower, point, original = null, action = "") {
     const damage = compare(t => Math.round(t.damage * match.padBonus(t)));
     lines.push(`${damage} de daño por impacto${match.padBonus(candidate) > 1 ? " · Plataforma +25 %" : ""}`);
     if (action === "Traslado") lines.push("Trazo discontinuo · cobertura que pierdes");
-    const lanes = routes.map((route, index) => `${index ? "B" : "A"} ${compareCoverage(route)} %`);
-    lines.push(`Recorrido al alcance · ${lanes.join(" / ")}`);
-    if (match.state === "build" && !offline && match.preview === lastPreview) {
+    if (hasPosition) {
+      const lanes = routes.map((route, index) => `${index ? "B" : "A"} ${compareCoverage(route)} %`);
+      lines.push(`Recorrido al alcance · ${lanes.join(" / ")}`);
+    }
+    if (target) {
+      const hits = compare(t => {
+        const result = match.estimateImpact(t, target, wave);
+        return `${cadence.format(result.damage)} de vida${result.shieldDamage ? ` + ${cadence.format(result.shieldDamage)} de escudo` : ""}`;
+      });
+      const impact = `Contra ${target.spec.name} · ${hits} en el primer impacto`;
+      lines.push(impact);
+      updateText("wave-impact-result", `${candidate.name} · ${impact}`);
+      if (hasPosition && !offline && !routeCoverage(routes[target.lane], candidate))
+        lines.push(`La entrada ${target.lane ? "B" : "A"} queda fuera de alcance`);
+    }
+    if (hasPosition && match.state === "build" && !offline && match.preview === lastPreview) {
       const against = waveCounterProfiles.flatMap((profile, lane) => {
         const counts = profile.get(towerAttack[candidate.id]);
         if (!counts || !routeCoverage(routes[lane], candidate)) return [];
@@ -980,7 +1004,7 @@ function placementForecast(tower, point, original = null, action = "") {
       });
       if (against.length) lines.push(`Afinidades en ruta · ${against.join(" · ")}`);
     }
-    if (phase === "warning" && wave < event.wave)
+    if (hasPosition && phase === "warning" && wave < event.wave)
       lines.push(`B tras el desvío · ${compare(t => match.towerOffline(t, event.wave) ? 0 : routeCoverage(event.alternate, t))} %`);
   }
   if (candidate.type !== "eco" && original && candidate.fireRate !== original.fireRate)
@@ -1107,6 +1131,19 @@ function renderWavePreview(preview) {
     if (group) group.count++;
     else groups.set(label, { count: 1, shape: spec.shape, boss });
   }
+  const impactChoice = $("wave-impact-choice");
+  const selectedName = impactChoice.selectedOptions[0]?.textContent;
+  const impactLabels = new Map();
+  for (const [index, entry] of order.entries()) {
+    const { armor, shield } = match.entryDefense(entry, match.coverageWave);
+    const variant = VARIANT_NAMES[entry.variant];
+    const label = [entry.spec.name, variant, entry.lane ? "B" : "A",
+      armor ? `Blindaje ${cadence.format(armor)}` : "", shield ? `Escudo ${shield}` : ""].filter(Boolean).join(" · ");
+    if (!impactLabels.has(label)) impactLabels.set(label, index);
+  }
+  impactChoice.replaceChildren(new Option("Elegir un enemigo", ""),
+    ...Array.from(impactLabels, ([label, index]) => new Option(label, index)));
+  if (impactLabels.has(selectedName)) impactChoice.value = String(impactLabels.get(selectedName));
   $("wave-roster").replaceChildren(
     ...Array.from(groups, ([label, { count, shape, boss }]) => {
       const item = document.createElement("li");
@@ -1544,7 +1581,9 @@ function frame(now) {
         upgradePreview.branch?.name || `Rango ${upgradePreview.candidate.rank}`);
     } else {
       const relocating = validPlan && movingTower;
-      placementForecast(validPlan ? planned : !planned && (hovered || selected), validPlan ? point : null,
+      const testing = match.state === "build" && $("wave-impact-choice").value !== "";
+      const inspected = hovered || selected || (testing ? blueprint : null);
+      placementForecast(validPlan ? planned : !planned && inspected, validPlan ? point : null,
         relocating || null, relocating ? "Traslado" : "");
     }
     board.draw(

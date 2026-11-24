@@ -496,3 +496,27 @@ test("campaign affinities modify tower damage without changing nanobot damage", 
   assert.equal(new Match(2).hasAffinities, false);
   assert.equal(new Match(6, dailySetup("2026-11-24")).hasAffinities, false);
 });
+
+test("the first hit forecast matches affinity, armor, shields and specialization", () => {
+  const match = new Match(6);
+  const tower = match.place(BLUEPRINTS[0], 50, 60);
+  match.atp = 1000;
+  assert.ok(match.upgrade(tower));
+  assert.ok(match.upgrade(tower, 0)); // Partial shield bypass.
+  const sample = match.planWave(2).order.find(entry => entry.spec.shape === "phage");
+  assert.ok(sample);
+  const entry = { ...sample, shield: 0.42, armor: 8 };
+  match.wave = 1;
+  match.preview = match.planWave(2);
+  const preview = match.estimateImpact(tower, entry);
+  match.startWave();
+  match.queue.unshift(entry);
+  match.spawn();
+  const enemy = match.enemies.at(-1);
+  const shield = enemy.shield;
+  const hp = enemy.hp;
+  match.hit(enemy, { tower, type: tower.type, damage: tower.damage, color: tower.color, branch: tower.branch });
+  assert.ok(preview.damage > 0 && preview.shieldDamage > 0);
+  assert.ok(Math.abs(preview.damage - (hp - enemy.hp)) < 1e-8);
+  assert.equal(preview.shieldDamage, shield - enemy.shield);
+});

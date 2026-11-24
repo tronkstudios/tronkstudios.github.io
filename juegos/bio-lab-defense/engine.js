@@ -1271,28 +1271,32 @@ export class Match {
     this.effects.push({ x, y, color, radius, to, life: 22 });
   }
 
+  entryDefense({ spec, boss, coolingBoss, armor = 0, shield = 0, hpFactor = 1 }, wave) {
+    const scale = 0.96 + (wave - 1) * 0.14 +
+      (this.combatLevel - 1) * (wave < 3 ? 0.065 : 0.105);
+    const bossScale = coolingBoss ? 0.68 : boss ? 1.18 : 1;
+    const veteranHealth = this.veteran && !(this.archive && wave <= 2) ? 1.09 : 1;
+    const hp = Math.round(spec.hp * scale * bossScale * hpFactor * veteranHealth);
+    return {
+      hp,
+      affinity: this.hasAffinities ? affinityFor(spec.shape) : undefined,
+      armor: armor * (this.daily?.armor || 1),
+      shield: Math.round(hp * shield),
+    };
+  }
+
+  estimateImpact(tower, order, wave = this.coverageWave) {
+    if (!tower.damage || this.towerOffline(tower, wave)) return { damage: 0, shieldDamage: 0 };
+    const enemy = this.entryDefense(order, wave);
+    const hit = resolveImpact(enemy, enemy.shield, Math.round(tower.damage * this.padBonus(tower)),
+      tower.branch || {}, tower, this.time);
+    return { damage: Math.min(enemy.hp, hit.damage), shieldDamage: enemy.shield - hit.shield };
+  }
+
   spawn() {
     const order = this.queue.shift();
-    const {
-      spec,
-      lane,
-      boss = false,
-      armor = 0,
-      shield = 0,
-      speed = 1,
-      coolingBoss,
-      mirror = false,
-      zero = false,
-      hpFactor = 1,
-      variant,
-    } = order;
-    const scale =
-      0.96 +
-      (this.wave - 1) * 0.14 +
-      (this.combatLevel - 1) * (this.wave < 3 ? 0.065 : 0.105);
-    const bossScale = coolingBoss ? 0.68 : boss ? 1.18 : 1;
-    const veteranHealth = this.veteran && !(this.archive && this.wave <= 2) ? 1.09 : 1;
-    const hp = Math.round(spec.hp * scale * bossScale * hpFactor * veteranHealth);
+    const { spec, lane, boss = false, speed = 1, coolingBoss, mirror = false, zero = false, variant } = order;
+    const defense = this.entryDefense(order, this.wave);
     const path = this.routes[lane];
     const [[x, y]] = path.points;
     this.enemies.push({
@@ -1303,16 +1307,13 @@ export class Match {
       lane,
       boss,
       variant,
-      affinity: this.hasAffinities ? affinityFor(spec.shape) : undefined,
+      ...defense,
       scoutReady: variant === "scout" ? this.time + 120 : null,
       coolingBoss,
       mirror,
       zero,
-      hp,
-      maxHp: hp,
+      maxHp: defense.hp,
       speed: spec.speed * speed * (this.daily?.speed || 1),
-      armor: armor * (this.daily?.armor || 1),
-      shield: Math.round(hp * shield),
       wp: 1,
       remaining: path.remaining[0],
       slow: 0,

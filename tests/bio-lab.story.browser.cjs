@@ -229,6 +229,11 @@ window.forceRunnerLeak = () => {
       assert.match(await page.locator("#dock [aria-pressed=true] strong").textContent(),
         new RegExp(suggested.split(" para la entrada")[0].replace("Elegir ", ""), "i"));
       await page.locator("#dock [data-type=nanolaser]").click();
+      const impactChoice = page.getByLabel("Comparar daño contra");
+      await impactChoice.selectOption({ index: 1 });
+      await page.locator("#wave-impact-result").getByText(/Nano-Láser · Contra .* en el primer impacto/).waitFor();
+      await impactChoice.selectOption("");
+      await page.locator("#wave-impact-result").waitFor({ state: "hidden" });
       const [a, b] = await counts();
       assert.ok(a > 0 && b > 0);
       const tacticalPause = page.locator("#tactical-pause");

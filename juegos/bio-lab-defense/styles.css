@@ -1979,3 +1979,27 @@ dialog::backdrop { background: #031016cf; }
 #wave-counter-list strong, #wave-counter-list small { display: block; }
 #wave-counter-list small { color: #b7cbd0; }
 #wave-counter-list button { border-color: #47796d; min-height: 44px; }
+
+.wave-impact {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.55rem 0.65rem;
+  margin: 0.55rem 0;
+  border-left: 2px solid #73d6bf;
+  border-radius: 5px;
+  background: #10252e;
+}
+.wave-impact label { font-weight: 700; color: #d5efe9; }
+.wave-impact select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid #4c6e71;
+  border-radius: 6px;
+  padding: 0.4rem;
+  background: #142d36;
+  color: var(--text);
+  font: inherit;
+}
+.wave-impact small { color: var(--muted); }
+#wave-impact-result { margin: 0.25rem 0 0; color: #caf4e7; font-weight: 700; font-size: 0.81rem; }

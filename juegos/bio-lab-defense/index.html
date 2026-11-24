@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=32" />
+    <link rel="stylesheet" href="./styles.css?v=33" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -346,6 +346,12 @@
                 <h3 id="wave-counter-title">Torres recomendadas</h3>
                 <ul id="wave-counter-list"></ul>
               </section>
+              <div class="wave-impact">
+                <label for="wave-impact-choice">Comparar daño contra</label>
+                <select id="wave-impact-choice"><option value="">Elegir un enemigo</option></select>
+                <p id="wave-impact-result" hidden></p>
+                <small>Usa el plano o una torre instalada para comparar. El cálculo parte de un enemigo recién llegado.</small>
+              </div>
               <ul
                 id="wave-roster"
                 class="wave-roster"
@@ -473,6 +479,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=43"></script>
+    <script type="module" src="./game.js?v=44"></script>
   </body>
 </html>
