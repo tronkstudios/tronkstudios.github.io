@@ -2164,7 +2164,9 @@ const C = n => "tf-" + n;   // en la web, las clases llevan el prefijo tf-
 const ID = n => "tf-" + n;  // y los ids también
 const $ = s => root.querySelector(s);
 const stageEl = $("#tf-stage"), canvas = $("#tf-game"), ctx = canvas.getContext("2d");
-const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const motionPreference = matchMedia("(prefers-reduced-motion: reduce)");
+let reduceMotion = motionPreference.matches;
+motionPreference.addEventListener("change", event => { reduceMotion = event.matches; });
 const isTouch = "ontouchstart" in window || matchMedia("(pointer: coarse)").matches;
 
 const store = {
@@ -2172,6 +2174,11 @@ const store = {
   set(k, v) { try { localStorage.setItem("tronkfight:" + k, JSON.stringify(v)); } catch (e) {} }
 };
 
+function savedIndex(key, choices, fallback) {
+  const value = store.get(key, fallback);
+  return Number.isInteger(value) && value >= 0 && value < choices.length ? value : fallback;
+}
+const savedDifficulty = store.get("diff", "normal");
 let scale = 1;
 const rootBox = () => root.getBoundingClientRect();
 function resize() {
@@ -2206,7 +2213,7 @@ if (window.ResizeObserver) new ResizeObserver(() => resize()).observe(root);
 /* ---------- estado de la app ---------- */
 const app = {
   screen: "title", match: null, demo: null, paused: false,
-  sel: { mode: "cpu", step: "p1", p1: store.get("p1", 0), cpu: store.get("cpu", 1), cursor: 0, diff: store.get("diff", "normal"), stage: store.get("stage", 0) },
+  sel: { mode: "cpu", step: "p1", p1: savedIndex("p1", CHARS, 0), cpu: savedIndex("cpu", CHARS, 1), cursor: 0, diff: typeof savedDifficulty === "string" && Object.hasOwn(DIFF, savedDifficulty) ? savedDifficulty : "normal", stage: savedIndex("stage", STAGES, 0) },
   touchOn: store.get("touch", isTouch), overShown: false
 };
 Settings.blood = store.get("blood", true);
@@ -2481,8 +2488,18 @@ optTouch.addEventListener("change", () => {
   resize();
 });
 if (!document.fullscreenEnabled) $("#tf-opt-fs-wrap").hidden = true;
-optFs.addEventListener("change", () => {
-  try { if (optFs.checked) modal.querySelector(".tronkfight-window").requestFullscreen(); else if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {}
+const fullscreenWindow = modal.querySelector(".tronkfight-window");
+function syncFullscreen() {
+  optFs.checked = document.fullscreenElement === fullscreenWindow;
+}
+document.addEventListener("fullscreenchange", syncFullscreen);
+optFs.addEventListener("change", async () => {
+  try {
+    if (optFs.checked) await fullscreenWindow.requestFullscreen();
+    else if (document.fullscreenElement === fullscreenWindow) await document.exitFullscreen();
+  } catch {
+    syncFullscreen();
+  }
 });
 
 function showResult(M) {
@@ -2768,7 +2785,7 @@ function closeGame() {
   Sound.music.stop();
   app.match = null; app.paused = false;
   resetInputs();
-  if (document.fullscreenElement) { try { document.exitFullscreen(); } catch (e) {} }
+  if (document.fullscreenElement === fullscreenWindow) document.exitFullscreen().catch(syncFullscreen);
   optFs.checked = false;
   modal.classList.add("hidden");
   modal.setAttribute("aria-hidden", "true");

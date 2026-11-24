@@ -15,7 +15,7 @@ import {
 } from "./engine.js?v=20";
 import { routeCoverage } from "./coverage.js?v=1";
 import { attachDrill } from "./drill.js?v=2";
-import { Board } from "./board.js?v=25";
+import { Board } from "./board.js?v=26";
 import { towerIcon, heroIcon } from "./art.js?v=4";
 import { createCodex } from "./codex.js?v=8";
 import { Profile, dayKey } from "./profile.js?v=11";
@@ -1290,6 +1290,7 @@ function renderHUD() {
   updateText("speed", `Velocidad ×${speed}`);
   $("tactical-pause").disabled = match.state !== "wave";
   $("tactical-pause").classList.toggle("engaged", tacticalPaused);
+  $("tactical-pause").setAttribute("aria-pressed", String(tacticalPaused));
   updateText("tactical-pause", tacticalPaused ? "Reanudar" : "Pausa táctica");
   renderFieldControls(waiting);
   updateDockBudget();
@@ -1337,13 +1338,36 @@ function touchDraft(point, dragging) {
   return { point: suggestion || point, reason: suggestion ? "" : reason, snapped: !!suggestion };
 }
 
+function resetFrameClock() {
+  lastTick = performance.now();
+  accumulator = 0;
+}
+
+document.addEventListener("visibilitychange", () => {
+  resetFrameClock();
+  if (!document.hidden || screen !== "field" || match.state !== "wave") return;
+  boardPointer = null;
+  cursor = null;
+  // Keep the battle paused when the player returns, including after a long suspension.
+  if (tacticalPaused) return;
+  tacticalPaused = true;
+  aiming = false;
+  message("La partida se pausó al salir. Pulsa Reanudar cuando estés listo.");
+  renderHUD();
+});
+
+modal.addEventListener("cancel", event => {
+  if (screen === "field" && ["lost", "won"].includes(match.state))
+    event.preventDefault();
+});
+
 function frame(now) {
-  const elapsed = Math.min(100, now - lastTick);
+  const elapsed = Math.max(0, Math.min(100, now - lastTick));
   lastTick = now;
   if (screen === "field" && !modal.open && !codex.open && !fireOrders.open && !drill.open && !document.hidden) {
     accumulator = tacticalPaused ? 0 : accumulator + elapsed;
     while (accumulator >= 1000 / 60) {
-      for (let i = 0; i < speed; i++) match.tick();
+      for (let i = 0; i < speed && match.state !== "lost" && match.state !== "won"; i++) match.tick();
       accumulator -= 1000 / 60;
     }
     if (lastState !== match.state) {
@@ -1831,8 +1855,7 @@ $("tactical-pause").onclick = () => {
   if (match.state !== "wave" || modal.open) return;
   tacticalPaused = !tacticalPaused;
   if (tacticalPaused) aiming = false;
-  accumulator = 0;
-  lastTick = performance.now();
+  resetFrameClock();
   message(
     tacticalPaused
       ? "Oleada detenida. Puedes construir, mejorar y cambiar objetivos."

@@ -476,11 +476,10 @@ export class Board {
     const key = match.mission
       ? `${match.level}:${match.gateDiverted}:${!!match.routeEvent && match.routes[1] === match.routeEvent.alternate}`
       : `reto-${match.mapIndex}`;
-    if (!this.buffers.has(key))
-      this.buffers.set(
-        key,
-        background(match.map, match.routes, match.mapIndex),
-      );
+    if (!this.buffers.has(key)) {
+      if (this.buffers.size >= 4) this.buffers.delete(this.buffers.keys().next().value);
+      this.buffers.set(key, background(match.map, match.routes, match.mapIndex));
+    }
     ctx.drawImage(this.buffers.get(key), 0, 0);
     if (breach !== null) {
       ctx.save();

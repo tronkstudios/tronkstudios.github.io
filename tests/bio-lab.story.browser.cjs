@@ -251,6 +251,18 @@ window.forceRunnerLeak = () => {
       if (width < 400) await tacticalPause.tap();
       else await page.keyboard.press("p");
       await page.waitForFunction((time) => matchTime() > time, frozenAt);
+      const hiddenAt = await page.evaluate(() => {
+        Object.defineProperty(document, "hidden", { configurable: true, value: true });
+        document.dispatchEvent(new Event("visibilitychange"));
+        delete document.hidden;
+        document.dispatchEvent(new Event("visibilitychange"));
+        return matchTime();
+      });
+      await page.getByText(/La partida se pausó al salir/).waitFor();
+      assert.equal(await tacticalPause.getAttribute("aria-pressed"), "true");
+      assert.equal(await page.evaluate(() => matchTime()), hiddenAt);
+      await tacticalPause.click();
+      await page.waitForFunction(time => matchTime() > time, hiddenAt);
       await page.evaluate(() => defeatEnemyAtB());
       await page.waitForFunction(
         (label) => document.querySelector("#lane-b").textContent === label,
@@ -269,6 +281,8 @@ window.forceRunnerLeak = () => {
       assert.equal(await canvas.evaluate((node) => node.offsetTop), boardTop);
       await page.evaluate(() => forceRunnerLeak());
       await page.getByRole("heading", { name: "Brecha de contención" }).waitFor();
+      await page.keyboard.press("Escape");
+      assert.equal(await page.locator("#modal").isVisible(), true);
       const report = await page.locator("#modal-text").textContent();
       assert.match(report, /Entrada A: 1 · Entrada B: 0/);
       assert.match(report, /Sarampión \(−18 %\)/);
