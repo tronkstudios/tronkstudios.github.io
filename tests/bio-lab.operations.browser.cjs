@@ -98,6 +98,18 @@ window.testRun = {
     match.damage(target, 8, "#fff");
   },
   barrierActive() { return match.barrier.until > match.time; },
+  prepareBlackout() {
+    const { x, y } = match.routeEvent.blackout;
+    selected = match.place(BLUEPRINTS[0], x, y + 56) || match.place(BLUEPRINTS[0], x, y - 56);
+    blueprint = null;
+    match.wave = match.routeEvent.wave - 2;
+    match.preview = match.planWave(match.wave + 1);
+    return !!selected;
+  },
+  nextPreparation() {
+    match.wave++;
+    match.preview = match.planWave(match.wave + 1);
+  },
 };`,
       });
     });
@@ -338,6 +350,18 @@ window.testRun = {
     await page.locator("#home-resume-run").tap();
     assert.equal(await page.locator("#cut-b").getAttribute("aria-pressed"), "true");
     assert.equal(await page.locator("#next").isDisabled(), false);
+    await page.locator("#pause").tap();
+    await page.getByRole("button", { name: "Abandonar partida" }).tap();
+    await page.locator(".level").nth(18).tap();
+    await page.locator("#launch-mission").tap();
+    assert.equal(await page.evaluate(() => testRun.prepareBlackout()), true);
+    const forecast = page.locator("#placement-analysis");
+    await forecast.getByText("Apagón aquí en la oleada 4").waitFor();
+    await page.evaluate(() => testRun.nextPreparation());
+    await forecast.getByText("Sin energía en la oleada 4").waitFor();
+    await forecast.getByText("Recorrido al alcance · A 0 % / B 0 %").waitFor();
+    await page.locator("#next").tap();
+    await forecast.getByText("Sin energía hasta el final de la oleada").waitFor();
     await page.locator("#pause").tap();
     await page.getByRole("button", { name: "Abandonar partida" }).tap();
     await page.locator(".level").nth(21).tap();

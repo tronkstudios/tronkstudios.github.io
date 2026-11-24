@@ -12,18 +12,18 @@ import {
   TARGETING,
   VARIANT_NAMES,
   dailySetup,
-} from "./engine.js?v=20";
+} from "./engine.js?v=21";
 import { routeCoverage } from "./coverage.js?v=1";
 import { attachDrill } from "./drill.js?v=2";
-import { Board } from "./board.js?v=26";
+import { Board } from "./board.js?v=27";
 import { towerIcon, heroIcon } from "./art.js?v=4";
-import { createCodex } from "./codex.js?v=8";
+import { createCodex } from "./codex.js?v=9";
 import { Profile, dayKey } from "./profile.js?v=11";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=6";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=8";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=16";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=17";
 
 import { HEROES, CONTRACTS } from "./operations.js?v=7";
 
@@ -929,6 +929,9 @@ function placementForecast(tower, point, original = null, action = "") {
   const candidate = { ...tower, ...point, rank: tower.rank || 1 };
   const event = match.routeEvent;
   const phase = match.routeEventStatus;
+  const wave = match.coverageWave;
+  const routes = match.routesForWave(wave);
+  const offline = match.towerOffline(candidate, wave);
   const key = [candidate.id, candidate.rank, candidate.damage, candidate.range, candidate.x, candidate.y,
     candidate.branch?.name, candidate.fireRate, original?.x, original?.y, original?.rank, action,
     match.level, match.mapIndex, match.gateDiverted, phase, match.state, match.wave].join("|");
@@ -941,22 +944,22 @@ function placementForecast(tower, point, original = null, action = "") {
     const before = read(original);
     return before === after ? after : `${before} → ${after}`;
   };
+  const compareCoverage = route => compare(t => match.towerOffline(t, wave) ? 0 : routeCoverage(route, t));
+  if (offline) lines.push(match.state === "wave" ? "Sin energía hasta el final de la oleada" : `Sin energía en la oleada ${wave}`);
   if (candidate.type === "eco") {
-    lines.push(`${compare(t => reactorOutput(t.rank, t.branch))} ATP por ciclo`);
+    lines.push(`${compare(t => match.towerOffline(t, wave) ? 0 : reactorOutput(t.rank, t.branch))} ATP por ciclo`);
   } else {
     const damage = compare(t => Math.round(t.damage * match.padBonus(t)));
     lines.push(`${damage} de daño por impacto${match.padBonus(candidate) > 1 ? " · Plataforma +25 %" : ""}`);
     if (action === "Traslado") lines.push("Trazo discontinuo · cobertura que pierdes");
-    const lanes = match.routes.map((route, index) =>
-      `${index ? "B" : "A"} ${compare(t => routeCoverage(route, t))} %`);
+    const lanes = routes.map((route, index) => `${index ? "B" : "A"} ${compareCoverage(route)} %`);
     lines.push(`Recorrido al alcance · ${lanes.join(" / ")}`);
-    if (phase === "warning") lines.push(`B tras el desvío · ${compare(t => routeCoverage(event.alternate, t))} %`);
+    if (phase === "warning" && wave < event.wave)
+      lines.push(`B tras el desvío · ${compare(t => match.towerOffline(t, event.wave) ? 0 : routeCoverage(event.alternate, t))} %`);
   }
   if (original && candidate.fireRate !== original.fireRate)
     lines.push(`${compare(t => cadence.format(t.fireRate / 60))} s por ${candidate.type === "eco" ? "ciclo" : "disparo"}`);
-  if (match.towerOffline(candidate)) lines.push("Sin energía hasta el final de la oleada");
-  else if (event?.blackout && phase === "warning" &&
-      Math.hypot(candidate.x - event.blackout.x, candidate.y - event.blackout.y) <= event.blackout.radius)
+  if (!offline && phase === "warning" && match.towerOffline(candidate, event.wave))
     lines.push(`Apagón aquí en la oleada ${event.wave}`);
   panel.replaceChildren(...[action ? `${candidate.name} · ${action}` : candidate.name, ...lines].map((value, i) => {
     const text = document.createElement(i ? "span" : "strong");

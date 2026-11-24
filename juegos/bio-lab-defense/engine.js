@@ -783,6 +783,16 @@ export class Match {
     return this.gateRoutes?.[Number(!this.gateDiverted)];
   }
 
+  get coverageWave() {
+    return this.state === "build" ? this.wave + 1 : this.wave;
+  }
+
+  routesForWave(wave) {
+    const event = this.routeEvent;
+    return event && wave >= event.wave && this.routes[1] !== event.alternate
+      ? [this.routes[0], event.alternate] : this.routes;
+  }
+
   applyRouteEvent(wave) {
     if (this.routeEvent && wave >= this.routeEvent.wave)
       this.routes[1] = this.routeEvent.alternate;
@@ -797,9 +807,9 @@ export class Match {
       : nextWave === event.wave ? "active" : "rerouted";
   }
 
-  towerOffline(tower) {
+  towerOffline(tower, wave = this.state === "wave" ? this.wave : 0) {
     const area = this.routeEvent?.blackout;
-    return area && this.state === "wave" && this.wave === this.routeEvent.wave &&
+    return !!area && wave === this.routeEvent.wave &&
       Math.hypot(tower.x - area.x, tower.y - area.y) <= area.radius;
   }
 
@@ -807,11 +817,11 @@ export class Match {
     return !this.daily && this.level >= 7;
   }
 
-  linkPartner(tower) {
+  linkPartner(tower, wave) {
     let partner;
     let closest = 175;
     for (const other of this.towers) {
-      if (other === tower || other.type === "eco" || this.towerOffline(other)) continue;
+      if (other === tower || other.type === "eco" || this.towerOffline(other, wave)) continue;
       const distance = Math.hypot(tower.x - other.x, tower.y - other.y);
       if (distance <= closest) {
         closest = distance;

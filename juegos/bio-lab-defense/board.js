@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT } from "./engine.js?v=20";
+import { WIDTH, HEIGHT } from "./engine.js?v=21";
 import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=4";
 
 function trace(ctx, points) {
@@ -550,15 +550,17 @@ export class Board {
       circle(ctx, cursor.x, cursor.y, 108, "#71e9ff29", "#89f1ff", 3);
       circle(ctx, cursor.x, cursor.y, 5, "#c8faff");
     }
+    const coverageWave = match.coverageWave;
+    const coverageRoutes = match.routesForWave(coverageWave);
     const draft = movingTower || blueprint;
     const ghost = !aiming && !hovered && cursor && draft ? { ...draft, ...cursor } : null;
     const validSpot = ghost && !(movingTower
       ? match.checkRelocation(movingTower, cursor.x, cursor.y)
       : match.checkPlacement(blueprint, cursor.x, cursor.y));
-    if (movingTower?.range && validSpot) {
+    if (movingTower?.range && validSpot && !match.towerOffline(movingTower, coverageWave)) {
       ctx.save();
       ctx.setLineDash([7, 6]);
-      highlightCoverage(ctx, movingTower, match.routes, movingTower.range, "#ffac91");
+      highlightCoverage(ctx, movingTower, coverageRoutes, movingTower.range, "#ffac91");
       ctx.restore();
     }
     if (movingTower && ghost) {
@@ -586,7 +588,7 @@ export class Board {
       ],
     ]) {
       if (!tower) continue;
-      if (tower.range) {
+      if (tower.range && !match.towerOffline(tower, coverageWave)) {
         const color = valid ? tower.color : "#ff8a8a";
         circle(
           ctx,
@@ -597,7 +599,7 @@ export class Board {
           color + "b0",
           2,
         );
-        if (valid) highlightCoverage(ctx, tower, match.routes);
+        if (valid) highlightCoverage(ctx, tower, coverageRoutes);
       }
       if (isGhost) {
         ctx.save();
@@ -610,26 +612,26 @@ export class Board {
         ctx.restore();
       }
     }
-    if (upgradePreview?.range) {
+    if (upgradePreview?.range && !match.towerOffline(upgradePreview.tower, coverageWave)) {
       const { tower, range, branch } = upgradePreview;
       circle(ctx, tower.x, tower.y, range, null, "#ffd99cba", 2);
-      highlightCoverage(ctx, tower, match.routes, range, "#ffd99c", tower.range);
+      highlightCoverage(ctx, tower, coverageRoutes, range, "#ffd99c", tower.range);
       if (branch?.link) {
-        const partner = match.linkPartner(tower);
+        const partner = match.linkPartner(tower, coverageWave);
         if (partner) drawCircuit(ctx, tower, partner, true);
         else circle(ctx, tower.x, tower.y, 175, null, "#ca94ff", 2);
       }
     }
     for (const tower of match.towers) {
-      if (!tower.branch?.link || match.towerOffline(tower)) continue;
-      const partner = match.linkPartner(tower);
+      if (!tower.branch?.link || match.towerOffline(tower, coverageWave)) continue;
+      const partner = match.linkPartner(tower, coverageWave);
       if (partner) drawCircuit(ctx, tower, partner);
     }
     match.towers.forEach((tower) =>
       turret(ctx, tower, tower === selected || tower === hovered),
     );
     for (const tower of match.towers) {
-      if (!match.towerOffline(tower)) continue;
+      if (!match.towerOffline(tower, coverageWave)) continue;
       circle(ctx, tower.x, tower.y, 24, "#091024a6", "#ffd890", 2);
       trace(ctx, [[tower.x - 12, tower.y + 9], [tower.x + 12, tower.y - 9]]);
       ctx.strokeStyle = "#ffd890";

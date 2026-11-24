@@ -251,7 +251,14 @@ test("three sectors disclose and apply a new B route at the announced wave", () 
     match.wave = wave - 2;
     assert.equal(match.routeEventStatus, "warning");
     assert.equal(match.routes[1], original);
+    assert.equal(match.routesForWave(match.coverageWave)[1], original);
     match.wave++;
+    assert.equal(match.routesForWave(match.coverageWave)[1], alternate);
+    assert.equal(match.routes[1], original, "preview must not open the route");
+    if (match.routeEvent.blackout) {
+      assert.equal(match.towerOffline(match.routeEvent.blackout, match.coverageWave), true);
+      assert.equal(match.towerOffline(match.routeEvent.blackout), false);
+    }
     match.preview = match.planWave(wave);
     assert.equal(match.startWave(), true);
     assert.equal(match.routes[1], alternate);
