@@ -1732,3 +1732,16 @@ dialog::backdrop { background: #031016cf; }
 .hero-stats dt { color: var(--muted); font-size: 0.71rem; overflow-wrap: anywhere; }
 .hero-stats dd { margin: 0; font-size: 0.86rem; font-weight: 750; }
 .operation-card progress { width: 100%; height: 0.55rem; accent-color: var(--operation-color); }
+
+.wave-debrief summary { cursor: pointer; font-weight: 700; padding-block: 0.3rem; }
+.wave-debrief summary::marker { color: #7ae6b5; }
+#wave-debrief-leaks { margin-top: 0.35rem; }
+#wave-debrief-atp { margin: 0.4rem 0 0.2rem; }
+#wave-debrief-atp div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.27rem 0;
+  border-top: 1px solid #335756;
+}
+#wave-debrief-atp dd { margin: 0; color: #e2fff0; font-variant-numeric: tabular-nums; }

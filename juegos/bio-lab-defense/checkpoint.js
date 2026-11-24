@@ -1,4 +1,4 @@
-import { BLUEPRINTS, Match, TARGETING, specializations } from "./engine.js?v=19";
+import { BLUEPRINTS, Match, TARGETING, specializations } from "./engine.js?v=20";
 
 import { MISSIONS } from "./campaign.js?v=8";
 
@@ -189,7 +189,15 @@ export function restoreCheckpoint(data) {
     integer(data.debrief?.kills, 0, 2000) &&
     integer(data.debrief?.atp, 0, 100000)
   ) {
-    match.debrief = data.debrief;
+    const { damage, kills, atp, payout, reserve, recovery, reactor, bounties, leaks } = data.debrief;
+    match.debrief = { damage, kills, atp, reserve: integer(reserve, 0, atp) ? reserve : 0,
+      recovery: integer(recovery, 0, atp) ? recovery : 0 };
+    if ([payout, reserve, recovery, reactor, bounties].every(amount => integer(amount, 0, atp)) &&
+        payout + reserve + recovery + reactor + bounties === atp)
+      Object.assign(match.debrief, { payout, reactor, bounties });
+    if (Array.isArray(leaks) && leaks.length === match.routes.length &&
+        leaks.every(count => integer(count, 0, 2000)))
+      match.debrief.leaks = leaks;
   }
   return {
     match,

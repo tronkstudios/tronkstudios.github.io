@@ -3022,3 +3022,6 @@ body:has(#practice-panel:not(.hidden)) #danger-cue {
 
 .surface-label kbd{display:none}
 @media (pointer:fine) and (min-width:640px){.surface-label kbd{display:inline;margin-inline-start:.3em;opacity:.8}}
+
+.skin-ad-progress{display:block;margin-top:.3rem;color:#ffd77b;font-size:.75rem;font-variant-numeric:tabular-nums}
+#skins-container [role="button"]:focus-visible{outline:2px solid #00d9ff;outline-offset:2px}

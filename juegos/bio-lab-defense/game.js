@@ -12,18 +12,18 @@ import {
   TARGETING,
   VARIANT_NAMES,
   dailySetup,
-} from "./engine.js?v=19";
+} from "./engine.js?v=20";
 import { routeCoverage } from "./coverage.js?v=1";
 import { attachDrill } from "./drill.js?v=2";
-import { Board } from "./board.js?v=24";
+import { Board } from "./board.js?v=25";
 import { towerIcon, heroIcon } from "./art.js?v=4";
-import { createCodex } from "./codex.js?v=7";
+import { createCodex } from "./codex.js?v=8";
 import { Profile, dayKey } from "./profile.js?v=11";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=6";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=8";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=15";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=16";
 
 import { HEROES, CONTRACTS } from "./operations.js?v=7";
 
@@ -1159,6 +1159,41 @@ function renderFieldControls(waiting) {
     updateText("battle-notice", `Combo de torres · ${match.comboNotice.count} enemigos ralentizados alcanzados`);
 }
 
+let displayedDebrief;
+function renderWaveDebrief(waiting) {
+  const report = $("wave-debrief");
+  const data = waiting ? match.debrief : null;
+  report.hidden = !data;
+  if (displayedDebrief === data) return;
+  displayedDebrief = data;
+  report.open = false;
+  if (!data) return;
+
+  const core = data.damage ? `Núcleo −${data.damage} %` : "Núcleo intacto";
+  updateText("wave-debrief-title", `Oleada ${match.wave} · ${data.kills} abatidos · +${data.atp} ATP · ${core}`);
+  const leaks = $("wave-debrief-leaks");
+  leaks.hidden = !data.leaks;
+  if (data.leaks) {
+    const counts = data.leaks.map((count, lane) => `Entrada ${lane ? "B" : "A"} · ${count} ${count === 1 ? "fuga" : "fugas"}`);
+    leaks.textContent = counts.join(" / ");
+  }
+  const sources = [
+    ["Enemigos abatidos", data.bounties], ["Bio-Reactores", data.reactor],
+    ["Cierre de oleada", data.payout], ["Refuerzo", data.reserve], ["Compensación por fugas", data.recovery],
+  ].filter(([, amount]) => amount > 0);
+  if (data.payout == null)
+    sources.unshift(["ATP de combate y cierre", data.atp - (data.reserve || 0) - (data.recovery || 0)]);
+  $("wave-debrief-atp").replaceChildren(...sources.map(([label, amount]) => {
+    const row = document.createElement("div");
+    const term = document.createElement("dt");
+    const value = document.createElement("dd");
+    term.textContent = label;
+    value.textContent = `+${amount} ATP`;
+    row.append(term, value);
+    return row;
+  }));
+}
+
 function renderHUD() {
   const focused = match.state === "wave" && match.focusTarget;
   $("focused-vitals").hidden = !focused;
@@ -1228,20 +1263,7 @@ function renderHUD() {
     updateText("lane-a", `Entrada A · ${a}`);
     updateText("lane-b", `Entrada B · ${b}`);
   }
-  const { debrief } = match;
-  $("wave-debrief").hidden = !waiting || !debrief;
-  if (waiting && debrief) {
-    const core = debrief.damage
-      ? `núcleo −${debrief.damage} %`
-      : "núcleo intacto";
-    const budget = debrief.reserve
-      ? ` · Refuerzo +${debrief.reserve} ATP${debrief.recovery ? ` · Contención +${debrief.recovery} ATP` : ""}`
-      : "";
-    updateText(
-      "wave-debrief",
-      `Oleada ${match.wave}: ${debrief.kills} abatidos · +${debrief.atp} ATP · ${core}${budget}.`,
-    );
-  }
+  renderWaveDebrief(waiting);
   $("undo-build").hidden = !match.undoable;
   $("supply-panel").hidden = compactField.matches && match.ranked && !match.undoable;
   if (match.state !== "wave") aiming = false;

@@ -302,9 +302,15 @@ window.testRun = {
     await page.evaluate(() => testRun.finishCurrentWave());
     await page.locator("#combat-cue").getByText("Terminal A asegurada").waitFor();
     await page.getByText("Protege la terminal B · Integridad 4/4").waitFor();
+    await page.locator("#wave-debrief-title").tap();
+    await page.getByText("Entrada A · 0 fugas / Entrada B · 0 fugas").waitFor();
+    const payout = await page.locator("#wave-debrief-atp").textContent();
+    assert.match(payout, /Cierre de oleada.*Refuerzo/);
     await page.reload();
     await page.locator("#home-resume-run").tap();
     await page.getByText("Protege la terminal B · Integridad 4/4").waitFor();
+    await page.locator("#wave-debrief-title").tap();
+    assert.equal(await page.locator("#wave-debrief-atp").textContent(), payout);
     await page.locator("#pause").tap();
     await page.getByRole("button", { name: "Volver con guardado" }).tap();
     await page.locator(".level").nth(19).tap();

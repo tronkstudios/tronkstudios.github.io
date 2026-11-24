@@ -66,17 +66,27 @@ test("the next tower skips an enemy already covered by another shot", () => {
 test("fixed between-wave support is distinct from controlled recovery", () => {
   const match = new Match(6);
   const count = match.preview.count;
+  const reactor = match.place(BLUEPRINTS[7], 50, 60);
+  assert.ok(reactor);
+  reactor.cooldown = 0;
   match.startWave();
+  match.tick();
+  assert.ok(match.sell(reactor));
   match.spawn();
   const enemy = match.enemies[0];
   match.combo = 5;
   match.damage(enemy, enemy.hp * 8, "#fff", { piercing: true });
-  assert.equal(match.grossATP, enemy.reward);
+  assert.equal(match.grossATP, enemy.reward + 13);
   match.waveLeaks.lanes[0] = 2;
   match.queue.length = 0;
   match.tick();
   assert.equal(match.debrief.reserve, count * 3);
   assert.equal(match.debrief.recovery, 6);
+  assert.equal(match.debrief.reactor, 13);
+  assert.equal(match.debrief.bounties, enemy.reward);
+  assert.deepEqual(match.debrief.leaks, [2, 0]);
+  const { atp, payout, bounties, reserve, recovery } = match.debrief;
+  assert.equal(atp, payout + bounties + reserve + recovery + 13);
   assert.equal(match.state, "build");
 });
 
