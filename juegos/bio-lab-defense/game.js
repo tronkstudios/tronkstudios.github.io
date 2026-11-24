@@ -24,7 +24,7 @@ import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
 import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=13";
 
-import { HEROES, CONTRACTS } from "./operations.js?v=5";
+import { HEROES, CONTRACTS } from "./operations.js?v=6";
 
 const $ = (id) => document.getElementById(id);
 const panels = ["home", "campaign", "briefing", "operations", "field"];
@@ -198,7 +198,7 @@ function renderOperations() {
     return button;
   };
   $("heroes").replaceChildren(...HEROES.map((hero) => {
-    const tile = card(`${hero.name} · ${hero.role}`, `${hero.ability}. ${hero.detail}`);
+    const tile = card(`${hero.name} · ${hero.role}`, `${hero.rarity} · ${hero.ability}. ${hero.detail}`);
     tile.style.setProperty("--operation-color", hero.color);
     tile.prepend(heroIcon(hero));
     const stats = document.createElement("p");
