@@ -11,16 +11,16 @@ import {
   TARGETING,
   VARIANT_NAMES,
   dailySetup,
-} from "./engine.js?v=15";
-import { Board } from "./board.js?v=18";
+} from "./engine.js?v=16";
+import { Board } from "./board.js?v=19";
 import { towerIcon, heroIcon } from "./art.js?v=4";
-import { createCodex } from "./codex.js?v=2";
-import { Profile, dayKey } from "./profile.js?v=8";
+import { createCodex } from "./codex.js?v=3";
+import { Profile, dayKey } from "./profile.js?v=9";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=3";
-import { CHAPTERS, MISSIONS } from "./campaign.js?v=6";
+import { CHAPTERS, MISSIONS } from "./campaign.js?v=7";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=11";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=12";
 
 import { HEROES, CONTRACTS } from "./operations.js?v=5";
 
@@ -305,7 +305,16 @@ function renderLevels() {
         : stars
           ? `${"★".repeat(stars)}${"☆".repeat(3 - stars)}${profile.data.medals[i] ? " · Insignia" : ""}`
           : "Disponible";
-      button.append(number, label, badge);
+      button.append(number, label);
+      if (chapter.scenery) {
+        const objective = document.createElement("small");
+        objective.textContent = mission.objective === "archive" ? "Proteger terminales"
+          : mission.objective === "power" ? "Aislar una línea"
+          : mission.routePattern === 19 ? "Apagón programado"
+          : mission.routePattern ? "Desvío programado" : `${mission.towerLimit} puestos de defensa`;
+        button.append(objective);
+      }
+      button.append(badge);
       sectors.append(button);
     }
     section.append(header, sectors);
@@ -333,7 +342,7 @@ function briefing(level) {
   updateText("briefing-task", mission.task);
   updateText("briefing-speaker", mission.speaker);
   updateText("briefing-voice", mission.briefing);
-  updateText("briefing-tip", mission.cue);
+  updateText("briefing-tip", [mission.cue, preview.firePads.length ? "Las plataformas iluminadas dan +25 % de daño a las torres de ataque." : "", preview.towerLimit ? `Dispones de ${preview.towerLimit} puestos.` : ""].filter(Boolean).join(" "));
   updateText(
     "briefing-medal",
     profile.data.medals[level - 1]
@@ -541,7 +550,7 @@ function highlightDock() {
 }
 
 function updateDockBudget() {
-  const limit = match.contract?.towerLimit;
+  const limit = match.towerLimit;
   const full = limit != null && match.towers.length >= limit;
   const budgetKey = `${match.atp}:${limit ?? ""}:${match.towers.length}`;
   if (dockBudgetKey === budgetKey) return;
@@ -664,6 +673,7 @@ function renderSelection() {
     (tower.type === "eco"
       ? tower.note
       : `${tower.note} · ${tower.damage} daño · ${tower.range} alcance`);
+  if (match.padBonus(tower) > 1) detail.textContent += " · Plataforma de tiro +25 %";
   if (tower.branch) heading.textContent += ` · ${tower.branch.name}`;
   const cost = upgradeCost(tower);
   const options = document.createElement("div");

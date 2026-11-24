@@ -1,6 +1,6 @@
-import { BLUEPRINTS, Match, TARGETING, specializations } from "./engine.js?v=15";
+import { BLUEPRINTS, Match, TARGETING, specializations } from "./engine.js?v=16";
 
-import { MISSIONS } from "./campaign.js?v=6";
+import { MISSIONS } from "./campaign.js?v=7";
 
 const version = 1;
 const blueprintById = new Map(BLUEPRINTS.map((type) => [type.id, type]));

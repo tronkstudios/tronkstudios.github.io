@@ -7,10 +7,10 @@ import { normalize } from "../juegos/bio-lab-defense/profile.js";
 
 test("legacy completion opens the next chapter with expanded profile slots", () => {
   const profile = normalize({ unlockedLevel: 10, stars: Array(10).fill(2) });
-  assert.equal(MISSIONS.length, 22);
+  assert.equal(MISSIONS.length, 38);
   assert.equal(profile.unlockedLevel, 11);
-  assert.equal(profile.stars.length, 22);
-  assert.equal(profile.medals.length, 22);
+  assert.equal(profile.stars.length, 38);
+  assert.equal(profile.medals.length, 38);
   assert.deepEqual(profile.stars.slice(0, 10), Array(10).fill(2));
 });
 
@@ -326,4 +326,19 @@ test("the loss report distinguishes a repeated coverage gap from a brief uncover
   assert.deepEqual(match.waveLeaks.lanes, [1, 1]);
   assert.deepEqual([...match.waveLeaks.entries.values()].map(({ uncovered }) => uncovered), [1, 0]);
   assert.deepEqual([...match.waveLeaks.gaps.values()], [{ lane: enemy.lane, waypoint: 1, count: 1 }]);
+});
+
+test("expansion sectors have two buildable fire pads and preserve previous completions", () => {
+  assert.equal(normalize({ unlockedLevel: 22, stars: Array(22).fill(2) }).unlockedLevel, 23);
+  for (let level = 23; level <= MISSIONS.length; level++) {
+    const match = new Match(level);
+    assert.equal(match.firePads.length, 2);
+    for (const pad of match.firePads) {
+      const tower = match.place(BLUEPRINTS[0], pad.x, pad.y);
+      assert.ok(tower);
+      assert.equal(match.padBonus(tower), 1.25);
+      assert.equal(match.padBonus({ ...tower, type: "eco" }), 1);
+      assert.equal(match.padBonus({ ...tower, x: -100 }), 1);
+    }
+  }
 });

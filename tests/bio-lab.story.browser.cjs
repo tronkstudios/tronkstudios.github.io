@@ -85,11 +85,11 @@ window.forceRunnerLeak = () => {
       });
       await page.goto(base + "/juegos/bio-lab-defense/");
       await page.locator("#campaign-button").click();
-      assert.equal(await page.locator(".chapter").count(), 6);
-      assert.equal(await page.locator(".level").count(), 22);
+      assert.equal(await page.locator(".chapter").count(), 10);
+      assert.equal(await page.locator(".level").count(), 38);
       assert.match(
         await page.locator("#campaign-progress").textContent(),
-        /1\/22 misiones · 2 estrellas/,
+        /1\/38 misiones · 2 estrellas/,
       );
       assert.equal(await page.locator(".level").nth(2).isDisabled(), true);
       await page.locator("#resume-mission").click();
@@ -276,6 +276,20 @@ window.forceRunnerLeak = () => {
       await page.reload();
       await page.locator("#home-resume-run").click();
       await page.getByRole("heading", { name: "Sector 11 · Eco de fondo" }).waitFor();
+      await page.evaluate(() => {
+        localStorage.setItem("biolab_save_v1", JSON.stringify({ unlockedLevel: 22, stars: Array(22).fill(2) }));
+      });
+      await page.reload();
+      await page.locator("#campaign-button").click();
+      assert.equal(await page.locator(".level").nth(23).isDisabled(), true);
+      await page.locator("#resume-mission").click();
+      await page.getByRole("heading", { name: "Los primeros brotes" }).waitFor();
+      assert.match(await page.locator("#briefing-tip").textContent(), /25 %.*8 puestos/);
+      await page.locator("#launch-mission").click();
+      await page.getByRole("button", { name: "Empezar y reemplazar" }).click();
+      await page.getByRole("heading", { name: "Sector 23 · Los primeros brotes" }).waitFor();
+      await page.locator("#next").click();
+      assert.equal(await page.locator("#tower-limit").textContent(), "0/8 instaladas");
       assert.deepEqual(errors, []);
       console.log(
         `Bio-Lab gate controls, boss phases, loss report and checkpoint retry passed at ${width}px.`,

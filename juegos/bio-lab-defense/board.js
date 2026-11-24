@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT } from "./engine.js?v=15";
+import { WIDTH, HEIGHT } from "./engine.js?v=16";
 import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=4";
 
 function trace(ctx, points) {
@@ -98,6 +98,52 @@ function directionMarks(ctx, points, color) {
   }
 }
 
+function scenery(ctx, map) {
+  ctx.save();
+  for (const [x, y, scale] of [[78, 67, 0.78], [384, 456, 1], [612, 86, 0.9], [823, 464, 1.15]]) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.strokeStyle = map.accent + "72";
+    ctx.fillStyle = map.accent + "22";
+    ctx.lineWidth = 2;
+    if (map.scenery === "crystal") {
+      for (const [dx, height] of [[-20, 31], [0, 54], [21, 39]]) {
+        trace(ctx, [[dx - 10, 18], [dx - 9, 5 - height], [dx, -height], [dx + 10, 8 - height], [dx + 9, 18], [dx - 10, 18]]);
+        ctx.fill(); ctx.stroke();
+        trace(ctx, [[dx, -height], [dx + 2, 14]]);
+        ctx.stroke();
+      }
+    } else if (map.scenery === "orbit") {
+      circle(ctx, 0, 0, 29, "#151628", map.accent + "80", 3);
+      for (const angle of [-0.7, 0.7]) {
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 43, 12, angle, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      circle(ctx, 0, 0, 5, map.accent);
+    } else if (map.scenery === "forge") {
+      ctx.fillRect(-41, -22, 82, 44);
+      ctx.strokeRect(-41, -22, 82, 44);
+      for (let dx = -32; dx <= 24; dx += 11) {
+        trace(ctx, [[dx, 14], [dx + 7, -14]]);
+        ctx.lineWidth = 4;
+        ctx.stroke();
+      }
+    } else {
+      for (let dx = -26; dx <= 26; dx += 13) {
+        ctx.beginPath();
+        ctx.moveTo(dx, 23);
+        ctx.bezierCurveTo(dx - 18, 0, dx + 17, -11, dx + 5, -35 + Math.abs(dx) / 2);
+        ctx.stroke();
+        circle(ctx, dx + 5, -35 + Math.abs(dx) / 2, 4, map.accent + "88");
+      }
+    }
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
 function background(map, routes, chapter) {
   const base = document.createElement("canvas");
   base.width = WIDTH;
@@ -146,6 +192,7 @@ function background(map, routes, chapter) {
   ]) {
     floorTile(ctx, x, y, chapter, palette, map.accent);
   }
+  if (map.scenery) scenery(ctx, map);
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
   if (routes.length > 1) {
@@ -471,6 +518,22 @@ export class Board {
       }
       const area = routeEvent.blackout;
       if (area) circle(ctx, area.x, area.y, area.radius, "#d79b421c", "#ffd277c9", 4);
+      ctx.restore();
+    }
+    for (const pad of match.firePads) {
+      ctx.save();
+      ctx.translate(pad.x, pad.y);
+      polygon(ctx, 6, 26);
+      ctx.fillStyle = "#14263a";
+      ctx.fill();
+      ctx.strokeStyle = match.map.accent;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      circle(ctx, 0, 0, 20, null, match.map.accent + "88", 1);
+      for (const y of [-4, 4]) {
+        trace(ctx, [[-7, y + 4], [0, y - 2], [7, y + 4]]);
+        ctx.stroke();
+      }
       ctx.restore();
     }
     drawMissionEquipment(ctx, match);

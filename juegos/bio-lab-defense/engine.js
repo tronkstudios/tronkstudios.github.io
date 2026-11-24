@@ -1,4 +1,4 @@
-import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=6";
+import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=7";
 
 import { HERO_BY_ID } from "./operations.js?v=5";
 
@@ -683,7 +683,9 @@ export class Match {
     this.ranked = !!(daily || contract || veteran);
     this.mission = daily ? null : MISSIONS[level - 1];
     this.mapIndex = daily?.map ?? CHAPTERS[this.mission.chapter].map;
-    const base = MAPS[this.mapIndex];
+    const chapter = this.mission && CHAPTERS[this.mission.chapter];
+    const base = chapter?.points ? { ...MAPS[this.mapIndex], points: chapter.points, accent: chapter.color, scenery: chapter.scenery } : MAPS[this.mapIndex];
+    const auxiliary = chapter?.aux ?? AUXILIARY_LANES[this.mapIndex - 1];
     const layout = (points) =>
       this.mission
         ? missionRoutes(points, this.mission, WIDTH, HEIGHT)
@@ -691,13 +693,16 @@ export class Match {
     this.map = this.mission ? { ...base, points: layout(base.points) } : base;
     this.routes = [route(this.map.points)];
     if ((daily || level >= 5) && this.mapIndex > 0)
-      this.routes.push(route(layout(AUXILIARY_LANES[this.mapIndex - 1])));
+      this.routes.push(route(layout(auxiliary)));
     this.gateRoutes =
       !daily && level === 6 ? [this.routes[1], route(layout(COOLING_SHORTCUT))] : null;
     this.gateDiverted = false;
-    const event = !daily && ROUTE_EVENTS[level];
+    this.towerLimit = contract?.towerLimit ?? this.mission?.towerLimit;
+    this.firePads = [];
+
+    const event = !daily && ROUTE_EVENTS[this.mission?.routePattern ?? level];
     if (event) {
-      const points = AUXILIARY_LANES[this.mapIndex - 1].map(([x, y], i) => {
+      const points = auxiliary.map(([x, y], i) => {
         const [dx, dy] = event.shifts[i - 1] || [0, 0];
         return [x + dx, y + dy];
       });
@@ -706,6 +711,18 @@ export class Match {
         ? { x: (a[0] + b[0]) / 2, y: (a[1] + b[1]) / 2, radius: 122 }
         : null;
       this.routeEvent = { ...event, original: this.routes[1], alternate: route(layout(points)), blackout };
+    }
+    if (chapter?.scenery) {
+      for (const path of this.routes) {
+        const [x, y] = path.points[3];
+        const candidates = [52, 74, 98].flatMap(offset =>
+          [-1, 1].flatMap(dx => [-1, 1].map(dy => ({ x: x + dx * offset, y: y + dy * offset }))));
+        const pad = candidates.find(p => p.x >= 32 && p.x <= WIDTH - 32 && p.y >= 32 && p.y <= HEIGHT - 32 &&
+          !this.routes.some(r => nearRoute(r, p.x, p.y)) &&
+          !(this.routeEvent && nearRoute(this.routeEvent.alternate, p.x, p.y)) &&
+          this.firePads.every(other => Math.hypot(p.x - other.x, p.y - other.y) > 64));
+        if (pad) this.firePads.push(pad);
+      }
     }
     this.hp = contract?.hp ?? 100;
     this.combatLevel = Math.min(level, 10) + Math.max(0, level - 10) * 0.44;
@@ -755,6 +772,10 @@ export class Match {
       ? { ...hero, x: WIDTH - 85, y: Math.max(26, Math.min(HEIGHT - 26, this.map.points.at(-1)[1] - 53)),
           cooldown: 0, abilityCooldown: 0, targeting: "first", inflicted: 0, defeated: 0 }
       : null;
+  }
+
+  padBonus(tower) {
+    return tower.rank && tower.type !== "eco" && this.firePads.some(p => Math.hypot(p.x - tower.x, p.y - tower.y) <= 20) ? 1.25 : 1;
   }
 
   get alternateRoute() {
@@ -1076,8 +1097,8 @@ export class Match {
   checkPlacement(type, x, y, restoring = false) {
     if (!type || !["build", "wave"].includes(this.state))
       return "La partida está detenida.";
-    if (this.towers.length >= (this.contract?.towerLimit ?? Infinity))
-      return "Has alcanzado el máximo de torres del contrato.";
+    if (this.towers.length >= (this.towerLimit ?? Infinity))
+      return this.contract ? "Has alcanzado el máximo de torres del contrato." : "Has ocupado todos los puestos del sector.";
     if (type.unlock > this.techLevel)
       return "Esta torre se habilita en otro sector.";
     return this.checkSite(x, y, null, restoring) || (this.atp < type.cost ? "ATP insuficiente." : "");
@@ -1594,7 +1615,7 @@ export class Match {
       if (!hits.length) continue;
       tower.linkReady = this.time + 48;
       this.effect(tower.x, tower.y, "#e0b0ff", 0, partner);
-      for (const enemy of hits) this.damage(enemy, Math.round(tower.damage * 0.55), tower.color, tower.branch, tower);
+      for (const enemy of hits) this.damage(enemy, Math.round(tower.damage * this.padBonus(tower) * 0.55), tower.color, tower.branch, tower);
     }
     const committed = new Map();
     if (!this.daily) for (const shot of this.shots) reserveImpact(committed, shot, this.time);
@@ -1649,7 +1670,7 @@ export class Match {
         y: tower.y,
         target,
         tower,
-        damage: tower.damage,
+        damage: Math.round(tower.damage * this.padBonus(tower)),
         type: tower.type,
         color: tower.color,
         branch: tower.branch || {},
