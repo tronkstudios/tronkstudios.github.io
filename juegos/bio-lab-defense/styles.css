@@ -1548,3 +1548,114 @@ dialog::backdrop { background: #031016cf; }
   .hero-body > p { grid-area: 2 / 1 / 3 / -1; margin: 0; }
   .hero-body .actions { grid-area: 3 / 1 / 4 / -1; margin-top: 0.1rem; }
 }
+
+.campaign-browser, .operations-layout {
+  display: grid;
+  align-items: start;
+  gap: 0.9rem;
+}
+.campaign-browser { grid-template-columns: minmax(215px, 0.8fr) minmax(0, 3fr); }
+.campaign-browser .chapter-index {
+  display: grid;
+  gap: 0.8rem;
+  align-content: start;
+  position: sticky;
+  top: 0.75rem;
+  margin: 0;
+}
+.campaign-filter { display: grid; min-width: 0; gap: 0.28rem; }
+.campaign-filter select { width: 100%; min-width: 0; }
+.campaign-filter button { grid-column: auto; }
+.campaign-sectors { min-width: 0; }
+.campaign-sectors > :not(#levels) { margin-bottom: 0.6rem; }
+
+.mission-brief {
+  grid-template-areas: "summary map" "notes map" "deploy map";
+  align-items: start;
+  column-gap: clamp(1rem, 3vw, 2rem);
+  row-gap: 0.65rem;
+}
+.mission-plan { grid-area: summary; }
+.mission-notes { grid-area: notes; }
+.mission-notes .radio-card { margin-top: 0; }
+.mission-notes .mission-medal { margin-bottom: 0; }
+.mission-preview { grid-area: map; align-self: start; }
+.mission-preview > :not(canvas) { margin-top: 0.45rem; }
+.mission-deploy { grid-area: deploy; display: grid; gap: 0.55rem; }
+.mission-deploy button { width: 100%; }
+
+.operations-layout { grid-template-columns: minmax(0, 3fr) minmax(275px, 2fr); }
+.operations-layout > section {
+  min-width: 0;
+  border: 1px solid var(--seam);
+  border-radius: 10px;
+  padding: 0.8rem;
+  background: #0b1b24;
+}
+.operations-layout h2 { color: var(--phosphor); scroll-margin-top: 1rem; }
+.operations-layout .operations-grid { margin-bottom: 0; }
+.operations-nav { display: none; }
+
+#field {
+  --field-border: #31565c;
+  --field-accent: #a0ecd7;
+}
+#field .hud > div, #field .controls, #field .wave-preview {
+  border-color: var(--field-border);
+  background: linear-gradient(135deg, #152f36, #0c1b28 75%);
+}
+#field .hud span { color: #b8d7d9; }
+#field .hud strong { color: var(--field-accent); font-variant-numeric: tabular-nums; }
+#field #next { background: var(--field-accent); color: #082326; border-color: #bbf1e2; }
+#field #next:hover:enabled { background: #c1f8e8; }
+.wave-preview-head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.wave-preview-head #run-drill { margin: 0; }
+.supplies h2 { font-size: 0.8rem; color: var(--field-accent); }
+#codex #codex-detail { background: #10252e; border-color: var(--seam); }
+#drill form[method="dialog"], #fire-orders .actions, #modal-actions {
+  position: sticky;
+  bottom: -1px;
+  background: var(--glass);
+  border-top: 1px solid var(--seam);
+  padding-block: 0.5rem;
+}
+#drill form button { width: 100%; }
+
+@media (max-width: 760px) {
+  .campaign-browser, .operations-layout { grid-template-columns: minmax(0, 1fr); }
+  .campaign-browser .chapter-index {
+    position: static;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .mission-brief { grid-template-areas: "summary" "map" "deploy" "notes"; }
+  .mission-preview { padding: 0.45rem; }
+  .operations-nav { display: flex; gap: 0.45rem; margin: 0.6rem 0; }
+  .operations-nav a {
+    display: grid;
+    place-items: center;
+    flex: 1;
+    min-height: 44px;
+    padding: 0.4rem;
+    border: 1px solid var(--seam);
+    border-radius: 8px;
+    background: var(--glass);
+    color: var(--phosphor);
+    text-decoration: none;
+  }
+  #field .wave-preview-head > button { flex: 1 1 auto; }
+}
+
+#home .home-play:has(#home-resume-run:not([hidden])) #campaign-button {
+  background: #10272e;
+  color: #c9eee4;
+  border-color: #4c6e71;
+  box-shadow: none;
+}
+#home .home-play:has(#home-resume-run:not([hidden])) #campaign-button:hover {
+  background: #1b373d;
+}
+@media (max-width: 480px) {
+  .home-play { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .home-play button { text-align: left; }
+  #campaign-button::after { float: right; }
+}
