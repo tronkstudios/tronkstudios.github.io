@@ -150,6 +150,9 @@ window.testRun = {
     assert.equal(await codex.locator("#codex-detail").isVisible(), false);
     await codex.getByRole("button", { name: "Torres", exact: true }).tap();
     assert.equal(await search.inputValue(), "");
+    await search.fill("bio-reactor");
+    await codex.getByText("260 ATP/min", { exact: true }).waitFor();
+    await codex.getByText("1,75 s", { exact: true }).waitFor();
     await codex.getByRole("button", { name: "Cerrar" }).tap();
     await page.locator("#operations-button").tap();
     await page.getByRole("heading", { name: "Nanobots de campaña" }).waitFor();

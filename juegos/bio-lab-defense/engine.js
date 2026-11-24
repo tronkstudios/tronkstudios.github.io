@@ -686,6 +686,14 @@ export function reactorOutput(rank, branch) {
   return branch?.output ?? 9 + 4 * rank;
 }
 
+export const REACTOR_FIRST_CYCLE = 105;
+
+export function reactorProduction(tower) {
+  const output = reactorOutput(tower.rank, tower.branch);
+  const ticks = Math.ceil(tower.fireRate);
+  return { output, ticks, perMinute: output * 3600 / ticks, charge: tower.branch?.charge || 0 };
+}
+
 export class Match {
   constructor(level, daily = null, { heroId, contract, veteran = false } = {}) {
     this.level = level;
@@ -1155,7 +1163,7 @@ export class Match {
       x,
       y,
       paid: type.cost,
-      cooldown: type.type === "eco" ? 105 : 0,
+      cooldown: type.type === "eco" ? REACTOR_FIRST_CYCLE : 0,
       rank: 1,
       targeting: "first",
       inflicted: 0,

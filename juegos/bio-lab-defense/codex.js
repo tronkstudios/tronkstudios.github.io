@@ -1,4 +1,4 @@
-import { BLUEPRINTS, PATHOGEN_TYPES, BOSS_CATALOG, reactorOutput, specializations, upgradeCost } from "./engine.js?v=23";
+import { BLUEPRINTS, PATHOGEN_TYPES, BOSS_CATALOG, reactorProduction, REACTOR_FIRST_CYCLE, specializations, upgradeCost } from "./engine.js?v=24";
 import { drawEnemyModel, drawTurretModel } from "./art.js?v=4";
 
 const towerAdvice = {
@@ -9,7 +9,7 @@ const towerAdvice = {
   toxin: "Aplícalo al principio de una ruta larga para que el daño siga actuando mientras avanzan.",
   tesla: "Prioriza las entradas con grupos compactos para que sus descargas encuentren objetivos cercanos.",
   sniper: "Cubre varias rutas con una sola torre. Selecciona Mayor resistencia para concentrar los disparos en los jefes.",
-  ribosome: "Instálalo fuera de los mejores puntos de tiro. Empieza pronto para acumular ATP a lo largo de varias oleadas.",
+  ribosome: "Instálalo fuera de los mejores puntos de tiro. Genera ATP mientras haya enemigos en la oleada. La Fiebre acelera sus ciclos.",
   magnet: "Su cadencia ayuda a renovar la ralentización. Úsalo antes de un cruce para dar tiempo a las torres de área.",
   uv: "Su radio de impacto inicial es mayor que el de Pulso Plasma. Aprovéchalo en cruces y curvas cerradas.",
   interferon: "Mantiene fuego frecuente sobre objetivos individuales. Combínalo con una torre de área en rutas mixtas.",
@@ -67,11 +67,20 @@ function statistics(rows) {
 
 function towerStats(tower) {
   const economy = tower.type === "eco";
+  if (economy) {
+    const { output, ticks, perMinute } = reactorProduction({ ...tower, rank: 1 });
+    return [
+      ["Coste", `${tower.cost} ATP`], ["Producción por ciclo", `${output} ATP`],
+      ["Primer ciclo", `${number.format(REACTOR_FIRST_CYCLE / 60)} s`],
+      ["Ciclo base", `${number.format(ticks / 60)} s`], ["Ritmo base", `${Math.round(perMinute)} ATP/min`],
+      ["Disponible desde", `Sector ${tower.unlock}`],
+    ];
+  }
   return [
     ["Coste", `${tower.cost} ATP`],
-    [economy ? "Producción" : "Daño por impacto", economy ? `${reactorOutput(1)} ATP` : tower.damage],
-    [economy ? "Ciclo" : "Tiempo entre disparos", `${number.format(tower.fireRate / 60)} s`],
-    ...(economy ? [] : [["Alcance", tower.range]]),
+    ["Daño por impacto", tower.damage],
+    ["Tiempo entre disparos", `${number.format(tower.fireRate / 60)} s`],
+    ["Alcance", tower.range],
     ["Disponible desde", `Sector ${tower.unlock}`],
   ];
 }

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { Match, BLUEPRINTS, dailySetup, suggestPlacement } from "../juegos/bio-lab-defense/engine.js";
+import { Match, BLUEPRINTS, dailySetup, suggestPlacement, reactorProduction, REACTOR_FIRST_CYCLE } from "../juegos/bio-lab-defense/engine.js";
 import { CONTRACTS } from "../juegos/bio-lab-defense/operations.js";
 import { MISSIONS } from "../juegos/bio-lab-defense/campaign.js";
 import { restoreCheckpoint } from "../juegos/bio-lab-defense/checkpoint.js";
@@ -448,4 +448,29 @@ test("restored towers keep their investment and legacy saves keep the catalog pr
   const legacy = restoreCheckpoint(data);
   assert.equal(legacy.selected, null);
   assert.equal(legacy.match.towers[0].paid, tower.cost);
+});
+
+test("reactor production forecasts match the first cycle and both specialization intervals", () => {
+  for (const branch of [null, 0, 1]) {
+    const match = new Match(1);
+    match.atp = 400;
+    const reactor = match.place(BLUEPRINTS[7], 50, 60);
+    assert.ok(reactor);
+    if (branch !== null) {
+      assert.ok(match.upgrade(reactor));
+      assert.ok(match.upgrade(reactor, branch));
+    }
+    const forecast = reactorProduction(reactor);
+    const initialCharge = match.charge;
+    match.startWave();
+    for (let tick = 1; tick < REACTOR_FIRST_CYCLE; tick++) match.tick();
+    assert.equal(reactor.produced, 0);
+    match.tick();
+    assert.equal(reactor.produced, forecast.output);
+    assert.equal(match.charge, initialCharge + forecast.charge);
+    for (let tick = 1; tick < forecast.ticks; tick++) match.tick();
+    assert.equal(reactor.produced, forecast.output);
+    match.tick();
+    assert.equal(reactor.produced, 2 * forecast.output);
+  }
 });

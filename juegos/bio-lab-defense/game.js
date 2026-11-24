@@ -6,24 +6,25 @@ import {
   HEIGHT,
   upgradeCost,
   upgradeStats,
-  reactorOutput,
+  reactorProduction,
+  REACTOR_FIRST_CYCLE,
   suggestPlacement,
   specializations,
   TARGETING,
   VARIANT_NAMES,
   dailySetup,
-} from "./engine.js?v=23";
+} from "./engine.js?v=24";
 import { routeCoverage } from "./coverage.js?v=1";
 import { attachDrill } from "./drill.js?v=2";
-import { Board } from "./board.js?v=29";
+import { Board } from "./board.js?v=30";
 import { towerIcon, heroIcon } from "./art.js?v=4";
-import { createCodex } from "./codex.js?v=11";
+import { createCodex } from "./codex.js?v=12";
 import { Profile, dayKey } from "./profile.js?v=11";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=6";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=8";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=19";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=20";
 
 import { HEROES, CONTRACTS } from "./operations.js?v=7";
 
@@ -950,7 +951,17 @@ function placementForecast(tower, point, original = null, action = "") {
   const compareCoverage = route => compare(t => match.towerOffline(t, wave) ? 0 : routeCoverage(route, t));
   if (offline) lines.push(match.state === "wave" ? "Sin energía hasta el final de la oleada" : `Sin energía en la oleada ${wave}`);
   if (candidate.type === "eco") {
-    lines.push(`${compare(t => match.towerOffline(t, wave) ? 0 : reactorOutput(t.rank, t.branch))} ATP por ciclo`);
+    const production = t => reactorProduction(t);
+    const effective = (t, key) => match.towerOffline(t, wave) ? 0 : production(t)[key];
+    lines.push(`${compare(t => effective(t, "output"))} ATP por ciclo`);
+    if (!offline || original) {
+      lines.push(`${compare(t => cadence.format(production(t).ticks / 60))} s por ciclo · Ritmo base`);
+      lines.push(`${compare(t => Math.round(effective(t, "perMinute")))} ATP/min en combate continuo`);
+    }
+    const charge = compare(t => effective(t, "charge"));
+    if (charge) lines.push(`${charge} puntos de pulso por ciclo`);
+    if (point && !original && !offline)
+      lines.push(`Primer ciclo en ${cadence.format(REACTOR_FIRST_CYCLE / 60)} s de combate`);
   } else {
     const damage = compare(t => Math.round(t.damage * match.padBonus(t)));
     lines.push(`${damage} de daño por impacto${match.padBonus(candidate) > 1 ? " · Plataforma +25 %" : ""}`);
@@ -960,8 +971,8 @@ function placementForecast(tower, point, original = null, action = "") {
     if (phase === "warning" && wave < event.wave)
       lines.push(`B tras el desvío · ${compare(t => match.towerOffline(t, event.wave) ? 0 : routeCoverage(event.alternate, t))} %`);
   }
-  if (original && candidate.fireRate !== original.fireRate)
-    lines.push(`${compare(t => cadence.format(t.fireRate / 60))} s por ${candidate.type === "eco" ? "ciclo" : "disparo"}`);
+  if (candidate.type !== "eco" && original && candidate.fireRate !== original.fireRate)
+    lines.push(`${compare(t => cadence.format(t.fireRate / 60))} s por disparo`);
   if (!offline && phase === "warning" && match.towerOffline(candidate, event.wave))
     lines.push(`Apagón aquí en la oleada ${event.wave}`);
   panel.replaceChildren(...[action ? `${candidate.name} · ${action}` : candidate.name, ...lines].map((value, i) => {
@@ -974,13 +985,16 @@ function placementForecast(tower, point, original = null, action = "") {
 function upgradeForecast(tower, branch) {
   const next = upgradeStats(tower, branch);
   const interval = (ticks) => cadence.format(ticks / 60);
-  const stats = tower.type === "eco"
-    ? `ATP por ciclo ${reactorOutput(tower.rank, tower.branch)} → ${reactorOutput(tower.rank + 1, branch)}`
-    : `Daño ${Math.round(tower.damage * match.padBonus(tower))} → ${Math.round(next.damage * match.padBonus(tower))} · Alcance ${tower.range} → ${next.range}`;
   const preview = document.createElement("small");
   preview.className = "upgrade-forecast";
-  const action = tower.type === "eco" ? "ciclo" : "disparo";
-  preview.textContent = `${stats} · ${interval(tower.fireRate)} → ${interval(next.fireRate)} s por ${action}`;
+  if (tower.type === "eco") {
+    const before = reactorProduction(tower);
+    const after = reactorProduction({ ...tower, ...next, rank: tower.rank + 1, branch });
+    preview.textContent = `${before.output} → ${after.output} ATP/ciclo · ${interval(before.ticks)} → ${interval(after.ticks)} s · ${Math.round(before.perMinute)} → ${Math.round(after.perMinute)} ATP/min${after.charge ? ` · +${after.charge} de pulso/ciclo` : ""}`;
+    return preview;
+  }
+  const stats = `Daño ${Math.round(tower.damage * match.padBonus(tower))} → ${Math.round(next.damage * match.padBonus(tower))} · Alcance ${tower.range} → ${next.range}`;
+  preview.textContent = `${stats} · ${interval(tower.fireRate)} → ${interval(next.fireRate)} s por disparo`;
   return preview;
 }
 
