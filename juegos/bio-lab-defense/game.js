@@ -1,4 +1,4 @@
-import { affinityFor, towerAttack } from "./affinities.js?v=1";
+import { affinityFor, towerAttack, waveAffinities } from "./affinities.js?v=2";
 import { drawSpecimen, routeThumbnail } from "./menu-art.js?v=2";
 import {
   BLUEPRINTS,
@@ -942,7 +942,7 @@ function placementForecast(tower, point, original = null, action = "") {
   const offline = match.towerOffline(candidate, wave);
   const key = [candidate.id, candidate.rank, candidate.damage, candidate.range, candidate.x, candidate.y,
     candidate.branch?.name, candidate.fireRate, original?.x, original?.y, original?.rank, action,
-    match.level, match.mapIndex, match.gateDiverted, phase, match.state, match.wave].join("|");
+    match.level, match.mapIndex, match.gateDiverted, phase, match.state, match.wave, match.preview === lastPreview].join("|");
   if (panel.dataset.key === key) return;
   panel.dataset.key = key;
   const lines = [];
@@ -972,6 +972,14 @@ function placementForecast(tower, point, original = null, action = "") {
     if (action === "Traslado") lines.push("Trazo discontinuo · cobertura que pierdes");
     const lanes = routes.map((route, index) => `${index ? "B" : "A"} ${compareCoverage(route)} %`);
     lines.push(`Recorrido al alcance · ${lanes.join(" / ")}`);
+    if (match.state === "build" && !offline && match.preview === lastPreview) {
+      const against = waveCounterProfiles.flatMap((profile, lane) => {
+        const counts = profile.get(towerAttack[candidate.id]);
+        if (!counts || !routeCoverage(routes[lane], candidate)) return [];
+        return [`${lane ? "B" : "A"} ${counts.weak} ${counts.weak === 1 ? "débil" : "débiles"} / ${counts.resist} ${counts.resist === 1 ? "resistente" : "resistentes"}`];
+      });
+      if (against.length) lines.push(`Afinidades en ruta · ${against.join(" · ")}`);
+    }
     if (phase === "warning" && wave < event.wave)
       lines.push(`B tras el desvío · ${compare(t => match.towerOffline(t, event.wave) ? 0 : routeCoverage(event.alternate, t))} %`);
   }
@@ -1026,9 +1034,52 @@ function updateText(id, value) {
   if (node.textContent !== String(value)) node.textContent = value;
 }
 
+let waveCounterProfiles = [];
+function renderCounterSuggestions(preview) {
+  const panel = $("wave-counters");
+  waveCounterProfiles = match.hasAffinities ? waveAffinities(preview.order, match.routes.length) : [];
+  const rows = waveCounterProfiles.flatMap((profile, lane) => {
+    const options = [...profile.entries()].filter(([, counts]) => counts.weak > 0 && counts.weak >= counts.resist);
+    options.sort(([, a], [, b]) => (b.weak - b.resist) - (a.weak - a.resist) || b.weak - a.weak);
+    const [type, counts] = options.find(([attack]) =>
+      BLUEPRINTS.some(tower => towerAttack[tower.id] === attack && tower.unlock <= match.techLevel)) || options[0] || [];
+    if (!type) return [];
+    const tower = BLUEPRINTS.filter(item => item.unlock <= match.techLevel && towerAttack[item.id] === type)
+      .sort((a, b) => a.cost - b.cost)[0];
+    const card = document.createElement("li");
+    const text = document.createElement("div");
+    const label = document.createElement("strong");
+    label.textContent = `Entrada ${lane ? "B" : "A"} · ${type}`;
+    const detail = document.createElement("small");
+    const weak = counts.weak === 1 ? "1 débil" : `${counts.weak} débiles`;
+    const resist = counts.resist === 1 ? "1 resistente" : `${counts.resist} resistentes`;
+    detail.textContent = `${weak}${counts.resist ? " · " + resist : ""}`;
+    text.append(label, detail);
+    card.append(text);
+    if (tower) {
+      const choose = makeButton(`${tower.name} · ${tower.cost} ATP`, () => {
+        $("dock").querySelector(`[data-type="${tower.id}"]`).click();
+        canvas.focus({ preventScroll: true });
+        canvas.scrollIntoView({ block: "nearest" });
+        message(`${tower.name} seleccionada. Busca cobertura en la entrada ${lane ? "B" : "A"}.`);
+      });
+      choose.setAttribute("aria-label", `Elegir ${tower.name} para la entrada ${lane ? "B" : "A"} por ${tower.cost} ATP`);
+      card.append(choose);
+    } else {
+      const status = document.createElement("small");
+      status.textContent = "Tipo aún bloqueado";
+      card.append(status);
+    }
+    return [card];
+  });
+  panel.hidden = rows.length === 0;
+  $("wave-counter-list").replaceChildren(...rows);
+}
+
 function renderWavePreview(preview) {
   if (preview === lastPreview) return;
   lastPreview = preview;
+  renderCounterSuggestions(preview);
   const { count, theme, final, lanes, bossTip, order, timeline } = preview;
   const finale = match.gateRoutes ? " · Dos jefes" : " · Jefe";
   updateText(

@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=31" />
+    <link rel="stylesheet" href="./styles.css?v=32" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -342,6 +342,10 @@
                 <strong id="wave-preview-title"></strong>
                 <button type="button" id="run-drill" aria-haspopup="dialog">Ensayar oleada</button>
               </div>
+              <section id="wave-counters" aria-labelledby="wave-counter-title" hidden>
+                <h3 id="wave-counter-title">Torres recomendadas</h3>
+                <ul id="wave-counter-list"></ul>
+              </section>
               <ul
                 id="wave-roster"
                 class="wave-roster"
@@ -469,6 +473,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=42"></script>
+    <script type="module" src="./game.js?v=43"></script>
   </body>
 </html>

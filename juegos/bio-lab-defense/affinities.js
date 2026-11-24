@@ -28,3 +28,17 @@ export function towerMultiplier(enemy, tower) {
   if (attack === enemy.affinity.resist) return RESISTANCE;
   return 1;
 }
+
+export function waveAffinities(order, laneCount) {
+  const lanes = Array.from({ length: laneCount }, () => new Map());
+  for (const { lane, spec } of order) {
+    const affinity = affinityFor(spec.shape);
+    if (!affinity) continue;
+    for (const [kind, attack] of Object.entries(affinity)) {
+      const counts = lanes[lane].get(attack) || { weak: 0, resist: 0 };
+      counts[kind]++;
+      lanes[lane].set(attack, counts);
+    }
+  }
+  return lanes;
+}

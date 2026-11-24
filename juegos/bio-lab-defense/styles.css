@@ -1953,3 +1953,29 @@ dialog::backdrop { background: #031016cf; }
   color: #b3e8da;
   font-size: 0.69rem;
 }
+
+#wave-counters {
+  margin: 0.65rem 0;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #345f5c;
+  border-radius: 8px;
+  background: #0c242b;
+}
+#wave-counter-title { margin: 0; color: #b4f0d9; font-size: 0.84rem; }
+#wave-counter-list {
+  list-style: none;
+  margin: 0.32rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+#wave-counter-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.35rem 0.6rem;
+  flex-wrap: wrap;
+}
+#wave-counter-list strong, #wave-counter-list small { display: block; }
+#wave-counter-list small { color: #b7cbd0; }
+#wave-counter-list button { border-color: #47796d; min-height: 44px; }

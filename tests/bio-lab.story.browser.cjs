@@ -223,6 +223,12 @@ window.forceRunnerLeak = () => {
         return labels.map((label) => Number(label.split(" · ").at(-1)));
       };
       await page.locator("#wave-beacon-hint").getByText(/Primera llegada · A .* \/ B /).waitFor();
+      const recommendation = page.locator("#wave-counter-list").getByRole("button").first();
+      const suggested = await recommendation.getAttribute("aria-label");
+      await recommendation.click();
+      assert.match(await page.locator("#dock [aria-pressed=true] strong").textContent(),
+        new RegExp(suggested.split(" para la entrada")[0].replace("Elegir ", ""), "i"));
+      await page.locator("#dock [data-type=nanolaser]").click();
       const [a, b] = await counts();
       assert.ok(a > 0 && b > 0);
       const tacticalPause = page.locator("#tactical-pause");
