@@ -1,4 +1,4 @@
-import { drawSpecimen, routeThumbnail } from "./menu-art.js?v=1";
+import { drawSpecimen, routeThumbnail } from "./menu-art.js?v=2";
 import {
   BLUEPRINTS,
   Match,
@@ -201,6 +201,9 @@ function refreshProfile() {
     "home-progress",
     `${complete}/${MISSIONS.length} misiones · ${medals} insignias`,
   );
+  const campaignMeter = $("home-progress-meter");
+  campaignMeter.max = MISSIONS.length;
+  campaignMeter.value = complete;
   if (screen === "campaign") renderLevels();
   if (screen === "operations") renderOperations();
 }
