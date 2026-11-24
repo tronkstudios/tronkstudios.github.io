@@ -7,10 +7,12 @@ export function startDrill(match) {
   return simulation.startWave() ? simulation : null;
 }
 
-export function attachDrill(dialog, board, getMatch) {
+export function attachDrill(dialog, board, getMatch, selectTower) {
   const title = dialog.querySelector("h2");
   const result = dialog.querySelector("[role=status]");
   const lanes = dialog.querySelector("ul");
+  const performancePanel = dialog.querySelector(".drill-towers");
+  const towerList = performancePanel.querySelector("ol");
   const compare = dialog.querySelector(".drill-comparison");
   const gapHint = dialog.querySelector(".drill-gap");
   let frame;
@@ -26,6 +28,8 @@ export function attachDrill(dialog, board, getMatch) {
     title.textContent = `Ensayo de la oleada ${wave}`;
     result.textContent = "Simulando el combate…";
     lanes.replaceChildren();
+    performancePanel.hidden = true;
+    performancePanel.open = false;
     compare.hidden = true;
     gapHint.hidden = true;
     dialog.showModal();
@@ -57,6 +61,43 @@ export function attachDrill(dialog, board, getMatch) {
         item.textContent = `Entrada ${lane ? "B" : "A"} · ${count} ${count === 1 ? "fuga" : "fugas"}${names.length ? " · " + names.join(", ") : ""}`;
         return item;
       }));
+      performancePanel.hidden = !sim.towers.length;
+      const ctx = board.ctx;
+      ctx.save();
+      ctx.font = "bold 18px system-ui";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      towerList.replaceChildren(...sim.towers.map((tested, i) => {
+        const original = match.towers[i];
+        const damage = Math.round(tested.inflicted - original.inflicted);
+        const stats = tested.type === "eco" ? [`+${tested.produced - original.produced} ATP`]
+          : [`${damage} de daño`, `${tested.defeated - original.defeated} bajas`];
+        const slow = tested.slowTicks - original.slowTicks;
+        if (slow) stats.push(`${(slow / 60).toLocaleString("es-ES", { maximumFractionDigits: 1 })} s de ralentización acumulada`);
+        ctx.fillStyle = "#0c1e32";
+        ctx.strokeStyle = tested.color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(tested.x, tested.y, 13, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(String(i + 1), tested.x, tested.y);
+        const item = document.createElement("li");
+        const inspect = document.createElement("button");
+        inspect.type = "button";
+        inspect.textContent = `${i + 1} · ${tested.name} · Rango ${tested.rank}`;
+        inspect.setAttribute("aria-label", `Seleccionar ${tested.name}, torre ${i + 1}`);
+        inspect.onclick = () => {
+          dialog.close();
+          selectTower(original);
+        };
+        const detail = document.createElement("span");
+        detail.textContent = stats.join(" · ");
+        item.append(inspect, detail);
+        return item;
+      }));
+      ctx.restore();
       const gaps = [...sim.waveLeaks.gaps.values()].sort((a, b) => b.count - a.count);
       if (gaps.length) {
         const gap = gaps[0];

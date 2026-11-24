@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=20" />
+    <link rel="stylesheet" href="./styles.css?v=21" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -102,6 +102,11 @@
           >
             Retomar partida
           </button>
+        </div>
+        <div class="chapter-index">
+          <label for="chapter-jump">Capítulo</label>
+          <select id="chapter-jump"></select>
+          <button type="button" id="go-chapter">Ir al capítulo</button>
         </div>
         <div id="levels" class="levels"></div>
       </section>
@@ -315,7 +320,7 @@
             </section>
           </div>
           <aside id="supply-panel" class="controls" aria-label="Mejoras y suministros">
-            <div id="selection"></div>
+            <div id="selection" tabindex="-1"></div>
             <button type="button" id="undo-build" class="undo-build" hidden>
               Deshacer última torre
             </button>
@@ -341,6 +346,11 @@
       <strong role="status"></strong>
       <ul aria-label="Fugas por entrada"></ul>
       <p class="drill-gap" hidden></p>
+      <details class="drill-towers" hidden>
+        <summary>Rendimiento de las torres</summary>
+        <p>Selecciona una torre para ajustarla en el tablero.</p>
+        <ol></ol>
+      </details>
       <p class="drill-comparison" hidden></p>
       <form method="dialog"><button autofocus>Volver a preparar</button></form>
     </dialog>
@@ -390,6 +400,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=24"></script>
+    <script type="module" src="./game.js?v=25"></script>
   </body>
 </html>

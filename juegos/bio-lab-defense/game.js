@@ -13,7 +13,7 @@ import {
   dailySetup,
 } from "./engine.js?v=17";
 import { routeCoverage } from "./coverage.js?v=1";
-import { attachDrill } from "./drill.js?v=1";
+import { attachDrill } from "./drill.js?v=2";
 import { Board } from "./board.js?v=22";
 import { towerIcon, heroIcon } from "./art.js?v=4";
 import { createCodex } from "./codex.js?v=4";
@@ -34,7 +34,18 @@ const briefingBoard = new Board($("briefing-map"));
 const lossBoard = new Board($("loss-map"));
 const modal = $("modal");
 const drill = $("drill");
-$("run-drill").onclick = attachDrill(drill, new Board($("drill-map")), () => match);
+$("run-drill").onclick = attachDrill(drill, new Board($("drill-map")), () => match, tower => {
+  selected = tower;
+  blueprint = null;
+  movingHero = aiming = false;
+  movingTower = null;
+  upgradePreview = null;
+  cursor = null;
+  highlightDock();
+  renderHUD();
+  $("selection").scrollIntoView({ block: "nearest" });
+  $("selection").focus({ preventScroll: true });
+});
 const fireOrders = $("fire-orders");
 const fireMap = $("fire-map");
 const fireBoard = new Board(fireMap);
@@ -280,12 +291,17 @@ function renderLevels() {
     `${complete}/${MISSIONS.length} misiones · ${totalStars} estrellas · ${medals} insignias`,
   );
   const active = profile.data.unlockedLevel;
+  const jump = $("chapter-jump");
+  jump.replaceChildren(...CHAPTERS.map((chapter, i) => new Option(`${i + 1} · ${chapter.name}`, i)));
+  jump.value = String(MISSIONS[active - 1].chapter);
   const chapters = CHAPTERS.map((chapter, index) => {
     const section = document.createElement("section");
     section.className = "chapter";
+    section.id = `campaign-chapter-${index}`;
     section.style.setProperty("--chapter", chapter.color);
     const header = document.createElement("header");
     const title = document.createElement("h2");
+    title.tabIndex = -1;
     title.textContent = `Capítulo ${index + 1} · ${chapter.name}`;
     const location = document.createElement("p");
     location.textContent = chapter.location;
@@ -297,6 +313,7 @@ function renderLevels() {
       const level = i + 1;
       const button = makeButton("", () => briefing(level));
       button.className = "level";
+      button.id = `campaign-sector-${level}`;
       button.classList.toggle(
         "level-current",
         level === active && !profile.data.stars[i],
@@ -326,6 +343,10 @@ function renderLevels() {
       button.append(badge);
       sectors.append(button);
     }
+    const indices = MISSIONS.map((m, i) => m.chapter === index ? i : -1).filter(i => i >= 0);
+    const starsHere = indices.reduce((sum, i) => sum + profile.data.stars[i], 0);
+    const medalsHere = indices.filter(i => profile.data.medals[i]).length;
+    location.textContent += ` · ${starsHere}/${indices.length * 3} estrellas · ${medalsHere}/${indices.length} insignias`;
     section.append(header, sectors);
     return section;
   });
@@ -1492,10 +1513,21 @@ canvas.onkeydown = (e) => {
 
 $("campaign-button").onclick = campaign;
 $("back-home").onclick = () => view("home");
+$("go-chapter").onclick = () => {
+  const heading = $(`campaign-chapter-${$("chapter-jump").value}`).querySelector("h2");
+  heading.focus({ preventScroll: true });
+  heading.scrollIntoView({ block: "start" });
+};
 $("resume-mission").onclick = () => briefing(profile.data.unlockedLevel);
 $("home-resume-run").onclick = resumePreparation;
 $("campaign-resume-run").onclick = resumePreparation;
-$("back-campaign").onclick = campaign;
+$("back-campaign").onclick = () => {
+  campaign();
+  const sector = $(`campaign-sector-${briefingLevel}`);
+  $("chapter-jump").value = String(MISSIONS[briefingLevel - 1].chapter);
+  sector.focus({ preventScroll: true });
+  sector.scrollIntoView({ block: "nearest" });
+};
 $("launch-mission").onclick = () => start(briefingLevel);
 $("launch-veteran").onclick = () => startVeteran(briefingLevel);
 for (const [lane, id] of ["cut-a", "cut-b"].entries()) $(id).onclick = () => {

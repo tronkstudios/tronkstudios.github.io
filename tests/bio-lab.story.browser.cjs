@@ -86,6 +86,9 @@ window.forceRunnerLeak = () => {
       await page.goto(base + "/juegos/bio-lab-defense/");
       await page.locator("#campaign-button").click();
       assert.equal(await page.locator(".chapter").count(), 10);
+      await page.locator("#chapter-jump").selectOption("9");
+      await page.locator("#go-chapter").click();
+      assert.equal(await page.locator("#campaign-chapter-9 h2").evaluate(el => el === document.activeElement), true);
       assert.equal(await page.locator(".level").count(), 38);
       assert.match(
         await page.locator("#campaign-progress").textContent(),

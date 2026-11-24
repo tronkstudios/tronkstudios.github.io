@@ -1378,3 +1378,17 @@ dialog p {
 #drill-map { display: block; width: 100%; height: auto; margin-bottom: 0.6rem; }
 #drill [role="status"] { color: var(--cyan); }
 #drill ul { padding-inline-start: 1.25rem; }
+
+.chapter-index, .drill-towers li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.75rem;
+}
+.chapter-index { margin: 0.8rem 0; }
+.chapter-index select { min-height: 42px; max-width: 100%; }
+.drill-towers { margin: 0.7rem 0; }
+.drill-towers summary { color: var(--cyan); cursor: pointer; padding-block: 0.4rem; }
+.drill-towers ol { padding: 0; }
+.drill-towers li { padding: 0.35rem 0; border-top: 1px solid var(--border); }
+.drill-towers li span { font-size: 0.85rem; }
