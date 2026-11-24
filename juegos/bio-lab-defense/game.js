@@ -12,18 +12,18 @@ import {
   TARGETING,
   VARIANT_NAMES,
   dailySetup,
-} from "./engine.js?v=21";
+} from "./engine.js?v=22";
 import { routeCoverage } from "./coverage.js?v=1";
 import { attachDrill } from "./drill.js?v=2";
-import { Board } from "./board.js?v=27";
+import { Board } from "./board.js?v=28";
 import { towerIcon, heroIcon } from "./art.js?v=4";
-import { createCodex } from "./codex.js?v=9";
+import { createCodex } from "./codex.js?v=10";
 import { Profile, dayKey } from "./profile.js?v=11";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=6";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=8";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=17";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=18";
 
 import { HEROES, CONTRACTS } from "./operations.js?v=7";
 
@@ -1119,17 +1119,24 @@ function renderFieldControls(waiting) {
     }
   }
   $("wave-beacon-hint").hidden = !waiting;
-  if (waiting)
-    updateText("wave-beacon-hint", match.preview.final
-      ? "Cualquier baliza inicia la oleada completa. ★ Jefe"
-      : "Cualquier baliza inicia la oleada completa.");
+  if (waiting) {
+    const arrivals = match.preview.arrivals.flatMap((arrival, lane) => {
+      if (!arrival) return [];
+      const delay = arrival.ticks / (speed * 60);
+      return [`${lane ? "B" : "A"} ${delay < 1 ? "al inicio" : `a los ${cadence.format(Math.round(delay * 10) / 10)} s`}`];
+    });
+    updateText("wave-beacon-hint",
+      `Primera llegada · ${arrivals.join(" / ")}. Cualquier baliza inicia la oleada completa.${match.preview.final ? " ★ Jefe" : ""}`);
+  }
   const live = match.state === "wave";
   const groups = match.incomingGroups;
   for (const [lane, group] of groups.entries()) {
     const id = lane ? "next-group-b" : "next-group-a";
     $(id).hidden = !group || group.ticks > 270 || match.mirrorOrders[0]?.lane === lane;
-    if (!$(id).hidden)
-      updateText(id, `${lane ? "B" : "A"} · ${group.name} en ${Math.max(1, Math.ceil(group.ticks / (speed * 60)))} s`);
+    if (!$(id).hidden) {
+      const delay = group.ticks / (speed * 60);
+      updateText(id, `${lane ? "B" : "A"} · ${group.name} · ${delay < 1 ? "<1 s" : `${Math.ceil(delay)} s`}`);
+    }
   }
   $("zero-nodes").hidden = !live || !match.zeroNodes.some((node) => node.bossOwner.hp > 0);
   for (const node of match.zeroNodes) {
@@ -1156,7 +1163,7 @@ function renderFieldControls(waiting) {
     sound("alert");
   }
   lastMirrorOrder = order;
-  $("core-warning").hidden = !live || !match.enemies.some((enemy) => enemy.hp > 0 && enemy.remaining < 105);
+  $("core-warning").hidden = !live || !match.enemies.some((enemy) => enemy.hp > 0 && !enemy.supportNode && enemy.remaining < 105);
   const pulseReady = live && match.charge >= 100;
   if (pulseReady && !lastPulseReady) sound("ready");
   lastPulseReady = pulseReady;

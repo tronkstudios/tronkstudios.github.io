@@ -1,4 +1,4 @@
-import { BLUEPRINTS, PATHOGEN_TYPES, BOSS_CATALOG, reactorOutput, specializations, upgradeCost } from "./engine.js?v=21";
+import { BLUEPRINTS, PATHOGEN_TYPES, BOSS_CATALOG, reactorOutput, specializations, upgradeCost } from "./engine.js?v=22";
 import { drawEnemyModel, drawTurretModel } from "./art.js?v=4";
 
 const towerAdvice = {

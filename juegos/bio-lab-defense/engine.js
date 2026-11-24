@@ -547,6 +547,7 @@ function formWave(order, formation, theme, level, { pressure, veteran, archiveLa
       const entry = order[i];
       const first = i === start;
       entry.delay = i === 0 ? 12 : formation && first ? 96 : interval;
+      entry.groupName = name;
       if (formation === "convoy") {
         entry.lane = group === 2 ? flank : lead;
         if (group === 0 && first) {
@@ -579,9 +580,7 @@ function formWave(order, formation, theme, level, { pressure, veteran, archiveLa
       if (first) time = elapsed;
       lanes[entry.lane]++;
     }
-    const event = { name, time, lanes };
-    order[start].group = event;
-    return event;
+    return { name, time, lanes };
   });
   if (bosses.length) {
     const lanes = [0, 0];
@@ -594,10 +593,23 @@ function formWave(order, formation, theme, level, { pressure, veteran, archiveLa
       time: elapsed + bosses[0].delay,
       lanes,
     };
-    bosses[0].group = event;
+    for (const boss of bosses) boss.groupName = event.name;
     timeline.push(event);
   }
   return timeline;
+}
+
+function nextArrivals(queue, firstDelay, interval, lanes) {
+  const upcoming = [null, null];
+  let ticks = Math.max(0, firstDelay);
+  let found = 0;
+  for (const [index, entry] of queue.entries()) {
+    if (index > 0) ticks += entry.delay ?? interval;
+    if (upcoming[entry.lane]) continue;
+    upcoming[entry.lane] = { name: entry.groupName || entry.spec.name, ticks };
+    if (++found === lanes) break;
+  }
+  return upcoming;
 }
 
 function resolveImpact(enemy, shield, amount, { piercing = false, shred = false }, tower, time) {
@@ -884,18 +896,9 @@ export class Match {
   }
 
   get incomingGroups() {
-    const upcoming = [null, null];
-    if (this.state !== "wave") return upcoming;
-    let ticks = Math.max(0, this.spawnIn);
-    for (const [i, entry] of this.queue.entries()) {
-      if (i > 0) ticks += entry.delay ?? this.interval;
-      const group = entry.group;
-      if (!group) continue;
-      for (const [lane, count] of group.lanes.entries())
-        if (count && !upcoming[lane]) upcoming[lane] = { name: group.name, ticks };
-      if (upcoming.filter(Boolean).length === this.routes.length) break;
-    }
-    return upcoming;
+    return this.state === "wave"
+      ? nextArrivals(this.queue, this.spawnIn, this.interval, this.routes.length)
+      : [null, null];
   }
 
   cue(kind, text, position) {
@@ -1008,6 +1011,7 @@ export class Match {
     return {
       order,
       timeline,
+      arrivals: nextArrivals(order, order[0]?.delay ?? 0, 0, this.routes.length),
       theme,
       count: order.length,
       final,
@@ -1375,7 +1379,7 @@ export class Match {
       const idle = !this.queue.length;
       for (let i = 0; i < 3; i++)
         nextEnemy(this.queue, PATHOGEN_TYPES[i === 0 ? 4 : 2], node.lane, {
-          armor: i === 0 ? 8 : 0, speed: 1.18, delay: 16,
+          armor: i === 0 ? 8 : 0, speed: 1.18, delay: 16, groupName: "Refuerzos de la viruela",
         });
       if (idle) this.spawnIn = 8;
     }
@@ -1421,7 +1425,7 @@ export class Match {
       enemy.shield = Math.round(enemy.maxHp * 0.19);
       const backup = this.routes.length > 1 ? 1 - enemy.lane : enemy.lane;
       for (let i = 0; i < 3; i++)
-        nextEnemy(this.queue, PATHOGEN_TYPES[2], backup, { speed: 1.22 });
+        nextEnemy(this.queue, PATHOGEN_TYPES[2], backup, { speed: 1.22, groupName: "Refuerzos del jefe" });
       if (this.queue.length === 3) this.spawnIn = 8;
     } else {
       enemy.speed *= 1.5;
@@ -1523,7 +1527,7 @@ export class Match {
     if (order && --order.ticks <= 0) {
       this.mirrorOrders.shift();
       const fresh = !this.queue.length;
-      for (let i = 0; i < 4; i++) nextEnemy(this.queue, PATHOGEN_TYPES[2], order.lane, { speed: 1.25 });
+      for (let i = 0; i < 4; i++) nextEnemy(this.queue, PATHOGEN_TYPES[2], order.lane, { speed: 1.25, groupName: "Refuerzos" });
       if (fresh) this.spawnIn = 7;
     }
     this.tickZeroNodes();

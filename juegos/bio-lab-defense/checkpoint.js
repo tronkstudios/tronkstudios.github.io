@@ -1,4 +1,4 @@
-import { BLUEPRINTS, Match, TARGETING, specializations } from "./engine.js?v=21";
+import { BLUEPRINTS, Match, TARGETING, specializations } from "./engine.js?v=22";
 
 import { MISSIONS } from "./campaign.js?v=8";
 

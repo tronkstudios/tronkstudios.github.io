@@ -47,6 +47,27 @@ test("the forecast reports the same timings and lanes that the engine spawns", (
   assert.equal(new Match(6, daily).preview.timeline.length, 1);
 });
 
+test("entry alerts use the first enemy actually queued for each lane", () => {
+  const match = new Match(8, null, { contract: CONTRACTS.find(contract => contract.pressure) });
+  const { arrivals } = match.preview;
+  assert.equal(arrivals[0].name, "Cambio de entrada");
+  assert.ok(arrivals[0].ticks > arrivals[1].ticks);
+  match.startWave();
+  assert.deepEqual(match.incomingGroups, arrivals);
+  for (const [lane, arrival] of arrivals.entries()) {
+    const replay = new Match(8, null, { contract: CONTRACTS.find(contract => contract.pressure) });
+    replay.startWave();
+    for (let tick = 1; tick < arrival.ticks; tick++) {
+      replay.tick();
+      assert.equal(replay.enemies.some(enemy => enemy.lane === lane), false);
+    }
+    replay.tick();
+    assert.ok(replay.enemies.some(enemy => enemy.lane === lane));
+    if (replay.queue.some(entry => entry.lane === lane))
+      assert.ok(replay.incomingGroups[lane], "the alert continues through a partially spawned group");
+  }
+});
+
 test("the next tower skips an enemy already covered by another shot", () => {
   const match = new Match(1);
   assert.ok(match.place(BLUEPRINTS[0], 145, 171));
