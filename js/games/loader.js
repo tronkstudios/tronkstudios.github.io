@@ -29,7 +29,7 @@ const TronkGames = (() => {
     miente: { html: "partials/miente.html?v=1", scripts: ["js/games/miente.js?v=3"], init: "initializeMienteGame" },
     stickdrill: { html: "partials/stick-drill.html?v=1", scripts: ["js/games/stick-drill.js?v=28"], init: "initializeStickDrillGame" },
     // Tronk Fight se arranca solo al cargarse
-    tronkfight: { html: "partials/tronk-fight.html?v=4", css: ["css/tronk-fight.css?v=5"], scripts: ["js/games/tronk-fight.js?v=17"] }
+    tronkfight: { html: "partials/tronk-fight.html?v=4", css: ["css/tronk-fight.css?v=5"], scripts: ["js/games/tronk-fight.js?v=18"] }
   };
 
   const files = {};

@@ -5,6 +5,9 @@ resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 
 ## Próxima versión
 
+- Las flechas, Inicio, Fin e Intro permiten elegir luchador y escenario.
+  El mando de Gravity Runners identifica la superficie seleccionada.
+
 - Avisos sonoros de Réplica y especial disponible en Tronk Fight. La cuenta
   atrás y las tres cargas del escudo de Gravity Runners tienen sonidos propios.
 

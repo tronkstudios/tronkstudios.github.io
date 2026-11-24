@@ -2218,8 +2218,9 @@ function show(id) {
   $("#tf-btn-pause").hidden = id !== "fight";
   $("#tf-touch").hidden = !(id === "fight" && app.touchOn);
   requestAnimationFrame(resize);
-  const first = id && root.querySelector("#" + ID(id))?.querySelector("button");
-  if (first && !isTouch) setTimeout(() => first.focus({ preventScroll: true }), 30);
+  const screen = root.querySelector("#" + ID(id));
+  const first = screen?.querySelector('button[tabindex="0"]') || screen?.querySelector("button");
+  if (first && !isTouch) first.focus({ preventScroll: true });
 }
 function hideAll() { show("fight"); }
 
@@ -2330,6 +2331,7 @@ function updateSelect() {
   for (const t of roster.querySelectorAll("." + C("tile"))) {
     const i = +t.dataset.i;
     t.setAttribute("aria-selected", String(i === s.cursor));
+    t.tabIndex = i === s.cursor ? 0 : -1;
     t.querySelectorAll("." + C("badge")).forEach(b => b.remove());
     if (s.step === "cpu" && i === s.p1) t.insertAdjacentHTML("beforeend", `<span class="${C("badge")} ${C("p1")}">${duo ? "J1" : "Tú"}</span>`);
   }
@@ -2400,7 +2402,11 @@ STAGES.forEach((st, i) => {
 });
 function setStage(i) {
   app.sel.stage = i; store.set("stage", i);
-  for (const t of stagesUl.querySelectorAll("." + C("stage-tile"))) t.setAttribute("aria-pressed", String(+t.dataset.i === i));
+  for (const tile of stagesUl.querySelectorAll("button")) {
+    const selected = Number(tile.dataset.i) === i;
+    tile.setAttribute("aria-pressed", String(selected));
+    tile.tabIndex = selected ? 0 : -1;
+  }
   const c = $("#tf-stage-big").getContext("2d");
   c.drawImage(getBG(i), 0, 0, 640, 360);
   const fake = { frame: 120 };
@@ -2552,14 +2558,34 @@ window.addEventListener("keydown", e => {
     }
     return;
   }
-  if (app.screen === "scr-select") {
-    if (e.code === "ArrowRight" || e.code === "KeyD") { setCursor(app.sel.cursor + 1); Sound.play("ui"); e.preventDefault(); }
-    if (e.code === "ArrowLeft" || e.code === "KeyA") { setCursor(app.sel.cursor - 1); Sound.play("ui"); e.preventDefault(); }
+  if (e.target.matches("input, select") || e.altKey || e.ctrlKey || e.metaKey) return;
+  const choosingFighter = app.screen === "scr-select";
+  if (!choosingFighter && app.screen !== "scr-stagesel") return;
+  const list = choosingFighter ? roster : stagesUl;
+  if (e.code === "Enter" && list.contains(e.target)) {
+    e.preventDefault();
+    if (!e.repeat) {
+      if (choosingFighter) {
+        pick();
+        if (app.screen === "scr-select") roster.querySelector('[tabindex="0"]').focus();
+      } else startFight();
+    }
+    return;
   }
-  if (app.screen === "scr-stagesel" && e.target !== formatSelect) {
-    if (e.code === "ArrowRight" || e.code === "KeyD") { setStage((app.sel.stage + 1) % 5); e.preventDefault(); }
-    if (e.code === "ArrowLeft" || e.code === "KeyA") { setStage((app.sel.stage + 4) % 5); e.preventDefault(); }
+  const current = choosingFighter ? app.sel.cursor : app.sel.stage;
+  const count = list.children.length;
+  let next;
+  switch (e.code) {
+    case "ArrowRight": case "KeyD": next = (current + 1) % count; break;
+    case "ArrowLeft": case "KeyA": next = (current + count - 1) % count; break;
+    case "Home": next = 0; break;
+    case "End": next = count - 1; break;
+    default: return;
   }
+  e.preventDefault();
+  if (choosingFighter) setCursor(next); else setStage(next);
+  list.querySelector('[tabindex="0"]').focus({ preventScroll: true });
+  Sound.play("ui");
 });
 window.addEventListener("keyup", e => heldKeys.delete(e.code));
 function pauseOnFocusLoss() {

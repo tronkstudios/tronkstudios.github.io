@@ -30,7 +30,7 @@
     <!-- Three.js r128 -->
     <!-- Three.js is bundled with the engine. -->
 
-    <link rel="stylesheet" href="./styles.3ccc1ba0ff13.css" />
+    <link rel="stylesheet" href="./styles.b758d50a345a.css" />
   </head>
 
   <body>
@@ -612,20 +612,20 @@
           >
             <div></div>
             <button
-              data-surface="CEILING"
+              data-surface="CEILING" aria-label="Techo" aria-keyshortcuts="W ArrowUp"
               class="surface-pad-btn brutal-btn rounded flex flex-col items-center justify-center font-mono text-[10px] font-bold"
             >
               <i class="fa-solid fa-caret-up text-cyan text-base"></i>
-              <span>W</span>
+              <span class="surface-label">Techo<kbd>W</kbd></span>
             </button>
             <div></div>
 
             <button
-              data-surface="LEFT"
+              data-surface="LEFT" aria-label="Izquierda" aria-keyshortcuts="A ArrowLeft"
               class="surface-pad-btn brutal-btn rounded flex flex-col items-center justify-center font-mono text-[10px] font-bold"
             >
               <i class="fa-solid fa-caret-left text-cyan text-base"></i>
-              <span>A</span>
+              <span class="surface-label">Izq.<kbd>A</kbd></span>
             </button>
             <button
               id="btn-jump"
@@ -635,19 +635,19 @@
               ↑<br />SALTAR
             </button>
             <button
-              data-surface="RIGHT"
+              data-surface="RIGHT" aria-label="Derecha" aria-keyshortcuts="D ArrowRight"
               class="surface-pad-btn brutal-btn rounded flex flex-col items-center justify-center font-mono text-[10px] font-bold"
             >
               <i class="fa-solid fa-caret-right text-cyan text-base"></i>
-              <span>D</span>
+              <span class="surface-label">Der.<kbd>D</kbd></span>
             </button>
 
             <div></div>
             <button
-              data-surface="FLOOR"
+              data-surface="FLOOR" aria-label="Suelo" aria-keyshortcuts="S ArrowDown"
               class="surface-pad-btn brutal-btn rounded flex flex-col items-center justify-center font-mono text-[10px] font-bold"
             >
-              <span>S</span>
+              <span class="surface-label">Suelo<kbd>S</kbd></span>
               <i class="fa-solid fa-caret-down text-cyan text-base"></i>
             </button>
             <div></div>
@@ -1371,6 +1371,6 @@
     <!-- =========================================================================
        MODULAR GAME ENGINE IMPLEMENTATION
        ========================================================================= -->
-    <script defer id="engine-script" src="./game.01cef9a88d91.js"></script>
+    <script defer id="engine-script" src="./game.f8e3a5f3c331.js"></script>
   </body>
 </html>
