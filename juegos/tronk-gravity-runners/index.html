@@ -984,6 +984,7 @@
             VER ÚLTIMO SEGUNDO
           </button>
           <p id="go-perfects" class="run-detail"></p>
+          <p id="go-record-gap" class="run-detail" hidden></p>
           <p id="online-record-status" class="run-detail" role="status"></p><a href="/?ranking=gravity-runners#leaderboard-toggle" class="studio-back">Clasificación de TronkStudios</a>
           <button
             id="btn-reward-continue"
@@ -1005,11 +1006,11 @@
 
           <div class="flex flex-col sm:flex-row gap-3 pt-1">
             <button
-              id="btn-retry-game"
+              id="btn-retry-game" aria-keyshortcuts="R"
               class="brutal-btn brutal-btn-primary flex-1 py-3.5 rounded font-bold text-base flex items-center justify-center gap-2"
             >
               <i class="fa-solid fa-rotate-right"></i>
-              <span>REINTENTAR AHORA ↗</span>
+              <span>REINTENTAR · R</span>
             </button>
             <button
               id="btn-gameover-menu"
@@ -1370,6 +1371,6 @@
     <!-- =========================================================================
        MODULAR GAME ENGINE IMPLEMENTATION
        ========================================================================= -->
-    <script defer id="engine-script" src="./game.ce40292b65db.js"></script>
+    <script defer id="engine-script" src="./game.5d6af2b437e6.js"></script>
   </body>
 </html>

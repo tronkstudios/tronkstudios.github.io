@@ -1035,8 +1035,8 @@ function aiThink(f, o, M) {
 }
 
 /* ---------- PARTIDA ---------- */
-function newMatch(c1, c2, stage, mode, diff, pvp = false) {
-  const M = { c: [c1, c2], stage, mode, diff, pvp, round: 1, wins: [0, 0], frame: 0,
+function newMatch(c1, c2, stage, mode, diff, pvp = false, roundsToWin = 2) {
+  const M = { c: [c1, c2], stage, mode, diff, pvp, roundsToWin, round: 1, wins: [0, 0], frame: 0,
     stats: [{ hits: 0, parries: 0, dmg: 0, combo: 0 }, { hits: 0, parries: 0, dmg: 0, combo: 0 }],
     proj: [], fx: [], parts: [], texts: [], decals: [], hitstop: 0, shake: 0, slow: 0, slowAcc: 0, freeze: 0, banner: null };
   resetRound(M);
@@ -1051,9 +1051,10 @@ function resetRound(M) {
   if (M.mode === "sim") M.phase = "fight";
   else {
     M.phase = "intro";
-    banner(M, M.round >= 3 ? "Ronda final" : "Ronda " + M.round, 66, "#fff");
+    const decisive = M.wins.every(wins => wins === M.roundsToWin - 1);
+    banner(M, decisive ? "Ronda decisiva" : "Ronda " + M.round, 66, "#fff");
     fx(M, "round");
-    say(M, M.round >= 3 ? "ronda3" : "ronda" + M.round);
+    say(M, "ronda" + Math.min(3, M.round));
     M.decals = [];
   }
 }
@@ -1085,7 +1086,7 @@ function mascotRound(won, hp) {
 }
 function endRound(M) {
   if (M.winner >= 0) M.wins[M.winner]++;
-  if (M.wins[0] >= 2 || M.wins[1] >= 2) { M.phase = "over"; M.phaseT = 0; return; }
+  if (M.wins.some(wins => wins >= M.roundsToWin)) { M.phase = "over"; M.phaseT = 0; return; }
   M.round++;
   resetRound(M);
 }
@@ -1106,7 +1107,7 @@ function step(M) {
     // en la primera ronda se da tiempo a que el presentador diga quién pelea
     const go = M.round === 1 ? 150 : 70;
     if (M.phaseT === 1 && M.round === 1) banner(M, `${CHARS[M.c[0]].name} contra ${CHARS[M.c[1]].name}`, 70, "#fff", true);
-    if (M.phaseT === 72 && M.round === 1) banner(M, "Ronda 1", 70, "#fff");
+    if (M.phaseT === 72 && M.round === 1) banner(M, M.roundsToWin === 1 ? "Ronda única" : "Ronda 1", 70, "#fff");
     if (M.phaseT === go) { banner(M, "¡Lucha!", 40, "#ffd23f"); fx(M, "fight"); say(M, "lucha"); }
     if (M.phaseT >= go + 30) { M.phase = "fight"; M.phaseT = 0; }
   } else if (M.phase === "fight") {
@@ -2079,7 +2080,7 @@ function bar(ctx, M, f, side) {
   ctx.fillStyle = side ? "#ff4f8e" : "#1e6fe8"; rr(ctx, px - 24, py + 40, 48, 22, 11); ctx.fill();
   ctx.font = "bold 15px Rubik, sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = "#fff"; ctx.fillText(tag, px, py + 56);
   // rondas ganadas
-  for (let k = 0; k < 2; k++) {
+  for (let k = 0; k < M.roundsToWin; k++) {
     const cx = side ? 690 + 14 + k * 26 : 590 - 14 - k * 26;
     ctx.beginPath(); ctx.arc(cx, 98, 8, 0, Math.PI * 2);
     ctx.fillStyle = M.wins[side] > k ? "#ffd23f" : "rgba(20,17,43,.8)"; ctx.fill();
@@ -2380,6 +2381,7 @@ function setStage(i) {
 function openStages() {
   stagesUl.querySelectorAll("canvas").forEach((c, i) => { const g = c.getContext("2d"); g.drawImage(getBG(i), 0, 0, 320, 180); g.save(); g.scale(0.25, 0.25); drawBgDynamic(g, { frame: 120 }, i, 120); g.restore(); });
   $("#tf-matchup").textContent = `${CHARS[app.sel.p1].name} contra ${CHARS[app.sel.cpu].name}`;
+  $("#tf-format-wrap").hidden = app.sel.mode !== "pvp";
   setStage(app.sel.stage);
   show("scr-stagesel");
 }
@@ -2389,7 +2391,9 @@ $("#tf-btn-fight").addEventListener("click", startFight);
 function startFight() {
   Sound.init();
   const s = app.sel;
-  app.match = newMatch(s.p1, s.cpu, s.stage, "play", s.diff, s.mode === "pvp");
+  const pvp = s.mode === "pvp";
+  const roundsToWin = pvp ? Number($("#tf-format").value) : 2;
+  app.match = newMatch(s.p1, s.cpu, s.stage, "play", s.diff, pvp, roundsToWin);
   app.paused = false; app.overShown = false;
   resetInputs();
   $("#tf-touch").classList.toggle(C("duo"), s.mode === "pvp");
@@ -2519,7 +2523,7 @@ window.addEventListener("keydown", e => {
     if (e.code === "ArrowRight" || e.code === "KeyD") { setCursor(app.sel.cursor + 1); Sound.play("ui"); e.preventDefault(); }
     if (e.code === "ArrowLeft" || e.code === "KeyA") { setCursor(app.sel.cursor - 1); Sound.play("ui"); e.preventDefault(); }
   }
-  if (app.screen === "scr-stagesel") {
+  if (app.screen === "scr-stagesel" && e.target !== $("#tf-format")) {
     if (e.code === "ArrowRight" || e.code === "KeyD") { setStage((app.sel.stage + 1) % 5); e.preventDefault(); }
     if (e.code === "ArrowLeft" || e.code === "KeyA") { setStage((app.sel.stage + 4) % 5); e.preventDefault(); }
   }

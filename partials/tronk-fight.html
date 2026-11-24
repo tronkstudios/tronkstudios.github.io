@@ -100,7 +100,17 @@
       <p id="tf-matchup" class="tf-matchup tf-display"></p>
       <div class="tf-stage-big"><canvas id="tf-stage-big" width="640" height="360" aria-hidden="true"></canvas></div>
       <ul id="tf-stages" class="tf-stages" aria-label="Escenarios"></ul>
-      <button id="tf-btn-fight" class="tf-btn tf-big tf-pink">¡A luchar!</button>
+      <div class="tf-row">
+        <label id="tf-format-wrap" class="tf-btn tf-ghost" hidden>
+          Formato
+          <select id="tf-format">
+            <option value="1">Una ronda</option>
+            <option value="2" selected>Al mejor de 3</option>
+            <option value="3">Al mejor de 5</option>
+          </select>
+        </label>
+        <button id="tf-btn-fight" class="tf-btn tf-big tf-pink">¡A luchar!</button>
+      </div>
     </section>
 
     <section id="tf-scr-help" class="tf-screen" hidden aria-labelledby="tf-help-title">
