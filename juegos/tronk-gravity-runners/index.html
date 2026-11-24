@@ -30,7 +30,7 @@
     <!-- Three.js r128 -->
     <!-- Three.js is bundled with the engine. -->
 
-    <link rel="stylesheet" href="./styles.be5b0c321d58.css" />
+    <link rel="stylesheet" href="./styles.b758d50a345a.css" />
   </head>
 
   <body>
@@ -71,7 +71,7 @@
       PELIGRO EN TU SUPERFICIE · CAMBIA
     </div>
     <div id="perfect-feedback" class="perfect-feedback hidden" role="status">
-      CAMBIO PERFECTO<small>PRECISIÓN + MULTIPLICADOR</small>
+      CAMBIO PERFECTO<small id="precision-charge">ESCUDO · 0/3 CAMBIOS PERFECTOS</small>
     </div>
     <aside id="save-warning" hidden class="save-warning" role="status">
       El progreso está solo en memoria.
@@ -612,20 +612,20 @@
           >
             <div></div>
             <button
-              data-surface="CEILING"
+              data-surface="CEILING" aria-label="Techo" aria-keyshortcuts="W ArrowUp"
               class="surface-pad-btn brutal-btn rounded flex flex-col items-center justify-center font-mono text-[10px] font-bold"
             >
               <i class="fa-solid fa-caret-up text-cyan text-base"></i>
-              <span>W</span>
+              <span class="surface-label">Techo<kbd>W</kbd></span>
             </button>
             <div></div>
 
             <button
-              data-surface="LEFT"
+              data-surface="LEFT" aria-label="Izquierda" aria-keyshortcuts="A ArrowLeft"
               class="surface-pad-btn brutal-btn rounded flex flex-col items-center justify-center font-mono text-[10px] font-bold"
             >
               <i class="fa-solid fa-caret-left text-cyan text-base"></i>
-              <span>A</span>
+              <span class="surface-label">Izq.<kbd>A</kbd></span>
             </button>
             <button
               id="btn-jump"
@@ -635,19 +635,19 @@
               ↑<br />SALTAR
             </button>
             <button
-              data-surface="RIGHT"
+              data-surface="RIGHT" aria-label="Derecha" aria-keyshortcuts="D ArrowRight"
               class="surface-pad-btn brutal-btn rounded flex flex-col items-center justify-center font-mono text-[10px] font-bold"
             >
               <i class="fa-solid fa-caret-right text-cyan text-base"></i>
-              <span>D</span>
+              <span class="surface-label">Der.<kbd>D</kbd></span>
             </button>
 
             <div></div>
             <button
-              data-surface="FLOOR"
+              data-surface="FLOOR" aria-label="Suelo" aria-keyshortcuts="S ArrowDown"
               class="surface-pad-btn brutal-btn rounded flex flex-col items-center justify-center font-mono text-[10px] font-bold"
             >
-              <span>S</span>
+              <span class="surface-label">Suelo<kbd>S</kbd></span>
               <i class="fa-solid fa-caret-down text-cyan text-base"></i>
             </button>
             <div></div>
@@ -660,6 +660,7 @@
          ========================================== -->
       <div
         id="modal-pause"
+        role="dialog" aria-modal="true" aria-labelledby="pause-title"
         class="hidden fixed inset-0 bg-void/85 backdrop-blur-md z-40 flex items-center justify-center p-4 pointer-auto"
       >
         <div
@@ -671,12 +672,10 @@
             <i class="fa-solid fa-pause"></i>
           </div>
           <div>
-            <h2 class="text-2xl font-extrabold text-coldwhite">
+            <h2 id="pause-title" class="text-2xl font-extrabold text-coldwhite">
               SIMULACIÓN EN PAUSA
             </h2>
-            <p class="text-xs font-mono text-coldwhite/60 mt-1">
-              SISTEMA DE PROPULSIÓN EN ESPERA
-            </p>
+            <p id="pause-run-summary" class="text-xs font-mono text-coldwhite/80 mt-1"></p>
           </div>
           <div class="space-y-2.5 pt-2">
             <button
@@ -983,6 +982,7 @@
             VER ÚLTIMO SEGUNDO
           </button>
           <p id="go-perfects" class="run-detail"></p>
+          <p id="go-record-gap" class="run-detail" hidden></p>
           <p id="online-record-status" class="run-detail" role="status"></p><a href="/?ranking=gravity-runners#leaderboard-toggle" class="studio-back">Clasificación de TronkStudios</a>
           <button
             id="btn-reward-continue"
@@ -1004,11 +1004,11 @@
 
           <div class="flex flex-col sm:flex-row gap-3 pt-1">
             <button
-              id="btn-retry-game"
+              id="btn-retry-game" aria-keyshortcuts="R"
               class="brutal-btn brutal-btn-primary flex-1 py-3.5 rounded font-bold text-base flex items-center justify-center gap-2"
             >
               <i class="fa-solid fa-rotate-right"></i>
-              <span>REINTENTAR AHORA ↗</span>
+              <span>REINTENTAR · R</span>
             </button>
             <button
               id="btn-gameover-menu"
@@ -1369,6 +1369,6 @@
     <!-- =========================================================================
        MODULAR GAME ENGINE IMPLEMENTATION
        ========================================================================= -->
-    <script defer id="engine-script" src="./game.222815d8b3be.js"></script>
+    <script defer id="engine-script" src="./game.777199915c95.js"></script>
   </body>
 </html>

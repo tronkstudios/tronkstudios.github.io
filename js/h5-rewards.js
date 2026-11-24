@@ -65,6 +65,7 @@ export function createAdSenseProvider(client) {
           config.preloadAdBreaks = "on";
           tag = document.createElement("script");
           tag.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${client}`;
+          tag.dataset.adClient = client;
           tag.async = true;
           tag.crossOrigin = "anonymous";
           tag.onload = () => {
@@ -119,8 +120,9 @@ export function createAdSenseProvider(client) {
         beforeReward(showAd) {
           if (finished || shown) return;
           if (!canShow() || document.hidden) return settle(onCancel);
-          // An available H5 ad calls beforeReward during adBreak().
-          if (!clickInProgress || navigator.userActivation?.isActive === false)
+          // Google puede ofrecer el vídeo después del clic, mientras siga activo el gesto.
+          const activated = navigator.userActivation?.isActive ?? clickInProgress;
+          if (!activated)
             return settle(onError, "notReady");
           shown = true;
           wait(7000, onError, "timeout");
@@ -136,7 +138,9 @@ export function createAdSenseProvider(client) {
           onShow?.();
         },
         afterAd() {
-          if (!finished) wait(250, viewed ? onReward : onCancel);
+          if (finished) return;
+          clearTimeout(timer);
+          timer = setTimeout(() => settle(viewed ? onReward : onCancel), 1000);
         },
         adViewed() {
           if (shown) viewed = true;

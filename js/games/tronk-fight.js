@@ -214,6 +214,14 @@ const Sound = {
         this.noise(t, 0.04, 0.5, { type: "highpass", f: 3000 });
         break;
       }
+      case "riposte":
+        this.osc("triangle", 620, t, 0.09, 0.19, { slide: 1.5 });
+        this.osc("sine", 1240, t + 0.07, 0.16, 0.14);
+        break;
+      case "meterReady":
+        this.osc("sine", 440, t, 0.11, 0.14);
+        this.osc("sine", 660, t + 0.1, 0.19, 0.16);
+        break;
       case "parry": {
         for (const [f, v] of [[1320, 0.25], [1980, 0.18], [2640, 0.12], [3960, 0.08]]) this.osc("sine", f, t, 0.7, v);
         this.osc("triangle", 660, t, 0.25, 0.25, { slide: 2 });
@@ -315,7 +323,7 @@ function makeFighter(ch, x, face, side) {
     ch, w: WEAPONS[ch.weapon], side, x, y: GROUND, vx: 0, vy: 0, face,
     hp: 100, trail: 100, trailWait: 0, meter: 0, guard: 100,
     state: "idle", t: 0, stun: 0, input: {}, prev: {},
-    parryWin: 0, parryLock: 0, dodgeCd: 0, hitDone: false, sd: {},
+    riposteFrames: 0, parryWin: 0, parryLock: 0, dodgeCd: 0, hitDone: false, sd: {},
     combo: 0, comboT: 0, flash: 0, hideWeapon: false,
     pose: null, walkPh: 0, tips: [], ai: null
   };
@@ -632,6 +640,7 @@ function updateFighter(f, o, M) {
   const pressed = k => raw(k) || (f.buf && f.buf.k === k);
   const useBuf = () => { f.buf = null; };
   f.t++;
+  if (f.riposteFrames > 0) f.riposteFrames--;
   if (f.parryLock > 0) f.parryLock--;
   if (f.parryWin > 0) f.parryWin--;
   if (f.dodgeCd > 0) f.dodgeCd--;
@@ -759,6 +768,7 @@ function resolveHit(M, a, d, h, proj) {
     // PARRY
     d.parryWin = 0; d.parryLock = 0; setState(d, "idle");
     d.meter = Math.min(100, d.meter + 15);
+    d.riposteFrames = 60;
     M.stats[d.side].parries++;
     if (!proj) {
       const wasSpecial = a.state === "special";
@@ -773,6 +783,12 @@ function resolveHit(M, a, d, h, proj) {
     return "parry";
   }
 
+  if (!blocking && !proj && a.state === "attack" && a.riposteFrames > 0) {
+    a.riposteFrames = 0;
+    h = { ...h, dmg: h.dmg * 1.3 };
+    fx(M, "riposte");
+    if (M.mode !== "sim") popText(M, "¡Réplica!", a.x, a.y - 185, "#7fe9ff");
+  }
   if (blocking) {
     const chip = h.dmg * h.chip;
     d.hp = Math.max(1, d.hp - chip); d.trailWait = 30;
@@ -1035,8 +1051,8 @@ function aiThink(f, o, M) {
 }
 
 /* ---------- PARTIDA ---------- */
-function newMatch(c1, c2, stage, mode, diff, pvp = false) {
-  const M = { c: [c1, c2], stage, mode, diff, pvp, round: 1, wins: [0, 0], frame: 0,
+function newMatch(c1, c2, stage, mode, diff, pvp = false, roundsToWin = 2) {
+  const M = { c: [c1, c2], stage, mode, diff, pvp, roundsToWin, round: 1, wins: [0, 0], frame: 0,
     stats: [{ hits: 0, parries: 0, dmg: 0, combo: 0 }, { hits: 0, parries: 0, dmg: 0, combo: 0 }],
     proj: [], fx: [], parts: [], texts: [], decals: [], hitstop: 0, shake: 0, slow: 0, slowAcc: 0, freeze: 0, banner: null };
   resetRound(M);
@@ -1051,9 +1067,10 @@ function resetRound(M) {
   if (M.mode === "sim") M.phase = "fight";
   else {
     M.phase = "intro";
-    banner(M, M.round >= 3 ? "Ronda final" : "Ronda " + M.round, 66, "#fff");
+    const decisive = M.wins.every(wins => wins === M.roundsToWin - 1);
+    banner(M, decisive ? "Ronda decisiva" : "Ronda " + M.round, 66, "#fff");
     fx(M, "round");
-    say(M, M.round >= 3 ? "ronda3" : "ronda" + M.round);
+    say(M, "ronda" + Math.min(3, M.round));
     M.decals = [];
   }
 }
@@ -1085,7 +1102,7 @@ function mascotRound(won, hp) {
 }
 function endRound(M) {
   if (M.winner >= 0) M.wins[M.winner]++;
-  if (M.wins[0] >= 2 || M.wins[1] >= 2) { M.phase = "over"; M.phaseT = 0; return; }
+  if (M.wins.some(wins => wins >= M.roundsToWin)) { M.phase = "over"; M.phaseT = 0; return; }
   M.round++;
   resetRound(M);
 }
@@ -1106,7 +1123,7 @@ function step(M) {
     // en la primera ronda se da tiempo a que el presentador diga quién pelea
     const go = M.round === 1 ? 150 : 70;
     if (M.phaseT === 1 && M.round === 1) banner(M, `${CHARS[M.c[0]].name} contra ${CHARS[M.c[1]].name}`, 70, "#fff", true);
-    if (M.phaseT === 72 && M.round === 1) banner(M, "Ronda 1", 70, "#fff");
+    if (M.phaseT === 72 && M.round === 1) banner(M, M.roundsToWin === 1 ? "Ronda única" : "Ronda 1", 70, "#fff");
     if (M.phaseT === go) { banner(M, "¡Lucha!", 40, "#ffd23f"); fx(M, "fight"); say(M, "lucha"); }
     if (M.phaseT >= go + 30) { M.phase = "fight"; M.phaseT = 0; }
   } else if (M.phase === "fight") {
@@ -1130,11 +1147,16 @@ function step(M) {
   }
   if (M.phase === "over" && M.mode === "sim") return;
 
+  const chargingA = a.meter < 100;
+  const chargingB = b.meter < 100;
   updateFighter(a, b, M);
   updateFighter(b, a, M);
   separate(M);
   updateProjectiles(M);
   if (M.phase === "fight") combat(M);
+  if (M.phase === "fight" && ((chargingA && a.meter >= 100) || (M.pvp && chargingB && b.meter >= 100))) {
+    fx(M, "meterReady");
+  }
 }
 
 /* ---------- SIMULACIÓN (equilibrado) ---------- */
@@ -2049,7 +2071,7 @@ function bar(ctx, M, f, side) {
   // la vida se vacía hacia el centro, como en Street Fighter
   const seg = (frac, color) => { ctx.fillStyle = color; if (side) ctx.fillRect(x0 + w * (1 - frac), y, w * frac, h); else ctx.fillRect(x0, y, w * frac, h); };
   seg(tr, "#e63946");
-  const low = hp < 0.25 && M.frame % 20 < 10;
+  const low = hp < 0.25 && (reduceMotion || M.frame % 20 < 10);
   const gr = ctx.createLinearGradient(0, y, 0, y + h);
   gr.addColorStop(0, low ? "#ff8a8a" : "#ffe36b"); gr.addColorStop(1, low ? "#e63946" : "#f2a81d");
   seg(hp, gr);
@@ -2063,10 +2085,17 @@ function bar(ctx, M, f, side) {
   const mw = 260, mx = side ? x0 + w - mw : x0, my = y + h + 18;
   ctx.fillStyle = "#14112b"; rr(ctx, mx - 3, my - 3, mw + 6, 16, 4); ctx.fill();
   const full = f.meter >= 100;
-  ctx.fillStyle = full ? (M.frame % 16 < 8 ? "#4fd8ff" : "#9ff3ff") : "#1e6fe8";
+  ctx.fillStyle = full ? (!reduceMotion && M.frame % 16 < 8 ? "#4fd8ff" : "#9ff3ff") : "#1e6fe8";
   const mf = f.meter / 100 * mw; ctx.fillRect(side ? mx + mw - mf : mx, my, mf, 10);
   ctx.font = "16px Rubik, sans-serif"; ctx.textAlign = side ? "right" : "left"; ctx.fillStyle = full ? "#9ff3ff" : "#cfcaf7";
   ctx.fillText(full ? "¡Especial listo!" : "Especial", side ? mx - 10 : mx + mw + 10, my + 11);
+  if (f.riposteFrames > 0) {
+    const edge = side ? x0 + w : x0;
+    outlineText(ctx, "RÉPLICA", edge, 132, 20, "#7fe9ff", side ? "right" : "left");
+    const remaining = 80 * f.riposteFrames / 60;
+    ctx.fillStyle = "#7fe9ff";
+    ctx.fillRect(side ? edge - remaining : edge, 137, remaining, 3);
+  }
   // retrato con icono del personaje
   const px = side ? 1192 : 88, py = 66;
   ctx.fillStyle = "#14112b"; ctx.beginPath(); ctx.arc(px, py, 46, 0, Math.PI * 2); ctx.fill();
@@ -2079,7 +2108,7 @@ function bar(ctx, M, f, side) {
   ctx.fillStyle = side ? "#ff4f8e" : "#1e6fe8"; rr(ctx, px - 24, py + 40, 48, 22, 11); ctx.fill();
   ctx.font = "bold 15px Rubik, sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = "#fff"; ctx.fillText(tag, px, py + 56);
   // rondas ganadas
-  for (let k = 0; k < 2; k++) {
+  for (let k = 0; k < M.roundsToWin; k++) {
     const cx = side ? 690 + 14 + k * 26 : 590 - 14 - k * 26;
     ctx.beginPath(); ctx.arc(cx, 98, 8, 0, Math.PI * 2);
     ctx.fillStyle = M.wins[side] > k ? "#ffd23f" : "rgba(20,17,43,.8)"; ctx.fill();
@@ -2178,7 +2207,7 @@ if (window.ResizeObserver) new ResizeObserver(() => resize()).observe(root);
 const app = {
   screen: "title", match: null, demo: null, paused: false,
   sel: { mode: "cpu", step: "p1", p1: store.get("p1", 0), cpu: store.get("cpu", 1), cursor: 0, diff: store.get("diff", "normal"), stage: store.get("stage", 0) },
-  touchOn: isTouch, overShown: false
+  touchOn: store.get("touch", isTouch), overShown: false
 };
 Settings.blood = store.get("blood", true);
 Settings.music = store.get("music", true);
@@ -2189,8 +2218,9 @@ function show(id) {
   $("#tf-btn-pause").hidden = id !== "fight";
   $("#tf-touch").hidden = !(id === "fight" && app.touchOn);
   requestAnimationFrame(resize);
-  const first = id && root.querySelector("#" + ID(id))?.querySelector("button");
-  if (first && !isTouch) setTimeout(() => first.focus({ preventScroll: true }), 30);
+  const screen = root.querySelector("#" + ID(id));
+  const first = screen?.querySelector('button[tabindex="0"]') || screen?.querySelector("button");
+  if (first && !isTouch) first.focus({ preventScroll: true });
 }
 function hideAll() { show("fight"); }
 
@@ -2301,6 +2331,7 @@ function updateSelect() {
   for (const t of roster.querySelectorAll("." + C("tile"))) {
     const i = +t.dataset.i;
     t.setAttribute("aria-selected", String(i === s.cursor));
+    t.tabIndex = i === s.cursor ? 0 : -1;
     t.querySelectorAll("." + C("badge")).forEach(b => b.remove());
     if (s.step === "cpu" && i === s.p1) t.insertAdjacentHTML("beforeend", `<span class="${C("badge")} ${C("p1")}">${duo ? "J1" : "Tú"}</span>`);
   }
@@ -2371,15 +2402,25 @@ STAGES.forEach((st, i) => {
 });
 function setStage(i) {
   app.sel.stage = i; store.set("stage", i);
-  for (const t of stagesUl.querySelectorAll("." + C("stage-tile"))) t.setAttribute("aria-pressed", String(+t.dataset.i === i));
+  for (const tile of stagesUl.querySelectorAll("button")) {
+    const selected = Number(tile.dataset.i) === i;
+    tile.setAttribute("aria-pressed", String(selected));
+    tile.tabIndex = selected ? 0 : -1;
+  }
   const c = $("#tf-stage-big").getContext("2d");
   c.drawImage(getBG(i), 0, 0, 640, 360);
   const fake = { frame: 120 };
   c.save(); c.scale(0.5, 0.5); drawBgDynamic(c, fake, i, 120); c.restore();
 }
+const formatSelect = $("#tf-format");
+const savedFormat = store.get("duelFormat", 2);
+if ([1, 2, 3].includes(savedFormat)) formatSelect.value = String(savedFormat);
+formatSelect.addEventListener("change", () => store.set("duelFormat", Number(formatSelect.value)));
+
 function openStages() {
   stagesUl.querySelectorAll("canvas").forEach((c, i) => { const g = c.getContext("2d"); g.drawImage(getBG(i), 0, 0, 320, 180); g.save(); g.scale(0.25, 0.25); drawBgDynamic(g, { frame: 120 }, i, 120); g.restore(); });
   $("#tf-matchup").textContent = `${CHARS[app.sel.p1].name} contra ${CHARS[app.sel.cpu].name}`;
+  $("#tf-format-wrap").hidden = app.sel.mode !== "pvp";
   setStage(app.sel.stage);
   show("scr-stagesel");
 }
@@ -2389,9 +2430,11 @@ $("#tf-btn-fight").addEventListener("click", startFight);
 function startFight() {
   Sound.init();
   const s = app.sel;
-  app.match = newMatch(s.p1, s.cpu, s.stage, "play", s.diff, s.mode === "pvp");
+  const pvp = s.mode === "pvp";
+  const roundsToWin = pvp ? Number(formatSelect.value) : 2;
+  app.match = newMatch(s.p1, s.cpu, s.stage, "play", s.diff, pvp, roundsToWin);
   app.paused = false; app.overShown = false;
-  touch.reset();
+  resetInputs();
   $("#tf-touch").classList.toggle(C("duo"), s.mode === "pvp");
   Sound.music.start(s.stage);
   show("fight");
@@ -2400,6 +2443,10 @@ function startFight() {
 /* ---------- pausa y resultado ---------- */
 function pause() {
   if (app.screen !== "fight" || !app.match || app.match.phase === "over") return;
+  resetInputs();
+  const match = app.match;
+  const [left, right] = match.c.map(index => CHARS[index].name);
+  $("#tf-pause-score").textContent = `Ronda ${match.round} · ${left} ${match.wins[0]} – ${match.wins[1]} ${right}`;
   app.paused = true; Sound.music.pause(true); show("scr-pause");
 }
 function resume() { app.paused = false; Sound.music.pause(false); show("fight"); }
@@ -2423,7 +2470,11 @@ for (const [id, key] of [["#tf-opt-music", "music"], ["#tf-opt-blood", "blood"]]
   });
 }
 optTouch.checked = app.touchOn;
-optTouch.addEventListener("change", () => { app.touchOn = optTouch.checked; resize(); });
+optTouch.addEventListener("change", () => {
+  app.touchOn = optTouch.checked;
+  store.set("touch", app.touchOn);
+  resize();
+});
 if (!document.fullscreenEnabled) $("#tf-opt-fs-wrap").hidden = true;
 optFs.addEventListener("change", () => {
   try { if (optFs.checked) modal.querySelector(".tronkfight-window").requestFullscreen(); else if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {}
@@ -2446,6 +2497,9 @@ function showResult(M) {
   if (won && !M.pvp) window.TronkChallenges?.add("tronk-fight", 1);
   if (M.pvp) window.TronkMascot?.react("win", `¡Gana el jugador ${won ? 1 : 2}!`);
   else window.TronkMascot?.react(won ? "win" : "lose");
+  const order = $("#tf-result-order");
+  order.hidden = !M.pvp;
+  order.textContent = M.pvp ? `J1 · ${me.name} / J2 · ${cpu.name}` : "";
   const S = M.stats[0], S2 = M.stats[1];
   $("#tf-r-stats").innerHTML = M.pvp
     ? `<li><strong>${M.wins[0]} - ${M.wins[1]}</strong>Rondas</li>` +
@@ -2478,7 +2532,11 @@ const KEYS_P2 = {
   Numpad1: "attack", Numpad2: "block", Numpad3: "dodge", Numpad0: "special"
 };
 const KEYS_SOLO = { ...KEYS_P1, ...KEYS_P2, Space: "up", KeyZ: "attack", KeyX: "block", KeyC: "dodge", KeyV: "special" };
-const keys = [{}, {}];
+const heldKeys = new Map();
+function resetInputs() {
+  heldKeys.clear();
+  touch.reset();
+}
 function keyTarget(code) {
   if (app.match && app.match.pvp) {
     if (KEYS_P1[code]) return [0, KEYS_P1[code]];
@@ -2491,6 +2549,7 @@ window.addEventListener("keydown", e => {
   if (modal.classList.contains("hidden")) return;
   if (e.code === "Escape" || e.code === "KeyP") {
     e.preventDefault();
+    if (e.repeat) return;
     if (app.screen === "fight") pause(); else if (app.screen === "scr-pause") resume();
     else if (app.screen === "scr-help") $("#tf-btn-help-close").click();
     else if (e.code === "Escape" && app.screen === "scr-title") closeGame();
@@ -2499,26 +2558,49 @@ window.addEventListener("keydown", e => {
   }
   if (app.screen === "fight") {
     const k = keyTarget(e.code);
-    if (k) { keys[k[0]][k[1]] = true; e.preventDefault(); }
+    if (k) {
+      e.preventDefault();
+      if (!e.repeat) heldKeys.set(e.code, k);
+    }
     return;
   }
-  if (app.screen === "scr-select") {
-    if (e.code === "ArrowRight" || e.code === "KeyD") { setCursor(app.sel.cursor + 1); Sound.play("ui"); e.preventDefault(); }
-    if (e.code === "ArrowLeft" || e.code === "KeyA") { setCursor(app.sel.cursor - 1); Sound.play("ui"); e.preventDefault(); }
+  if (e.target.matches("input, select") || e.altKey || e.ctrlKey || e.metaKey) return;
+  const choosingFighter = app.screen === "scr-select";
+  if (!choosingFighter && app.screen !== "scr-stagesel") return;
+  const list = choosingFighter ? roster : stagesUl;
+  if (e.code === "Enter" && list.contains(e.target)) {
+    e.preventDefault();
+    if (!e.repeat) {
+      if (choosingFighter) {
+        pick();
+        if (app.screen === "scr-select") roster.querySelector('[tabindex="0"]').focus();
+      } else startFight();
+    }
+    return;
   }
-  if (app.screen === "scr-stagesel") {
-    if (e.code === "ArrowRight" || e.code === "KeyD") { setStage((app.sel.stage + 1) % 5); e.preventDefault(); }
-    if (e.code === "ArrowLeft" || e.code === "KeyA") { setStage((app.sel.stage + 4) % 5); e.preventDefault(); }
+  const current = choosingFighter ? app.sel.cursor : app.sel.stage;
+  const count = list.children.length;
+  let next;
+  switch (e.code) {
+    case "ArrowRight": case "KeyD": next = (current + 1) % count; break;
+    case "ArrowLeft": case "KeyA": next = (current + count - 1) % count; break;
+    case "Home": next = 0; break;
+    case "End": next = count - 1; break;
+    default: return;
   }
+  e.preventDefault();
+  if (choosingFighter) setCursor(next); else setStage(next);
+  list.querySelector('[tabindex="0"]').focus({ preventScroll: true });
+  Sound.play("ui");
 });
-window.addEventListener("keyup", e => {
-  for (const map of [KEYS_SOLO, KEYS_P1, KEYS_P2]) if (map[e.code]) { keys[0][map[e.code]] = false; keys[1][map[e.code]] = false; }
+window.addEventListener("keyup", e => heldKeys.delete(e.code));
+function pauseOnFocusLoss() {
+  if (!modal.classList.contains("hidden")) pause();
+}
+window.addEventListener("blur", pauseOnFocusLoss);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) pauseOnFocusLoss();
 });
-window.addEventListener("blur", () => { keys[0] = {}; keys[1] = {}; touch.reset(); });
-// con el juego abierto, las flechas y el espacio no mueven la página
-window.addEventListener("keydown", e => {
-  if (!modal.classList.contains("hidden") && ["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code) && e.target.tagName !== "INPUT") e.preventDefault();
-}, true);
 
 /* ---------- controles táctiles ----------
    Un mando por jugador. Contra el bot solo se ve el del J1; con dos
@@ -2526,13 +2608,17 @@ window.addEventListener("keydown", e => {
 const touch = {
   pads: [{ state: {}, stickId: null }, { state: {}, stickId: null }],
   reset() {
-    for (const p of this.pads) { p.state = {}; p.stickId = null; }
-    root.querySelectorAll("." + C("knob")).forEach(k => { k.style.transform = ""; });
+    for (const p of this.pads) {
+      p.resetStick();
+      p.state = {};
+      p.buttonPointers.clear();
+    }
     root.querySelectorAll("." + C("tb")).forEach(b => b.classList.remove(C("on")));
   }
 };
 root.querySelectorAll("." + C("pad")).forEach(pad => {
   const T = touch.pads[+pad.dataset.p];
+  T.buttonPointers = new Map();
   const stick = pad.querySelector("." + C("stick")), knob = pad.querySelector("." + C("knob"));
   const zone = pad.querySelector("." + C("zone"));
   let home = null; // sitio normal del joystick (vuelve ahí al soltar)
@@ -2545,7 +2631,14 @@ root.querySelectorAll("." + C("pad")).forEach(pad => {
     T.state.left = dx < -0.3; T.state.right = dx > 0.3;
     T.state.up = dy < -0.55; T.state.down = dy > 0.6;
   };
-  const begin = (e, el) => { e.preventDefault(); Sound.init(); T.stickId = e.pointerId; el.setPointerCapture(e.pointerId); move(e); };
+  const begin = (e, el) => {
+    if (T.stickId !== null) return;
+    e.preventDefault();
+    Sound.init();
+    T.stickId = e.pointerId;
+    el.setPointerCapture(e.pointerId);
+    move(e);
+  };
   stick.addEventListener("pointerdown", e => begin(e, stick));
   // Joystick flotante: si tocas en tu lado fuera del círculo, el joystick aparece bajo el dedo
   zone.addEventListener("pointerdown", e => {
@@ -2560,17 +2653,45 @@ root.querySelectorAll("." + C("pad")).forEach(pad => {
   });
   const moveAny = e => { if (e.pointerId === T.stickId) move(e); };
   stick.addEventListener("pointermove", moveAny); zone.addEventListener("pointermove", moveAny);
-  const end = e => {
-    if (e.pointerId !== T.stickId) return;
-    T.stickId = null; knob.style.transform = ""; T.state.left = T.state.right = T.state.up = T.state.down = false;
-    if (home) { stick.style.left = home.left; stick.style.top = home.top; home = null; stick.classList.remove(C("floating")); }
+  T.resetStick = () => {
+    T.stickId = null;
+    knob.style.transform = "";
+    T.state.left = T.state.right = T.state.up = T.state.down = false;
+    if (home) {
+      stick.style.left = home.left;
+      stick.style.top = home.top;
+      home = null;
+      stick.classList.remove(C("floating"));
+    }
   };
-  for (const el of [stick, zone]) { el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end); }
+  const end = e => {
+    if (e.pointerId === T.stickId) T.resetStick();
+  };
+  for (const el of [stick, zone]) {
+    el.addEventListener("pointerup", end);
+    el.addEventListener("pointercancel", end);
+    el.addEventListener("lostpointercapture", end);
+  }
   pad.querySelectorAll("." + C("tb")).forEach(b => {
     const k = b.dataset.k;
-    b.addEventListener("pointerdown", e => { e.preventDefault(); Sound.init(); b.setPointerCapture(e.pointerId); T.state[k] = true; b.classList.add(C("on")); if (navigator.vibrate) navigator.vibrate(8); });
-    const up = () => { T.state[k] = false; b.classList.remove(C("on")); };
+    b.addEventListener("pointerdown", e => {
+      e.preventDefault();
+      Sound.init();
+      b.setPointerCapture(e.pointerId);
+      T.buttonPointers.set(e.pointerId, k);
+      T.state[k] = true;
+      b.classList.add(C("on"));
+      if (navigator.vibrate) navigator.vibrate(8);
+    });
+    const up = e => {
+      if (T.buttonPointers.get(e.pointerId) !== k) return;
+      T.buttonPointers.delete(e.pointerId);
+      if ([...T.buttonPointers.values()].includes(k)) return;
+      T.state[k] = false;
+      b.classList.remove(C("on"));
+    };
     b.addEventListener("pointerup", up); b.addEventListener("pointercancel", up);
+    b.addEventListener("lostpointercapture", up);
     b.addEventListener("contextmenu", e => e.preventDefault());
   });
 });
@@ -2596,11 +2717,16 @@ function loop(now) {
     if (app.screen === "fight" && app.match && !app.paused) {
       const M = app.match;
       for (let p = 0; p < (M.pvp ? 2 : 1); p++) {
-        M.f[p].input = { ...keys[p] };
-        if (app.touchOn) for (const k in touch.pads[p].state) if (touch.pads[p].state[k]) M.f[p].input[k] = true;
+        M.f[p].input = app.touchOn ? { ...touch.pads[p].state } : {};
       }
+      for (const [player, action] of heldKeys.values()) M.f[player].input[action] = true;
       step(M);
-      if (M.phase === "over" && !app.overShown && M.phaseT > 0) { app.overShown = true; setTimeout(() => showResult(M), 900); }
+      if (M.phase === "over" && !app.overShown && M.phaseT > 0) {
+        app.overShown = true;
+        setTimeout(() => {
+          if (app.match === M && app.screen === "fight") showResult(M);
+        }, 900);
+      }
     } else if (!app.match || app.screen === "scr-title" || app.screen === "scr-help" && !app.paused) {
       if (!app.demo || app.demo.phase === "over") newDemo();
       step(app.demo);
@@ -2636,8 +2762,7 @@ function closeGame() {
   running = false; cancelAnimationFrame(raf);
   Sound.music.stop();
   app.match = null; app.paused = false;
-  keys[0] = {}; keys[1] = {};
-  touch.reset();
+  resetInputs();
   if (document.fullscreenElement) { try { document.exitFullscreen(); } catch (e) {} }
   optFs.checked = false;
   modal.classList.add("hidden");

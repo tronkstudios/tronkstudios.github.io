@@ -45,6 +45,7 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8789";
           return route.fulfill({
             contentType: "application/javascript",
             body: `
+      if(document.currentScript.dataset.adClient !== "ca-pub-6088460231287739") throw new Error("Missing H5 publisher");
       const queue=window.adsbygoogle;
       window.visibleAds=0;
       window.configCalls=0;
@@ -64,6 +65,11 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8789";
               window.visibleAds++;
               config.beforeAd();
               window.finishAd=(ok)=>{
+                if(ok && window.lateView){
+                  config.afterAd();
+                  setTimeout(()=>{config.adViewed();config.adViewed();},100);
+                  return;
+                }
                 if(ok){config.adViewed();config.adViewed();}
                 else config.adDismissed();
                 config.afterAd();
@@ -179,27 +185,15 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8789";
           window.delayedOffer = true;
         });
         await button.tap();
-        await page.waitForFunction(
-          (source) =>
-            [...document.querySelectorAll("button")].some(
-              (b) =>
-                !b.disabled &&
-                b.getClientRects().length &&
-                new RegExp(source).test(b.textContent),
-            ),
-          readyLabel.source,
-        );
-        assert.equal(
-          await page.evaluate(() => visibleAds),
-          0,
-          "a late offer must not open on its own",
-        );
+        await page.waitForFunction(() => visibleAds === 1);
+        await page.evaluate(() => finishAd(false));
+        assert.equal(await balance(), initial);
 
         await page.evaluate(() => {
           window.delayedOffer = false;
         });
         await button.tap();
-        await page.waitForFunction(() => visibleAds === 1);
+        await page.waitForFunction(() => visibleAds === 2);
         assert.equal(
           await page.locator(".tronk-ad-offer").count(),
           0,
@@ -209,8 +203,15 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8789";
         assert.equal(await balance(), initial);
 
         await button.tap();
-        await page.waitForFunction(() => visibleAds === 2);
-        await page.evaluate(() => finishAd(true));
+        await page.waitForFunction(() => visibleAds === 3);
+        const lateView = path.includes("bio-lab");
+        await page.evaluate(late => { window.lateView = late; finishAd(true); }, lateView);
+        if (lateView) {
+          await page.waitForFunction(
+            amount => Number(document.querySelector("#atp").textContent) === amount,
+            initial + 75,
+          );
+        }
         await verify(initial);
         assert.equal(requests, 1, "load the SDK once per game page");
         if (path.includes("bio-lab")) {

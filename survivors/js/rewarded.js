@@ -13,17 +13,34 @@ const RewardedAds = (() => {
   let enabled = false;
   let h5, adMessage, preparation, lastError;
 
+  let moduleAttempt = 0;
+  async function loadAdModule() {
+    const attempt = moduleAttempt++;
+    const url = "/js/h5-rewards.js?v=5" + (attempt ? "&retry=" + attempt : "");
+    let timer;
+    try {
+      return await Promise.race([
+        import(url),
+        new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error("El módulo de anuncios tardó demasiado. Pulsa para reintentar.")), 6000);
+        }),
+      ]);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   function prepare() {
     if (!configured || adManager || h5?.prepared) return Promise.resolve();
     if (preparation) return preparation;
     lastError = "";
     preparation = (async () => {
-      const api = await import("/js/h5-rewards.js?v=3");
+      const api = await loadAdModule();
       h5 ||= api.createAdSenseProvider(client);
       adMessage = api.adMessage;
       await h5.prepare();
     })().catch(reason => {
-      lastError = adMessage?.(reason) || "No se ha podido mostrar un anuncio ahora.";
+      lastError = reason?.message || adMessage?.(reason) || "No se ha podido mostrar un anuncio ahora.";
     }).finally(() => { preparation = null; });
     return preparation;
   }
