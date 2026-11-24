@@ -11,18 +11,18 @@ import {
   TARGETING,
   VARIANT_NAMES,
   dailySetup,
-} from "./engine.js?v=17";
+} from "./engine.js?v=18";
 import { routeCoverage } from "./coverage.js?v=1";
 import { attachDrill } from "./drill.js?v=2";
-import { Board } from "./board.js?v=22";
+import { Board } from "./board.js?v=23";
 import { towerIcon, heroIcon } from "./art.js?v=4";
-import { createCodex } from "./codex.js?v=4";
-import { Profile, dayKey } from "./profile.js?v=9";
+import { createCodex } from "./codex.js?v=5";
+import { Profile, dayKey } from "./profile.js?v=10";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=5";
-import { CHAPTERS, MISSIONS } from "./campaign.js?v=7";
+import { CHAPTERS, MISSIONS } from "./campaign.js?v=8";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=13";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=14";
 
 import { HEROES, CONTRACTS } from "./operations.js?v=5";
 
@@ -276,6 +276,11 @@ function requestHeroAd(hero) {
   });
 }
 
+const starThresholds = [0, 55, 90];
+function victoryStars(hp) {
+  return starThresholds.filter(threshold => hp >= threshold).length;
+}
+
 function renderLevels() {
   const complete = profile.data.stars.filter(Boolean).length;
   const totalStars = profile.data.stars.reduce((a, b) => a + b, 0);
@@ -292,8 +297,10 @@ function renderLevels() {
   );
   const active = profile.data.unlockedLevel;
   const jump = $("chapter-jump");
-  jump.replaceChildren(...CHAPTERS.map((chapter, i) => new Option(`${i + 1} · ${chapter.name}`, i)));
-  jump.value = String(MISSIONS[active - 1].chapter);
+  const preferredChapter = jump.value || String(MISSIONS[active - 1].chapter);
+  const filter = $("sector-filter").value;
+  const options = [];
+  let shown = 0;
   const chapters = CHAPTERS.map((chapter, index) => {
     const section = document.createElement("section");
     section.className = "chapter";
@@ -311,6 +318,12 @@ function renderLevels() {
     for (const [i, mission] of MISSIONS.entries()) {
       if (mission.chapter !== index) continue;
       const level = i + 1;
+      const stars = profile.data.stars[i];
+      if (filter !== "all" && level > active) continue;
+      if (filter === "new" && stars) continue;
+      if (filter === "stars" && (stars === 0 || stars === 3)) continue;
+      if (filter === "medal" && profile.data.medals[i]) continue;
+      shown++;
       const button = makeButton("", () => briefing(level));
       button.className = "level";
       button.id = `campaign-sector-${level}`;
@@ -324,7 +337,6 @@ function renderLevels() {
       const label = document.createElement("strong");
       label.textContent = mission.name;
       const badge = document.createElement("span");
-      const stars = profile.data.stars[i];
       badge.className = `stamps${stars ? " earned" : ""}`;
       badge.textContent = button.disabled
         ? "Bloqueado"
@@ -340,6 +352,11 @@ function renderLevels() {
           : mission.routePattern ? "Desvío programado" : `${mission.towerLimit} puestos de defensa`;
         button.append(objective);
       }
+      if (filter === "medal") {
+        const goal = document.createElement("small");
+        goal.textContent = mission.medal.text;
+        button.append(goal);
+      }
       button.append(badge);
       sectors.append(button);
     }
@@ -347,10 +364,18 @@ function renderLevels() {
     const starsHere = indices.reduce((sum, i) => sum + profile.data.stars[i], 0);
     const medalsHere = indices.filter(i => profile.data.medals[i]).length;
     location.textContent += ` · ${starsHere}/${indices.length * 3} estrellas · ${medalsHere}/${indices.length} insignias`;
+    if (sectors.childElementCount === 0) return null;
+    options.push(new Option(`${index + 1} · ${chapter.name}`, index));
     section.append(header, sectors);
     return section;
   });
-  $("levels").replaceChildren(...chapters);
+  $("levels").replaceChildren(...chapters.filter(Boolean));
+  jump.replaceChildren(...options);
+  if (options.some(option => option.value === preferredChapter)) jump.value = preferredChapter;
+  jump.disabled = $("go-chapter").disabled = shown === 0;
+  $("sector-filter-result").hidden = filter === "all";
+  updateText("sector-filter-result", shown ? `${shown} ${shown === 1 ? "sector disponible" : "sectores disponibles"} con este filtro.` : "No quedan sectores disponibles con este filtro.");
+  $("reset-sector-filter").hidden = shown !== 0;
 }
 
 function briefing(level) {
@@ -380,6 +405,9 @@ function briefing(level) {
       : `Insignia · ${mission.medal.title}`,
   );
   updateText("briefing-medal-note", mission.medal.text);
+  const best = profile.data.stars[level - 1];
+  updateText("briefing-best", best === 3 ? "Mejor resultado · ★★★" :
+    `${best ? "Mejor resultado · " + "★".repeat(best) + "☆".repeat(3 - best) : "Primera victoria pendiente"} · Para tres estrellas, termina con al menos ${starThresholds[2]} % de núcleo.`);
   updateText(
     "briefing-waves",
     `${preview.maxWaves} oleadas · ${preview.routes.length === 2 ? "Dos entradas" : "Una entrada"}`,
@@ -1103,6 +1131,16 @@ function renderHUD() {
   updateText("atp", match.atp);
   updateText("wave", `${match.wave}/${match.maxWaves}`);
   const waiting = match.state === "build";
+  const targets = $("mission-targets");
+  targets.hidden = match.ranked || !["build", "wave"].includes(match.state);
+  if (!targets.hidden && targets.open) {
+    const medal = match.mission.medal;
+    const stars = victoryStars(match.hp);
+    const nextStar = stars < 3 ? ` · Siguiente estrella al ${starThresholds[stars]} %` : "";
+    updateText("star-pace", `Si ganas con ${match.hp} % de núcleo · ${"★".repeat(stars)}${"☆".repeat(3 - stars)}${nextStar}`);
+    updateText("medal-pace", profile.data.medals[match.level - 1] ? `Insignia obtenida · ${medal.title}` :
+      `${medal.title} · ${medal.test(match) ? "Cumples la condición ahora" : "Condición pendiente"}. ${medal.text} · ${medal.progress(match)}`);
+  }
   const routeStatus = match.routeEventStatus;
   $("route-event").hidden = !routeStatus;
   if (routeStatus) updateText("route-event", describeRouteEvent(match.routeEvent, routeStatus));
@@ -1294,7 +1332,7 @@ function frame(now) {
 
 function finish() {
   const won = match.state === "won";
-  const stars = won ? (match.hp >= 90 ? 3 : match.hp >= 55 ? 2 : 1) : 0;
+  const stars = won ? victoryStars(match.hp) : 0;
   const { level } = match;
   const breach = !won && match.waveLeaks?.worst ? match.waveLeaks : null;
   const diagnostics = breach ? `\n\n${lossReport()}` : "";
@@ -1513,6 +1551,12 @@ canvas.onkeydown = (e) => {
 
 $("campaign-button").onclick = campaign;
 $("back-home").onclick = () => view("home");
+$("sector-filter").onchange = renderLevels;
+$("reset-sector-filter").onclick = () => {
+  $("sector-filter").value = "all";
+  renderLevels();
+  $("sector-filter").focus();
+};
 $("go-chapter").onclick = () => {
   const heading = $(`campaign-chapter-${$("chapter-jump").value}`).querySelector("h2");
   heading.focus({ preventScroll: true });
@@ -1523,6 +1567,10 @@ $("home-resume-run").onclick = resumePreparation;
 $("campaign-resume-run").onclick = resumePreparation;
 $("back-campaign").onclick = () => {
   campaign();
+  if (!$(`campaign-sector-${briefingLevel}`)) {
+    $("sector-filter").value = "all";
+    renderLevels();
+  }
   const sector = $(`campaign-sector-${briefingLevel}`);
   $("chapter-jump").value = String(MISSIONS[briefingLevel - 1].chapter);
   sector.focus({ preventScroll: true });

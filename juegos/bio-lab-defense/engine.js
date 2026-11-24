@@ -1,4 +1,4 @@
-import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=7";
+import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=8";
 
 import { HERO_BY_ID } from "./operations.js?v=5";
 
