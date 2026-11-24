@@ -532,16 +532,17 @@ function persistPreparation() {
     match.ranked ||
     match.state !== "build"
   )
-    return;
+    return false;
   if (!checkpoint.write(match, { atpBought, repaired, speed })) {
     checkpointLost = true;
     updateText(
       "checkpoint-state",
       "No se pudo actualizar el punto de guardado.",
     );
-    return;
+    return false;
   }
   updateText("checkpoint-state", `Punto guardado · Oleada ${match.wave + 1}`);
+  return true;
 }
 
 function resumePreparation() {
@@ -550,17 +551,24 @@ function resumePreparation() {
   else refreshCheckpoint();
 }
 
-function start(level, day = null) {
+function start(level, day = null, checkpointChanged = false) {
   if (day) return begin(new Match(level, dailySetup(day)), day);
   const saved = savedPreparation();
   const launch = () => begin(new Match(level, null, { heroId: profile.data.heroEquipped }));
   if (!saved) return launch();
+  const confirmedCheckpoint = checkpoint.raw;
   ask(
     "Hay una partida guardada",
-    `Si empiezas otra misión, se reemplazará el punto guardado de ${saved.match.mission.name}.`,
+    checkpointChanged
+      ? `El guardado cambió desde que abriste este menú. Si sigues, se reemplazará el punto actual de ${saved.match.mission.name}.`
+      : `Si empiezas otra misión, se reemplazará el punto guardado de ${saved.match.mission.name}.`,
     [
       ["Retomar partida", resumePreparation],
-      ["Empezar y reemplazar", launch],
+      ["Empezar y reemplazar", () => {
+        savedPreparation();
+        if (checkpoint.raw !== confirmedCheckpoint) return start(level, null, true);
+        launch();
+      }],
       ["Volver"],
     ],
   );
@@ -1345,9 +1353,9 @@ function renderHUD() {
   );
   $("boost-status").hidden = !canRequestAd || !adError;
   updateText("boost-status", adError);
-  $("buy-atp").disabled = !waiting || atpBought || profile.data.atpBank < 100;
+  $("buy-atp").disabled = !waiting || checkpointLost || atpBought || profile.data.atpBank < 100;
   $("heal").disabled =
-    !waiting || repaired || match.hp === 100 || profile.data.bioGems < 5;
+    !waiting || checkpointLost || repaired || match.hp === 100 || profile.data.bioGems < 5;
   renderSelection();
   if (selected && $("tower-performance"))
     updateText("tower-performance", towerReport(selected));
@@ -1786,6 +1794,9 @@ function startNextWave() {
   if (match.startWave()) {
     gatePreview = false;
     movingTower = null;
+    movingHero = false;
+    boardPointer = null;
+    cursor = null;
     upgradePreview = null;
     sound("wave", true);
     if (match.mission && match.wave === 2)
@@ -1958,15 +1969,22 @@ $("buy-atp").onclick = () => {
   if (
     match.ranked ||
     match.state !== "build" ||
+    checkpointLost ||
     atpBought ||
     profile.data.atpBank < 100
   )
     return;
   atpBought = true;
-  profile.data.atpBank -= 100;
   match.atp += 60;
+  if (!persistPreparation()) {
+    atpBought = false;
+    match.atp -= 60;
+    message("El guardado no está disponible. Conservas tu reserva.", true);
+    renderHUD();
+    return;
+  }
+  profile.data.atpBank -= 100;
   profile.commit();
-  persistPreparation();
   message("Suministro de reserva entregado.");
   renderHUD();
 };
@@ -1974,16 +1992,24 @@ $("heal").onclick = () => {
   if (
     match.ranked ||
     match.state !== "build" ||
+    checkpointLost ||
     repaired ||
     match.hp === 100 ||
     profile.data.bioGems < 5
   )
     return;
   repaired = true;
-  profile.data.bioGems -= 5;
+  const previousHP = match.hp;
   match.hp = Math.min(100, match.hp + 25);
+  if (!persistPreparation()) {
+    repaired = false;
+    match.hp = previousHP;
+    message("El guardado no está disponible. Conservas tus biogemas.", true);
+    renderHUD();
+    return;
+  }
+  profile.data.bioGems -= 5;
   profile.commit();
-  persistPreparation();
   message("Núcleo reparado.");
   renderHUD();
 };
@@ -2054,10 +2080,6 @@ $("boost").onclick = () => {
     onError: (reason) => close(adMessage(reason)),
   });
 };
-modal.addEventListener("cancel", (e) => {
-  if (screen === "field" && ["won", "lost"].includes(match.state))
-    e.preventDefault();
-});
 window.addEventListener("online", () => {
   void profile.flush();
 });
