@@ -45,6 +45,7 @@ const categories = {
   enemy: { entries: PATHOGEN_TYPES, caption: "La vida y la velocidad cambian según el sector y la oleada. Algunas variantes llegan blindadas o escudadas." },
   boss: { entries: BOSS_CATALOG, caption: "Los jefes cambian de fase al quedarles dos tercios y un tercio de vida." },
 };
+const searchText = value => value.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 const number = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 2 });
 
 function element(tag, text, className) {
@@ -93,6 +94,8 @@ export function createCodex(dialog) {
   const list = dialog.querySelector("#codex-list");
   const detail = dialog.querySelector("#codex-detail");
   const caption = dialog.querySelector("#codex-caption");
+  const query = dialog.querySelector("#codex-query");
+  const empty = dialog.querySelector("#codex-empty");
   let kind = "tower";
   let current;
 
@@ -131,9 +134,16 @@ export function createCodex(dialog) {
     }
   }
 
-  function show(category, key) {
-    kind = category;
-    const { entries, caption: description } = categories[kind];
+  function renderList(key, reveal = false) {
+    const { entries: categoryEntries, caption: description } = categories[kind];
+    const terms = searchText(query.value.trim()).split(/\s+/);
+    const entries = categoryEntries.filter(entry => {
+      const label = kind === "tower" ? entry.note : (kind === "enemy" ? enemyAdvice : bossAdvice)[entry.shape][0];
+      const haystack = searchText(`${entry.name} ${label}`);
+      return terms.every(term => haystack.includes(term));
+    });
+    empty.hidden = entries.length > 0;
+    detail.hidden = entries.length === 0;
     caption.textContent = description;
     for (const button of buttons)
       button.setAttribute("aria-pressed", String(button.dataset.codexKind === kind));
@@ -143,14 +153,28 @@ export function createCodex(dialog) {
       const item = element("li");
       const button = element("button", entry.name);
       button.type = "button";
+      button.style.setProperty("--entry-color", entry.color);
       button.onclick = () => select(entry, button);
       if (entry === selected) selectedButton = button;
       item.append(button);
       return item;
     }));
+    if (!selected) return;
     select(selected, selectedButton);
-    selectedButton.scrollIntoView({ block: "nearest" });
+    if (reveal) list.scrollTop = selectedButton.offsetTop - list.clientHeight / 2;
   }
+
+  function show(category, key) {
+    kind = category;
+    query.value = "";
+    list.scrollTop = 0;
+    renderList(key, true);
+  }
+
+  query.oninput = () => {
+    list.scrollTop = 0;
+    renderList(current?.shape || current?.id);
+  };
 
   for (const button of buttons)
     button.onclick = () => show(button.dataset.codexKind);

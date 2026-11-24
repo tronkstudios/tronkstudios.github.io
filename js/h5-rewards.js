@@ -17,12 +17,70 @@ export function adMessage(reason) {
   return adErrors[reason] || adErrors.error;
 }
 
+function showStudioPromo({ canShow = () => true, onShow, onReward, onCancel, onError }) {
+  if (document.hidden || !canShow()) return onCancel();
+  const dialog = document.createElement("dialog");
+  dialog.setAttribute("aria-label", "Promoción de TronkStudios");
+  dialog.style.cssText = "max-width:min(90vw,560px);max-height:90dvh;background:#121528;color:white;padding:16px;border:2px solid #83ddff;border-radius:12px";
+  const name = document.createElement("strong");
+  name.textContent = "Promoción de TronkStudios · Tronk Fight";
+  const video = document.createElement("video");
+  video.muted = true;
+  video.playsInline = true;
+  video.style.cssText = "display:block;width:100%;max-height:55dvh;margin:12px 0";
+  const message = document.createElement("p");
+  message.textContent = "Mira el vídeo completo para obtener la recompensa.";
+  const close = document.createElement("button");
+  close.type = "button";
+  close.textContent = "Cerrar sin recompensa";
+  dialog.append(name, video, message, close);
+  document.body.append(dialog);
+  let closed = false;
+  let timer;
+  function finish(callback, reason) {
+    if (closed) return;
+    closed = true;
+    clearTimeout(timer);
+    document.removeEventListener("visibilitychange", visibility);
+    video.pause();
+    dialog.close();
+    dialog.remove();
+    callback(reason);
+  }
+  function visibility() {
+    if (document.hidden) { clearTimeout(timer); video.pause(); }
+    else if (!canShow()) finish(onCancel);
+    else { watchdog(); play(); }
+  }
+  function play() {
+    video.play().catch(error => {
+      if (error.name !== "AbortError") finish(onError, "error");
+    });
+  }
+  function watchdog() {
+    clearTimeout(timer);
+    if (!document.hidden) timer = setTimeout(() => finish(onError, "timeout"), 15000);
+  }
+  close.onclick = () => finish(onCancel);
+  dialog.oncancel = event => { event.preventDefault(); finish(onCancel); };
+  video.onended = () => finish(canShow() ? onReward : onCancel);
+  video.onerror = () => finish(onError, "error");
+  video.ontimeupdate = watchdog;
+  document.addEventListener("visibilitychange", visibility);
+  dialog.showModal();
+  onShow?.();
+  video.src = "/video/tronk-fight.mp4";
+  watchdog();
+  play();
+}
+
 export function createAdSenseProvider(client) {
   if (!/^ca-pub-\d{16}$/.test(client || "")) return null;
   let loading,
     sdkLoaded = false,
     signalReady;
   let prepared = false;
+  let available = false;
   function push(options) {
     (window.adsbygoogle ||= []).push(options);
   }
@@ -162,10 +220,31 @@ export function createAdSenseProvider(client) {
   }
 
   return {
-    prepare: load,
-    get prepared() {
-      return prepared;
+    async prepare() {
+      if (navigator.onLine === false) throw "offline";
+      if (!available) {
+        available = true;
+        void load().catch(() => {});
+      }
     },
-    showPreparedReward,
+    get prepared() {
+      return available;
+    },
+    showPreparedReward(options) {
+      if (navigator.onLine === false) return options.onError("offline");
+      if (!prepared) {
+        void load().catch(() => {});
+        return showStudioPromo(options);
+      }
+      let started = false;
+      showPreparedReward({
+        ...options,
+        onShow() { started = true; options.onShow?.(); },
+        onError(reason) {
+          if (started || reason === "offline") return options.onError(reason);
+          showStudioPromo(options);
+        },
+      });
+    },
   };
 }

@@ -17,9 +17,9 @@ import { routeCoverage } from "./coverage.js?v=1";
 import { attachDrill } from "./drill.js?v=2";
 import { Board } from "./board.js?v=23";
 import { towerIcon, heroIcon } from "./art.js?v=4";
-import { createCodex } from "./codex.js?v=5";
+import { createCodex } from "./codex.js?v=6";
 import { Profile, dayKey } from "./profile.js?v=10";
-import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=5";
+import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=6";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=8";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
@@ -335,6 +335,7 @@ function renderLevels() {
         level === active && !profile.data.stars[i],
       );
       button.disabled = level > active;
+      button.dataset.sectorState = button.disabled ? "locked" : stars ? "cleared" : level === active ? "current" : "ready";
       const number = document.createElement("small");
       number.textContent = `Sector ${String(level).padStart(2, "0")}`;
       const label = document.createElement("strong");
@@ -345,7 +346,7 @@ function renderLevels() {
         ? "Bloqueado"
         : stars
           ? `${"★".repeat(stars)}${"☆".repeat(3 - stars)}${profile.data.medals[i] ? " · Insignia" : ""}`
-          : "Disponible";
+          : level === active ? "Siguiente misión" : "Disponible";
       if (!sectorThumbnails.has(level))
         sectorThumbnails.set(level, routeThumbnail(new Match(level).routes, chapter.color));
       button.append(number, sectorThumbnails.get(level), label);
@@ -371,7 +372,12 @@ function renderLevels() {
     location.textContent += ` · ${starsHere}/${indices.length * 3} estrellas · ${medalsHere}/${indices.length} insignias`;
     if (sectors.childElementCount === 0) return null;
     options.push(new Option(`${index + 1} · ${chapter.name}`, index));
-    section.append(header, sectors);
+    const progress = document.createElement("meter");
+    progress.className = "chapter-progress";
+    progress.max = indices.length;
+    progress.value = indices.filter(i => profile.data.stars[i]).length;
+    progress.setAttribute("aria-label", `${progress.value} de ${progress.max} sectores completados`);
+    section.append(header, progress, sectors);
     return section;
   });
   $("levels").replaceChildren(...chapters.filter(Boolean));

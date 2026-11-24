@@ -1659,3 +1659,46 @@ dialog::backdrop { background: #031016cf; }
   .home-play button { text-align: left; }
   #campaign-button::after { float: right; }
 }
+
+.chapter-progress {
+  display: block;
+  width: 100%;
+  height: 0.48rem;
+  margin: 0 0 0.72rem;
+}
+.chapter-progress::-webkit-meter-bar { background: #07151e; border: 0; }
+.chapter-progress::-webkit-meter-optimum-value { background: var(--chapter); }
+.chapter-progress::-moz-meter-bar { background: var(--chapter); }
+.chapter .level[data-sector-state="current"] .stamps { color: var(--chapter); font-weight: 750; }
+.chapter .level[data-sector-state="locked"] .sector-route { opacity: 0.36; }
+.chapter .level[data-sector-state="cleared"] .sector-route { filter: saturate(0.75); }
+.codex-search {
+  display: grid;
+  gap: 0.25rem;
+  margin-bottom: 0.65rem;
+}
+.codex-search label { color: var(--phosphor); font-size: 0.78rem; }
+.codex-search input {
+  min-width: 0;
+  width: 100%;
+  min-height: 44px;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid #4c6e71;
+  border-radius: 8px;
+  background: #0a2029;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.88rem;
+}
+#codex-list { position: relative; }
+#codex-list button { border-inline-start: 3px solid var(--entry-color); }
+#codex-list button[aria-pressed="true"], .codex-filters button[aria-pressed="true"] {
+  background: #1a3b3d;
+  color: #d7fbec;
+}
+@media (max-width: 580px) {
+  .codex-filters { flex-wrap: nowrap; gap: 0.3rem; }
+  .codex-filters button { flex: 1; padding-inline: 0.22rem; min-width: 0; font-size: 0.79rem; }
+  #codex-list { max-height: 7.2rem; }
+  .codex-stats { gap: 0.25rem; }
+}

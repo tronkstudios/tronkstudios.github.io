@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=24" />
+    <link rel="stylesheet" href="./styles.css?v=25" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -419,6 +419,11 @@
         <button type="button" data-codex-kind="boss" aria-pressed="false">Jefes</button>
       </div>
       <p id="codex-caption"></p>
+      <div class="codex-search">
+        <label for="codex-query">Buscar en esta categoría</label>
+        <input type="search" id="codex-query" placeholder="Nombre o tipo" autocomplete="off">
+      </div>
+      <p id="codex-empty" role="status" hidden>No hay fichas que coincidan.</p>
       <div class="codex-layout">
         <ul id="codex-list" aria-label="Fichas"></ul>
         <article id="codex-detail" aria-labelledby="codex-entry-title"></article>
@@ -439,6 +444,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=29"></script>
+    <script type="module" src="./game.js?v=30"></script>
   </body>
 </html>

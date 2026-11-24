@@ -128,6 +128,16 @@ window.testRun = {
       }
     }
     assert.equal(sprites.size, 30);
+    await codex.getByRole("button", { name: "Enemigos", exact: true }).tap();
+    const search = codex.getByRole("searchbox", { name: "Buscar en esta categoría" });
+    await search.fill("bacteriofago");
+    assert.equal(await codex.locator("#codex-list button").count(), 1);
+    await codex.getByRole("heading", { name: "Bacteriófago T4" }).waitFor();
+    await search.fill("sin coincidencias");
+    await codex.getByText("No hay fichas que coincidan.").waitFor();
+    assert.equal(await codex.locator("#codex-detail").isVisible(), false);
+    await codex.getByRole("button", { name: "Torres", exact: true }).tap();
+    assert.equal(await search.inputValue(), "");
     await codex.getByRole("button", { name: "Cerrar" }).tap();
     await page.locator("#operations-button").tap();
     await page.getByRole("heading", { name: "Nanobots de campaña" }).waitFor();
