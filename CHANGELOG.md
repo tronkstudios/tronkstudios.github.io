@@ -5,6 +5,9 @@ resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 
 ## Próxima versión
 
+- La pausa muestra el marcador del combate o las cifras de la carrera.
+  Los resultados identifican a los jugadores del duelo y cuentan los escudos de precisión.
+
 - Las flechas, Inicio, Fin e Intro permiten elegir luchador y escenario.
   El mando de Gravity Runners identifica la superficie seleccionada.
 

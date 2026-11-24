@@ -2444,6 +2444,9 @@ function startFight() {
 function pause() {
   if (app.screen !== "fight" || !app.match || app.match.phase === "over") return;
   resetInputs();
+  const match = app.match;
+  const [left, right] = match.c.map(index => CHARS[index].name);
+  $("#tf-pause-score").textContent = `Ronda ${match.round} · ${left} ${match.wins[0]} – ${match.wins[1]} ${right}`;
   app.paused = true; Sound.music.pause(true); show("scr-pause");
 }
 function resume() { app.paused = false; Sound.music.pause(false); show("fight"); }
@@ -2494,6 +2497,9 @@ function showResult(M) {
   if (won && !M.pvp) window.TronkChallenges?.add("tronk-fight", 1);
   if (M.pvp) window.TronkMascot?.react("win", `¡Gana el jugador ${won ? 1 : 2}!`);
   else window.TronkMascot?.react(won ? "win" : "lose");
+  const order = $("#tf-result-order");
+  order.hidden = !M.pvp;
+  order.textContent = M.pvp ? `J1 · ${me.name} / J2 · ${cpu.name}` : "";
   const S = M.stats[0], S2 = M.stats[1];
   $("#tf-r-stats").innerHTML = M.pvp
     ? `<li><strong>${M.wins[0]} - ${M.wins[1]}</strong>Rondas</li>` +

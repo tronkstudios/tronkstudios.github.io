@@ -185,27 +185,15 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8789";
           window.delayedOffer = true;
         });
         await button.tap();
-        await page.waitForFunction(
-          (source) =>
-            [...document.querySelectorAll("button")].some(
-              (b) =>
-                !b.disabled &&
-                b.getClientRects().length &&
-                new RegExp(source).test(b.textContent),
-            ),
-          readyLabel.source,
-        );
-        assert.equal(
-          await page.evaluate(() => visibleAds),
-          0,
-          "a late offer must not open on its own",
-        );
+        await page.waitForFunction(() => visibleAds === 1);
+        await page.evaluate(() => finishAd(false));
+        assert.equal(await balance(), initial);
 
         await page.evaluate(() => {
           window.delayedOffer = false;
         });
         await button.tap();
-        await page.waitForFunction(() => visibleAds === 1);
+        await page.waitForFunction(() => visibleAds === 2);
         assert.equal(
           await page.locator(".tronk-ad-offer").count(),
           0,
@@ -215,7 +203,7 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8789";
         assert.equal(await balance(), initial);
 
         await button.tap();
-        await page.waitForFunction(() => visibleAds === 2);
+        await page.waitForFunction(() => visibleAds === 3);
         const lateView = path.includes("bio-lab");
         await page.evaluate(late => { window.lateView = late; finishAd(true); }, lateView);
         if (lateView) {

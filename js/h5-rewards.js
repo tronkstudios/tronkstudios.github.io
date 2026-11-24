@@ -120,8 +120,9 @@ export function createAdSenseProvider(client) {
         beforeReward(showAd) {
           if (finished || shown) return;
           if (!canShow() || document.hidden) return settle(onCancel);
-          // An available H5 ad calls beforeReward during adBreak().
-          if (!clickInProgress || navigator.userActivation?.isActive === false)
+          // Google puede ofrecer el vídeo después del clic, mientras siga activo el gesto.
+          const activated = navigator.userActivation?.isActive ?? clickInProgress;
+          if (!activated)
             return settle(onError, "notReady");
           shown = true;
           wait(7000, onError, "timeout");
