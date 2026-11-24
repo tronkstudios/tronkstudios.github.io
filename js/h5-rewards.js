@@ -65,6 +65,7 @@ export function createAdSenseProvider(client) {
           config.preloadAdBreaks = "on";
           tag = document.createElement("script");
           tag.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${client}`;
+          tag.dataset.adClient = client;
           tag.async = true;
           tag.crossOrigin = "anonymous";
           tag.onload = () => {
@@ -136,7 +137,9 @@ export function createAdSenseProvider(client) {
           onShow?.();
         },
         afterAd() {
-          if (!finished) wait(250, viewed ? onReward : onCancel);
+          if (finished) return;
+          clearTimeout(timer);
+          timer = setTimeout(() => settle(viewed ? onReward : onCancel), 1000);
         },
         adViewed() {
           if (shown) viewed = true;

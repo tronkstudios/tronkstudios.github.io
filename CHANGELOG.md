@@ -5,6 +5,10 @@ resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 
 ## Próxima versión
 
+- Los botones táctiles de Tronk Fight admiten dos dedos sobre el mismo botón.
+  Gravity Runners protege el reintento por teclado mientras se solicita un anuncio.
+  Las recompensas admiten confirmaciones que llegan justo después del cierre.
+
 - Tronk Fight añade Réplica después de un bloqueo perfecto. En Gravity Runners,
   tres cambios perfectos cargan un escudo de tres segundos.
 

@@ -18,7 +18,7 @@ const RewardedAds = (() => {
     if (preparation) return preparation;
     lastError = "";
     preparation = (async () => {
-      const api = await import("/js/h5-rewards.js?v=3");
+      const api = await import("/js/h5-rewards.js?v=4");
       h5 ||= api.createAdSenseProvider(client);
       adMessage = api.adMessage;
       await h5.prepare();

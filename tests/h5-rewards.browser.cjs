@@ -45,6 +45,7 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8789";
           return route.fulfill({
             contentType: "application/javascript",
             body: `
+      if(document.currentScript.dataset.adClient !== "ca-pub-6088460231287739") throw new Error("Missing H5 publisher");
       const queue=window.adsbygoogle;
       window.visibleAds=0;
       window.configCalls=0;
@@ -64,6 +65,11 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8789";
               window.visibleAds++;
               config.beforeAd();
               window.finishAd=(ok)=>{
+                if(ok && window.lateView){
+                  config.afterAd();
+                  setTimeout(()=>{config.adViewed();config.adViewed();},100);
+                  return;
+                }
                 if(ok){config.adViewed();config.adViewed();}
                 else config.adDismissed();
                 config.afterAd();
@@ -210,7 +216,14 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8789";
 
         await button.tap();
         await page.waitForFunction(() => visibleAds === 2);
-        await page.evaluate(() => finishAd(true));
+        const lateView = path.includes("bio-lab");
+        await page.evaluate(late => { window.lateView = late; finishAd(true); }, lateView);
+        if (lateView) {
+          await page.waitForFunction(
+            amount => Number(document.querySelector("#atp").textContent) === amount,
+            initial + 75,
+          );
+        }
         await verify(initial);
         assert.equal(requests, 1, "load the SDK once per game page");
         if (path.includes("bio-lab")) {

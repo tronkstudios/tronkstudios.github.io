@@ -18,7 +18,7 @@ import { Board } from "./board.js?v=22";
 import { towerIcon, heroIcon } from "./art.js?v=4";
 import { createCodex } from "./codex.js?v=4";
 import { Profile, dayKey } from "./profile.js?v=9";
-import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=3";
+import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=4";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=7";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 

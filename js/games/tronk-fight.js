@@ -2565,12 +2565,14 @@ const touch = {
     for (const p of this.pads) {
       p.resetStick();
       p.state = {};
+      p.buttonPointers.clear();
     }
     root.querySelectorAll("." + C("tb")).forEach(b => b.classList.remove(C("on")));
   }
 };
 root.querySelectorAll("." + C("pad")).forEach(pad => {
   const T = touch.pads[+pad.dataset.p];
+  T.buttonPointers = new Map();
   const stick = pad.querySelector("." + C("stick")), knob = pad.querySelector("." + C("knob"));
   const zone = pad.querySelector("." + C("zone"));
   let home = null; // sitio normal del joystick (vuelve ahí al soltar)
@@ -2626,8 +2628,22 @@ root.querySelectorAll("." + C("pad")).forEach(pad => {
   }
   pad.querySelectorAll("." + C("tb")).forEach(b => {
     const k = b.dataset.k;
-    b.addEventListener("pointerdown", e => { e.preventDefault(); Sound.init(); b.setPointerCapture(e.pointerId); T.state[k] = true; b.classList.add(C("on")); if (navigator.vibrate) navigator.vibrate(8); });
-    const up = () => { T.state[k] = false; b.classList.remove(C("on")); };
+    b.addEventListener("pointerdown", e => {
+      e.preventDefault();
+      Sound.init();
+      b.setPointerCapture(e.pointerId);
+      T.buttonPointers.set(e.pointerId, k);
+      T.state[k] = true;
+      b.classList.add(C("on"));
+      if (navigator.vibrate) navigator.vibrate(8);
+    });
+    const up = e => {
+      if (T.buttonPointers.get(e.pointerId) !== k) return;
+      T.buttonPointers.delete(e.pointerId);
+      if ([...T.buttonPointers.values()].includes(k)) return;
+      T.state[k] = false;
+      b.classList.remove(C("on"));
+    };
     b.addEventListener("pointerup", up); b.addEventListener("pointercancel", up);
     b.addEventListener("lostpointercapture", up);
     b.addEventListener("contextmenu", e => e.preventDefault());
