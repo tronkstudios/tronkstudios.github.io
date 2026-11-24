@@ -222,6 +222,7 @@ window.forceRunnerLeak = () => {
         const labels = await page.locator("#lane-brief b").allTextContents();
         return labels.map((label) => Number(label.split(" · ").at(-1)));
       };
+      await page.locator("#wave-beacon-hint").getByText(/Primera llegada · A .* \/ B /).waitFor();
       const [a, b] = await counts();
       assert.ok(a > 0 && b > 0);
       const tacticalPause = page.locator("#tactical-pause");

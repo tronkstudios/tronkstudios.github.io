@@ -547,6 +547,7 @@ function formWave(order, formation, theme, level, { pressure, veteran, archiveLa
       const entry = order[i];
       const first = i === start;
       entry.delay = i === 0 ? 12 : formation && first ? 96 : interval;
+      entry.groupName = name;
       if (formation === "convoy") {
         entry.lane = group === 2 ? flank : lead;
         if (group === 0 && first) {
@@ -579,9 +580,7 @@ function formWave(order, formation, theme, level, { pressure, veteran, archiveLa
       if (first) time = elapsed;
       lanes[entry.lane]++;
     }
-    const event = { name, time, lanes };
-    order[start].group = event;
-    return event;
+    return { name, time, lanes };
   });
   if (bosses.length) {
     const lanes = [0, 0];
@@ -594,14 +593,31 @@ function formWave(order, formation, theme, level, { pressure, veteran, archiveLa
       time: elapsed + bosses[0].delay,
       lanes,
     };
-    bosses[0].group = event;
+    for (const boss of bosses) boss.groupName = event.name;
     timeline.push(event);
   }
   return timeline;
 }
 
+function nextArrivals(queue, firstDelay, interval, lanes) {
+  const upcoming = [null, null];
+  let ticks = Math.max(0, firstDelay);
+  let found = 0;
+  for (const [index, entry] of queue.entries()) {
+    if (index > 0) ticks += entry.delay ?? interval;
+    if (upcoming[entry.lane]) continue;
+    upcoming[entry.lane] = { name: entry.groupName || entry.spec.name, ticks };
+    if (++found === lanes) break;
+  }
+  return upcoming;
+}
+
+export function escortArmor(enemy) {
+  return enemy.guard?.hp > 0 && !enemy.guard.escaped ? 9 : 0;
+}
+
 function resolveImpact(enemy, shield, amount, { piercing = false, shred = false }, tower, time) {
-  let armor = enemy.armor + (enemy.guard?.hp > 0 && !enemy.guard.escaped ? 9 : 0);
+  let armor = enemy.armor + escortArmor(enemy);
   if (tower?.rank) {
     if (enemy.markedUntil > time) amount *= 1.15;
     if (enemy.frozenUntil > time && tower.type === "splash") amount *= 1.2;
@@ -672,6 +688,14 @@ export function upgradeStats(tower, branch) {
 
 export function reactorOutput(rank, branch) {
   return branch?.output ?? 9 + 4 * rank;
+}
+
+export const REACTOR_FIRST_CYCLE = 105;
+
+export function reactorProduction(tower) {
+  const output = reactorOutput(tower.rank, tower.branch);
+  const ticks = Math.ceil(tower.fireRate);
+  return { output, ticks, perMinute: output * 3600 / ticks, charge: tower.branch?.charge || 0 };
 }
 
 export class Match {
@@ -783,6 +807,16 @@ export class Match {
     return this.gateRoutes?.[Number(!this.gateDiverted)];
   }
 
+  get coverageWave() {
+    return this.state === "build" ? this.wave + 1 : this.wave;
+  }
+
+  routesForWave(wave) {
+    const event = this.routeEvent;
+    return event && wave >= event.wave && this.routes[1] !== event.alternate
+      ? [this.routes[0], event.alternate] : this.routes;
+  }
+
   applyRouteEvent(wave) {
     if (this.routeEvent && wave >= this.routeEvent.wave)
       this.routes[1] = this.routeEvent.alternate;
@@ -797,9 +831,9 @@ export class Match {
       : nextWave === event.wave ? "active" : "rerouted";
   }
 
-  towerOffline(tower) {
+  towerOffline(tower, wave = this.state === "wave" ? this.wave : 0) {
     const area = this.routeEvent?.blackout;
-    return area && this.state === "wave" && this.wave === this.routeEvent.wave &&
+    return !!area && wave === this.routeEvent.wave &&
       Math.hypot(tower.x - area.x, tower.y - area.y) <= area.radius;
   }
 
@@ -807,11 +841,11 @@ export class Match {
     return !this.daily && this.level >= 7;
   }
 
-  linkPartner(tower) {
+  linkPartner(tower, wave) {
     let partner;
     let closest = 175;
     for (const other of this.towers) {
-      if (other === tower || other.type === "eco" || this.towerOffline(other)) continue;
+      if (other === tower || other.type === "eco" || this.towerOffline(other, wave)) continue;
       const distance = Math.hypot(tower.x - other.x, tower.y - other.y);
       if (distance <= closest) {
         closest = distance;
@@ -824,6 +858,14 @@ export class Match {
   recordLeak(enemy, loss) {
     const report = this.waveLeaks;
     report.lanes[enemy.lane]++;
+    if (loss > 0) {
+      if (report.impact?.tick !== this.time)
+        report.impact = { tick: this.time, name: enemy.name, loss: 0, count: 0, lanes: [] };
+      const impact = report.impact;
+      impact.loss += loss;
+      impact.count++;
+      if (!impact.lanes.includes(enemy.lane)) impact.lanes.push(enemy.lane);
+    }
     if (loss > (report.worst?.loss || 0))
       report.worst = { name: enemy.name, loss, lane: enemy.lane };
     const label = enemy.variant ? `${enemy.name} · ${VARIANT_NAMES[enemy.variant]}` : enemy.name;
@@ -874,18 +916,9 @@ export class Match {
   }
 
   get incomingGroups() {
-    const upcoming = [null, null];
-    if (this.state !== "wave") return upcoming;
-    let ticks = Math.max(0, this.spawnIn);
-    for (const [i, entry] of this.queue.entries()) {
-      if (i > 0) ticks += entry.delay ?? this.interval;
-      const group = entry.group;
-      if (!group) continue;
-      for (const [lane, count] of group.lanes.entries())
-        if (count && !upcoming[lane]) upcoming[lane] = { name: group.name, ticks };
-      if (upcoming.filter(Boolean).length === this.routes.length) break;
-    }
-    return upcoming;
+    return this.state === "wave"
+      ? nextArrivals(this.queue, this.spawnIn, this.interval, this.routes.length)
+      : [null, null];
   }
 
   cue(kind, text, position) {
@@ -998,6 +1031,7 @@ export class Match {
     return {
       order,
       timeline,
+      arrivals: nextArrivals(order, order[0]?.delay ?? 0, 0, this.routes.length),
       theme,
       count: order.length,
       final,
@@ -1141,7 +1175,7 @@ export class Match {
       x,
       y,
       paid: type.cost,
-      cooldown: type.type === "eco" ? 105 : 0,
+      cooldown: type.type === "eco" ? REACTOR_FIRST_CYCLE : 0,
       rank: 1,
       targeting: "first",
       inflicted: 0,
@@ -1169,7 +1203,7 @@ export class Match {
     if (!this.undoable) return null;
     const tower = this.lastBuild;
     this.towers.splice(this.towers.indexOf(tower), 1);
-    this.atp += tower.cost;
+    this.atp += tower.paid;
     this.lastBuild = null;
     return tower;
   }
@@ -1365,7 +1399,7 @@ export class Match {
       const idle = !this.queue.length;
       for (let i = 0; i < 3; i++)
         nextEnemy(this.queue, PATHOGEN_TYPES[i === 0 ? 4 : 2], node.lane, {
-          armor: i === 0 ? 8 : 0, speed: 1.18, delay: 16,
+          armor: i === 0 ? 8 : 0, speed: 1.18, delay: 16, groupName: "Refuerzos de la viruela",
         });
       if (idle) this.spawnIn = 8;
     }
@@ -1411,7 +1445,7 @@ export class Match {
       enemy.shield = Math.round(enemy.maxHp * 0.19);
       const backup = this.routes.length > 1 ? 1 - enemy.lane : enemy.lane;
       for (let i = 0; i < 3; i++)
-        nextEnemy(this.queue, PATHOGEN_TYPES[2], backup, { speed: 1.22 });
+        nextEnemy(this.queue, PATHOGEN_TYPES[2], backup, { speed: 1.22, groupName: "Refuerzos del jefe" });
       if (this.queue.length === 3) this.spawnIn = 8;
     } else {
       enemy.speed *= 1.5;
@@ -1513,7 +1547,7 @@ export class Match {
     if (order && --order.ticks <= 0) {
       this.mirrorOrders.shift();
       const fresh = !this.queue.length;
-      for (let i = 0; i < 4; i++) nextEnemy(this.queue, PATHOGEN_TYPES[2], order.lane, { speed: 1.25 });
+      for (let i = 0; i < 4; i++) nextEnemy(this.queue, PATHOGEN_TYPES[2], order.lane, { speed: 1.25, groupName: "Refuerzos" });
       if (fresh) this.spawnIn = 7;
     }
     this.tickZeroNodes();

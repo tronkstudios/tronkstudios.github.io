@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { Match, BLUEPRINTS, dailySetup, suggestPlacement } from "../juegos/bio-lab-defense/engine.js";
+import { Match, BLUEPRINTS, dailySetup, suggestPlacement, reactorProduction, REACTOR_FIRST_CYCLE } from "../juegos/bio-lab-defense/engine.js";
 import { CONTRACTS } from "../juegos/bio-lab-defense/operations.js";
 import { MISSIONS } from "../juegos/bio-lab-defense/campaign.js";
+import { restoreCheckpoint } from "../juegos/bio-lab-defense/checkpoint.js";
 import { normalize } from "../juegos/bio-lab-defense/profile.js";
 
 test("legacy completion opens the next chapter with expanded profile slots", () => {
@@ -45,6 +46,27 @@ test("the forecast reports the same timings and lanes that the engine spawns", (
   const daily = dailySetup("2026-11-23");
   assert.ok(daily.map < 3);
   assert.equal(new Match(6, daily).preview.timeline.length, 1);
+});
+
+test("entry alerts use the first enemy actually queued for each lane", () => {
+  const match = new Match(8, null, { contract: CONTRACTS.find(contract => contract.pressure) });
+  const { arrivals } = match.preview;
+  assert.equal(arrivals[0].name, "Cambio de entrada");
+  assert.ok(arrivals[0].ticks > arrivals[1].ticks);
+  match.startWave();
+  assert.deepEqual(match.incomingGroups, arrivals);
+  for (const [lane, arrival] of arrivals.entries()) {
+    const replay = new Match(8, null, { contract: CONTRACTS.find(contract => contract.pressure) });
+    replay.startWave();
+    for (let tick = 1; tick < arrival.ticks; tick++) {
+      replay.tick();
+      assert.equal(replay.enemies.some(enemy => enemy.lane === lane), false);
+    }
+    replay.tick();
+    assert.ok(replay.enemies.some(enemy => enemy.lane === lane));
+    if (replay.queue.some(entry => entry.lane === lane))
+      assert.ok(replay.incomingGroups[lane], "the alert continues through a partially spawned group");
+  }
 });
 
 test("the next tower skips an enemy already covered by another shot", () => {
@@ -251,7 +273,14 @@ test("three sectors disclose and apply a new B route at the announced wave", () 
     match.wave = wave - 2;
     assert.equal(match.routeEventStatus, "warning");
     assert.equal(match.routes[1], original);
+    assert.equal(match.routesForWave(match.coverageWave)[1], original);
     match.wave++;
+    assert.equal(match.routesForWave(match.coverageWave)[1], alternate);
+    assert.equal(match.routes[1], original, "preview must not open the route");
+    if (match.routeEvent.blackout) {
+      assert.equal(match.towerOffline(match.routeEvent.blackout, match.coverageWave), true);
+      assert.equal(match.towerOffline(match.routeEvent.blackout), false);
+    }
     match.preview = match.planWave(wave);
     assert.equal(match.startWave(), true);
     assert.equal(match.routes[1], alternate);
@@ -333,6 +362,8 @@ test("the loss report distinguishes a repeated coverage gap from a brief uncover
   enemy.coverageGaps = [, 6, 2];
   match.recordLeak(enemy, 10);
   match.recordLeak({ ...enemy, lane: 1 - enemy.lane, coverageGaps: [, 2] }, 10);
+  assert.equal(match.waveLeaks.impact.loss, 20);
+  assert.ok(match.waveLeaks.impact.lanes.includes(0) && match.waveLeaks.impact.lanes.includes(1));
   assert.deepEqual(match.waveLeaks.lanes, [1, 1]);
   assert.deepEqual([...match.waveLeaks.entries.values()].map(({ uncovered }) => uncovered), [1, 0]);
   assert.deepEqual([...match.waveLeaks.gaps.values()], [{ lane: enemy.lane, waypoint: 1, count: 1 }]);
@@ -403,4 +434,45 @@ test("a rehearsal reproduces an unattended wave without changing the prepared de
     assert.deepEqual([sim.hp, sim.kills, sim.state, sim.waveLeaks], [match.hp, match.kills, match.state, match.waveLeaks]);
   }
   assert.equal(startDrill(new Match(20)), null);
+});
+
+test("restored towers keep their investment and legacy saves keep the catalog price", () => {
+  const match = new Match(1);
+  const tower = match.place(BLUEPRINTS[0], 145, 171);
+  const data = { ...match, towers: [{ ...tower, branch: -1, angle: 0, paid: 42 }], selected: 0, lastBuild: 0 };
+  const restored = restoreCheckpoint(data);
+  assert.equal(restored.selected, restored.match.towers[0]);
+  assert.equal(restored.match.undoPlacement().paid, 42);
+  assert.equal(restored.match.atp, match.atp + 42);
+
+  delete data.towers[0].paid;
+  delete data.selected;
+  const legacy = restoreCheckpoint(data);
+  assert.equal(legacy.selected, null);
+  assert.equal(legacy.match.towers[0].paid, tower.cost);
+});
+
+test("reactor production forecasts match the first cycle and both specialization intervals", () => {
+  for (const branch of [null, 0, 1]) {
+    const match = new Match(1);
+    match.atp = 400;
+    const reactor = match.place(BLUEPRINTS[7], 50, 60);
+    assert.ok(reactor);
+    if (branch !== null) {
+      assert.ok(match.upgrade(reactor));
+      assert.ok(match.upgrade(reactor, branch));
+    }
+    const forecast = reactorProduction(reactor);
+    const initialCharge = match.charge;
+    match.startWave();
+    for (let tick = 1; tick < REACTOR_FIRST_CYCLE; tick++) match.tick();
+    assert.equal(reactor.produced, 0);
+    match.tick();
+    assert.equal(reactor.produced, forecast.output);
+    assert.equal(match.charge, initialCharge + forecast.charge);
+    for (let tick = 1; tick < forecast.ticks; tick++) match.tick();
+    assert.equal(reactor.produced, forecast.output);
+    match.tick();
+    assert.equal(reactor.produced, 2 * forecast.output);
+  }
 });

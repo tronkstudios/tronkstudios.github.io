@@ -98,6 +98,25 @@ window.testRun = {
     match.damage(target, 8, "#fff");
   },
   barrierActive() { return match.barrier.until > match.time; },
+  leakRegularEnemy() {
+    match.spawn();
+    const enemy = match.enemies.at(-1);
+    enemy.wp = enemy.path.points.length - 1;
+    [enemy.x, enemy.y] = enemy.path.points.at(-1);
+    return enemy.name;
+  },
+  prepareBlackout() {
+    const { x, y } = match.routeEvent.blackout;
+    selected = match.place(BLUEPRINTS[0], x, y + 56) || match.place(BLUEPRINTS[0], x, y - 56);
+    blueprint = null;
+    match.wave = match.routeEvent.wave - 2;
+    match.preview = match.planWave(match.wave + 1);
+    return !!selected;
+  },
+  nextPreparation() {
+    match.wave++;
+    match.preview = match.planWave(match.wave + 1);
+  },
 };`,
       });
     });
@@ -138,6 +157,9 @@ window.testRun = {
     assert.equal(await codex.locator("#codex-detail").isVisible(), false);
     await codex.getByRole("button", { name: "Torres", exact: true }).tap();
     assert.equal(await search.inputValue(), "");
+    await search.fill("bio-reactor");
+    await codex.getByText("260 ATP/min", { exact: true }).waitFor();
+    await codex.getByText("1,75 s", { exact: true }).waitFor();
     await codex.getByRole("button", { name: "Cerrar" }).tap();
     await page.locator("#operations-button").tap();
     await page.getByRole("heading", { name: "Nanobots de campaña" }).waitFor();
@@ -338,6 +360,21 @@ window.testRun = {
     await page.locator("#home-resume-run").tap();
     assert.equal(await page.locator("#cut-b").getAttribute("aria-pressed"), "true");
     assert.equal(await page.locator("#next").isDisabled(), false);
+    await page.locator("#pause").tap();
+    await page.getByRole("button", { name: "Abandonar partida" }).tap();
+    await page.locator(".level").nth(18).tap();
+    await page.locator("#launch-mission").tap();
+    assert.equal(await page.evaluate(() => testRun.prepareBlackout()), true);
+    const forecast = page.locator("#placement-analysis");
+    await forecast.getByText("Apagón aquí en la oleada 4").waitFor();
+    await page.evaluate(() => testRun.nextPreparation());
+    await forecast.getByText("Sin energía en la oleada 4").waitFor();
+    await forecast.getByText("Recorrido al alcance · A 0 % / B 0 %").waitFor();
+    await page.locator("#next").tap();
+    await forecast.getByText("Sin energía hasta el final de la oleada").waitFor();
+    const leakedEnemy = await page.evaluate(() => testRun.leakRegularEnemy());
+    await page.locator("#core-impact").getByText(`Núcleo −10 % · ${leakedEnemy} · Entrada`, { exact: false }).waitFor();
+    assert.equal(await page.locator("#hp").textContent(), "90%");
     await page.locator("#pause").tap();
     await page.getByRole("button", { name: "Abandonar partida" }).tap();
     await page.locator(".level").nth(21).tap();

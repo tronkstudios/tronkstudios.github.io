@@ -8,14 +8,15 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8791";
     args: ["--no-sandbox"],
   });
   try {
-    const page = await browser.newPage({
+    const context = await browser.newContext({
       viewport: { width: 360, height: 800 },
       isMobile: true,
       hasTouch: true,
     });
+    const page = await context.newPage();
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
-    await page.route(
+    await context.route(
       (url) => !url.href.startsWith(base),
       (route) => route.abort(),
     );
@@ -96,7 +97,8 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8791";
     assert.equal(await page.locator("#buy-atp").isDisabled(), true);
     assert.equal(await page.locator("#speed").textContent(), "Velocidad ×2");
     assert.deepEqual(await saved(), before);
-    await tapBoard(330, 255);
+    assert.equal(before.selected, 0);
+    assert.equal(before.towers[0].paid, 138);
     await page.getByText("Nano-Láser · Nivel 3 · Perforante").waitFor();
     await page.getByText(/Daño infligido · 0 · Bajas 0/).waitFor();
     await page.locator("#pause").tap();
@@ -113,6 +115,38 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8791";
     await page.locator("#pause").tap();
     await page.getByRole("button", { name: "Abandonar partida" }).tap();
     assert.equal(await saved(), null);
+    await page.locator(".level").first().tap();
+    await page.locator("#launch-mission").tap();
+    const initialATP = await page.locator("#atp").textContent();
+    const balance = () => page.evaluate(() => JSON.parse(localStorage.getItem("biolab_save_v1")).atpBank);
+    const initialBalance = await balance();
+    const otherTab = await context.newPage();
+    await otherTab.goto(base + "/juegos/bio-lab-defense/");
+    await otherTab.evaluate(() => {
+      const key = "biolab_checkpoint:guest";
+      const checkpoint = JSON.parse(localStorage.getItem(key));
+      localStorage.setItem(key, JSON.stringify({ ...checkpoint, atp: 333 }));
+    });
+    await page.locator("#buy-atp").tap();
+    await page.locator("#board-status").getByText(/Conservas tu reserva/).waitFor();
+    assert.equal(await balance(), initialBalance);
+    assert.equal(await page.locator("#atp").textContent(), initialATP);
+    assert.equal((await saved()).atp, 333);
+    await page.locator("#pause").tap();
+    await page.getByRole("button", { name: "Abandonar partida" }).tap();
+    await page.locator(".level").first().tap();
+    await page.locator("#launch-mission").tap();
+    await page.getByRole("heading", { name: "Hay una partida guardada" }).waitFor();
+    await otherTab.evaluate(() => {
+      const key = "biolab_checkpoint:guest";
+      const checkpoint = JSON.parse(localStorage.getItem(key));
+      localStorage.setItem(key, JSON.stringify({ ...checkpoint, atp: 444 }));
+    });
+    await page.getByRole("button", { name: "Empezar y reemplazar" }).tap();
+    await page.getByRole("heading", { name: "Hay una partida guardada" }).waitFor();
+    await page.getByText(/El guardado cambió desde que abriste este menú/).waitFor();
+    assert.equal((await saved()).atp, 444);
+    await otherTab.close();
     assert.deepEqual(errors, []);
     console.log(
       "Bio-Lab reload, single-use supplies, tower specialization and safe discard passed.",
