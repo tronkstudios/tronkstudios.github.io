@@ -9,17 +9,20 @@ import {
   suggestPlacement,
   specializations,
   TARGETING,
+  VARIANT_NAMES,
   dailySetup,
-} from "./engine.js?v=14";
-import { Board } from "./board.js?v=17";
+} from "./engine.js?v=17";
+import { routeCoverage } from "./coverage.js?v=1";
+import { attachDrill } from "./drill.js?v=2";
+import { Board } from "./board.js?v=22";
 import { towerIcon, heroIcon } from "./art.js?v=4";
-import { createCodex } from "./codex.js?v=1";
-import { Profile, dayKey } from "./profile.js?v=8";
+import { createCodex } from "./codex.js?v=4";
+import { Profile, dayKey } from "./profile.js?v=9";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=3";
-import { CHAPTERS, MISSIONS } from "./campaign.js?v=6";
+import { CHAPTERS, MISSIONS } from "./campaign.js?v=7";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=10";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=13";
 
 import { HEROES, CONTRACTS } from "./operations.js?v=5";
 
@@ -30,6 +33,24 @@ const board = new Board(canvas);
 const briefingBoard = new Board($("briefing-map"));
 const lossBoard = new Board($("loss-map"));
 const modal = $("modal");
+const drill = $("drill");
+$("run-drill").onclick = attachDrill(drill, new Board($("drill-map")), () => match, tower => {
+  selected = tower;
+  blueprint = null;
+  movingHero = aiming = false;
+  movingTower = null;
+  upgradePreview = null;
+  cursor = null;
+  highlightDock();
+  renderHUD();
+  $("selection").scrollIntoView({ block: "nearest" });
+  $("selection").focus({ preventScroll: true });
+});
+const fireOrders = $("fire-orders");
+const fireMap = $("fire-map");
+const fireBoard = new Board(fireMap);
+let fireChoices = [];
+
 const codex = createCodex($("codex"));
 const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 const compactField = matchMedia("(max-width: 760px)");
@@ -104,9 +125,21 @@ function ask(title, message, buttons, breach = null) {
   $("modal-title").textContent = title;
   $("modal-text").textContent = message;
   $("loss-map").hidden = breach === null;
+  $("loss-coverage").hidden = breach === null;
   if (breach !== null) {
-    $("loss-map").setAttribute("aria-label", `Recorrido de la fuga por la entrada ${breach ? "B" : "A"}`);
+    const lanes = breach.lanes.flatMap((count, lane) => count ? [lane ? "B" : "A"] : []);
+    $("loss-map").setAttribute("aria-label",
+      lanes.length === 1 ? `Recorrido de la fuga por la entrada ${lanes[0]}` : "Recorridos de las fugas por las entradas A y B");
     lossBoard.draw(match, null, null, null, true, false, null, { breach });
+    $("loss-entries").replaceChildren(...Array.from(breach.entries.values(), ({ name, count, lane, uncovered }) => {
+      const item = document.createElement("li");
+      item.textContent = `Entrada ${lane ? "B" : "A"} · ${count} × ${name}${uncovered
+        ? ` · ${uncovered} ${uncovered === 1 ? "pasó" : "pasaron"} por un tramo sin cobertura` : ""}`;
+      return item;
+    }));
+    updateText("loss-gap-summary", breach.gaps.size
+      ? "Los trazos amarillos marcan los tramos donde estos enemigos avanzaron sin cobertura de torres."
+      : "Las fugas ocurrieron sin que se detectaran tramos prolongados fuera del alcance de las torres.");
   }
   $("modal-actions").replaceChildren(
     ...buttons.map(([label, action], i) => {
@@ -258,12 +291,17 @@ function renderLevels() {
     `${complete}/${MISSIONS.length} misiones · ${totalStars} estrellas · ${medals} insignias`,
   );
   const active = profile.data.unlockedLevel;
+  const jump = $("chapter-jump");
+  jump.replaceChildren(...CHAPTERS.map((chapter, i) => new Option(`${i + 1} · ${chapter.name}`, i)));
+  jump.value = String(MISSIONS[active - 1].chapter);
   const chapters = CHAPTERS.map((chapter, index) => {
     const section = document.createElement("section");
     section.className = "chapter";
+    section.id = `campaign-chapter-${index}`;
     section.style.setProperty("--chapter", chapter.color);
     const header = document.createElement("header");
     const title = document.createElement("h2");
+    title.tabIndex = -1;
     title.textContent = `Capítulo ${index + 1} · ${chapter.name}`;
     const location = document.createElement("p");
     location.textContent = chapter.location;
@@ -275,6 +313,7 @@ function renderLevels() {
       const level = i + 1;
       const button = makeButton("", () => briefing(level));
       button.className = "level";
+      button.id = `campaign-sector-${level}`;
       button.classList.toggle(
         "level-current",
         level === active && !profile.data.stars[i],
@@ -292,9 +331,22 @@ function renderLevels() {
         : stars
           ? `${"★".repeat(stars)}${"☆".repeat(3 - stars)}${profile.data.medals[i] ? " · Insignia" : ""}`
           : "Disponible";
-      button.append(number, label, badge);
+      button.append(number, label);
+      if (chapter.scenery) {
+        const objective = document.createElement("small");
+        objective.textContent = mission.objective === "archive" ? "Proteger terminales"
+          : mission.objective === "power" ? "Aislar una línea"
+          : mission.routePattern === 19 ? "Apagón programado"
+          : mission.routePattern ? "Desvío programado" : `${mission.towerLimit} puestos de defensa`;
+        button.append(objective);
+      }
+      button.append(badge);
       sectors.append(button);
     }
+    const indices = MISSIONS.map((m, i) => m.chapter === index ? i : -1).filter(i => i >= 0);
+    const starsHere = indices.reduce((sum, i) => sum + profile.data.stars[i], 0);
+    const medalsHere = indices.filter(i => profile.data.medals[i]).length;
+    location.textContent += ` · ${starsHere}/${indices.length * 3} estrellas · ${medalsHere}/${indices.length} insignias`;
     section.append(header, sectors);
     return section;
   });
@@ -320,7 +372,7 @@ function briefing(level) {
   updateText("briefing-task", mission.task);
   updateText("briefing-speaker", mission.speaker);
   updateText("briefing-voice", mission.briefing);
-  updateText("briefing-tip", mission.cue);
+  updateText("briefing-tip", [mission.cue, preview.firePads.length ? "Las plataformas iluminadas dan +25 % de daño a las torres de ataque." : "", preview.towerLimit ? `Dispones de ${preview.towerLimit} puestos.` : ""].filter(Boolean).join(" "));
   updateText(
     "briefing-medal",
     profile.data.medals[level - 1]
@@ -332,8 +384,17 @@ function briefing(level) {
     "briefing-waves",
     `${preview.maxWaves} oleadas · ${preview.routes.length === 2 ? "Dos entradas" : "Una entrada"}`,
   );
+  $("briefing-route-event").hidden = !preview.routeEvent;
+  if (preview.routeEvent) updateText("briefing-route-event", describeRouteEvent(preview.routeEvent));
   view("briefing");
-  briefingBoard.draw(preview, null, null, null, true, false);
+  briefingBoard.draw(preview, null, null, null, true, false, null, { routePlan: true });
+}
+
+function describeRouteEvent(event, phase = "warning") {
+  const prefix = phase === "warning" ? `Oleada ${event.wave} · ${event.name}` : event.name;
+  if (phase === "rerouted") return `${prefix} · Sigue activa la nueva ruta de la entrada B.`;
+  if (phase === "active") return `${prefix} · La entrada B ya usa la nueva ruta.${event.blackout ? " Torres en la zona ámbar sin energía hasta el final de esta oleada." : ""}`;
+  return `${prefix} · La entrada B se desviará por el trazado punteado.${event.blackout ? " Las torres de la zona ámbar se apagarán durante esa oleada." : ""}`;
 }
 
 function savedPreparation() {
@@ -519,7 +580,7 @@ function highlightDock() {
 }
 
 function updateDockBudget() {
-  const limit = match.contract?.towerLimit;
+  const limit = match.towerLimit;
   const full = limit != null && match.towers.length >= limit;
   const budgetKey = `${match.atp}:${limit ?? ""}:${match.towers.length}`;
   if (dockBudgetKey === budgetKey) return;
@@ -642,6 +703,7 @@ function renderSelection() {
     (tower.type === "eco"
       ? tower.note
       : `${tower.note} · ${tower.damage} daño · ${tower.range} alcance`);
+  if (match.padBonus(tower) > 1) detail.textContent += " · Plataforma de tiro +25 %";
   if (tower.branch) heading.textContent += ` · ${tower.branch.name}`;
   const cost = upgradeCost(tower);
   const options = document.createElement("div");
@@ -691,8 +753,9 @@ function renderSelection() {
     const targeting = document.createElement("select");
     targeting.id = "tower-targeting";
     for (const [id, name] of TARGETING) {
-      if (id !== "support" || (match.level === 22 && !match.daily))
-        targeting.add(new Option(name, id));
+      if (id === "support" && (match.level !== 22 || match.daily)) continue;
+      if (id === "escort" && !match.hasEnemyVariants) continue;
+      targeting.add(new Option(name, id));
     }
     targeting.value = tower.targeting;
     targeting.onchange = () => {
@@ -721,11 +784,12 @@ function renderSelection() {
 
 function upgradeRow(tower, purchase, branch) {
   const range = upgradeStats(tower, branch).range;
-  if (range <= tower.range) return purchase;
+  const economy = tower.type === "eco";
   const row = document.createElement("div");
   row.className = "upgrade-row";
-  const preview = { tower, range };
-  const toggle = makeButton("Ver alcance", () => {
+  const preview = { tower, range, branch, candidate: { ...tower, ...upgradeStats(tower, branch), branch, rank: tower.rank + 1 } };
+  const label = economy ? "Ver producción" : "Ver alcance";
+  const toggle = makeButton(label, () => {
     const active = upgradePreview !== preview;
     upgradePreview = active ? preview : null;
     for (const control of row.parentNode.querySelectorAll(".range-preview"))
@@ -733,19 +797,62 @@ function upgradeRow(tower, purchase, branch) {
   });
   toggle.className = "range-preview";
   toggle.disabled = movingTower === tower;
-  if (branch) toggle.setAttribute("aria-label", `Ver alcance · ${branch.name}`);
+  if (branch) toggle.setAttribute("aria-label", `${label} · ${branch.name}`);
   toggle.setAttribute("aria-pressed", "false");
   row.append(purchase, toggle);
   return row;
 }
 
 const cadence = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 2 });
+function placementForecast(tower, point, original = null, action = "") {
+  const panel = $("placement-analysis");
+  panel.hidden = !tower;
+  if (!tower) return;
+  const candidate = { ...tower, ...point, rank: tower.rank || 1 };
+  const event = match.routeEvent;
+  const phase = match.routeEventStatus;
+  const key = [candidate.id, candidate.rank, candidate.damage, candidate.range, candidate.x, candidate.y,
+    candidate.branch?.name, candidate.fireRate, original?.x, original?.y, original?.rank, action,
+    match.level, match.mapIndex, match.gateDiverted, phase, match.state, match.wave].join("|");
+  if (panel.dataset.key === key) return;
+  panel.dataset.key = key;
+  const lines = [];
+  const compare = (read) => {
+    const after = read(candidate);
+    if (!original) return after;
+    const before = read(original);
+    return before === after ? after : `${before} → ${after}`;
+  };
+  if (candidate.type === "eco") {
+    lines.push(`${compare(t => reactorOutput(t.rank, t.branch))} ATP por ciclo`);
+  } else {
+    const damage = compare(t => Math.round(t.damage * match.padBonus(t)));
+    lines.push(`${damage} de daño por impacto${match.padBonus(candidate) > 1 ? " · Plataforma +25 %" : ""}`);
+    if (action === "Traslado") lines.push("Trazo discontinuo · cobertura que pierdes");
+    const lanes = match.routes.map((route, index) =>
+      `${index ? "B" : "A"} ${compare(t => routeCoverage(route, t))} %`);
+    lines.push(`Recorrido al alcance · ${lanes.join(" / ")}`);
+    if (phase === "warning") lines.push(`B tras el desvío · ${compare(t => routeCoverage(event.alternate, t))} %`);
+  }
+  if (original && candidate.fireRate !== original.fireRate)
+    lines.push(`${compare(t => cadence.format(t.fireRate / 60))} s por ${candidate.type === "eco" ? "ciclo" : "disparo"}`);
+  if (match.towerOffline(candidate)) lines.push("Sin energía hasta el final de la oleada");
+  else if (event?.blackout && phase === "warning" &&
+      Math.hypot(candidate.x - event.blackout.x, candidate.y - event.blackout.y) <= event.blackout.radius)
+    lines.push(`Apagón aquí en la oleada ${event.wave}`);
+  panel.replaceChildren(...[action ? `${candidate.name} · ${action}` : candidate.name, ...lines].map((value, i) => {
+    const text = document.createElement(i ? "span" : "strong");
+    text.textContent = value;
+    return text;
+  }));
+}
+
 function upgradeForecast(tower, branch) {
   const next = upgradeStats(tower, branch);
   const interval = (ticks) => cadence.format(ticks / 60);
   const stats = tower.type === "eco"
     ? `ATP por ciclo ${reactorOutput(tower.rank, tower.branch)} → ${reactorOutput(tower.rank + 1, branch)}`
-    : `Daño ${tower.damage} → ${next.damage} · Alcance ${tower.range} → ${next.range}`;
+    : `Daño ${Math.round(tower.damage * match.padBonus(tower))} → ${Math.round(next.damage * match.padBonus(tower))} · Alcance ${tower.range} → ${next.range}`;
   const preview = document.createElement("small");
   preview.className = "upgrade-forecast";
   const action = tower.type === "eco" ? "ciclo" : "disparo";
@@ -798,10 +905,11 @@ function renderWavePreview(preview) {
     return item;
   }));
   const groups = new Map();
-  for (const { spec, boss, armor, shield } of order) {
+  for (const { spec, boss, armor, shield, variant } of order) {
     const label = boss
       ? `Jefe · ${spec.name}`
-      : spec.name + (armor ? " con blindaje" : shield ? " con escudo" : "");
+      : spec.name + (variant ? ` · ${VARIANT_NAMES[variant]}` : "") +
+        (armor ? " con blindaje" : shield ? " con escudo" : "");
     const group = groups.get(label);
     if (group) group.count++;
     else groups.set(label, { count: 1, shape: spec.shape, boss });
@@ -978,11 +1086,26 @@ function renderFieldControls(waiting) {
 }
 
 function renderHUD() {
+  const focused = match.state === "wave" && match.focusTarget;
+  $("focused-vitals").hidden = !focused;
+  if (focused) {
+    const hp = Math.ceil(focused.hp);
+    const meter = $("focused-hp");
+    if (meter.max !== focused.maxHp) meter.max = focused.maxHp;
+    if (meter.value !== hp) meter.value = hp;
+    updateText("focused-values", `${hp} / ${focused.maxHp}${focused.shield ? ` · Escudo ${Math.ceil(focused.shield)}` : ""}`);
+  }
+  $("focus-fire").hidden = match.state !== "wave";
+  $("focus-fire").disabled = !match.enemies.some(enemy => enemy.hp > 0 && !enemy.escaped);
+  updateText("focus-fire", match.focusTarget ? `Objetivo · ${match.focusTarget.name}` : "Concentrar fuego");
   updateText("hp", `${match.hp}%`);
   $("integrity").value = match.hp;
   updateText("atp", match.atp);
   updateText("wave", `${match.wave}/${match.maxWaves}`);
   const waiting = match.state === "build";
+  const routeStatus = match.routeEventStatus;
+  $("route-event").hidden = !routeStatus;
+  if (routeStatus) updateText("route-event", describeRouteEvent(match.routeEvent, routeStatus));
   updateText("threat-label", waiting ? "Próxima oleada" : "Quedan");
   const remaining = match.enemies.length + match.queue.length;
   updateText("threats", waiting ? match.preview.count : remaining);
@@ -1003,6 +1126,7 @@ function renderHUD() {
   renderBoss(secondBoss, "-b");
   renderGate(waiting);
   $("wave-preview").hidden = !waiting;
+  $("run-drill").disabled = match.power?.first === null || adBusy;
   if (waiting) renderWavePreview(match.preview);
   const split = match.routes.length > 1 && (waiting || match.state === "wave");
   $("lane-brief").hidden = !split;
@@ -1100,7 +1224,7 @@ function touchDraft(point, dragging) {
     ? (x, y) => match.checkRelocation(movingTower, x, y)
     : (x, y) => match.checkPlacement(blueprint, x, y);
   const reason = check(point.x, point.y);
-  const geometry = ["Acércate al interior del tablero.", "Deja despejado el conducto.", "Hay otra torre demasiado cerca."];
+  const geometry = ["Acércate al interior del tablero.", "Deja despejado el conducto.", "Deja despejado el futuro desvío.", "Hay otra torre demasiado cerca."];
   const canSuggest = dragging && geometry.includes(reason) &&
     point.x >= 0 && point.x <= WIDTH && point.y >= 0 && point.y <= HEIGHT;
   const suggestion = canSuggest ? suggestPlacement(point, check) : null;
@@ -1110,7 +1234,7 @@ function touchDraft(point, dragging) {
 function frame(now) {
   const elapsed = Math.min(100, now - lastTick);
   lastTick = now;
-  if (screen === "field" && !modal.open && !codex.open && !document.hidden) {
+  if (screen === "field" && !modal.open && !codex.open && !fireOrders.open && !drill.open && !document.hidden) {
     accumulator = tacticalPaused ? 0 : accumulator + elapsed;
     while (accumulator >= 1000 / 60) {
       for (let i = 0; i < speed; i++) match.tick();
@@ -1139,6 +1263,18 @@ function frame(now) {
       updateText("placement-preview", draft.reason || (draft.snapped ? `Punto sugerido · s${hint.slice(1)}` : hint));
       $("placement-preview").classList.toggle("invalid", !!draft.reason);
     }
+    const point = draft?.point || cursor;
+    const planned = !aiming && !movingHero && !hoverBot && !hovered && !upgradePreview && point && (movingTower || blueprint);
+    const validPlan = planned && !(movingTower ? match.checkRelocation(movingTower, point.x, point.y)
+      : match.checkPlacement(planned, point.x, point.y));
+    if (upgradePreview) {
+      placementForecast(upgradePreview.candidate, null, upgradePreview.tower,
+        upgradePreview.branch?.name || `Rango ${upgradePreview.candidate.rank}`);
+    } else {
+      const relocating = validPlan && movingTower;
+      placementForecast(validPlan ? planned : !planned && (hovered || selected), validPlan ? point : null,
+        relocating || null, relocating ? "Traslado" : "");
+    }
     board.draw(
       match,
       movingHero || hoverBot || upgradePreview ? null : blueprint,
@@ -1160,13 +1296,15 @@ function finish() {
   const won = match.state === "won";
   const stars = won ? (match.hp >= 90 ? 3 : match.hp >= 55 ? 2 : 1) : 0;
   const { level } = match;
+  const breach = !won && match.waveLeaks?.worst ? match.waveLeaks : null;
+  const diagnostics = breach ? `\n\n${lossReport()}` : "";
   sound(won ? "victory" : "defeat");
   if (match.veteran) {
     const score = match.score();
     const record = won && profile.recordVeteran(level, score);
     ask(record ? "Nuevo récord Veterano" : won ? "Sector Veterano superado" : "Intento Veterano terminado",
-      `${match.mission.name} · ${score.toLocaleString("es-ES")} puntos · Núcleo ${match.hp} %.`,
-      [["Reintentar", () => startVeteran(level)], ["Volver al sector", () => briefing(level)]]);
+      `${match.mission.name} · ${score.toLocaleString("es-ES")} puntos · Núcleo ${match.hp} %.${diagnostics}`,
+      [["Reintentar", () => startVeteran(level)], ["Volver al sector", () => briefing(level)]], breach);
     return;
   }
   if (match.contract) {
@@ -1174,8 +1312,8 @@ function finish() {
     const score = match.score();
     const record = won && profile.recordContract(contract.id, score);
     ask(record ? "Nuevo récord de élite" : won ? "Contrato completado" : "Contrato fallido",
-      `${contract.name} · ${score.toLocaleString("es-ES")} puntos · Núcleo ${match.hp} %.`,
-      [["Reintentar", () => startContract(contract)], ["Volver a contratos", openOperations]]);
+      `${contract.name} · ${score.toLocaleString("es-ES")} puntos · Núcleo ${match.hp} %.${diagnostics}`,
+      [["Reintentar", () => startContract(contract)], ["Volver a contratos", openOperations]], breach);
     return;
   }
   if (challengeDay) {
@@ -1183,11 +1321,12 @@ function finish() {
     const record = profile.recordDaily(challengeDay, score);
     ask(
       record ? "Nuevo récord diario" : "Reto terminado",
-      `${score.toLocaleString("es-ES")} puntos · ${match.kills} eliminados · ${match.wave}/${match.maxWaves} oleadas.`,
+      `${score.toLocaleString("es-ES")} puntos · ${match.kills} eliminados · ${match.wave}/${match.maxWaves} oleadas.${diagnostics}`,
       [
         ["Reintentar", () => start(level, challengeDay)],
         ["Volver al menú", () => view("home")],
       ],
+      breach,
     );
     return;
   }
@@ -1255,7 +1394,7 @@ ${mission.cue}`;
       : "Brecha de contención",
     summary,
     buttons,
-    won ? null : match.waveLeaks?.worst?.lane ?? null,
+    breach,
   );
 }
 
@@ -1374,10 +1513,21 @@ canvas.onkeydown = (e) => {
 
 $("campaign-button").onclick = campaign;
 $("back-home").onclick = () => view("home");
+$("go-chapter").onclick = () => {
+  const heading = $(`campaign-chapter-${$("chapter-jump").value}`).querySelector("h2");
+  heading.focus({ preventScroll: true });
+  heading.scrollIntoView({ block: "start" });
+};
 $("resume-mission").onclick = () => briefing(profile.data.unlockedLevel);
 $("home-resume-run").onclick = resumePreparation;
 $("campaign-resume-run").onclick = resumePreparation;
-$("back-campaign").onclick = campaign;
+$("back-campaign").onclick = () => {
+  campaign();
+  const sector = $(`campaign-sector-${briefingLevel}`);
+  $("chapter-jump").value = String(MISSIONS[briefingLevel - 1].chapter);
+  sector.focus({ preventScroll: true });
+  sector.scrollIntoView({ block: "nearest" });
+};
 $("launch-mission").onclick = () => start(briefingLevel);
 $("launch-veteran").onclick = () => startVeteran(briefingLevel);
 for (const [lane, id] of ["cut-a", "cut-b"].entries()) $(id).onclick = () => {
@@ -1503,6 +1653,59 @@ $("pulse").onclick = () => {
   );
   renderHUD();
 };
+function inspectFireTarget() {
+  const enemy = fireChoices[$("fire-choice").selectedIndex];
+  if (!enemy) return;
+  fireBoard.draw(match, null, null, null, true, false, null, { focusTarget: enemy });
+  const towers = match.towers.filter(tower => tower.type !== "eco" && !match.towerOffline(tower) &&
+    Math.hypot(enemy.x - tower.x, enemy.y - tower.y) <= tower.range).length;
+  const stats = [`Vida ${Math.ceil(enemy.hp)} / ${enemy.maxHp}`];
+  if (enemy.shield > 0) stats.push(`Escudo ${Math.ceil(enemy.shield)}`);
+  if (enemy.armor > 0) stats.push(`Blindaje ${Math.ceil(enemy.armor)}`);
+  stats.push(`${towers} ${towers === 1 ? "torre con alcance" : "torres con alcance"}`);
+  updateText("fire-details", stats.join(" · "));
+}
+$("focus-fire").onclick = () => {
+  fireChoices = match.enemies.filter(enemy => enemy.hp > 0 && !enemy.escaped)
+    .sort((a, b) => a.remaining - b.remaining);
+  if (!fireChoices.length || match.state !== "wave") return;
+  const select = $("fire-choice");
+  select.replaceChildren(...fireChoices.map((enemy, index) => {
+    const role = enemy.boss ? "Jefe" : VARIANT_NAMES[enemy.variant];
+    const position = enemy.supportNode ? "Nodo fijo" : `${Math.round(enemy.remaining)} px al núcleo`;
+    return new Option(`${enemy.name}${role ? " · " + role : ""} · Entrada ${enemy.lane ? "B" : "A"} · ${position}`, index);
+  }));
+  select.selectedIndex = Math.max(0, fireChoices.indexOf(match.focusTarget));
+  $("fire-clear").hidden = !match.focusTarget;
+  fireOrders.showModal();
+  inspectFireTarget();
+};
+$("fire-choice").onchange = inspectFireTarget;
+fireMap.onclick = event => {
+  const bounds = fireMap.getBoundingClientRect();
+  const x = (event.clientX - bounds.left) * WIDTH / bounds.width;
+  const y = (event.clientY - bounds.top) * HEIGHT / bounds.height;
+  let closest = Math.max(28, 22 * WIDTH / bounds.width);
+  let index = -1;
+  for (const [i, enemy] of fireChoices.entries()) {
+    const distance = Math.hypot(x - enemy.x, y - enemy.y);
+    if (distance <= closest) { closest = distance; index = i; }
+  }
+  if (index < 0) return;
+  $("fire-choice").selectedIndex = index;
+  inspectFireTarget();
+};
+$("fire-confirm").onclick = () => {
+  match.focusFire(fireChoices[$("fire-choice").selectedIndex]);
+  fireOrders.close();
+  renderHUD();
+};
+$("fire-clear").onclick = () => {
+  match.focusFire(null);
+  fireOrders.close();
+  renderHUD();
+};
+fireOrders.onclose = () => { fireChoices = []; };
 $("speed").onclick = () => {
   speed = speed === 1 ? 2 : 1;
   persistPreparation();
@@ -1525,7 +1728,7 @@ document.addEventListener("keydown", (event) => {
   if (
     screen !== "field" ||
     modal.open ||
-    codex.open ||
+    codex.open || fireOrders.open || drill.open ||
     event.defaultPrevented ||
     event.repeat ||
     event.ctrlKey ||
@@ -1535,6 +1738,7 @@ document.addEventListener("keydown", (event) => {
     return;
   if (event.key === "Escape") {
     if (movingTower) toggleTowerMove(movingTower);
+    else if (upgradePreview) $("selection").querySelector('.range-preview[aria-pressed="true"]')?.click();
     else if (movingHero) toggleBotMove();
     else if (aiming) $("pulse").click();
     else return;

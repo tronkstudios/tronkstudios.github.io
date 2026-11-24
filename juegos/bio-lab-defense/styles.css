@@ -1314,3 +1314,81 @@ dialog p {
     padding-inline: 0.45rem;
   }
 }
+
+.route-event {
+  margin: 0.5rem 0;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #886f43;
+  border-radius: 9px;
+  background: #342a21;
+  color: #ffe6b4;
+  font-size: 0.84rem;
+}
+#loss-coverage {
+  margin: 0.65rem 0 0.85rem;
+  font-size: 0.83rem;
+}
+#loss-coverage h3 {
+  margin: 0 0 0.3rem;
+  font-size: 0.9rem;
+}
+#loss-entries {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+#loss-entries li + li {
+  margin-top: 0.25rem;
+}
+
+#placement-analysis {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.8rem;
+  margin-top: 0.35rem;
+  padding: 0.45rem 0.65rem;
+  border-inline-start: 3px solid var(--cyan);
+  border-radius: 4px;
+  background: #112437;
+  color: #c2dbeb;
+  font-size: 0.8rem;
+}
+#placement-analysis strong { color: var(--cyan); }
+
+#fire-orders { width: min(640px, calc(100% - 1rem)); }
+#fire-orders h2 { margin: 0; }
+#fire-map { display: block; width: 100%; height: auto; border: 0; cursor: crosshair; }
+#fire-orders label { display: block; margin: 0.6rem 0 0.25rem; }
+#fire-choice { width: 100%; min-height: 44px; }
+#fire-details { font-variant-numeric: tabular-nums; color: var(--cyan); }
+#focused-vitals {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.6rem;
+  margin: 0.45rem 0;
+  color: #ffe292;
+  font-size: 0.8rem;
+}
+#focused-hp { flex: 1 1 4rem; min-width: 0; accent-color: #e6bf6e; }
+
+#run-drill { margin-top: 0.55rem; }
+#drill { width: min(660px, calc(100% - 1rem)); }
+#drill h2 { margin-top: 0; }
+#drill-map { display: block; width: 100%; height: auto; margin-bottom: 0.6rem; }
+#drill [role="status"] { color: var(--cyan); }
+#drill ul { padding-inline-start: 1.25rem; }
+
+.chapter-index, .drill-towers li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.75rem;
+}
+.chapter-index { margin: 0.8rem 0; }
+.chapter-index select { min-height: 42px; max-width: 100%; }
+.drill-towers { margin: 0.7rem 0; }
+.drill-towers summary { color: var(--cyan); cursor: pointer; padding-block: 0.4rem; }
+.drill-towers ol { padding: 0; }
+.drill-towers li { padding: 0.35rem 0; border-top: 1px solid var(--border); }
+.drill-towers li span { font-size: 0.85rem; }

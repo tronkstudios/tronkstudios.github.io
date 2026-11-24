@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#070e1b" />
     <meta
       name="description"
-      content="Bio-Lab Defense, un juego de defensa de torres gratis. Combina doce torres, protege el núcleo y supera los 22 sectores del laboratorio."
+      content="Bio-Lab Defense, un juego de defensa de torres gratis. Combina doce torres, protege el núcleo y supera los 38 sectores del laboratorio."
     />
     <meta name="rewarded-adsense-client" content="ca-pub-6088460231287739" />
     <meta property="og:title" content="Bio-Lab Defense · TronkStudios" />
@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=16" />
+    <link rel="stylesheet" href="./styles.css?v=21" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -103,6 +103,11 @@
             Retomar partida
           </button>
         </div>
+        <div class="chapter-index">
+          <label for="chapter-jump">Capítulo</label>
+          <select id="chapter-jump"></select>
+          <button type="button" id="go-chapter">Ir al capítulo</button>
+        </div>
         <div id="levels" class="levels"></div>
       </section>
       <section id="briefing" hidden aria-labelledby="briefing-title">
@@ -138,6 +143,7 @@
               aria-label="Plano del sector"
             ></canvas>
             <p id="briefing-waves"></p>
+            <p id="briefing-route-event" class="route-event" hidden></p>
           </div>
         </div>
       </section>
@@ -190,6 +196,7 @@
           <strong id="radio-speaker"></strong>
           <p id="radio-text" role="status"></p>
         </div>
+        <p id="route-event" class="route-event" role="status" hidden></p>
         <div class="game-layout">
           <section class="tower-picker" aria-labelledby="tower-picker-title">
             <div class="tower-picker-head">
@@ -216,6 +223,7 @@
               <b id="core-warning" class="map-alert" hidden>¡Núcleo en peligro!</b>
               <b id="placement-preview" hidden></b>
             </div>
+            <div id="placement-analysis" aria-label="Análisis de posición" role="group" hidden></div>
             <p id="wave-beacon-hint" hidden>Cualquier baliza inicia la oleada completa.</p>
             <section id="power-lines" class="gate-panel wave-preview power-lines" aria-labelledby="power-title" hidden>
               <strong id="power-title">Líneas de energía</strong>
@@ -232,6 +240,7 @@
               <button type="button" id="pulse" aria-pressed="false">
                 Pulso táctico
               </button>
+              <button type="button" id="focus-fire" aria-haspopup="dialog" hidden>Concentrar fuego</button>
               <button type="button" id="speed" aria-pressed="false">
                 Velocidad ×1
               </button>
@@ -243,6 +252,11 @@
               >
                 Pausa táctica
               </button>
+            </div>
+            <div id="focused-vitals" hidden>
+              <label for="focused-hp">Vida del objetivo</label>
+              <progress id="focused-hp" value="0" max="1"></progress>
+              <span id="focused-values"></span>
             </div>
             <div id="field-specials" class="field-specials" hidden>
               <button type="button" id="move-hero" aria-pressed="false" hidden></button>
@@ -293,6 +307,7 @@
               ></ul>
               <ol id="wave-timeline" class="wave-timeline" aria-label="Orden de llegada"></ol>
               <span id="wave-preview-tip"></span>
+              <button type="button" id="run-drill" aria-haspopup="dialog">Ensayar oleada</button>
             </div>
             <p id="wave-debrief" class="wave-debrief" hidden></p>
             <section id="gate-panel" class="wave-preview gate-panel" aria-labelledby="gate-title" hidden>
@@ -305,7 +320,7 @@
             </section>
           </div>
           <aside id="supply-panel" class="controls" aria-label="Mejoras y suministros">
-            <div id="selection"></div>
+            <div id="selection" tabindex="-1"></div>
             <button type="button" id="undo-build" class="undo-build" hidden>
               Deshacer última torre
             </button>
@@ -324,6 +339,34 @@
       </section>
       <p id="account-status" role="status">Comprobando cuenta…</p>
     </main>
+    <dialog id="drill" aria-labelledby="drill-title">
+      <h2 id="drill-title">Ensayo de oleada</h2>
+      <p>Prueba tu defensa actual en combate automático. Puedes volver, mover torres y repetir el ensayo gratis.</p>
+      <canvas id="drill-map" width="900" height="540" aria-label="Simulación de la próxima oleada" role="img"></canvas>
+      <strong role="status"></strong>
+      <ul aria-label="Fugas por entrada"></ul>
+      <p class="drill-gap" hidden></p>
+      <details class="drill-towers" hidden>
+        <summary>Rendimiento de las torres</summary>
+        <p>Selecciona una torre para ajustarla en el tablero.</p>
+        <ol></ol>
+      </details>
+      <p class="drill-comparison" hidden></p>
+      <form method="dialog"><button autofocus>Volver a preparar</button></form>
+    </dialog>
+    <dialog id="fire-orders" aria-labelledby="fire-heading">
+      <h2 id="fire-heading">Concentrar fuego</h2>
+      <p>Toca una amenaza en el plano o elígela en la lista. Las torres a su alcance la atacarán primero.</p>
+      <canvas id="fire-map" width="900" height="540" aria-hidden="true"></canvas>
+      <label for="fire-choice">Objetivo</label>
+      <select id="fire-choice"></select>
+      <p id="fire-details" aria-live="polite"></p>
+      <div class="actions">
+        <button type="button" id="fire-confirm" class="primary">Fijar objetivo</button>
+        <button type="button" id="fire-clear" hidden>Retirar orden</button>
+        <form method="dialog"><button>Cerrar</button></form>
+      </div>
+    </dialog>
     <dialog id="codex" aria-labelledby="codex-title">
       <div class="codex-head">
         <h2 id="codex-title">Enciclopedia del laboratorio</h2>
@@ -346,12 +389,17 @@
       <h2 id="modal-title"></h2>
       <p id="modal-text"></p>
       <canvas id="loss-map" width="900" height="540" role="img" hidden></canvas>
+      <section id="loss-coverage" aria-labelledby="loss-coverage-title" hidden>
+        <h3 id="loss-coverage-title">Enemigos que llegaron al núcleo</h3>
+        <ul id="loss-entries"></ul>
+        <p id="loss-gap-summary"></p>
+      </section>
       <div id="modal-actions" class="actions"></div>
     </dialog>
     <script
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=18"></script>
+    <script type="module" src="./game.js?v=25"></script>
   </body>
 </html>
