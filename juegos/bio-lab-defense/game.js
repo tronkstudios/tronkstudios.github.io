@@ -17,7 +17,7 @@ import {
   dailySetup,
 } from "./engine.js?v=29";
 import { routeCoverage } from "./coverage.js?v=1";
-import { attachDrill } from "./drill.js?v=2";
+import { attachDrill } from "./drill.js?v=3";
 import { Board } from "./board.js?v=35";
 import { towerIcon, heroIcon } from "./art.js?v=4";
 import { createCodex } from "./codex.js?v=17";
@@ -40,7 +40,7 @@ const briefingBoard = new Board($("briefing-map"));
 const lossBoard = new Board($("loss-map"));
 const modal = $("modal");
 const drill = $("drill");
-$("run-drill").onclick = attachDrill(drill, new Board($("drill-map")), () => match, tower => {
+const openDrill = attachDrill(drill, new Board($("drill-map")), () => match, tower => {
   selected = tower;
   blueprint = null;
   movingHero = aiming = false;
@@ -53,6 +53,7 @@ $("run-drill").onclick = attachDrill(drill, new Board($("drill-map")), () => mat
   $("selection").focus({ preventScroll: true });
   persistPreparation();
 });
+$("run-drill").onclick = () => openDrill();
 const fireOrders = $("fire-orders");
 const fireMap = $("fire-map");
 const fireBoard = new Board(fireMap);
@@ -811,6 +812,8 @@ function renderSelection() {
         match.state,
         movingTower === selected,
         match.atp >= upgradeCost(selected),
+        match.power?.first === null,
+        adBusy,
       ].join(":")
     : blueprint?.id;
   if (key === selectionKey) return;
@@ -865,6 +868,13 @@ function renderSelection() {
       improve.append(note, upgradeForecast(tower, branch));
       options.append(upgradeRow(tower, improve, branch));
     }
+  }
+  if (match.state === "build" && tower.rank < 3) {
+    const compare = makeButton("Ensayar mejoras", () => openDrill(tower));
+    compare.className = "upgrade-drill";
+    compare.setAttribute("aria-haspopup", "dialog");
+    compare.disabled = match.atp < cost || match.power?.first === null || adBusy;
+    options.append(compare);
   }
   const actions = document.createElement("div");
   actions.className = "actions";

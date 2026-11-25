@@ -1427,6 +1427,41 @@ dialog p {
 #drill h2 { margin-top: 0; }
 #drill-map { display: block; width: 100%; height: auto; margin-bottom: 0.6rem; }
 #drill [role="status"] { color: var(--cyan); }
+#selection .upgrade-drill {
+  min-height: 40px;
+  text-align: center;
+  border-color: #326c7c;
+  color: var(--cyan);
+}
+#selection .upgrade-drill:not(:disabled):hover {
+  background: #174154;
+}
+.drill-upgrades {
+  margin-block: 0.65rem;
+  padding: 0.65rem;
+  border: 1px solid #326c7c;
+  border-radius: 10px;
+  background: #102736;
+}
+.drill-upgrades h3 { margin: 0 0 0.25rem; font-size: 1rem; }
+.drill-upgrades table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+  font-size: 0.8rem;
+}
+.drill-upgrades caption { text-align: left; color: var(--cyan); padding-bottom: 0.35rem; }
+.drill-upgrades th, .drill-upgrades td {
+  padding: 0.45rem 0.25rem;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+}
+.drill-upgrades td { font-variant-numeric: tabular-nums; }
+.drill-upgrades th:first-child { text-align: left; padding-inline-start: 0; }
+.drill-upgrades thead th { color: var(--muted); }
+.drill-upgrades small { display: block; color: var(--warning); }
+.drill-upgrades .drill-contribution { color: var(--muted); font-weight: 500; }
+.drill-upgrades p { margin: 0.5rem 0 0; color: var(--muted); font-size: 0.76rem; }
 #drill ul { padding-inline-start: 1.25rem; }
 
 .chapter-index, .drill-towers li {

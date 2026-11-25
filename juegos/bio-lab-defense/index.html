@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=35" />
+    <link rel="stylesheet" href="./styles.css?v=36" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -418,9 +418,18 @@
     </main>
     <dialog id="drill" aria-labelledby="drill-title">
       <h2 id="drill-title">Ensayo de oleada</h2>
-      <p>Prueba tu defensa actual en combate automático. Puedes volver, mover torres y repetir el ensayo gratis.</p>
-      <canvas id="drill-map" width="900" height="540" aria-label="Simulación de la próxima oleada" role="img"></canvas>
+      <p class="drill-intro">Prueba tu defensa actual en combate automático. Puedes volver, mover torres y repetir el ensayo gratis.</p>
       <strong role="status"></strong>
+      <section class="drill-upgrades" aria-labelledby="drill-upgrades-title" hidden>
+        <h3 id="drill-upgrades-title">Resultado por mejora</h3>
+        <table>
+          <caption></caption>
+          <thead><tr><th scope="col">Plan</th><th scope="col">Núcleo</th><th scope="col">Fugas</th><th scope="col">ATP final</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <p>El coste se descuenta solo en el ensayo. El mapa muestra tu defensa actual.</p>
+      </section>
+      <canvas id="drill-map" width="900" height="540" aria-label="Simulación de la próxima oleada" role="img"></canvas>
       <ul aria-label="Fugas por entrada"></ul>
       <p class="drill-gap" hidden></p>
       <details class="drill-towers" hidden>
@@ -495,6 +504,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=47"></script>
+    <script type="module" src="./game.js?v=48"></script>
   </body>
 </html>

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { Match, BLUEPRINTS, dailySetup, suggestPlacement, reactorProduction, REACTOR_FIRST_CYCLE } from "../juegos/bio-lab-defense/engine.js";
+import { Match, BLUEPRINTS, dailySetup, suggestPlacement, reactorProduction, REACTOR_FIRST_CYCLE, upgradeCost } from "../juegos/bio-lab-defense/engine.js";
 import { CONTRACTS } from "../juegos/bio-lab-defense/operations.js";
 import { MISSIONS } from "../juegos/bio-lab-defense/campaign.js";
 import { restoreCheckpoint } from "../juegos/bio-lab-defense/checkpoint.js";
@@ -434,6 +434,28 @@ test("a rehearsal reproduces an unattended wave without changing the prepared de
     assert.deepEqual([sim.hp, sim.kills, sim.state, sim.waveLeaks], [match.hp, match.kills, match.state, match.waveLeaks]);
   }
   assert.equal(startDrill(new Match(20)), null);
+});
+
+test("upgrade rehearsals match a purchased specialization and leave the original defense intact", async () => {
+  const { startDrill } = await import("../juegos/bio-lab-defense/drill.js");
+  const match = new Match(1);
+  const tower = match.place(BLUEPRINTS[0], 145, 171);
+  assert.ok(match.upgrade(tower));
+  const before = JSON.stringify(match);
+  const rehearsals = [0, 1].map(choice => startDrill(match, { towerIndex: 0, choice }));
+  assert.notEqual(rehearsals[0].towers[0].branch.name, rehearsals[1].towers[0].branch.name);
+  for (const sim of rehearsals) {
+    assert.equal(sim.towers[0].rank, 3);
+    assert.equal(sim.atp, match.atp - upgradeCost(tower));
+    while (sim.state === "wave") sim.tick();
+  }
+  assert.equal(JSON.stringify(match), before);
+  assert.equal(startDrill(match, { towerIndex: 9, choice: 0 }), null);
+  assert.ok(match.upgrade(tower, 0));
+  match.startWave();
+  while (match.state === "wave") match.tick();
+  const result = sim => [sim.hp, sim.atp, sim.kills, sim.state, sim.waveLeaks];
+  assert.deepEqual(result(rehearsals[0]), result(match));
 });
 
 test("restored towers keep their investment and legacy saves keep the catalog price", () => {
