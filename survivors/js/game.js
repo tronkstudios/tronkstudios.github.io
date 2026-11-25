@@ -4771,7 +4771,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
         touchPad.style.setProperty("--stick-y", `${dy * 32}px`);
       }
     };
-    const end = (e) => { if (input.joy && input.joy.id === e.pointerId) clearInput(); };
+    const end = (e) => { if (input.joy?.id === e.pointerId) clearJoystick(); };
     for (const target of [canvas, touchPad].filter(Boolean)) {
       target.addEventListener("pointerdown", begin);
       target.addEventListener("pointermove", move);
@@ -4781,7 +4781,12 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
 
   function clearInput() {
     if(st?.players[localId])st.players[localId].abilityQueuedUntil=0;
-    input.keys.clear(); input.joy = null;
+    input.keys.clear();
+    clearJoystick();
+  }
+
+  function clearJoystick() {
+    input.joy = null;
     if (touchPad) {
       touchPad.style.setProperty("--stick-x", "0px");
       touchPad.style.setProperty("--stick-y", "0px");

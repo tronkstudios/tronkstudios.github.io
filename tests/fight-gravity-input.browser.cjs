@@ -82,6 +82,8 @@ async function checkRunner(browser) {
   await page.waitForFunction(() => window.gravityShiftGame);
   await page.evaluate(() => {
     const game = window.gravityShiftGame;
+    // Keep the input checks independent of software WebGL frame stalls.
+    game.renderer.render = () => {};
     game.scoreMgr.saveData.settings.touchpad = true;
     game.applySavedSettings();
     game.scoreMgr.saveData.inventory.boards = 2;
@@ -98,6 +100,36 @@ async function checkRunner(browser) {
   await page.locator("#btn-use-board").tap({ timeout: 5000 });
   await page.waitForFunction(() => gravityShiftGame.items.active.board > 0);
   assert.equal(await page.evaluate(() => gravityShiftGame.scoreMgr.saveData.inventory.boards), 1);
+  const swipeResult = await page.evaluate(async () => {
+    const game = window.gravityShiftGame;
+    const canvas = game.renderer.domElement;
+    const surfaces = [];
+    const shift = game.triggerSurfaceShift;
+    game.triggerSurfaceShift = surface => surfaces.push(surface);
+    const pointer = (type, pointerId, clientX = 100) => {
+      canvas.dispatchEvent(new PointerEvent(type, { pointerId, clientX, clientY: 100, pointerType: "touch" }));
+    };
+    pointer("pointerdown", 1);
+    pointer("pointerdown", 2);
+    pointer("pointercancel", 2);
+    pointer("pointerup", 1, 150);
+    pointer("pointerdown", 3);
+    game.pauseGame();
+    game.resumeGame();
+    await new Promise((resolve, reject) => {
+      const deadline = performance.now() + 5000;
+      function check() {
+        if (game.state === "PLAYING") resolve();
+        else if (performance.now() >= deadline) reject(new Error("The run did not resume"));
+        else requestAnimationFrame(check);
+      }
+      check();
+    });
+    pointer("pointerup", 3, 150);
+    game.triggerSurfaceShift = shift;
+    return surfaces;
+  });
+  assert.deepEqual(swipeResult, ["RIGHT"]);
   await page.locator("#btn-pause-game").tap();
   assert.ok(await page.locator("#modal-pause").isVisible());
   await page.close();

@@ -42,12 +42,19 @@ const path = require('node:path');
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [finger, neutral, { id: 3, ...ability }] });
     await page.waitForTimeout(400);
     assert.ok(await page.evaluate(x => Game.state.players[0].x > x + 3, before), 'movement continues with multiple fingers');
-    assert.ok(await page.evaluate(() => Game.state.abilitiesUsed > 0), 'ability while moving');
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-    await page.waitForTimeout(100);
+    // The aim control casts on pointerup.
+    await page.waitForFunction(() => Game.state.abilitiesUsed > 0, null, { timeout: 5000 });
     const released = await page.evaluate(() => Game.state.players[0].x);
     await page.waitForTimeout(250);
     assert.equal(await page.evaluate(() => Game.state.players[0].x), released, 'release stops movement');
+    // A physical keyboard remains usable after releasing the touch joystick.
+    await page.keyboard.down('KeyD');
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ id: 4, ...pad }] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    const afterTouch = await page.evaluate(() => Game.state.players[0].x);
+    await page.waitForFunction(x => Game.state.players[0].x > x + 3, afterTouch, { timeout: 5000 });
+    await page.keyboard.up('KeyD');
     await page.locator('#hud-pause').tap();
     const tick = await page.evaluate(() => Game.state.t);
     await page.waitForTimeout(200);
