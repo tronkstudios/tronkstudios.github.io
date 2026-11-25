@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=43" />
+    <link rel="stylesheet" href="./styles.css?v=44" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -187,6 +187,7 @@
               role="img"
               aria-label="Plano del sector"
             ></canvas>
+            <p id="briefing-power-pads" class="objective-briefing" hidden></p>
             <p id="briefing-tactics" class="wave-tactics" hidden></p>
             <p id="briefing-approach" class="objective-briefing" hidden></p>
             <div id="briefing-power" class="wave-tactics" hidden>
@@ -307,6 +308,7 @@
               <b id="core-warning" class="map-alert" hidden>¡Núcleo en peligro!</b>
               <b id="placement-preview" hidden></b>
             </div>
+            <div id="compact-incoming" aria-label="Próximos grupos"></div>
             <div id="compact-wave-beacons" role="group" aria-label="Balizas de oleada"></div>
             <section id="field-guide" aria-label="Primer despliegue" hidden>
               <div role="status">
@@ -318,6 +320,13 @@
                 <button type="button" id="field-guide-dismiss" aria-label="Ocultar guía del primer despliegue">Ocultar</button>
               </div>
             </section>
+            <div id="combat-legend" role="group" aria-label="Indicadores de combate" hidden>
+              <span class="legend-health">Vida</span><span class="legend-shield">Escudo</span><span class="legend-armor">Blindaje</span>
+            </div>
+            <aside id="power-pads" class="objective-briefing" aria-label="Plataformas de tiro" hidden>
+              <strong id="power-pads-title" aria-live="polite"></strong>
+              <p id="power-pads-next"></p>
+            </aside>
             <aside id="power-cut" class="wave-tactics" aria-label="Corte de energía" hidden>
               <div>
                 <strong id="power-cut-title"></strong>
@@ -429,6 +438,7 @@
                 <strong id="wave-preview-title"></strong>
                 <button type="button" id="run-drill" aria-haspopup="dialog">Ensayar oleada</button>
               </div>
+              <p id="wave-lane-coverage" class="wave-lane-coverage" hidden></p>
               <div id="wave-tactics" class="wave-tactics" hidden>
                 <strong id="wave-tactics-title"></strong>
                 <p id="wave-tactics-tip"></p>
@@ -578,6 +588,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=55"></script>
+    <script type="module" src="./game.js?v=56"></script>
   </body>
 </html>

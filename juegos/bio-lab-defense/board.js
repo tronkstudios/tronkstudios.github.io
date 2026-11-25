@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=32";
+import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=33";
 import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=4";
 
 function trace(ctx, points) {
@@ -72,6 +72,33 @@ function floorTile(ctx, x, y, chapter, palette, accent) {
       ctx.fillStyle = palette.fixture;
       ctx.fill();
     }
+  } else if (chapter === 3) {
+    for (const [dx, dy, size] of [[-31, 13, 19], [21, 12, 27], [-3, -15, 28]]) {
+      trace(ctx, [[dx - size, dy], [dx - size / 2, dy - size * 0.8],
+        [dx + size / 2, dy - size * 0.65], [dx + size, dy + 7], [dx, dy + size / 2], [dx - size, dy]]);
+      ctx.fill();
+      ctx.stroke();
+    }
+  } else if (chapter === 4) {
+    ctx.fillRect(-49, -26, 98, 52);
+    ctx.strokeRect(-49, -26, 98, 52);
+    for (const offset of [-24, 24]) {
+      ctx.fillStyle = "#071c29";
+      ctx.fillRect(offset - 13, -15, 26, 30);
+      ctx.strokeStyle = accent + "5e";
+      trace(ctx, [[offset - 20, 0], [offset - 10, 0], [offset - 3, -9], [offset + 4, 9], [offset + 11, 0], [offset + 20, 0]]);
+      ctx.stroke();
+    }
+  } else if (chapter === 5) {
+    circle(ctx, 0, 0, 41, palette.fixture + "85", palette.grid, 2);
+    for (let i = 0; i < 4; i++) {
+      ctx.rotate(Math.PI / 2);
+      ctx.fillStyle = accent + "2f";
+      ctx.fillRect(-13, -32, 26, 12);
+      trace(ctx, [[-23, -16], [-23, -23], [-17, -28]]);
+      ctx.stroke();
+    }
+    circle(ctx, 0, 0, 15, "#130e22", accent + "57", 2);
   } else {
     polygon(ctx, 6, 38);
     ctx.fill();
@@ -324,7 +351,7 @@ function drawSupportNode(ctx, node) {
   ctx.restore();
 }
 
-function target(ctx, enemy, time) {
+function target(ctx, enemy, time, compact) {
   if (enemy.supportNode) {
     drawSupportNode(ctx, enemy);
     return;
@@ -370,25 +397,35 @@ function target(ctx, enemy, time) {
   ctx.restore();
   if (enemy.shield > 0)
     circle(ctx, 0, 0, enemy.boss ? 35 : 22, null, "#91dfff", 2);
-  const width = enemy.boss ? 52 : 25;
-  const y = enemy.boss ? -39 : -22;
+  const width = enemy.boss ? 52 : compact ? 34 : 25;
+  const y = enemy.boss ? -39 : compact ? -25 : -22;
+  const barHeight = compact ? 7 : 5;
   const health = Math.max(0, enemy.hp / enemy.maxHp);
   ctx.fillStyle = "#030811";
-  ctx.fillRect(-width / 2 - 1, y - 1, width + 2, 7);
+  ctx.fillRect(-width / 2 - 2, y - 2, width + 4, barHeight + 4);
   ctx.fillStyle = "#354555";
-  ctx.fillRect(-width / 2, y, width, 5);
+  ctx.fillRect(-width / 2, y, width, barHeight);
   ctx.fillStyle = health < 0.3 ? "#ff7a70" : enemy.boss ? "#ffbc79" : "#9cf0bd";
-  ctx.fillRect(-width / 2, y, width * health, 5);
+  ctx.fillRect(-width / 2, y, width * health, barHeight);
   if (enemy.shield > 0) {
-    const badgeX = width / 2 + 7;
-    trace(ctx, [[badgeX - 5, y - 1], [badgeX + 5, y - 1], [badgeX + 4, y + 5],
-      [badgeX, y + 9], [badgeX - 4, y + 5]]);
+    const badgeRadius = compact ? 7 : 5;
+    const badgeX = width / 2 + badgeRadius + 3;
+    trace(ctx, [[badgeX - badgeRadius, y - 1], [badgeX + badgeRadius, y - 1], [badgeX + badgeRadius - 1, y + 5],
+      [badgeX, y + badgeRadius + 5], [badgeX - badgeRadius + 1, y + 5]]);
     ctx.closePath();
     ctx.fillStyle = "#a8edff";
     ctx.strokeStyle = "#091627";
     ctx.lineWidth = 2;
     ctx.fill();
     ctx.stroke();
+  }
+  if (enemy.armor > 0 || escortArmor(enemy)) {
+    const armorWidth = compact ? 10 : 7;
+    const armorX = -width / 2 - armorWidth - 5;
+    ctx.fillStyle = "#091627";
+    ctx.fillRect(armorX - 2, y - 2, armorWidth + 4, barHeight + 4);
+    ctx.fillStyle = "#ffc47d";
+    ctx.fillRect(armorX, y, armorWidth, barHeight);
   }
   ctx.restore();
 }
@@ -567,19 +604,30 @@ export class Board {
         warning && !previewPowerCut ? "#d79b421a" : "#d79b4238", "#ffd277", 4);
       ctx.restore();
     }
-    for (const pad of match.firePads) {
+    const activePad = match.activePad();
+    for (const [index, pad] of match.firePads.entries()) {
+      const boosted = activePad == null || activePad === index;
+      const tint = boosted ? match.map.accent : "#6a7883";
       ctx.save();
       ctx.translate(pad.x, pad.y);
       polygon(ctx, 6, 26);
-      ctx.fillStyle = "#14263a";
+      ctx.fillStyle = boosted ? "#193a38" : "#141e29";
       ctx.fill();
-      ctx.strokeStyle = match.map.accent;
-      ctx.lineWidth = 3;
+      ctx.strokeStyle = tint;
+      ctx.lineWidth = boosted ? 4 : 2;
       ctx.stroke();
-      circle(ctx, 0, 0, 20, null, match.map.accent + "88", 1);
-      for (const y of [-4, 4]) {
-        trace(ctx, [[-7, y + 4], [0, y - 2], [7, y + 4]]);
-        ctx.stroke();
+      circle(ctx, 0, 0, 20, null, tint + "88", 1);
+      if (activePad != null) {
+        ctx.font = "bold 20px system-ui";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = tint;
+        ctx.fillText(index === 0 ? "A" : "B", 0, 0);
+      } else {
+        for (const y of [-4, 4]) {
+          trace(ctx, [[-7, y + 4], [0, y - 2], [7, y + 4]]);
+          ctx.stroke();
+        }
       }
       ctx.restore();
     }
@@ -716,7 +764,8 @@ export class Board {
       circle(ctx, cue.x, cue.y, radius, null, color, 2);
       circle(ctx, cue.x, cue.y, radius + 6, null, color + "66", 2);
     }
-    match.enemies.forEach((enemy) => target(ctx, enemy, match.time));
+    const compactCombat = ctx.canvas.clientWidth < 550;
+    match.enemies.forEach((enemy) => target(ctx, enemy, match.time, compactCombat));
     if (focusTarget?.hp > 0 && !focusTarget.escaped) {
       ctx.save();
       ctx.translate(focusTarget.x, focusTarget.y);

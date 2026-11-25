@@ -322,6 +322,25 @@ export const MISSIONS = [
     waves: 7,
     bend: 1.18,
     flip: true,
+    tactics: { 3: {
+      name: "Separación de la escolta",
+      tip: "Los grupos llegan separados. Aprovecha las pausas para distinguir qué escolta cubre cada entrada y cambiar el objetivo de tus torres.",
+      formation: "convoy",
+      groups: [
+        { name: "Escolta inicial", lane: 0, spacing: 32 },
+        { name: "Relevo por B", lane: 1, gap: 150, spacing: 32 },
+        { name: "Última escolta", lane: 0, gap: 135 },
+      ],
+    }, 4: {
+      name: "Rotación de prismas",
+      tip: "El primer grupo entra por B. Después cruza A y deja al descubierto el último grupo de B.",
+      formation: "convoy",
+      groups: [
+        { name: "Avanzada de B", lane: 1, spacing: 41 },
+        { name: "Cruce de A", lane: 0, gap: 155, spacing: 40 },
+        { name: "Reserva del prisma", lane: 1, gap: 150, spacing: 41 },
+      ],
+    } },
   },
   {
     chapter: 4,
@@ -434,6 +453,16 @@ export const MISSIONS = [
     formation: "convoy",
     waves: 7,
     bend: 1.22,
+    tactics: { 3: {
+      name: "Relevo entre conductos",
+      tip: "Las columnas blindadas se anuncian por separado. La última entra por B, así que guarda el pulso para la que vaya a alcanzar el núcleo.",
+      formation: "convoy",
+      groups: [
+        { name: "Columna de A", lane: 0, spacing: 38 },
+        { name: "Relevo de A", lane: 0, gap: 135, spacing: 33 },
+        { name: "Escolta de B", lane: 1, gap: 155, spacing: 32 },
+      ],
+    } },
   },
   {
     chapter: 5,
@@ -481,11 +510,12 @@ export const MISSIONS = [
     chapter: 6, name: "Cúpula partida", task: "Restablece la alimentación de la antena.",
     speaker: "Ivo · Ingeniería",
     briefing: "El aislante aguanta dos oleadas por línea. Elige cuál frenar primero y deja cobertura en la otra.",
-    cue: "Reserva el pulso para la entrada que reciba los refuerzos.",
+    cue: "La energía cambia de plataforma cada oleada. Reubica gratis una torre de ataque para seguir la corriente.",
     transmission: "Restablece la alimentación de la antena.", end: "La antena recibe una llamada desde el observatorio.",
     waves: 8, bend: 1.2, flip: true, formation: "convoy", medal: medals.final,
     towerLimit: 8,
     objective: "power",
+    padCycle: [0, 1, 0, 1, 0, 1, 0, 1],
   },
   {
     chapter: 7, name: "Eco orbital", task: "Localiza el origen de la llamada.",
@@ -523,11 +553,12 @@ export const MISSIONS = [
     chapter: 7, name: "Órbita baja", task: "Sostén el anillo durante el giro.",
     speaker: "Mara · Operaciones",
     briefing: "El giro alineará B con otro conducto. Conserva ATP para ajustar tu segunda línea.",
-    cue: "Busca una curva que quede al alcance desde ambos lados.",
+    cue: "El cambio de alimentación coincide con el desvío. Lee qué plataforma queda activa antes de mover tus torres.",
     transmission: "Sostén el anillo durante el giro.", end: "El anillo vuelve a seguir la baliza.",
     waves: 7, bend: 0.84, flip: false, formation: "cross", medal: medals.researcher,
     towerLimit: 7,
     routePattern: 13,
+    padCycle: [1, 1, 1, 0, 0, 1, 0],
   },
   {
     chapter: 7, name: "Noche polar", task: "Transmite las coordenadas antes del apagón.",
@@ -611,16 +642,34 @@ export const MISSIONS = [
     towerLimit: 6,
     objective: "archive",
     archiveFirstLane: 1,
+    tactics: { 5: {
+      name: "Doble siembra",
+      tip: "A recibe la primera y la última incursión. Conserva una segunda defensa para el grupo que cruza por B.",
+      groups: [
+        { name: "Primera siembra", lane: 0, spacing: 46 },
+        { name: "Desvío por B", lane: 1, gap: 170, spacing: 42 },
+        { name: "Segunda siembra", lane: 0, gap: 175, spacing: 46 },
+      ],
+    }, 6: {
+      name: "Último trasplante",
+      tip: "Las cápsulas ya están a salvo. Reparte el fuego entre las dos entradas y conserva el pulso para el jefe que llega por B.",
+      groups: [
+        { name: "Escolta del jardín", lane: 0, spacing: 35 },
+        { name: "Avanzada de B", lane: 1, gap: 130, spacing: 31 },
+        { name: "Último cruce", gap: 140, spacing: 33 },
+      ],
+    } },
   },
   {
     chapter: 9, name: "Marea de retorno", task: "Sella la entrada profunda.",
     speaker: "Mara · Operaciones",
     briefing: "El cambio de marea desviará B. Solo dispones de siete puestos para cubrir los dos trazados.",
-    cue: "Busca una curva que quede al alcance desde ambos lados.",
+    cue: "La marea cambia el conducto y la plataforma que recibe energía. Usa el alcance de las torres para cubrir el otro lado.",
     transmission: "Sella la entrada profunda.", end: "La última compuerta conduce a la cámara de semillas.",
     waves: 7, bend: 0.84, flip: false, formation: "surge", medal: medals.researcher,
     towerLimit: 7,
     routePattern: 13,
+    padCycle: [0, 0, 0, 1, 1, 0, 1],
   },
   {
     chapter: 9, name: "Última luz", task: "Devuelve la luz al jardín.",

@@ -487,6 +487,25 @@ window.testRun = {
     await page.locator("#board-status").getByText("Nano-Láser reubicada.").waitFor();
     await page.locator("#power-cut-detail").getByText(/0 torres afectadas/).waitFor();
     assert.equal(await page.locator("#atp").textContent(), budget);
+    await page.locator("#pause").tap();
+    await page.getByRole("button", { name: "Abandonar partida" }).tap();
+    await page.locator(".level").filter({ hasText: "Cúpula partida" }).tap();
+    await page.locator("#briefing-power-pads").getByText(/Plataforma A activa/).waitFor();
+    await page.locator("#launch-mission").tap();
+    await page.locator("#power-pads-title").getByText(/Plataforma A activa/).waitFor();
+    await page.locator("#cut-a").tap();
+    await tapPowerBoard(302, 166);
+    await page.locator("#board-status").getByText("Nano-Láser instalada.").waitFor();
+    await tapPowerBoard(302, 166);
+    await forecast.getByText(/21 de daño por impacto · Plataforma \+50 %/).waitFor();
+    await page.evaluate(() => testRun.nextPreparation());
+    await page.locator("#power-pads-title").getByText(/Plataforma B activa/).waitFor();
+    await forecast.getByText(/14 de daño por impacto/).waitFor();
+    await page.locator("#next").tap();
+    const legend = page.getByRole("group", { name: "Indicadores de combate" });
+    await legend.getByText("Blindaje", { exact: true }).waitFor();
+    await legend.getByText("Escudo", { exact: true }).waitFor();
+    assert.equal(await page.locator("#next-group-a").evaluate(node => node.parentElement.id), "compact-incoming");
     assert.deepEqual(errors, []);
     console.log("Bio-Lab map beacons, hero payment and ads, contracts, equipment and Mirror warnings passed.");
   } finally {

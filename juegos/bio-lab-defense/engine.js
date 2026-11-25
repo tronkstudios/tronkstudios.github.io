@@ -1,5 +1,5 @@
 import { affinityFor, towerMultiplier } from "./affinities.js?v=1";
-import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=11";
+import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=12";
 
 import { HERO_BY_ID } from "./operations.js?v=7";
 
@@ -739,6 +739,7 @@ export class Match {
     this.towerLimit = contract?.towerLimit ?? this.mission?.towerLimit;
     this.firePads = [];
     this.powerCuts = !this.ranked ? this.mission.powerCuts : null;
+    this.padCycle = !this.ranked ? this.mission.padCycle : null;
 
     const event = !daily && ROUTE_EVENTS[this.mission?.routePattern ?? level];
     if (event) {
@@ -818,8 +819,16 @@ export class Match {
       : null;
   }
 
-  padBonus(tower) {
-    return tower.rank && tower.type !== "eco" && this.firePads.some(p => Math.hypot(p.x - tower.x, p.y - tower.y) <= 20) ? 1.25 : 1;
+  activePad(wave = this.coverageWave) {
+    return this.padCycle?.[wave - 1];
+  }
+
+  padBonus(tower, wave = this.coverageWave) {
+    if (!tower.rank || tower.type === "eco") return 1;
+    const active = this.activePad(wave);
+    const boosted = this.firePads.some((pad, index) => (active == null || index === active) &&
+      Math.hypot(pad.x - tower.x, pad.y - tower.y) <= 20);
+    return boosted ? (active == null ? 1.25 : 1.5) : 1;
   }
 
   get alternateRoute() {
@@ -1050,7 +1059,7 @@ export class Match {
       });
     }
     const tactics = !this.ranked ? this.mission.tactics?.[wave] : null;
-    const formation = tactics ? "cross" : this.daily ? null : veteranPressure
+    const formation = tactics ? tactics.formation || "cross" : this.daily ? null : veteranPressure
       ? ["surge", "cross", "convoy"][(wave + level + 1) % 3]
       : this.contract?.formation ?? this.mission.formation ??
         (wave === 1 && level < 6 ? null : ["convoy", "cross", "surge"][(wave + level) % 3]);
@@ -1327,7 +1336,7 @@ export class Match {
     if (!tower.damage || this.towerOffline(tower, wave))
       return { damage: 0, shieldDamage: 0, unshieldedDamage: 0, hitsToDefeat: null };
     const enemy = this.entryDefense(order, wave);
-    const amount = Math.round(tower.damage * this.padBonus(tower));
+    const amount = Math.round(tower.damage * this.padBonus(tower, wave));
     const hitAtShield = shield => resolveImpact(enemy, shield, amount, tower.branch || {}, tower, this.time);
     const first = hitAtShield(enemy.shield);
     const unshielded = hitAtShield(0).damage;

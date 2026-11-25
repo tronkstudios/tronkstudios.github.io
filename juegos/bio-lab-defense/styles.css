@@ -1120,6 +1120,12 @@ dialog p {
   color: #c0f2e8;
 }
 
+.wave-lane-coverage {
+  margin: 0.55rem 0 0;
+  color: #b5efdc;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
 .wave-tactics {
   margin-block: 0.55rem;
   padding: 0.5rem 0.65rem;
@@ -2260,6 +2266,40 @@ dialog::backdrop { background: #031016cf; }
   #home-progress-meter { width: 100%; }
 }
 
+#compact-incoming:not(:has(.incoming-group:not([hidden]))) { display: none; }
+#compact-incoming {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-block: 0.32rem;
+}
+#compact-incoming .incoming-group {
+  position: static;
+  transform: none;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+#combat-legend {
+  display: flex;
+  gap: 0.45rem 0.8rem;
+  flex-wrap: wrap;
+  margin: 0.35rem 0 0.5rem;
+  color: #d3e2e9;
+  font-size: 0.72rem;
+}
+#combat-legend span { display: inline-flex; align-items: center; gap: 0.3rem; }
+#combat-legend span::before {
+  content: "";
+  display: block;
+  width: 10px;
+  height: 8px;
+  background-color: #9cf0bd;
+}
+#combat-legend .legend-shield::before {
+  background-color: #a8edff;
+  clip-path: polygon(0 0, 100% 0, 82% 69%, 50% 100%, 18% 69%);
+}
+#combat-legend .legend-armor::before { width: 8px; background-color: #ffc47d; }
 #core-impact {
   margin: 0.38rem 0;
   padding: 0.42rem 0.65rem;

@@ -51,7 +51,7 @@ test("the forecast reports the same timings and lanes that the engine spawns", (
 test("signature campaign waves route and announce the configured groups without changing veteran waves", () => {
   const planned = MISSIONS.flatMap((mission, index) =>
     Object.entries(mission.tactics || {}).map(([wave, tactics]) => [index + 1, Number(wave), tactics]));
-  assert.equal(planned.length, 6);
+  assert.equal(planned.length, 11);
   for (const [level, wave, tactics] of planned) {
     const match = new Match(level);
     const preview = match.planWave(wave);
@@ -456,14 +456,36 @@ test("expansion sectors have two buildable fire pads and preserve previous compl
   for (let level = 23; level <= MISSIONS.length; level++) {
     const match = new Match(level);
     assert.equal(match.firePads.length, 2);
-    for (const pad of match.firePads) {
+    for (const [index, pad] of match.firePads.entries()) {
       const tower = match.place(BLUEPRINTS[0], pad.x, pad.y);
       assert.ok(tower);
-      assert.equal(match.padBonus(tower), 1.25);
+      const active = match.activePad();
+      assert.equal(match.padBonus(tower), active == null ? 1.25 : index === active ? 1.5 : 1);
       assert.equal(match.padBonus({ ...tower, type: "eco" }), 1);
       assert.equal(match.padBonus({ ...tower, x: -100 }), 1);
     }
   }
+});
+
+test("rotating platforms use the correct wave for forecasts, rehearsals and damage", async () => {
+  const { startDrill } = await import("../juegos/bio-lab-defense/drill.js");
+  const level = MISSIONS.findIndex(mission => mission.name === "Cúpula partida") + 1;
+  const match = new Match(level);
+  assert.equal(match.padCycle.length, match.maxWaves);
+  assert.ok(match.selectPowerLine(0));
+  const towers = match.firePads.map(pad => match.place(BLUEPRINTS[0], pad.x, pad.y));
+  assert.ok(towers.every(Boolean));
+  assert.deepEqual(towers.map(tower => match.padBonus(tower, 1)), [1.5, 1]);
+  assert.deepEqual(towers.map(tower => match.padBonus(tower, 2)), [1, 1.5]);
+  match.wave = 1;
+  match.preview = match.planWave(2);
+  const sim = startDrill(match);
+  assert.deepEqual(sim.towers.map(tower => sim.padBonus(tower)), [1, 1.5]);
+  const entry = { spec: match.preview.order[0].spec, lane: 0 };
+  assert.ok(match.estimateImpact(towers[0], entry, 1).damage > match.estimateImpact(towers[0], entry, 2).damage);
+  const veteran = new Match(level, null, { veteran: true });
+  const pad = veteran.firePads[0];
+  assert.equal(veteran.padBonus({ ...pad, rank: 1, type: "single" }, 2), 1.25);
 });
 
 test("coverage clips at endpoints and counts both arms of a bend", async () => {

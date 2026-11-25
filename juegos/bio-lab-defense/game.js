@@ -15,18 +15,18 @@ import {
   VARIANT_NAMES,
   escortArmor,
   dailySetup,
-} from "./engine.js?v=32";
-import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=3";
-import { attachDrill } from "./drill.js?v=6";
-import { Board } from "./board.js?v=39";
+} from "./engine.js?v=33";
+import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=4";
+import { attachDrill } from "./drill.js?v=7";
+import { Board } from "./board.js?v=40";
 import { towerIcon, heroIcon } from "./art.js?v=4";
-import { createCodex } from "./codex.js?v=20";
-import { Profile, dayKey } from "./profile.js?v=14";
+import { createCodex } from "./codex.js?v=21";
+import { Profile, dayKey } from "./profile.js?v=15";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=7";
-import { CHAPTERS, MISSIONS } from "./campaign.js?v=11";
+import { CHAPTERS, MISSIONS } from "./campaign.js?v=12";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=28";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=29";
 
 import { HEROES, CONTRACTS } from "./operations.js?v=7";
 
@@ -98,6 +98,7 @@ let lastCombatCue = null;
 let movingTower = null;
 let dockBudgetKey;
 let objectiveCoverageKey;
+let laneCoverageKey;
 let guideDismissed;
 let guideSite;
 let powerRelocation = null;
@@ -561,7 +562,7 @@ function briefing(level) {
   updateText("briefing-task", mission.task);
   updateText("briefing-speaker", mission.speaker);
   updateText("briefing-voice", mission.briefing);
-  updateText("briefing-tip", [mission.cue, preview.firePads.length ? "Las plataformas iluminadas dan +25 % de daño a las torres de ataque." : "", preview.towerLimit ? `Dispones de ${preview.towerLimit} puestos.` : ""].filter(Boolean).join(" "));
+  updateText("briefing-tip", [mission.cue, preview.firePads.length && !preview.padCycle ? "Las plataformas iluminadas dan +25 % de daño a las torres de ataque." : "", preview.towerLimit ? `Dispones de ${preview.towerLimit} puestos.` : ""].filter(Boolean).join(" "));
   updateText(
     "briefing-medal",
     profile.data.medals[level - 1]
@@ -574,6 +575,9 @@ function briefing(level) {
     `${best ? "Mejor resultado · " + "★".repeat(best) + "☆".repeat(3 - best) : "Primera victoria pendiente"} · Para tres estrellas, termina con al menos ${starThresholds[2]} % de núcleo.`);
   updateText("briefing-waves", `${preview.maxWaves} oleadas`);
   updateText("briefing-entries", preview.routes.length === 2 ? "2 entradas" : "1 entrada");
+  $("briefing-power-pads").hidden = !preview.padCycle;
+  if (preview.padCycle)
+    updateText("briefing-power-pads", `Plataforma ${padLetter(preview.activePad(1))} activa en la primera oleada · +50 % de daño. El tablero indica cuándo cambia la alimentación.`);
   const tacticalWaves = Object.entries(mission.tactics || {});
   $("briefing-tactics").hidden = !tacticalWaves.length;
   if (tacticalWaves.length)
@@ -686,6 +690,7 @@ function begin(next, day = null, restored = null) {
   lastBoss = false;
   match = next;
   objectiveCoverageKey = null;
+  laneCoverageKey = null;
   guideDismissed = false;
   guideSite = null;
   powerRelocation = null;
@@ -755,15 +760,17 @@ function arrangeTowerPanel() {
   $("near-board-selection").hidden = !compactField.matches || !selected;
   focused?.focus({ preventScroll: true });
 }
-function arrangeWaveBeacons() {
+function arrangeBoardAlerts() {
   const beacons = [$("entry-start-a"), $("entry-start-b")];
   const focused = beacons.find(button => button === document.activeElement);
   const holder = compactField.matches ? $("compact-wave-beacons") : canvas.parentElement;
   holder.append(...beacons);
+  const incoming = compactField.matches ? $("compact-incoming") : canvas.parentElement;
+  incoming.append($("next-group-a"), $("next-group-b"));
   focused?.focus({ preventScroll: true });
 }
-compactField.addEventListener("change", arrangeWaveBeacons);
-arrangeWaveBeacons();
+compactField.addEventListener("change", arrangeBoardAlerts);
+arrangeBoardAlerts();
 compactField.addEventListener("change", arrangeTowerPanel);
 arrangeTowerPanel();
 
@@ -915,6 +922,7 @@ function renderSelection() {
         selected.rank,
         selected.targeting,
         match.state,
+        match.activePad(),
         movingTower === selected,
         match.atp >= upgradeCost(selected),
         match.power?.first === null,
@@ -943,7 +951,8 @@ function renderSelection() {
       ? tower.note
       : `${tower.note} · ${tower.damage} daño · ${tower.range} alcance`);
   if (towerAttack[tower.id]) detail.textContent += ` · ${towerAttack[tower.id]}`;
-  if (match.padBonus(tower) > 1) detail.textContent += " · Plataforma de tiro +25 %";
+  const padBonus = match.padBonus(tower);
+  if (padBonus > 1) detail.textContent += ` · Plataforma de tiro +${Math.round((padBonus - 1) * 100)} %`;
   if (tower.branch) heading.textContent += ` · ${tower.branch.name}`;
   const cost = upgradeCost(tower);
   const options = document.createElement("div");
@@ -1100,8 +1109,9 @@ function placementForecast(tower, point, original = null, action = "") {
     if (point && !original && !offline)
       lines.push(`Primer ciclo en ${cadence.format(REACTOR_FIRST_CYCLE / 60)} s de combate`);
   } else {
-    const damage = compare(t => match.towerOffline(t, wave) ? 0 : Math.round(t.damage * match.padBonus(t)));
-    lines.push(`${damage} de daño por impacto${!offline && match.padBonus(candidate) > 1 ? " · Plataforma +25 %" : ""}`);
+    const damage = compare(t => match.towerOffline(t, wave) ? 0 : Math.round(t.damage * match.padBonus(t, wave)));
+    const bonus = match.padBonus(candidate, wave);
+    lines.push(`${damage} de daño por impacto${!offline && bonus > 1 ? ` · Plataforma +${Math.round((bonus - 1) * 100)} %` : ""}`);
     if (action === "Traslado" && original && !match.towerOffline(original, wave))
       lines.push("Trazo discontinuo · cobertura que pierdes");
     if (hasPosition) {
@@ -1671,6 +1681,33 @@ function renderPowerCut(waiting) {
   }
 }
 
+const padLetter = index => index === 0 ? "A" : "B";
+
+function renderPowerPads(waiting) {
+  const wave = match.coverageWave;
+  const active = match.activePad(wave);
+  const visible = active != null && (waiting || match.state === "wave");
+  $("power-pads").hidden = !visible;
+  if (!visible) return;
+  const next = match.activePad(wave + 1);
+  updateText("power-pads-title", `Oleada ${wave} · Plataforma ${padLetter(active)} activa · +50 % de daño`);
+  $("power-pads-next").hidden = next == null;
+  if (next != null) updateText("power-pads-next", `Oleada ${wave + 1} · ${padLetter(next)} ${next === active ? "sigue activa" : "recibe la energía"}`);
+}
+
+function renderLaneCoverage() {
+  const { lanes } = match.preview;
+  $("wave-lane-coverage").hidden = !lanes.every(Boolean) || lanes.length < 2;
+  if ($("wave-lane-coverage").hidden) return;
+  const wave = match.coverageWave;
+  const towers = match.towers.filter(tower => tower.type !== "eco" && !match.towerOffline(tower, wave));
+  const key = [wave, match.gateDiverted, ...towers.map(tower => `${tower.x},${tower.y},${tower.range}`)].join("|");
+  if (laneCoverageKey === key) return;
+  laneCoverageKey = key;
+  const coverage = match.routesForWave(wave).map(route => routeTeamCoverage(route, towers));
+  updateText("wave-lane-coverage", `Recorrido al alcance de tus torres · A ${coverage[0]} % / B ${coverage[1]} %`);
+}
+
 function renderObjectiveCoverage(waiting) {
   const objective = waiting ? match.defenseObjective : null;
   $("objective-coverage").hidden = !objective;
@@ -1708,6 +1745,8 @@ function renderHUD() {
   const waiting = match.state === "build";
   renderFieldGuide(waiting);
   renderPowerCut(waiting);
+  renderPowerPads(waiting);
+  $("combat-legend").hidden = match.state !== "wave";
   renderObjectiveCoverage(waiting);
   const targets = $("mission-targets");
   targets.hidden = match.ranked || !["build", "wave"].includes(match.state);
@@ -1743,7 +1782,10 @@ function renderHUD() {
   renderGate(waiting);
   $("wave-preview").hidden = !waiting;
   $("run-drill").disabled = match.power?.first === null || adBusy;
-  if (waiting) renderWavePreview(match.preview);
+  if (waiting) {
+    renderWavePreview(match.preview);
+    renderLaneCoverage();
+  }
   const split = match.routes.length > 1 && (waiting || match.state === "wave");
   $("lane-brief").hidden = !split;
   if (split) {
