@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=33" />
+    <link rel="stylesheet" href="./styles.css?v=34" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -252,6 +252,7 @@
                 tabindex="0"
                 aria-label="Tablero. Flechas para mover el cursor y Espacio para colocar o elegir torre."
               ></canvas>
+              <button type="button" id="field-guide-site" aria-label="Instalar Nano-Láser en la posición sugerida" hidden>+</button>
               <button type="button" class="wave-beacon" id="entry-start-a" hidden></button>
               <button type="button" class="wave-beacon" id="entry-start-b" hidden></button>
               <b id="next-group-a" class="map-alert incoming-group" hidden></b>
@@ -261,6 +262,16 @@
               <b id="core-warning" class="map-alert" hidden>¡Núcleo en peligro!</b>
               <b id="placement-preview" hidden></b>
             </div>
+            <section id="field-guide" aria-label="Primer despliegue" hidden>
+              <div role="status">
+                <strong id="field-guide-title"></strong>
+                <p id="field-guide-text"></p>
+              </div>
+              <div class="field-guide-actions">
+                <button type="button" id="field-guide-preview">Ver posición sugerida</button>
+                <button type="button" id="field-guide-dismiss" aria-label="Ocultar guía del primer despliegue">Ocultar</button>
+              </div>
+            </section>
             <p id="core-impact" role="status" hidden></p>
             <div id="placement-analysis" aria-label="Análisis de posición" role="group" hidden></div>
             <p id="wave-beacon-hint" hidden>Cualquier baliza inicia la oleada completa.</p>
@@ -479,6 +490,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=45"></script>
+    <script type="module" src="./game.js?v=46"></script>
   </body>
 </html>

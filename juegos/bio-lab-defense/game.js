@@ -96,6 +96,8 @@ let abilityPreview = false;
 let lastCombatCue = null;
 let movingTower = null;
 let dockBudgetKey;
+let guideDismissed;
+let guideSite;
 const profile = new Profile(refreshProfile);
 let checkpoint,
   checkpointLost = false;
@@ -588,6 +590,8 @@ function begin(next, day = null, restored = null) {
   lastState = next.state;
   lastBoss = false;
   match = next;
+  guideDismissed = false;
+  guideSite = null;
   $("wave-impact-choice").value = "";
   const level = match.level;
   checkpointLost = false;
@@ -1383,6 +1387,76 @@ function renderWaveDebrief(waiting) {
   }));
 }
 
+function renderFieldGuide(waiting) {
+  const visible = waiting && !match.ranked && match.level === 1 &&
+    !profile.data.stars[0] && !guideDismissed && match.wave < 2;
+  const showPreview = visible && match.wave === 0 && match.towers.length === 0 &&
+    match.atp >= BLUEPRINTS[0].cost && !adBusy;
+  $("field-guide").hidden = !visible;
+  $("field-guide-preview").hidden = !showPreview;
+  if (!showPreview || blueprint !== BLUEPRINTS[0] || movingTower || movingHero || aiming)
+    guideSite = null;
+  $("field-guide-site").hidden = !guideSite;
+  if (showPreview) updateText("field-guide-preview", guideSite ? "Quitar marcador" : "Ver posición sugerida");
+  if (!visible) return;
+  if (match.wave === 1) {
+    updateText("field-guide-title", "Refuerza la defensa");
+    updateText("field-guide-text", match.towers.length
+      ? "Selecciona una torre instalada para ver cuánto ganan su daño y su alcance al mejorarla."
+      : "Instala una torre junto a una curva para cubrir varios tramos del conducto.");
+  } else if (match.towers.length) {
+    updateText("field-guide-title", "Lanza tu primera oleada");
+    updateText("field-guide-text", "Si quieres reforzar la defensa, instala una segunda torre. Pulsa Iniciar oleada 1 o la baliza A cuando estés listo.");
+  } else {
+    updateText("field-guide-title", "Instala tu primera torre");
+    updateText("field-guide-text", guideSite
+      ? `El círculo marca el alcance. Pulsa el + del tablero para instalar el Nano-Láser por ${BLUEPRINTS[0].cost} ATP.`
+      : "Coloca el Nano-Láser junto al conducto o prueba la posición sugerida.");
+  }
+}
+
+$("field-guide-preview").onclick = () => {
+  if (guideSite) {
+    guideSite = null;
+    renderFieldGuide(true);
+    return;
+  }
+  const type = BLUEPRINTS[0];
+  let best = null;
+  let coverage = 0;
+  // Keep the marker clear of the entrance beacon and core on narrow screens.
+  for (let x = 240; x <= WIDTH - 160; x += 20) {
+    for (let y = 40; y < HEIGHT - 40; y += 20) {
+      if (match.checkPlacement(type, x, y) || botAt(x, y, null)) continue;
+      const score = routeCoverage(match.routes[0], { x, y, range: type.range });
+      if (score <= coverage) continue;
+      best = { x, y };
+      coverage = score;
+    }
+  }
+  if (!best) return;
+  $("dock").querySelector(`[data-type="${type.id}"]`).click();
+  guideSite = best;
+  const marker = $("field-guide-site");
+  marker.style.setProperty("--site-x", `${best.x * 100 / WIDTH}%`);
+  marker.style.setProperty("--site-y", `${best.y * 100 / HEIGHT}%`);
+  renderFieldGuide(true);
+  marker.focus();
+};
+
+$("field-guide-site").onclick = () => {
+  if (!guideSite) return;
+  const point = guideSite;
+  place(point.x, point.y);
+  if (!guideSite) canvas.focus({ preventScroll: true });
+};
+
+$("field-guide-dismiss").onclick = () => {
+  guideDismissed = true;
+  renderFieldGuide(match.state === "build");
+  canvas.focus({ preventScroll: true });
+};
+
 function renderHUD() {
   const focused = match.state === "wave" && match.focusTarget;
   $("focused-vitals").hidden = !focused;
@@ -1401,6 +1475,7 @@ function renderHUD() {
   updateText("atp", match.atp);
   updateText("wave", `${match.wave}/${match.maxWaves}`);
   const waiting = match.state === "build";
+  renderFieldGuide(waiting);
   const targets = $("mission-targets");
   targets.hidden = match.ranked || !["build", "wave"].includes(match.state);
   if (!targets.hidden && targets.open) {
@@ -1582,7 +1657,7 @@ function frame(now) {
       updateText("placement-preview", draft.reason || (draft.snapped ? `Punto sugerido · s${hint.slice(1)}` : hint));
       $("placement-preview").classList.toggle("invalid", !!draft.reason);
     }
-    const point = draft?.point || cursor;
+    const point = draft?.point || cursor || guideSite;
     const planned = !aiming && !movingHero && !hoverBot && !hovered && !upgradePreview && point && (movingTower || blueprint);
     const validPlan = planned && !(movingTower ? match.checkRelocation(movingTower, point.x, point.y)
       : match.checkPlacement(planned, point.x, point.y));
@@ -1600,7 +1675,7 @@ function frame(now) {
       match,
       movingHero || hoverBot || upgradePreview ? null : blueprint,
       movingHero ? null : selected,
-      draft?.point || cursor,
+      point,
       reduced.matches,
       aiming,
       hovered,
@@ -1832,7 +1907,7 @@ canvas.onkeydown = (e) => {
   }[e.key];
   if (e.code !== "Space" && e.key !== "Enter" && !delta) return;
   e.preventDefault();
-  cursor ||= { x: WIDTH / 2, y: HEIGHT / 2 };
+  cursor ||= guideSite ? { ...guideSite } : { x: WIDTH / 2, y: HEIGHT / 2 };
   if (delta) {
     cursor.x = Math.max(25, Math.min(WIDTH - 25, cursor.x + delta[0]));
     cursor.y = Math.max(25, Math.min(HEIGHT - 25, cursor.y + delta[1]));

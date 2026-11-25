@@ -255,6 +255,56 @@ meter {
   grid-area: arena;
   min-width: 0;
 }
+#field-guide {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem 0.85rem;
+  margin: 0.6rem 0;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid #315270;
+  border-inline-start: 3px solid var(--cyan);
+  border-radius: 10px;
+  background: linear-gradient(110deg, #152c3d, var(--panel));
+}
+#field-guide-title {
+  color: var(--cyan);
+  font-size: 0.9rem;
+}
+#field-guide-text {
+  margin: 0.18rem 0 0;
+  color: var(--muted);
+  font-size: 0.83rem;
+}
+.field-guide-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.field-guide-actions button {
+  min-height: 40px;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.8rem;
+}
+#field-guide-site {
+  position: absolute;
+  z-index: 2;
+  top: var(--site-y);
+  left: var(--site-x);
+  translate: -50% -50%;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 2px solid var(--cyan);
+  border-radius: 50%;
+  background: #102738;
+  color: var(--cyan);
+  box-shadow: 0 0 14px #37e7ff66;
+  font-size: 1.35rem;
+}
 canvas {
   display: block;
   width: 100%;
