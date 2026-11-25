@@ -18,7 +18,7 @@ import {
 } from "./engine.js?v=29";
 import { routeCoverage } from "./coverage.js?v=1";
 import { attachDrill } from "./drill.js?v=3";
-import { Board } from "./board.js?v=35";
+import { Board } from "./board.js?v=36";
 import { towerIcon, heroIcon } from "./art.js?v=4";
 import { createCodex } from "./codex.js?v=17";
 import { Profile, dayKey } from "./profile.js?v=11";
@@ -732,6 +732,15 @@ function arrangeTowerPanel() {
   $("near-board-selection").hidden = !compactField.matches || !selected;
   focused?.focus({ preventScroll: true });
 }
+function arrangeWaveBeacons() {
+  const beacons = [$("entry-start-a"), $("entry-start-b")];
+  const focused = beacons.find(button => button === document.activeElement);
+  const holder = compactField.matches ? $("compact-wave-beacons") : canvas.parentElement;
+  holder.append(...beacons);
+  focused?.focus({ preventScroll: true });
+}
+compactField.addEventListener("change", arrangeWaveBeacons);
+arrangeWaveBeacons();
 compactField.addEventListener("change", arrangeTowerPanel);
 arrangeTowerPanel();
 
@@ -1324,7 +1333,7 @@ function renderFieldControls(waiting) {
       const letter = lane ? "B" : "A";
       const count = match.preview.lanes[lane];
       const boss = match.preview.order.some((entry) => entry.lane === lane && entry.boss);
-      updateText(id, `${letter} · ${count}${boss ? " ★" : ""}`);
+      updateText(id, `${compactField.matches ? "Entrada " : ""}${letter} · ${count}${boss ? " ★" : ""}`);
       beacon.classList.toggle("wave-beacon-boss", boss);
       const label = `Iniciar oleada ${match.wave + 1} completa. Entrada ${letter}: ${count} enemigos${boss ? ", incluye jefe" : ""}.`;
       if (beacon.getAttribute("aria-label") !== label)
@@ -2180,17 +2189,34 @@ $("pulse").onclick = () => {
 function inspectFireTarget() {
   const enemy = fireChoices[$("fire-choice").selectedIndex];
   if (!enemy) return;
-  fireBoard.draw(match, null, null, null, true, false, null, { focusTarget: enemy });
-  const towers = match.towers.filter(tower => tower.type !== "eco" && !match.towerOffline(tower) &&
-    Math.hypot(enemy.x - tower.x, enemy.y - tower.y) <= tower.range).length;
+  const inRange = match.towers.filter(tower => tower.type !== "eco" &&
+    Math.hypot(enemy.x - tower.x, enemy.y - tower.y) <= tower.range);
+  const available = inRange.filter(tower => !match.towerOffline(tower));
+  fireBoard.draw(match, null, null, null, true, false, null, {
+    focusTarget: enemy,
+    fireCoverage: available,
+  });
   const stats = [`Vida ${Math.ceil(enemy.hp)} / ${enemy.maxHp}`];
   if (enemy.shield > 0) stats.push(`Escudo ${Math.ceil(enemy.shield)}`);
   if (enemy.armor > 0) stats.push(`Blindaje ${Math.ceil(enemy.armor)}`);
   if (enemy.affinity) stats.push(`Débil a ${enemy.affinity.weak}`, `Resiste ${enemy.affinity.resist}`);
   const extraArmor = escortArmor(enemy);
   if (extraArmor) stats.push(`Escolta +${extraArmor} de blindaje`);
-  stats.push(`${towers} ${towers === 1 ? "torre con alcance" : "torres con alcance"}`);
   updateText("fire-details", stats.join(" · "));
+  updateText("fire-coverage-title", available.length === 1
+    ? "1 torre operativa con alcance"
+    : `${available.length} torres operativas con alcance`);
+  const names = new Map();
+  for (const tower of available) names.set(tower.name, (names.get(tower.name) || 0) + 1);
+  const offline = inRange.length - available.length;
+  const detail = offline ? [`${offline} ${offline === 1 ? "torre sin energía" : "torres sin energía"}`] : [];
+  if (available.length) {
+    detail.unshift(...Array.from(names, ([name, count]) => count === 1 ? name : `${count} × ${name}`));
+  } else {
+    detail.push("La orden queda activa hasta que alguna torre pueda alcanzarlo.");
+  }
+  updateText("fire-coverage-detail", detail.join(" · "));
+  $("fire-coverage").classList.toggle("fire-ready", available.length > 0);
 }
 $("focus-fire").onclick = () => {
   fireChoices = match.enemies.filter(enemy => enemy.hp > 0 && !enemy.escaped)
@@ -2210,8 +2236,8 @@ $("focus-fire").onclick = () => {
 $("fire-choice").onchange = inspectFireTarget;
 fireMap.onclick = event => {
   const bounds = fireMap.getBoundingClientRect();
-  const x = (event.clientX - bounds.left) * WIDTH / bounds.width;
-  const y = (event.clientY - bounds.top) * HEIGHT / bounds.height;
+  const x = (event.clientX - bounds.left - fireMap.clientLeft) * WIDTH / fireMap.clientWidth;
+  const y = (event.clientY - bounds.top - fireMap.clientTop) * HEIGHT / fireMap.clientHeight;
   let closest = Math.max(28, 22 * WIDTH / bounds.width);
   let index = -1;
   for (const [i, enemy] of fireChoices.entries()) {

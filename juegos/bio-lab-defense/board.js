@@ -486,7 +486,7 @@ export class Board {
     reduced,
     aiming,
     hovered = null,
-    { gatePreview, movingHero, movingTower, skillPreview, upgradePreview, snapOrigin, breach = null, reviewGap = null, routePlan = false, focusTarget = match.focusTarget } = {},
+    { gatePreview, movingHero, movingTower, skillPreview, upgradePreview, snapOrigin, breach = null, reviewGap = null, routePlan = false, focusTarget = match.focusTarget, fireCoverage = null } = {},
   ) {
     const ctx = this.ctx;
     const key = match.mission
@@ -640,9 +640,23 @@ export class Board {
       const partner = match.linkPartner(tower, coverageWave);
       if (partner) drawCircuit(ctx, tower, partner);
     }
+    if (fireCoverage?.length && focusTarget) {
+      ctx.save();
+      ctx.setLineDash([8, 6]);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "#ffe292a8";
+      for (const tower of fireCoverage) {
+        trace(ctx, [[tower.x, tower.y], [focusTarget.x, focusTarget.y]]);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
     match.towers.forEach((tower) =>
       turret(ctx, tower, tower === selected || tower === hovered),
     );
+    if (fireCoverage)
+      for (const tower of fireCoverage)
+        circle(ctx, tower.x, tower.y, 24, null, "#ffe292", 3);
     for (const tower of match.towers) {
       if (!match.towerOffline(tower, coverageWave)) continue;
       circle(ctx, tower.x, tower.y, 24, "#091024a6", "#ffd890", 2);

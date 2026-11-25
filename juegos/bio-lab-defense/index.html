@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=38" />
+    <link rel="stylesheet" href="./styles.css?v=39" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -299,6 +299,7 @@
               <b id="core-warning" class="map-alert" hidden>¡Núcleo en peligro!</b>
               <b id="placement-preview" hidden></b>
             </div>
+            <div id="compact-wave-beacons" role="group" aria-label="Balizas de oleada"></div>
             <section id="field-guide" aria-label="Primer despliegue" hidden>
               <div role="status">
                 <strong id="field-guide-title"></strong>
@@ -479,11 +480,15 @@
     </dialog>
     <dialog id="fire-orders" aria-labelledby="fire-heading">
       <h2 id="fire-heading">Concentrar fuego</h2>
-      <p>Toca una amenaza en el plano o elígela en la lista. Las torres a su alcance la atacarán primero.</p>
-      <canvas id="fire-map" width="900" height="540" aria-hidden="true"></canvas>
+      <p>Elige una amenaza en la lista o en el mapa. Las torres le darán prioridad cuando esté a su alcance.</p>
       <label for="fire-choice">Objetivo</label>
       <select id="fire-choice"></select>
       <p id="fire-details" aria-live="polite"></p>
+      <div id="fire-coverage" aria-live="polite">
+        <strong id="fire-coverage-title"></strong>
+        <p id="fire-coverage-detail"></p>
+      </div>
+      <canvas id="fire-map" width="900" height="540" aria-hidden="true"></canvas>
       <div class="actions">
         <button type="button" id="fire-confirm" class="primary">Fijar objetivo</button>
         <button type="button" id="fire-clear" hidden>Retirar orden</button>
@@ -541,6 +546,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=50"></script>
+    <script type="module" src="./game.js?v=51"></script>
   </body>
 </html>

@@ -923,6 +923,21 @@ dialog p {
   border-color: #d3b0ff;
   background: #3c2659;
 }
+#compact-wave-beacons:not(:has(.wave-beacon:not([hidden]))) { display: none; }
+#compact-wave-beacons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-block: 0.45rem;
+}
+#compact-wave-beacons .wave-beacon {
+  position: static;
+  flex: 1 1 6rem;
+  transform: none;
+  box-shadow: none;
+}
+#compact-wave-beacons .wave-beacon-boss { border-color: #ffd89e; }
+#field:has(#wave-debrief-map[aria-pressed="true"]) #compact-wave-beacons { display: none; }
 .map-alert {
   left: 6px;
   padding: 0.28rem 0.5rem;
@@ -1407,10 +1422,27 @@ dialog p {
 
 #fire-orders { width: min(640px, calc(100% - 1rem)); }
 #fire-orders h2 { margin: 0; }
-#fire-map { display: block; width: 100%; height: auto; border: 0; cursor: crosshair; }
+#fire-map { display: block; width: 100%; height: auto; border: 1px solid var(--seam); cursor: crosshair; }
 #fire-orders label { display: block; margin: 0.6rem 0 0.25rem; }
 #fire-choice { width: 100%; min-height: 44px; }
 #fire-details { font-variant-numeric: tabular-nums; color: var(--cyan); }
+#fire-coverage {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0.65rem 0;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #495d6b;
+  border-inline-start: 3px solid #718895;
+  border-radius: 7px;
+  background: #112731;
+  color: #c4dce3;
+  font-size: 0.82rem;
+}
+#fire-coverage.fire-ready {
+  border-inline-start-color: #ffe292;
+  color: #ffe292;
+}
+#fire-coverage p { margin: 0; color: var(--muted); }
 #focused-vitals {
   display: flex;
   align-items: center;

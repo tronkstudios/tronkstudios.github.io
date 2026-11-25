@@ -227,6 +227,8 @@ window.forceRunnerLeak = () => {
         const labels = await page.locator("#lane-brief b").allTextContents();
         return labels.map((label) => Number(label.split(" · ").at(-1)));
       };
+      const waveBeacon = page.locator("#entry-start-a");
+      assert.equal(await waveBeacon.evaluate(el => el.parentElement.id), width <= 760 ? "compact-wave-beacons" : "");
       await page.locator("#wave-beacon-hint").getByText(/Primera llegada · A .* \/ B /).waitFor();
       const recommendation = page.locator("#wave-counter-list").getByRole("button").first();
       const suggested = await recommendation.getAttribute("aria-label");

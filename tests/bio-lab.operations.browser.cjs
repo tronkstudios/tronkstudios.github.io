@@ -49,6 +49,14 @@ window.testRun = {
     match.spawn();
     Object.assign(match.enemies.at(-1), { x: match.hero.x + 15, y: match.hero.y });
   },
+  inspectCoverage(inRange) {
+    const enemy = fireChoices[$("fire-choice").selectedIndex];
+    const tower = match.towers[0];
+    const original = { x: enemy.x, y: enemy.y };
+    Object.assign(enemy, inRange ? { x: tower.x + 55, y: tower.y } : { x: WIDTH - 30, y: 25 });
+    inspectFireTarget();
+    Object.assign(enemy, original);
+  },
   winContract() { match.kills = 15; match.state = "won"; },
   towerCap() {
     const type = BLUEPRINTS[0];
@@ -290,7 +298,14 @@ window.testRun = {
     const stopped = await page.evaluate(() => testRun.state.time);
     await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
     assert.equal(await page.evaluate(() => testRun.state.time), stopped);
-    await page.locator("#fire-details").getByText(/Vida .* con alcance/).waitFor();
+    await page.locator("#fire-details").getByText(/Vida \d+ \/ \d+/).waitFor();
+    await page.evaluate(() => testRun.inspectCoverage(false));
+    await page.getByText("0 torres operativas con alcance").waitFor();
+    await page.getByText("La orden queda activa hasta que alguna torre pueda alcanzarlo.").waitFor();
+    assert.equal(await page.locator("#fire-confirm").isEnabled(), true);
+    await page.evaluate(() => testRun.inspectCoverage(true));
+    await page.getByText("1 torre operativa con alcance").waitFor();
+    await page.locator("#fire-coverage-detail").getByText("Nano-Láser", { exact: true }).waitFor();
     await page.locator("#fire-confirm").tap();
     await page.locator("#focus-fire").getByText(/Objetivo ·/).waitFor();
     await page.locator("#focus-fire").tap();

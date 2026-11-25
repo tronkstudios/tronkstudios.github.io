@@ -25,7 +25,7 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8791";
     await page.locator(".level").first().tap();
     await page.locator("#launch-mission").tap();
 
-    async function tapBoard(x = 170, y = 205) {
+    async function tapBoard(x = 165, y = 165) {
       const canvas = page.locator("#board");
       const box = await canvas.boundingBox();
       await canvas.tap({
