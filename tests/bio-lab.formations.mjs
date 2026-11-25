@@ -130,6 +130,51 @@ test("a relocation recommendation restores power and calculates total lane cover
   }
 });
 
+test("campaign finales apply each advertised phase once and schedule the matching reinforcements", () => {
+  const finales = MISSIONS.flatMap((mission, index) => mission.finale ? [[index + 1, mission.finale]] : []);
+  assert.equal(finales.length, 10);
+  for (const [level, finale] of finales) {
+    const match = new Match(level);
+    if (match.power) assert.ok(match.selectPowerLine(0));
+    match.wave = match.maxWaves - 1;
+    match.preview = match.planWave(match.maxWaves);
+    assert.deepEqual(match.preview.finale, finale);
+    const veteran = new Match(level, null, {veteran: true});
+    assert.equal(veteran.planWave(veteran.maxWaves).finale, null);
+    assert.ok(match.startWave());
+    match.queue = match.queue.filter(entry => entry.boss);
+    match.spawn();
+    const boss = match.enemies[0];
+    if (boss.mirror || boss.zero) continue;
+    const armor = boss.armor;
+    let expectedOrders = 0;
+    for (const [index, stage] of finale.stages.entries()) {
+      boss.hp = boss.maxHp * (index ? 0.3 : 0.6);
+      match.advanceBoss(boss);
+      assert.equal(boss.phase, index + 2);
+      assert.equal(match.combatCue.text, stage.name);
+      if (stage.plating) assert.equal(boss.armor, armor + stage.plating);
+      if (stage.releasePlating) assert.equal(boss.armor, armor);
+      if (stage.shield) assert.equal(boss.shield, Math.round(boss.maxHp * stage.shield));
+      if (stage.discharge) assert.equal(boss.shield, 0);
+      if (stage.reinforcements) {
+        const order = match.mirrorOrders.at(-1);
+        assert.equal(order.lane, stage.reinforcements.lane);
+        assert.equal(order.ticks, stage.reinforcements.delay);
+        expectedOrders++;
+      }
+      match.advanceBoss(boss);
+      assert.equal(match.mirrorOrders.length, expectedOrders);
+    }
+    const first = match.mirrorOrders[0];
+    if (first) {
+      const delay = first.ticks;
+      for (let tick = 0; tick < delay + 1 && !match.queue.length; tick++) match.tick();
+      assert.ok(match.queue.some(entry => entry.lane === first.lane && entry.groupName === first.name));
+    }
+  }
+});
+
 test("entry alerts use the first enemy actually queued for each lane", () => {
   const match = new Match(8, null, { contract: CONTRACTS.find(contract => contract.pressure) });
   const { arrivals } = match.preview;

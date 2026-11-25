@@ -162,6 +162,15 @@ export const MISSIONS = [
     medal: medals.stabilize,
     flip: true,
     bend: 0.88,
+    finale: {
+      name: "Evacuación del ascensor",
+      tip: "Guarda el pulso para romper el escudo antes del último giro.",
+      stages: [
+        { name: "Escolta del ascensor", detail: "El jefe gana un escudo y recibe tres escoltas por la única entrada.", shield: 0.16,
+          reinforcements: { lane: 0, delay: 115, count: 3, spec: 1, armor: 5 } },
+        { name: "Carrera al ascensor", detail: "El jefe acelera hacia el núcleo.", speed: 1.42 },
+      ],
+    },
   },
   {
     chapter: 1,
@@ -218,6 +227,15 @@ export const MISSIONS = [
     medal: medals.doubleSpec,
     flip: true,
     bend: 1.18,
+    finale: {
+      name: "Cierre del puente",
+      tip: "Guarda la barrera del puente para cuando el jefe empiece a correr.",
+      stages: [
+        { name: "Blindaje del puente", detail: "El jefe refuerza su blindaje y dos corredores entran por A.", plating: 6,
+          reinforcements: { lane: 0, delay: 150, count: 2, spec: 2, speed: 1.12 } },
+        { name: "Carga al puente", detail: "El jefe pierde el blindaje extra y acelera.", releasePlating: true, speed: 1.44 },
+      ],
+    },
   },
   {
     chapter: 2,
@@ -255,6 +273,14 @@ export const MISSIONS = [
     medal: medals.final,
     flip: true,
     bend: 0.92,
+    finale: {
+      name: "Cierre del laboratorio",
+      tip: "Reserva fuego cerca de ambas entradas. El jefe pide refuerzos en lados distintos.",
+      stages: [
+        { name: "Primera llamada", detail: "El jefe levanta un escudo y anuncia refuerzos por A." },
+        { name: "Segundo flanco", detail: "El jefe acelera mientras los refuerzos cambian a B." },
+      ],
+    },
   },
   {
     chapter: 3,
@@ -341,6 +367,15 @@ export const MISSIONS = [
         { name: "Reserva del prisma", lane: 1, gap: 150, spacing: 41 },
       ],
     } },
+    finale: {
+      name: "Ruptura del prisma",
+      tip: "Usa el daño en área contra la escolta y deja una torre rápida para el último giro.",
+      stages: [
+        { name: "Reflejo del prisma", detail: "El jefe renueva su escudo y llegan escoltas blindadas por A.", shield: 0.14,
+          reinforcements: { lane: 0, delay: 140, count: 3, spec: 4, armor: 6 } },
+        { name: "Última fractura", detail: "El jefe acelera por B.", speed: 1.34 },
+      ],
+    },
   },
   {
     chapter: 4,
@@ -409,6 +444,16 @@ export const MISSIONS = [
     waves: 7,
     bend: 0.94,
     flip: true,
+    finale: {
+      name: "El faro se apaga",
+      tip: "Tras el escudo llegan dos señales. Conserva torres capaces de responder a ambos conductos.",
+      stages: [
+        { name: "Primera baliza", detail: "El jefe levanta un escudo y llama refuerzos blindados por B.", shield: 0.16,
+          reinforcements: { lane: 1, delay: 150, count: 2, spec: 4, armor: 7 } },
+        { name: "Baliza de reserva", detail: "El jefe acelera y una segunda tanda rápida llega por A.", speed: 1.29,
+          reinforcements: { lane: 0, delay: 125, count: 2, spec: 2, speed: 1.2 } },
+      ],
+    },
   },
   {
     chapter: 5,
@@ -478,6 +523,14 @@ export const MISSIONS = [
     waves: 8,
     bend: 0.96,
     flip: true,
+    finale: {
+      name: "Cierre de la estación",
+      tip: "Puedes dar prioridad a Nodos de apoyo para exponer al jefe.",
+      stages: [
+        { name: "Activación de los nodos", detail: "La viruela se protege y abre un nodo de refuerzos en cada entrada." },
+        { name: "Último avance", detail: "La viruela acelera. Los nodos que queden siguen activos hasta agotarse." },
+      ],
+    },
   },
   {
     chapter: 6, name: "Los primeros brotes", task: "Recupera las semillas bajo el vidrio.",
@@ -516,6 +569,16 @@ export const MISSIONS = [
     towerLimit: 8,
     objective: "power",
     padCycle: [0, 1, 0, 1, 0, 1, 0, 1],
+    finale: {
+      name: "Descarga de la cúpula",
+      tip: "Mantén cubiertas ambas entradas cuando el jefe cambie de fase.",
+      stages: [
+        { name: "Relevo de la cúpula", detail: "Escudo del jefe y escoltas por A.", shield: 0.16,
+          reinforcements: { lane: 0, delay: 125, count: 3, spec: 4, armor: 8 } },
+        { name: "Última descarga", detail: "El jefe acelera y llegan corredores por B.", speed: 1.28,
+          reinforcements: { lane: 1, delay: 105, count: 2, spec: 2, speed: 1.18 } },
+      ],
+    },
   },
   {
     chapter: 7, name: "Eco orbital", task: "Localiza el origen de la llamada.",
@@ -568,6 +631,16 @@ export const MISSIONS = [
     transmission: "Transmite las coordenadas antes del apagón.", end: "Las coordenadas apuntan a una fundición.",
     waves: 8, bend: 1.2, flip: true, formation: "surge", medal: medals.final,
     routePattern: 19,
+    finale: {
+      name: "Última transmisión",
+      tip: "Reserva daño perforante para la segunda fase y un pulso para el último escudo.",
+      stages: [
+        { name: "Guarda polar", detail: "Llegan refuerzos blindados por B.", plating: 7,
+          reinforcements: { lane: 1, delay: 135, count: 3, spec: 4, armor: 10 } },
+        { name: "Señal de emergencia", detail: "El jefe pierde blindaje, gana un escudo y llama refuerzos por A.", releasePlating: true, shield: 0.12, speed: 1.18,
+          reinforcements: { lane: 0, delay: 140, count: 2, spec: 2, speed: 1.18 } },
+      ],
+    },
   },
   {
     chapter: 8, name: "Río de escoria", task: "Abre paso hasta la fundición.",
@@ -621,6 +694,14 @@ export const MISSIONS = [
     waves: 8, bend: 1.2, flip: true, formation: "cross", medal: medals.final,
     towerLimit: 7,
     routePattern: 19,
+    finale: {
+      name: "Temple de la llave",
+      tip: "Atraviesa el blindaje mientras el jefe es lento. El último tramo exige alcance y control.",
+      stages: [
+        { name: "Coraza templada", detail: "El jefe gana blindaje y avanza más despacio.", plating: 18, speed: 0.78 },
+        { name: "Fuga del crisol", detail: "El jefe pierde la coraza y acelera.", releasePlating: true, speed: 1.63 },
+      ],
+    },
   },
   {
     chapter: 9, name: "Bosque de sifones", task: "Ventila las galerías inundadas.",
@@ -681,6 +762,16 @@ export const MISSIONS = [
     towerLimit: 8,
     objective: "archive",
     routePattern: 19,
+    finale: {
+      name: "Defensa de la reserva",
+      tip: "Guarda control para los refuerzos y alcance para el último tramo de B.",
+      stages: [
+        { name: "Escolta de la reserva", detail: "El jefe gana un escudo y llegan refuerzos con escudo por A.", shield: 0.16,
+          reinforcements: { lane: 0, delay: 165, count: 3, spec: 8, shield: 0.24 } },
+        { name: "Salida de emergencia", detail: "Cae el escudo del jefe, que acelera mientras llegan corredores por B.", discharge: true, speed: 1.27,
+          reinforcements: { lane: 1, delay: 140, count: 3, spec: 6, speed: 1.18 } },
+      ],
+    },
   },
 ];
 

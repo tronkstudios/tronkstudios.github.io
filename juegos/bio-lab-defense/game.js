@@ -15,18 +15,18 @@ import {
   VARIANT_NAMES,
   escortArmor,
   dailySetup,
-} from "./engine.js?v=33";
-import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=4";
-import { attachDrill } from "./drill.js?v=7";
-import { Board } from "./board.js?v=40";
+} from "./engine.js?v=34";
+import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=5";
+import { attachDrill } from "./drill.js?v=8";
+import { Board } from "./board.js?v=41";
 import { towerIcon, heroIcon } from "./art.js?v=4";
-import { createCodex } from "./codex.js?v=21";
-import { Profile, dayKey } from "./profile.js?v=15";
+import { createCodex } from "./codex.js?v=22";
+import { Profile, dayKey } from "./profile.js?v=16";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=7";
-import { CHAPTERS, MISSIONS } from "./campaign.js?v=12";
+import { CHAPTERS, MISSIONS } from "./campaign.js?v=13";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=29";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=30";
 
 import { HEROES, CONTRACTS } from "./operations.js?v=7";
 
@@ -575,6 +575,9 @@ function briefing(level) {
     `${best ? "Mejor resultado · " + "★".repeat(best) + "☆".repeat(3 - best) : "Primera victoria pendiente"} · Para tres estrellas, termina con al menos ${starThresholds[2]} % de núcleo.`);
   updateText("briefing-waves", `${preview.maxWaves} oleadas`);
   updateText("briefing-entries", preview.routes.length === 2 ? "2 entradas" : "1 entrada");
+  $("briefing-finale").hidden = !mission.finale;
+  if (mission.finale)
+    updateText("briefing-finale", `Final del capítulo · ${mission.finale.name}. ${mission.finale.tip}`);
   $("briefing-power-pads").hidden = !preview.padCycle;
   if (preview.padCycle)
     updateText("briefing-power-pads", `Plataforma ${padLetter(preview.activePad(1))} activa en la primera oleada · +50 % de daño. El tablero indica cuándo cambia la alimentación.`);
@@ -766,7 +769,7 @@ function arrangeBoardAlerts() {
   const holder = compactField.matches ? $("compact-wave-beacons") : canvas.parentElement;
   holder.append(...beacons);
   const incoming = compactField.matches ? $("compact-incoming") : canvas.parentElement;
-  incoming.append($("next-group-a"), $("next-group-b"));
+  incoming.append($("next-group-a"), $("next-group-b"), $("entry-warning"));
   focused?.focus({ preventScroll: true });
 }
 compactField.addEventListener("change", arrangeBoardAlerts);
@@ -1249,16 +1252,27 @@ function renderWavePreview(preview) {
   if (preview === lastPreview) return;
   lastPreview = preview;
   renderCounterSuggestions(preview);
-  const { count, theme, final, lanes, bossTip, order, timeline, tactics } = preview;
+  const { count, theme, final, lanes, bossTip, order, timeline, tactics, finale } = preview;
+  $("wave-finale").hidden = !finale;
+  if (finale) {
+    updateText("wave-finale-title", finale.name);
+    $("wave-finale-stages").replaceChildren(...finale.stages.map(stage => {
+      const item = document.createElement("li");
+      const name = document.createElement("strong");
+      name.textContent = stage.name;
+      item.append(name, ` · ${stage.detail}`);
+      return item;
+    }));
+  }
   $("wave-tactics").hidden = !tactics;
   if (tactics) {
     updateText("wave-tactics-title", tactics.name);
     updateText("wave-tactics-tip", tactics.tip);
   }
-  const finale = match.gateRoutes ? " · Dos jefes" : " · Jefe";
+  const bossLabel = match.gateRoutes ? " · Dos jefes" : " · Jefe";
   updateText(
     "wave-preview-title",
-    `${theme.name} · ${count} enemigos${lanes[1] ? " · Dos entradas" : ""}${final ? finale : ""}`,
+    `${theme.name} · ${count} enemigos${lanes[1] ? " · Dos entradas" : ""}${final ? bossLabel : ""}`,
   );
   updateText("wave-preview-tip", `${theme.tip} ${bossTip}`.trim());
   $("wave-timeline").replaceChildren(...timeline.map((group) => {
@@ -1315,6 +1329,11 @@ function renderWavePreview(preview) {
 function renderBoss(boss, suffix = "") {
   $(`boss-status${suffix}`).hidden = !boss;
   if (!boss) return;
+  if (!suffix) {
+    const stage = boss.finale?.stages[boss.phase - 2];
+    $("boss-finale").hidden = !stage;
+    if (stage) updateText("boss-finale", `${stage.name} · ${stage.detail}`);
+  }
   const name = boss.coolingBoss
     ? `${boss.name} · Entrada ${boss.lane === 0 ? "A" : "B"}`
     : boss.name;
@@ -1426,6 +1445,10 @@ function renderFieldControls(waiting) {
     positionMapControl($("entry-warning"), match.routes[order.lane].points[0]);
     updateText("entry-warning", `Refuerzos · ${order.lane ? "B" : "A"}`);
     sound("alert");
+  }
+  if (order?.name) {
+    const seconds = Math.ceil(order.ticks / (speed * 60));
+    updateText("entry-warning", `${order.name} · Entrada ${order.lane ? "B" : "A"} · ${seconds} s`);
   }
   lastMirrorOrder = order;
   const hit = match.waveLeaks?.impact;
@@ -2032,10 +2055,17 @@ function finish() {
       profile.commit();
     }
   }
-  const buttons =
-    won && level < MISSIONS.length
-      ? [["Siguiente sector", () => briefing(level + 1)]]
-      : [];
+  const nextMission = MISSIONS[level];
+  const chapterFinished = won && mission.chapter !== nextMission?.chapter;
+  const chapter = CHAPTERS[mission.chapter];
+  if (chapterFinished) {
+    const sectors = MISSIONS.flatMap((entry, index) => entry.chapter === mission.chapter ? [index] : []);
+    const cleared = sectors.filter(index => profile.data.stars[index]).length;
+    outcomeStats.push(["Sectores del capítulo", `${cleared}/${sectors.length}`]);
+  }
+  const buttons = won && nextMission
+    ? [[chapterFinished ? "Siguiente capítulo" : "Siguiente sector", () => briefing(level + 1)]]
+    : [];
   if (!won && !checkpointLost && checkpoint?.raw) {
     const expected = checkpoint.raw;
     buttons.push(["Repreparar la oleada", () => {
@@ -2052,7 +2082,8 @@ function finish() {
     ["Volver a sectores", campaign],
   );
   const summary = won
-    ? mission.end
+    ? [mission.end, chapterFinished && nextMission ? `Siguiente destino · ${CHAPTERS[nextMission.chapter].location}.` : ""]
+        .filter(Boolean).join("\n\n")
     : `${match.activeTerminal?.hp === 0 ? "La terminal activa fue destruida." : match.console?.hp === 0 ? "La consola de Muestreo fue destruida." : `El núcleo cayó en la oleada ${match.wave} de ${match.maxWaves}.`}
 
 ${lossReport()}
@@ -2062,13 +2093,13 @@ ${mission.cue}`;
     won
       ? level === MISSIONS.length
         ? "Laboratorio recuperado"
-        : "Misión completada"
+        : chapterFinished ? "Final de capítulo superado" : "Misión completada"
       : "Brecha de contención",
     summary,
     buttons,
     breach,
     {
-      ...combatDialog(tone, `Sector ${level} · ${mission.name}`, outcomeStats),
+      ...combatDialog(tone, chapterFinished ? `Capítulo ${mission.chapter + 1} · ${chapter.name}` : `Sector ${level} · ${mission.name}`, outcomeStats),
       stars: won ? stars : null,
       reward: earnedATP ? [["ATP de reserva", `+${earnedATP}`], ["Biogemas", `+${earnedGems}`]] : [],
       medal: earnedMedal ? mission.medal.title : null,

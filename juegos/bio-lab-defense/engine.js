@@ -1,5 +1,5 @@
 import { affinityFor, towerMultiplier } from "./affinities.js?v=1";
-import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=12";
+import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=13";
 
 import { HERO_BY_ID } from "./operations.js?v=7";
 
@@ -729,7 +729,7 @@ export class Match {
       this.mission
         ? missionRoutes(points, this.mission, WIDTH, HEIGHT)
         : points;
-    this.map = this.mission ? { ...base, points: layout(base.points) } : base;
+    this.map = this.mission ? { ...base, points: layout(base.points), floor: this.mission.chapter } : base;
     this.routes = [route(this.map.points)];
     if ((daily || level >= 5) && this.mapIndex > 0)
       this.routes.push(route(layout(auxiliary)));
@@ -997,6 +997,7 @@ export class Match {
   planWave(wave) {
     const level = this.level;
     const final = wave === this.maxWaves;
+    const finale = final && !this.ranked ? this.mission.finale : null;
     const protectingArchive = !!this.archive && wave <= 2;
     const veteranPressure = this.veteran && !protectingArchive;
     const pattern =
@@ -1055,6 +1056,7 @@ export class Match {
         ...loadout,
         ...(zero ? { hpFactor: 1.26, zero: true } : {}),
         boss: true,
+        finale,
         mirror: !this.daily && !zero && (this.level === 10 || (this.veteran && this.routes.length > 1)),
       });
     }
@@ -1088,6 +1090,7 @@ export class Match {
       theme,
       count: order.length,
       final,
+      finale,
       lanes: this.routes.map((_, lane) =>
         order.reduce((sum, e) => sum + Number(e.lane === lane), 0),
       ),
@@ -1363,7 +1366,7 @@ export class Match {
 
   spawn() {
     const order = this.queue.shift();
-    const { spec, lane, boss = false, speed = 1, coolingBoss, mirror = false, zero = false, variant } = order;
+    const { spec, lane, boss = false, speed = 1, coolingBoss, mirror = false, zero = false, variant, finale } = order;
     const defense = this.entryDefense(order, this.wave);
     const path = this.routes[lane];
     const [[x, y]] = path.points;
@@ -1378,6 +1381,7 @@ export class Match {
       ...defense,
       scoutReady: variant === "scout" ? this.time + 120 : null,
       coolingBoss,
+      finale,
       mirror,
       zero,
       maxHp: defense.hp,
@@ -1485,8 +1489,14 @@ export class Match {
     const ratio = enemy.hp / enemy.maxHp;
     const phase = ratio <= 1 / 3 ? 3 : ratio <= 2 / 3 ? 2 : 1;
     if (phase <= enemy.phase) return;
-    const enteredSecondPhase = enemy.phase === 1;
+    const previousPhase = enemy.phase;
+    const enteredSecondPhase = previousPhase === 1;
     enemy.phase = phase;
+    if (enemy.finale && !enemy.zero && !enemy.mirror) {
+      for (let next = previousPhase + 1; next <= phase; next++)
+        this.advanceFinale(enemy, enemy.finale.stages[next - 2]);
+      return;
+    }
     if (phase === 3) this.cue("phase", `${enemy.name} · Fase final`, enemy);
     if (enemy.zero) {
       if (enteredSecondPhase) {
@@ -1527,6 +1537,23 @@ export class Match {
       enemy.speed *= 1.5;
     }
     this.effect(enemy.x, enemy.y, phase === 2 ? "#9ddcff" : "#ffae85", 88);
+  }
+
+  advanceFinale(enemy, stage) {
+    if (stage.releasePlating) enemy.armor -= enemy.finalePlating || 0;
+    if (stage.plating) {
+      enemy.armor += stage.plating;
+      enemy.finalePlating = stage.plating;
+    }
+    if (stage.shield) enemy.shield = Math.round(enemy.maxHp * stage.shield);
+    if (stage.discharge) enemy.shield = 0;
+    if (stage.speed) enemy.speed *= stage.speed;
+    if (stage.reinforcements) {
+      const { delay, ...group } = stage.reinforcements;
+      this.mirrorOrders.push({ speed: 1, ...group, name: stage.name, ticks: delay });
+    }
+    this.cue("phase", stage.name, enemy);
+    this.effect(enemy.x, enemy.y, stage.shield ? "#9ddcff" : "#ffae85", 88);
   }
 
   hit(enemy, shot) {
@@ -1623,7 +1650,10 @@ export class Match {
     if (order && --order.ticks <= 0) {
       this.mirrorOrders.shift();
       const fresh = !this.queue.length;
-      for (let i = 0; i < 4; i++) nextEnemy(this.queue, PATHOGEN_TYPES[2], order.lane, { speed: 1.25, groupName: "Refuerzos" });
+      const { count = 4, spec = 2, speed = 1.25, armor = 0, shield = 0, lane, name = "Refuerzos" } = order;
+      for (let i = 0; i < count; i++) {
+        nextEnemy(this.queue, PATHOGEN_TYPES[spec], lane, { speed, armor, shield, groupName: name });
+      }
       if (fresh) this.spawnIn = 7;
     }
     this.tickZeroNodes();

@@ -49,6 +49,13 @@ window.testRun = {
     match.spawn();
     Object.assign(match.enemies.at(-1), { x: match.hero.x + 15, y: match.hero.y });
   },
+  triggerFinale() {
+    match.queue = match.queue.filter(entry => entry.boss);
+    match.enemies = [];
+    match.spawn();
+    const boss = match.enemies[0];
+    match.damage(boss, boss.maxHp * 0.55, "#fff", { piercing: true });
+  },
   inspectCoverage(inRange) {
     const enemy = fireChoices[$("fire-choice").selectedIndex];
     const tower = match.towers[0];
@@ -506,6 +513,25 @@ window.testRun = {
     await legend.getByText("Blindaje", { exact: true }).waitFor();
     await legend.getByText("Escudo", { exact: true }).waitFor();
     assert.equal(await page.locator("#next-group-a").evaluate(node => node.parentElement.id), "compact-incoming");
+    await page.locator("#pause").tap();
+    await page.getByRole("button", { name: "Abandonar partida" }).tap();
+    await page.locator(".level").filter({ hasText: "Cúpula partida" }).tap();
+    await page.locator("#briefing-finale").getByText(/Descarga de la cúpula/).waitFor();
+    await page.locator("#launch-mission").tap();
+    await page.locator("#cut-a").tap();
+    await page.evaluate(() => testRun.previewFinalWave());
+    const finale = page.getByRole("region", { name: "Descarga de la cúpula" });
+    await finale.getByText(/Escudo del jefe y escoltas por A/).waitFor();
+    await page.locator("#next").tap();
+    await page.evaluate(() => testRun.triggerFinale());
+    await page.locator("#boss-finale").getByText(/Relevo de la cúpula/).waitFor();
+    const warning = page.locator("#compact-incoming #entry-warning");
+    await warning.getByText(/Relevo de la cúpula · Entrada A/).waitFor();
+    await page.evaluate(() => testRun.winContract());
+    await page.getByRole("heading", { name: "Final de capítulo superado" }).waitFor();
+    await page.locator("#modal-context").getByText("Capítulo 7 · Marea de vidrio").waitFor();
+    await page.getByRole("button", { name: "Siguiente capítulo" }).tap();
+    await page.getByRole("heading", { name: "Eco orbital" }).waitFor();
     assert.deepEqual(errors, []);
     console.log("Bio-Lab map beacons, hero payment and ads, contracts, equipment and Mirror warnings passed.");
   } finally {

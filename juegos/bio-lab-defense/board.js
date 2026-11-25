@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=33";
+import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=34";
 import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=4";
 
 function trace(ctx, points) {
@@ -46,6 +46,10 @@ const floors = [
   { light: "#433827", dark: "#181522", grid: "#a87d6148", fixture: "#67463c" },
   { light: "#203e58", dark: "#051321", grid: "#4186964c", fixture: "#26536a" },
   { light: "#47324e", dark: "#180d24", grid: "#ae71944a", fixture: "#684366" },
+  { light: "#26584b", dark: "#081d20", grid: "#47896c44", fixture: "#396858" },
+  { light: "#382b58", dark: "#101224", grid: "#7164aa55", fixture: "#514675" },
+  { light: "#5c3323", dark: "#21131b", grid: "#b36e5044", fixture: "#754838" },
+  { light: "#16475c", dark: "#081927", grid: "#3b82905c", fixture: "#245b6c" },
 ];
 
 function floorTile(ctx, x, y, chapter, palette, accent) {
@@ -141,9 +145,9 @@ function scenery(ctx, map) {
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(scale, scale);
-    ctx.strokeStyle = map.accent + "72";
-    ctx.fillStyle = map.accent + "22";
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = map.accent + "9a";
+    ctx.fillStyle = map.accent + "30";
+    ctx.lineWidth = 3;
     if (map.scenery === "crystal") {
       for (const [dx, height] of [[-20, 31], [0, 54], [21, 39]]) {
         trace(ctx, [[dx - 10, 18], [dx - 9, 5 - height], [dx, -height], [dx + 10, 8 - height], [dx + 9, 18], [dx - 10, 18]]);
@@ -186,7 +190,7 @@ function background(map, routes, chapter) {
   base.width = WIDTH;
   base.height = HEIGHT;
   const ctx = base.getContext("2d");
-  const palette = floors[chapter];
+  const palette = floors[map.floor ?? chapter];
   const glow = ctx.createRadialGradient(490, 240, 36, 490, 270, 595);
   glow.addColorStop(0, palette.light);
   glow.addColorStop(1, palette.dark);

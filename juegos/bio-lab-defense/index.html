@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=44" />
+    <link rel="stylesheet" href="./styles.css?v=45" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -187,6 +187,7 @@
               role="img"
               aria-label="Plano del sector"
             ></canvas>
+            <p id="briefing-finale" class="wave-tactics" hidden></p>
             <p id="briefing-power-pads" class="objective-briefing" hidden></p>
             <p id="briefing-tactics" class="wave-tactics" hidden></p>
             <p id="briefing-approach" class="objective-briefing" hidden></p>
@@ -401,13 +402,16 @@
                   <span id="boss-stage" hidden></span><span id="boss-phase"></span>
                 </span>
               </div>
-              <progress
-                id="boss-health"
-                max="100"
-                value="100"
-                aria-label="Vida del jefe"
-              ></progress>
+              <div class="boss-progress">
+                <progress
+                  id="boss-health"
+                  max="100"
+                  value="100"
+                  aria-label="Vida del jefe"
+                ></progress>
+              </div>
               <p id="boss-vitals" class="boss-vitals"></p>
+              <p id="boss-finale" class="boss-finale" hidden></p>
             </div>
             <div id="boss-status-b" class="boss-status boss-status-b" hidden>
               <div>
@@ -416,8 +420,10 @@
                   <span id="boss-stage-b" hidden></span><span id="boss-phase-b"></span>
                 </span>
               </div>
-              <progress id="boss-health-b" max="100" value="100"
-                aria-label="Vida del segundo jefe"></progress>
+              <div class="boss-progress">
+                <progress id="boss-health-b" max="100" value="100"
+                  aria-label="Vida del segundo jefe"></progress>
+              </div>
               <p id="boss-vitals-b" class="boss-vitals"></p>
             </div>
             <div class="lane-brief" id="lane-brief" hidden>
@@ -438,6 +444,10 @@
                 <strong id="wave-preview-title"></strong>
                 <button type="button" id="run-drill" aria-haspopup="dialog">Ensayar oleada</button>
               </div>
+              <section id="wave-finale" class="wave-tactics wave-finale" aria-labelledby="wave-finale-title" hidden>
+                <h3 id="wave-finale-title"></h3>
+                <ol id="wave-finale-stages" start="2"></ol>
+              </section>
               <p id="wave-lane-coverage" class="wave-lane-coverage" hidden></p>
               <div id="wave-tactics" class="wave-tactics" hidden>
                 <strong id="wave-tactics-title"></strong>
@@ -588,6 +598,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=56"></script>
+    <script type="module" src="./game.js?v=57"></script>
   </body>
 </html>
