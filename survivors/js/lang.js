@@ -33,6 +33,8 @@ const EN = {
   "Dibujando personajes…": "Drawing characters…",
   "Preparando la partida…": "Getting the run ready…",
   "Jugar": "Play",
+  "Partida rápida · 10 min": "Quick run · 10 min",
+  "Cambiar de mapa": "Change map",
   "Reto diario": "Daily challenge",
   "Jugar con amigos": "Play with friends",
   "Personajes": "Characters",

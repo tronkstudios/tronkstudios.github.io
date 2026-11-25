@@ -1341,6 +1341,7 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     const history=(save.history || []).filter(h=>h.charId===r.charId && h.map===r.map && h.coop===!!r.coop && !!h.daily===!!r.daily && !!r.signature && h.signature===r.signature).slice(0,5);
     if(history.length){const list=el("ol","run-history");for(const h of history)list.append(el("li","",`${new Date(h.at).toLocaleDateString(LANG)} · ${fmtTime(h.seconds)} · ${L("Nivel")} ${h.level} · ${L("Enemigos")}: ${h.kills}`));details.append(el("h3","",L("Últimas partidas comparables")),list);}
     const online=lastRun?.guest || lastRun?.opts?.mode==="host";
+    $("end-maps").hidden = !!online || !!r.daily;
     $("end-again").textContent=L(online?"Volver a la sala online":"Repetir configuración");
     $("end-retry-note").textContent=L(online?"Vuelve a crear o unirte a una sala para jugar con tus amigos.":"Mismo personaje, mapa y reglas. El mapa se genera de nuevo salvo en retos con semilla.");
     if (r.finalPhase) add("Fases superadas", Math.max(0, r.finalRound - 1));
@@ -1390,7 +1391,17 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     if (!lastRun || lastRun.guest || (lastRun.opts && lastRun.opts.mode === "host")) { demoOn = false; show("online"); }
     else play(lastRun.setups, lastRun.opts);
   });
+  $("end-maps").addEventListener("click", () => {
+    backToMenu();
+    show("maps");
+  });
   $("end-menu").addEventListener("click", backToMenu);
+  $("menu-sprint").addEventListener("click", () => {
+    Sfx.init();
+    const preferred = save.settings.map;
+    const map = TS.MAPS[preferred] && mapUnlocked(preferred) ? preferred : "bosque";
+    play(null, { map, sprint: true });
+  });
 
   /* ---------- teclado ---------- */
   window.addEventListener("keydown", (e) => {

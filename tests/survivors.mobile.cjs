@@ -106,13 +106,22 @@ const path = require('node:path');
         assert.ok(box && box.x>=0 && box.y>=0 && box.x+box.width<=viewport.width+1 && box.y+box.height<=viewport.height+1,`${selector} ${viewport.width}x${viewport.height}`);
       }
     }
-    assert.deepEqual(errors, []);
     if (process.env.SCREENSHOTS_DIR) {
       fs.mkdirSync(process.env.SCREENSHOTS_DIR, { recursive: true });
       await page.screenshot({path:path.join(process.env.SCREENSHOTS_DIR,'survivors-mobile-landscape.png')});
       await page.setViewportSize({width:390,height:844});
       await page.screenshot({path:path.join(process.env.SCREENSHOTS_DIR,'survivors-mobile-portrait.png')});
     }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(() => TronkUI.backToMenu());
+    await page.locator('#menu-sprint').tap();
+    await page.waitForFunction(() => Game.state?.sprint && Game.state.t > 5);
+    assert.equal(await page.evaluate(() => Game.state.runSeconds), 600);
+    await page.evaluate(() => Game.finish(false));
+    await page.locator('#end-maps').tap();
+    assert.ok(await page.locator('#maps').isVisible());
+    assert.equal(await page.locator('#run-sprint').isChecked(), false, 'shortcut preserves saved settings');
+    assert.deepEqual(errors, []);
     console.log('Mobile: portrait, landscape, multitouch, ability, pause, level up, full build and restart passed');
   } finally { await browser.close(); }
 })().catch(error => {console.error(error);process.exitCode=1;});

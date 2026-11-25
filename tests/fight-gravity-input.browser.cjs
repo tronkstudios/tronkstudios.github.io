@@ -132,6 +132,28 @@ async function checkRunner(browser) {
   assert.deepEqual(swipeResult, ["RIGHT"]);
   await page.locator("#btn-pause-game").tap();
   assert.ok(await page.locator("#modal-pause").isVisible());
+  const original = await page.evaluate(() => {
+    const game = window.gravityShiftGame;
+    game.startNewRun({ instant: true });
+    game.lastDeath = { type: "ROTATING", surfaceKey: "FLOOR" };
+    game.handleGameOver();
+    return { seed: game.rng.seedLabel, setting: game.scoreMgr.saveData.settings.customSeed };
+  });
+  assert.match(await page.locator("#go-advice").textContent(), /giro de la barra/);
+  assert.equal(await page.evaluate(() => document.activeElement.id), "go-title");
+  await page.setViewportSize({ width: 320, height: 480 });
+  await page.locator("#btn-retry-course").tap();
+  assert.deepEqual(await page.evaluate(() => {
+    const game = window.gravityShiftGame;
+    return { seed: game.rng.seedLabel, setting: game.scoreMgr.saveData.settings.customSeed };
+  }), original);
+  await page.evaluate(() => {
+    const game = window.gravityShiftGame;
+    game.startNewRun({ instant: true, mode: "daily", challengeDate: "2026-11-25" });
+    game.handleGameOver();
+  });
+  assert.equal(await page.locator("#btn-retry-course").isVisible(), false);
+
   await page.close();
 }
 
