@@ -16,7 +16,7 @@ import {
   escortArmor,
   dailySetup,
 } from "./engine.js?v=32";
-import { routeCoverage, routeTeamCoverage } from "./coverage.js?v=2";
+import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=3";
 import { attachDrill } from "./drill.js?v=6";
 import { Board } from "./board.js?v=39";
 import { towerIcon, heroIcon } from "./art.js?v=4";
@@ -100,6 +100,7 @@ let dockBudgetKey;
 let objectiveCoverageKey;
 let guideDismissed;
 let guideSite;
+let powerRelocation = null;
 const profile = new Profile(refreshProfile);
 let checkpoint,
   checkpointLost = false;
@@ -687,6 +688,7 @@ function begin(next, day = null, restored = null) {
   objectiveCoverageKey = null;
   guideDismissed = false;
   guideSite = null;
+  powerRelocation = null;
   $("wave-impact-choice").value = "";
   const level = match.level;
   checkpointLost = false;
@@ -1098,9 +1100,10 @@ function placementForecast(tower, point, original = null, action = "") {
     if (point && !original && !offline)
       lines.push(`Primer ciclo en ${cadence.format(REACTOR_FIRST_CYCLE / 60)} s de combate`);
   } else {
-    const damage = compare(t => Math.round(t.damage * match.padBonus(t)));
-    lines.push(`${damage} de daño por impacto${match.padBonus(candidate) > 1 ? " · Plataforma +25 %" : ""}`);
-    if (action === "Traslado") lines.push("Trazo discontinuo · cobertura que pierdes");
+    const damage = compare(t => match.towerOffline(t, wave) ? 0 : Math.round(t.damage * match.padBonus(t)));
+    lines.push(`${damage} de daño por impacto${!offline && match.padBonus(candidate) > 1 ? " · Plataforma +25 %" : ""}`);
+    if (action === "Traslado" && original && !match.towerOffline(original, wave))
+      lines.push("Trazo discontinuo · cobertura que pierdes");
     if (hasPosition) {
       const lanes = routes.map((route, index) => `${index ? "B" : "A"} ${compareCoverage(route)} %`);
       lines.push(`Recorrido al alcance · ${lanes.join(" / ")}`);
@@ -1603,6 +1606,14 @@ $("field-guide-dismiss").onclick = () => {
   canvas.focus({ preventScroll: true });
 };
 
+$("power-cut-site").onclick = () => {
+  const plan = powerRelocation;
+  if (!plan || plan.tower !== movingTower || plan.wave !== match.coverageWave || adBusy ||
+      match.towerOffline(plan.point, plan.wave)) return;
+  place(plan.point.x, plan.point.y);
+  if (!powerRelocation) canvas.focus({ preventScroll: true });
+};
+
 $("power-cut-relocate").onclick = () => {
   if (match.state !== "build" || adBusy) return;
   const tower = match.towers.find(tower => match.towerOffline(tower, match.coverageWave));
@@ -1612,11 +1623,22 @@ $("power-cut-relocate").onclick = () => {
   movingTower = null;
   upgradePreview = null;
   highlightDock();
+  cursor = null;
   toggleTowerMove(tower);
   message("Elige una posición fuera de la zona ámbar.");
+  const site = suggestPowerRelocation(match, tower);
+  if (site) {
+    powerRelocation = { ...site, tower, wave: match.coverageWave };
+    const marker = $("power-cut-site");
+    marker.style.setProperty("--site-x", `${site.point.x * 100 / WIDTH}%`);
+    marker.style.setProperty("--site-y", `${site.point.y * 100 / HEIGHT}%`);
+    renderPowerCut(true);
+    marker.focus();
+  } else {
+    canvas.scrollIntoView({ block: "nearest" });
+    canvas.focus({ preventScroll: true });
+  }
   persistPreparation();
-  canvas.scrollIntoView({ block: "nearest" });
-  canvas.focus({ preventScroll: true });
 };
 
 function renderPowerCut(waiting) {
@@ -1625,6 +1647,9 @@ function renderPowerCut(waiting) {
   const upcoming = waiting && match.powerCuts?.[wave + 1];
   const cut = current || upcoming;
   const visible = cut && (waiting || match.state === "wave");
+  if (!waiting || !current || powerRelocation?.tower !== movingTower || powerRelocation?.wave !== wave)
+    powerRelocation = null;
+  $("power-cut-site").hidden = $("power-cut-suggestion").hidden = !powerRelocation;
   $("power-cut").hidden = !visible;
   if (!visible) return;
   const cutWave = current ? wave : wave + 1;
@@ -1635,6 +1660,15 @@ function renderPowerCut(waiting) {
   updateText("power-cut-detail", current
     ? `${towers} en la zona ámbar.${waiting ? " Puedes reubicar torres gratis antes de iniciar." : " Este corte dura toda la oleada."}`
     : `Corte anunciado. ${towers} con la distribución actual.`);
+  if (powerRelocation) {
+    const coverage = powerRelocation.lanes.map(({ lane, before, after }) =>
+      `${lane ? "B" : "A"} ${before === after ? after : `${before} → ${after}`} %`).join(" / ");
+    updateText("power-cut-suggestion", [
+      coverage ? `Cobertura total prevista con este traslado · ${coverage}.` : "Posición fuera del corte.",
+      powerRelocation.nextCut ? "Esta posición se apagará en la siguiente oleada." : "",
+      "Pulsa el marcador para confirmar.",
+    ].filter(Boolean).join(" "));
+  }
 }
 
 function renderObjectiveCoverage(waiting) {
@@ -1856,7 +1890,7 @@ function frame(now) {
       updateText("placement-preview", draft.reason || (draft.snapped ? `Punto sugerido · s${hint.slice(1)}` : hint));
       $("placement-preview").classList.toggle("invalid", !!draft.reason);
     }
-    const point = draft?.point || cursor || guideSite;
+    const point = draft?.point || cursor || guideSite || powerRelocation?.point;
     const planned = !aiming && !movingHero && !hoverBot && !hovered && !upgradePreview && point && (movingTower || blueprint);
     const validPlan = planned && !(movingTower ? match.checkRelocation(movingTower, point.x, point.y)
       : match.checkPlacement(planned, point.x, point.y));
@@ -2106,7 +2140,8 @@ canvas.onkeydown = (e) => {
   }[e.key];
   if (e.code !== "Space" && e.key !== "Enter" && !delta) return;
   e.preventDefault();
-  cursor ||= guideSite ? { ...guideSite } : { x: WIDTH / 2, y: HEIGHT / 2 };
+  const suggested = guideSite || powerRelocation?.point;
+  cursor ||= suggested ? { x: suggested.x, y: suggested.y } : { x: WIDTH / 2, y: HEIGHT / 2 };
   if (delta) {
     cursor.x = Math.max(25, Math.min(WIDTH - 25, cursor.x + delta[0]));
     cursor.y = Math.max(25, Math.min(HEIGHT - 25, cursor.y + delta[1]));
@@ -2371,7 +2406,11 @@ document.addEventListener("keydown", (event) => {
   )
     return;
   if (event.key === "Escape") {
-    if (movingTower) toggleTowerMove(movingTower);
+    if (movingTower) {
+      const suggested = !!powerRelocation;
+      toggleTowerMove(movingTower);
+      if (suggested) $("power-cut-relocate").focus({ preventScroll: true });
+    }
     else if (upgradePreview) $("selection").querySelector('.range-preview[aria-pressed="true"]')?.click();
     else if (movingHero) toggleBotMove();
     else if (aiming) $("pulse").click();

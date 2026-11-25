@@ -108,6 +108,28 @@ test("campaign power cuts rotate by wave and stop affected reactors until they m
   }
 });
 
+test("a relocation recommendation restores power and calculates total lane coverage", async () => {
+  const { routeTeamCoverage, suggestPowerRelocation } = await import("../juegos/bio-lab-defense/coverage.js");
+  const match = new Match(27);
+  const pad = match.firePads[1];
+  const tower = match.place(BLUEPRINTS[0], pad.x, pad.y);
+  assert.equal(suggestPowerRelocation(match, tower), null);
+  match.wave = 2;
+  match.preview = match.planWave(3);
+  const before = JSON.stringify(match);
+  const site = suggestPowerRelocation(match, tower);
+  assert.ok(site);
+  assert.equal(JSON.stringify(match), before);
+  assert.equal(match.checkRelocation(tower, site.point.x, site.point.y), "");
+  assert.equal(match.towerOffline(site.point, 3), false);
+  assert.ok(site.lanes.some(({ after }) => after > 0));
+  assert.ok(match.relocate(tower, site.point.x, site.point.y));
+  for (const { lane, before, after } of site.lanes) {
+    assert.equal(before, 0);
+    assert.equal(after, routeTeamCoverage(match.routesForWave(3)[lane], [tower]));
+  }
+});
+
 test("entry alerts use the first enemy actually queued for each lane", () => {
   const match = new Match(8, null, { contract: CONTRACTS.find(contract => contract.pressure) });
   const { arrivals } = match.preview;

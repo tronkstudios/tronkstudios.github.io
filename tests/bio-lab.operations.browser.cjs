@@ -474,7 +474,16 @@ window.testRun = {
     const budget = await page.locator("#atp").textContent();
     await page.locator("#power-cut-relocate").tap();
     await page.locator("#board-status").getByText(/fuera de la zona ámbar/).waitFor();
-    await tapPowerBoard(730, 156);
+    const marker = page.getByRole("button", { name: "Confirmar traslado sugerido" });
+    await marker.waitFor();
+    await page.locator("#power-cut-suggestion").getByText(/Cobertura total prevista/).waitFor();
+    await page.locator("#placement-analysis").getByText(/0 → 14 de daño por impacto/).waitFor();
+    await page.keyboard.press("Escape");
+    await marker.waitFor({ state: "hidden" });
+    assert.equal(await page.locator("#atp").textContent(), budget);
+    await page.locator("#power-cut-relocate").tap();
+    await marker.tap();
+    await marker.waitFor({ state: "hidden" });
     await page.locator("#board-status").getByText("Nano-Láser reubicada.").waitFor();
     await page.locator("#power-cut-detail").getByText(/0 torres afectadas/).waitFor();
     assert.equal(await page.locator("#atp").textContent(), budget);

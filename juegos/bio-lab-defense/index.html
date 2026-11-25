@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=42" />
+    <link rel="stylesheet" href="./styles.css?v=43" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -296,7 +296,8 @@
                 tabindex="0"
                 aria-label="Tablero. Flechas para mover el cursor y Espacio para colocar o elegir torre."
               ></canvas>
-              <button type="button" id="field-guide-site" aria-label="Instalar Nano-Láser en la posición sugerida" hidden>+</button>
+              <button type="button" id="field-guide-site" class="board-position-marker" aria-label="Instalar Nano-Láser en la posición sugerida" hidden>+</button>
+              <button type="button" id="power-cut-site" class="board-position-marker" title="Confirmar traslado sugerido" aria-label="Confirmar traslado sugerido" hidden></button>
               <button type="button" class="wave-beacon" id="entry-start-a" hidden></button>
               <button type="button" class="wave-beacon" id="entry-start-b" hidden></button>
               <b id="next-group-a" class="map-alert incoming-group" hidden></b>
@@ -321,8 +322,9 @@
               <div>
                 <strong id="power-cut-title"></strong>
                 <p id="power-cut-detail" aria-live="polite"></p>
+                <p id="power-cut-suggestion" aria-live="polite" hidden></p>
               </div>
-              <button type="button" id="power-cut-relocate" hidden>Reubicar torre afectada</button>
+              <button type="button" id="power-cut-relocate" aria-controls="board" hidden>Reubicar torre afectada</button>
             </aside>
             <aside id="objective-coverage" class="objective-briefing" aria-label="Cobertura del objetivo" hidden>
               <strong id="objective-coverage-title"></strong>
@@ -576,6 +578,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=54"></script>
+    <script type="module" src="./game.js?v=55"></script>
   </body>
 </html>

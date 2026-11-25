@@ -1,3 +1,5 @@
+import { WIDTH, HEIGHT } from "./engine.js?v=32";
+
 // Intersect each straight section of the route with the tower's range circle.
 export function routeCoverage(route, tower) {
   return routeTeamCoverage(route, [tower]);
@@ -32,4 +34,41 @@ export function routeTeamCoverage(route, towers) {
     }
   }
   return remaining[0] ? Math.round(100 * covered / remaining[0]) : 0;
+}
+
+
+// Compare the whole defense so moving a tower into an already covered lane has less value.
+export function suggestPowerRelocation(match, tower) {
+  const wave = match.coverageWave;
+  if (match.state !== "build" || !match.towers.includes(tower) || !match.towerOffline(tower, wave))
+    return null;
+  const lanes = match.routesForWave(wave).flatMap((route, lane) =>
+    match.preview.lanes[lane] ? [{ route, lane, count: match.preview.lanes[lane] }] : []);
+  const allies = match.towers.filter(other => other !== tower &&
+    other.type !== "eco" && !match.towerOffline(other, wave));
+  const attack = tower.type !== "eco";
+  const baseline = lanes.map(({ route }) => routeTeamCoverage(route, allies));
+  let best = null;
+  for (let x = 70; x <= WIDTH - 70; x += 20) {
+    for (let y = 70; y <= HEIGHT - 70; y += 20) {
+      const point = { x, y, range: tower.range };
+      if (match.towerOffline(point, wave) || match.checkRelocation(tower, x, y)) continue;
+      const coverage = attack ? lanes.map(({ route }) => routeTeamCoverage(route, [...allies, point])) : baseline;
+      const score = lanes.reduce((total, { count }, i) => total + count * coverage[i], 0);
+      const nextCut = match.towerOffline(point, wave + 1);
+      const distance = Math.hypot(tower.x - x, tower.y - y);
+      if (best && score < best.score) continue;
+      if (best && score === best.score) {
+        if (nextCut && !best.nextCut) continue;
+        if (nextCut === best.nextCut && distance >= best.distance) continue;
+      }
+      best = { x, y, coverage, score, nextCut, distance };
+    }
+  }
+  if (!best) return null;
+  return {
+    point: { x: best.x, y: best.y },
+    nextCut: best.nextCut,
+    lanes: attack ? lanes.map(({ lane }, i) => ({ lane, before: baseline[i], after: best.coverage[i] })) : [],
+  };
 }
