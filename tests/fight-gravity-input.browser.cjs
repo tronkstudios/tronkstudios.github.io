@@ -130,6 +130,34 @@ async function checkRunner(browser) {
     return surfaces;
   });
   assert.deepEqual(swipeResult, ["RIGHT"]);
+  const cue = await page.evaluate(() => {
+    const game = window.gravityShiftGame;
+    const original = game.world.obstacles;
+    const element = document.getElementById("danger-cue");
+    const surface = game.gravitySys.targetSurface.id;
+    const exits = ["LEFT", "RIGHT"];
+    const obstacle = (type, surfaceKey, seconds, safeSurfaces = []) => ({
+      type, surfaceKey, safeSurfaces, mesh: { position: { z: -seconds * game.currentSpeed } },
+    });
+    try {
+      const fork = obstacle("BARRIER", surface, 1.4, exits);
+      game.world.obstacles = [obstacle("BARRIER", "CEILING", 0.2), fork];
+      game.ui.updateHUD();
+      const forkMessage = element.classList.contains("hidden") ? "" : element.textContent;
+      game.world.obstacles.push(obstacle("ROTATING", "CEILING", 0.8));
+      game.ui.updateHUD();
+      const nearestMessage = element.textContent;
+      game.world.obstacles = [];
+      game.ui.updateHUD();
+      return { forkMessage, nearestMessage, cleared: element.classList.contains("hidden") };
+    } finally {
+      game.world.obstacles = original;
+    }
+  });
+  assert.match(cue.forkMessage, /DOS SALIDAS/);
+  assert.match(cue.nearestMessage, /BARRA GIRATORIA/);
+  assert.equal(cue.cleared, true);
+
   await page.locator("#btn-pause-game").tap();
   assert.ok(await page.locator("#modal-pause").isVisible());
   const original = await page.evaluate(() => {

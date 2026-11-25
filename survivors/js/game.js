@@ -411,9 +411,10 @@ const Game = (() => {
     if (opts.sprint && !mods.includes("rapida")) mods.push("rapida");
     const sprint = mods.includes("rapida");
     const veteran = mods.includes("veterano");
+    const openingDraft = mode === "solo" && !opts.daily && !opts.training && !veteran;
     const runSeconds = sprint ? 600 : TS.RUN_SECONDS;
     st = {
-      mapId, signature:TS.runSignature(setups,{...opts,mods,map:mapId}), training:opts.training || null, sprint, runSeconds,
+      mapId, signature:TS.runSignature(setups,{...opts,mods,map:mapId,openingDraft}), openingDraft, training:opts.training || null, sprint, runSeconds,
       mods,
       daily: opts.daily || null,
       evolutions: 0,
@@ -3404,7 +3405,16 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
       for(const option of candidates){r-=option.weight;if(r<=0){selected=option;break;}}
       out.push(selected);pool.splice(pool.indexOf(selected),1);
     }
-    const recipeCandidate=[...pool,...out].find(o=>o.kind==="passive" && o.id===evolution?.passive);
+    const candidates = [...out, ...pool];
+    const recipeCandidate = candidates.find(o => o.kind === "passive" && o.id === evolution?.passive);
+    if (st.openingDraft && st.level === 2 && allowTalents && !previous.length) {
+      const opening = [
+        candidates.find(o => o.kind === "weapon"),
+        newest,
+        recipeCandidate || candidates.find(o => o.kind === "passive")
+      ].filter(Boolean);
+      if (opening.length === n) return opening.map(option => describe(pl, option));
+    }
     if(!previous.length && newest && !out.some(o=>o.kind===newest.kind && o.id===newest.id))out[0]=newest;
     if (!previous.length && native?.lvl >= 4 && !native.evo && evolution && !pl.passives[evolution.passive]) {
       const support = recipeCandidate;
