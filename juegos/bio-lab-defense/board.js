@@ -1,9 +1,19 @@
-import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=25";
+import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=29";
 import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=4";
 
 function trace(ctx, points) {
   ctx.beginPath();
   points.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+}
+
+function drawCoverageGap(ctx, points) {
+  ctx.save();
+  ctx.setLineDash([11, 6]);
+  trace(ctx, points);
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = "#fff0a6";
+  ctx.stroke();
+  ctx.restore();
 }
 
 function circle(ctx, x, y, radius, fill, stroke, width = 1) {
@@ -476,7 +486,7 @@ export class Board {
     reduced,
     aiming,
     hovered = null,
-    { gatePreview, movingHero, movingTower, skillPreview, upgradePreview, snapOrigin, breach = null, routePlan = false, focusTarget = match.focusTarget } = {},
+    { gatePreview, movingHero, movingTower, skillPreview, upgradePreview, snapOrigin, breach = null, reviewGap = null, routePlan = false, focusTarget = match.focusTarget } = {},
   ) {
     const ctx = this.ctx;
     const key = match.mission
@@ -487,6 +497,7 @@ export class Board {
       this.buffers.set(key, background(match.map, match.routes, match.mapIndex));
     }
     ctx.drawImage(this.buffers.get(key), 0, 0);
+    if (reviewGap) drawCoverageGap(ctx, reviewGap);
     if (breach !== null) {
       ctx.save();
       for (const [lane, count] of breach.lanes.entries()) {
@@ -499,13 +510,9 @@ export class Board {
         ctx.stroke();
         circle(ctx, 19, points[0][1], 13, ctx.strokeStyle, "#501f2e", 4);
       }
-      ctx.setLineDash([11, 6]);
       for (const { lane, waypoint } of breach.gaps.values()) {
         const { points } = match.routes[lane];
-        trace(ctx, points.slice(waypoint - 1, waypoint + 1));
-        ctx.lineWidth = 5;
-        ctx.strokeStyle = "#fff0a6";
-        ctx.stroke();
+        drawCoverageGap(ctx, points.slice(waypoint - 1, waypoint + 1));
       }
       ctx.restore();
       return;

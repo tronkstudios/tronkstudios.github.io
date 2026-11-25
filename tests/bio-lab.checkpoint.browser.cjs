@@ -25,13 +25,29 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8791";
     await page.locator(".level").first().tap();
     await page.locator("#launch-mission").tap();
 
-    async function tapBoard(x = 170, y = 170) {
+    async function tapBoard(x = 170, y = 205) {
       const canvas = page.locator("#board");
       const box = await canvas.boundingBox();
       await canvas.tap({
         position: { x: ((box.width - 2) * x) / 900, y: ((box.height - 2) * y) / 540 },
       });
     }
+    const guide = page.getByRole("region", { name: "Primer despliegue" });
+    await guide.getByText("Instala tu primera torre").waitFor();
+    const guideATP = Number(await page.locator("#atp").textContent());
+    await guide.getByRole("button", { name: "Ver posición sugerida" }).tap();
+    const site = page.getByRole("button", { name: "Instalar Nano-Láser en la posición sugerida" });
+    await site.waitFor();
+    await page.locator("#placement-analysis").getByText("Nano-Láser").waitFor();
+    await page.locator("#placement-analysis").getByText(/Recorrido al alcance · A [1-9][0-9]* %/).waitFor();
+    assert.equal(Number(await page.locator("#atp").textContent()), guideATP);
+    await site.tap();
+    await guide.getByText("Lanza tu primera oleada").waitFor();
+    await site.waitFor({ state: "hidden" });
+    assert.equal(Number(await page.locator("#atp").textContent()), guideATP - 50);
+    await page.locator("#undo-build").tap();
+    await guide.getByText("Instala tu primera torre").waitFor();
+    assert.equal(Number(await page.locator("#atp").textContent()), guideATP);
     const drill = page.getByRole("dialog", { name: "Ensayo de la oleada 1" });
     const beforeDrill = await page.locator("#atp").textContent();
     await page.locator("#run-drill").tap();
@@ -41,6 +57,7 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8791";
     assert.equal(await page.locator("#atp").textContent(), beforeDrill);
     assert.equal(await page.locator("#wave").textContent(), "0/4");
     await tapBoard();
+    await page.locator("#board-status").getByText("Nano-Láser instalada.", { exact: true }).waitFor();
     await page.locator("#run-drill").tap();
     await drill.getByText(/Ensayo anterior/).waitFor();
     await drill.getByText("Rendimiento de las torres").tap();
@@ -89,6 +106,7 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8791";
     assert.equal(before.speed, 2);
     assert.equal(before.atpBought, true);
     await page.locator("#next").tap();
+    await guide.waitFor({ state: "hidden" });
     assert.equal(await page.locator("#relocate-tower").count(), 0);
     await page.reload();
     await page.locator("#home-resume-run").tap();

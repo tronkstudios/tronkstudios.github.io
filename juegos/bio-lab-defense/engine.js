@@ -1,3 +1,4 @@
+import { affinityFor, towerMultiplier } from "./affinities.js?v=1";
 import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=8";
 
 import { HERO_BY_ID } from "./operations.js?v=7";
@@ -619,6 +620,7 @@ export function escortArmor(enemy) {
 function resolveImpact(enemy, shield, amount, { piercing = false, shred = false }, tower, time) {
   let armor = enemy.armor + escortArmor(enemy);
   if (tower?.rank) {
+    amount *= towerMultiplier(enemy, tower);
     if (enemy.markedUntil > time) amount *= 1.15;
     if (enemy.frozenUntil > time && tower.type === "splash") amount *= 1.2;
     if (enemy.exposedUntil > time) armor *= 0.5;
@@ -835,6 +837,10 @@ export class Match {
     const area = this.routeEvent?.blackout;
     return !!area && wave === this.routeEvent.wave &&
       Math.hypot(tower.x - area.x, tower.y - area.y) <= area.radius;
+  }
+
+  get hasAffinities() {
+    return !this.daily && this.level >= 3;
   }
 
   get hasEnemyVariants() {
@@ -1265,28 +1271,53 @@ export class Match {
     this.effects.push({ x, y, color, radius, to, life: 22 });
   }
 
+  entryDefense({ spec, boss, coolingBoss, armor = 0, shield = 0, hpFactor = 1 }, wave) {
+    const scale = 0.96 + (wave - 1) * 0.14 +
+      (this.combatLevel - 1) * (wave < 3 ? 0.065 : 0.105);
+    const bossScale = coolingBoss ? 0.68 : boss ? 1.18 : 1;
+    const veteranHealth = this.veteran && !(this.archive && wave <= 2) ? 1.09 : 1;
+    const hp = Math.round(spec.hp * scale * bossScale * hpFactor * veteranHealth);
+    return {
+      hp,
+      affinity: this.hasAffinities ? affinityFor(spec.shape) : undefined,
+      armor: armor * (this.daily?.armor || 1),
+      shield: Math.round(hp * shield),
+    };
+  }
+
+  estimateImpact(tower, order, wave = this.coverageWave) {
+    if (!tower.damage || this.towerOffline(tower, wave))
+      return { damage: 0, shieldDamage: 0, unshieldedDamage: 0, hitsToDefeat: null };
+    const enemy = this.entryDefense(order, wave);
+    const amount = Math.round(tower.damage * this.padBonus(tower));
+    const hitAtShield = shield => resolveImpact(enemy, shield, amount, tower.branch || {}, tower, this.time);
+    const first = hitAtShield(enemy.shield);
+    const unshielded = hitAtShield(0).damage;
+    let hitsToDefeat = null;
+    if (!order.boss) {
+      let hpLeft = enemy.hp;
+      let shield = enemy.shield;
+      let shots = 0;
+      while (shield > 0 && hpLeft > 0) {
+        const hit = hitAtShield(shield);
+        shield = hit.shield;
+        hpLeft -= hit.damage;
+        shots++;
+      }
+      hitsToDefeat = shots + Math.ceil(Math.max(0, hpLeft) / unshielded);
+    }
+    return {
+      damage: Math.min(enemy.hp, first.damage),
+      shieldDamage: enemy.shield - first.shield,
+      unshieldedDamage: unshielded,
+      hitsToDefeat,
+    };
+  }
+
   spawn() {
     const order = this.queue.shift();
-    const {
-      spec,
-      lane,
-      boss = false,
-      armor = 0,
-      shield = 0,
-      speed = 1,
-      coolingBoss,
-      mirror = false,
-      zero = false,
-      hpFactor = 1,
-      variant,
-    } = order;
-    const scale =
-      0.96 +
-      (this.wave - 1) * 0.14 +
-      (this.combatLevel - 1) * (this.wave < 3 ? 0.065 : 0.105);
-    const bossScale = coolingBoss ? 0.68 : boss ? 1.18 : 1;
-    const veteranHealth = this.veteran && !(this.archive && this.wave <= 2) ? 1.09 : 1;
-    const hp = Math.round(spec.hp * scale * bossScale * hpFactor * veteranHealth);
+    const { spec, lane, boss = false, speed = 1, coolingBoss, mirror = false, zero = false, variant } = order;
+    const defense = this.entryDefense(order, this.wave);
     const path = this.routes[lane];
     const [[x, y]] = path.points;
     this.enemies.push({
@@ -1297,15 +1328,13 @@ export class Match {
       lane,
       boss,
       variant,
+      ...defense,
       scoutReady: variant === "scout" ? this.time + 120 : null,
       coolingBoss,
       mirror,
       zero,
-      hp,
-      maxHp: hp,
+      maxHp: defense.hp,
       speed: spec.speed * speed * (this.daily?.speed || 1),
-      armor: armor * (this.daily?.armor || 1),
-      shield: Math.round(hp * shield),
       wp: 1,
       remaining: path.remaining[0],
       slow: 0,
@@ -1755,6 +1784,15 @@ export class Match {
       const generated = this.grossATP - this.waveStart.atp;
       this.addATP(payout + reserve + recovery);
       this.charge = Math.min(100, this.charge + 20);
+      let largestGap = null;
+      for (const gap of this.waveLeaks.gaps.values()) {
+        if (gap.count > (largestGap?.count || 0)) largestGap = gap;
+      }
+      const gap = largestGap && {
+        lane: largestGap.lane,
+        count: largestGap.count,
+        points: this.routes[largestGap.lane].points.slice(largestGap.waypoint - 1, largestGap.waypoint + 1),
+      };
       this.debrief = {
         kills: this.kills - this.waveStart.kills,
         damage: this.waveStart.hp - this.hp,
@@ -1765,6 +1803,8 @@ export class Match {
         reactor: this.waveStart.reactor,
         bounties: generated - this.waveStart.reactor,
         leaks: [...this.waveLeaks.lanes],
+        worst: this.waveLeaks.worst,
+        gap,
       };
       this.state = this.wave === this.maxWaves ? "won" : "build";
     }

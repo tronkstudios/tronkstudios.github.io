@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=30" />
+    <link rel="stylesheet" href="./styles.css?v=35" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -252,6 +252,7 @@
                 tabindex="0"
                 aria-label="Tablero. Flechas para mover el cursor y Espacio para colocar o elegir torre."
               ></canvas>
+              <button type="button" id="field-guide-site" aria-label="Instalar Nano-Láser en la posición sugerida" hidden>+</button>
               <button type="button" class="wave-beacon" id="entry-start-a" hidden></button>
               <button type="button" class="wave-beacon" id="entry-start-b" hidden></button>
               <b id="next-group-a" class="map-alert incoming-group" hidden></b>
@@ -261,6 +262,16 @@
               <b id="core-warning" class="map-alert" hidden>¡Núcleo en peligro!</b>
               <b id="placement-preview" hidden></b>
             </div>
+            <section id="field-guide" aria-label="Primer despliegue" hidden>
+              <div role="status">
+                <strong id="field-guide-title"></strong>
+                <p id="field-guide-text"></p>
+              </div>
+              <div class="field-guide-actions">
+                <button type="button" id="field-guide-preview">Ver posición sugerida</button>
+                <button type="button" id="field-guide-dismiss" aria-label="Ocultar guía del primer despliegue">Ocultar</button>
+              </div>
+            </section>
             <p id="core-impact" role="status" hidden></p>
             <div id="placement-analysis" aria-label="Análisis de posición" role="group" hidden></div>
             <p id="wave-beacon-hint" hidden>Cualquier baliza inicia la oleada completa.</p>
@@ -337,10 +348,30 @@
             <div class="lane-brief" id="lane-brief" hidden>
               <b id="lane-a"></b><b id="lane-b"></b>
             </div>
+            <details id="wave-debrief" class="wave-debrief" hidden>
+              <summary id="wave-debrief-title"></summary>
+              <p id="wave-debrief-leaks" hidden></p>
+              <p id="wave-debrief-worst" hidden></p>
+              <div id="wave-debrief-gap" hidden>
+                <p id="wave-debrief-gap-text"></p>
+                <button type="button" id="wave-debrief-map" aria-controls="board" aria-pressed="false">Marcar tramo en el mapa</button>
+              </div>
+              <dl id="wave-debrief-atp"></dl>
+            </details>
             <div class="wave-preview" id="wave-preview">
               <div class="wave-preview-head">
                 <strong id="wave-preview-title"></strong>
                 <button type="button" id="run-drill" aria-haspopup="dialog">Ensayar oleada</button>
+              </div>
+              <section id="wave-counters" aria-labelledby="wave-counter-title" hidden>
+                <h3 id="wave-counter-title">Torres recomendadas</h3>
+                <ul id="wave-counter-list"></ul>
+              </section>
+              <div class="wave-impact">
+                <label for="wave-impact-choice">Comparar daño contra</label>
+                <select id="wave-impact-choice"><option value="">Elegir un enemigo</option></select>
+                <p id="wave-impact-result" hidden></p>
+                <small>Usa el plano o una torre instalada para comparar. El cálculo parte de un enemigo recién llegado y cuenta impactos directos de una sola torre.</small>
               </div>
               <ul
                 id="wave-roster"
@@ -354,11 +385,6 @@
               <summary>Estrellas e insignia</summary>
               <p id="star-pace"></p>
               <p id="medal-pace"></p>
-            </details>
-            <details id="wave-debrief" class="wave-debrief" hidden>
-              <summary id="wave-debrief-title"></summary>
-              <p id="wave-debrief-leaks" hidden></p>
-              <dl id="wave-debrief-atp"></dl>
             </details>
             <section id="gate-panel" class="wave-preview gate-panel" aria-labelledby="gate-title" hidden>
               <strong id="gate-title">Compuerta B</strong>
@@ -469,6 +495,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=41"></script>
+    <script type="module" src="./game.js?v=47"></script>
   </body>
 </html>
