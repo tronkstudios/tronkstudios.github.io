@@ -1286,11 +1286,32 @@ export class Match {
   }
 
   estimateImpact(tower, order, wave = this.coverageWave) {
-    if (!tower.damage || this.towerOffline(tower, wave)) return { damage: 0, shieldDamage: 0 };
+    if (!tower.damage || this.towerOffline(tower, wave))
+      return { damage: 0, shieldDamage: 0, unshieldedDamage: 0, hitsToDefeat: null };
     const enemy = this.entryDefense(order, wave);
-    const hit = resolveImpact(enemy, enemy.shield, Math.round(tower.damage * this.padBonus(tower)),
-      tower.branch || {}, tower, this.time);
-    return { damage: Math.min(enemy.hp, hit.damage), shieldDamage: enemy.shield - hit.shield };
+    const amount = Math.round(tower.damage * this.padBonus(tower));
+    const hitAtShield = shield => resolveImpact(enemy, shield, amount, tower.branch || {}, tower, this.time);
+    const first = hitAtShield(enemy.shield);
+    const unshielded = hitAtShield(0).damage;
+    let hitsToDefeat = null;
+    if (!order.boss) {
+      let hpLeft = enemy.hp;
+      let shield = enemy.shield;
+      let shots = 0;
+      while (shield > 0 && hpLeft > 0) {
+        const hit = hitAtShield(shield);
+        shield = hit.shield;
+        hpLeft -= hit.damage;
+        shots++;
+      }
+      hitsToDefeat = shots + Math.ceil(Math.max(0, hpLeft) / unshielded);
+    }
+    return {
+      damage: Math.min(enemy.hp, first.damage),
+      shieldDamage: enemy.shield - first.shield,
+      unshieldedDamage: unshielded,
+      hitsToDefeat,
+    };
   }
 
   spawn() {

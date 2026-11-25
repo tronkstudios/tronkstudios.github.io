@@ -15,18 +15,18 @@ import {
   VARIANT_NAMES,
   escortArmor,
   dailySetup,
-} from "./engine.js?v=27";
+} from "./engine.js?v=28";
 import { routeCoverage } from "./coverage.js?v=1";
 import { attachDrill } from "./drill.js?v=2";
-import { Board } from "./board.js?v=33";
+import { Board } from "./board.js?v=34";
 import { towerIcon, heroIcon } from "./art.js?v=4";
-import { createCodex } from "./codex.js?v=15";
+import { createCodex } from "./codex.js?v=16";
 import { Profile, dayKey } from "./profile.js?v=11";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=7";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=8";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=23";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=24";
 
 import { HEROES, CONTRACTS } from "./operations.js?v=7";
 
@@ -986,13 +986,23 @@ function placementForecast(tower, point, original = null, action = "") {
       lines.push(`Recorrido al alcance · ${lanes.join(" / ")}`);
     }
     if (target) {
-      const hits = compare(t => {
-        const result = match.estimateImpact(t, target, wave);
-        return `${cadence.format(result.damage)} de vida${result.shieldDamage ? ` + ${cadence.format(result.shieldDamage)} de escudo` : ""}`;
-      });
+      const after = match.estimateImpact(candidate, target, wave);
+      const before = original ? match.estimateImpact(original, target, wave) : null;
+      const change = read => {
+        const current = read(after);
+        const previous = before && read(before);
+        return before && previous !== current ? `${previous} → ${current}` : current;
+      };
+      const hits = change(result => `${cadence.format(result.damage)} de vida${result.shieldDamage ? ` + ${cadence.format(result.shieldDamage)} de escudo` : ""}`);
       const impact = `Contra ${target.spec.name} · ${hits} en el primer impacto`;
       lines.push(impact);
-      updateText("wave-impact-result", `${candidate.name} · ${impact}`);
+      const detail = [];
+      if (target.shield) detail.push(`Sin escudo · ${change(result => cadence.format(result.unshieldedDamage))} de daño por impacto`);
+      if (after.hitsToDefeat !== null || before?.hitsToDefeat != null)
+        detail.push(`Impactos directos para abatir · ${change(result => result.hitsToDefeat ?? "—")}`);
+      else if (target.boss) detail.push("Los cambios de fase pueden alterar el resultado.");
+      lines.push(...detail);
+      updateText("wave-impact-result", [candidate.name, impact, ...detail].join(" · "));
       if (hasPosition && !offline && !routeCoverage(routes[target.lane], candidate))
         lines.push(`La entrada ${target.lane ? "B" : "A"} queda fuera de alcance`);
     }

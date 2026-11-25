@@ -232,6 +232,7 @@ window.forceRunnerLeak = () => {
       const impactChoice = page.getByLabel("Comparar daño contra");
       await impactChoice.selectOption({ index: 1 });
       await page.locator("#wave-impact-result").getByText(/Nano-Láser · Contra .* en el primer impacto/).waitFor();
+      await page.locator("#wave-impact-result").getByText(/Impactos directos para abatir · [1-9]/).waitFor();
       await impactChoice.selectOption("");
       await page.locator("#wave-impact-result").waitFor({ state: "hidden" });
       const [a, b] = await counts();

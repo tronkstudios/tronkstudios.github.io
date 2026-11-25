@@ -519,4 +519,13 @@ test("the first hit forecast matches affinity, armor, shields and specialization
   assert.ok(preview.damage > 0 && preview.shieldDamage > 0);
   assert.ok(Math.abs(preview.damage - (hp - enemy.hp)) < 1e-8);
   assert.equal(preview.shieldDamage, shield - enemy.shield);
+  assert.ok(preview.unshieldedDamage > preview.damage);
+  let shots = 1;
+  while (enemy.hp > 0 && shots < 100) {
+    match.hit(enemy, { tower, type: tower.type, damage: tower.damage, color: tower.color, branch: tower.branch });
+    shots++;
+  }
+  assert.equal(shots, preview.hitsToDefeat);
+  const boss = match.planWave(match.maxWaves).order.find(item => item.boss);
+  assert.equal(match.estimateImpact(tower, boss, match.maxWaves).hitsToDefeat, null);
 });
