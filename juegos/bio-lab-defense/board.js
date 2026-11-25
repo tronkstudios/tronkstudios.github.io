@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=31";
+import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=32";
 import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=4";
 
 function trace(ctx, points) {
@@ -511,7 +511,7 @@ export class Board {
     reduced,
     aiming,
     hovered = null,
-    { gatePreview, movingHero, movingTower, skillPreview, upgradePreview, snapOrigin, breach = null, reviewGap = null, routePlan = false, focusTarget = match.focusTarget, fireCoverage = null } = {},
+    { gatePreview, movingHero, movingTower, skillPreview, upgradePreview, snapOrigin, breach = null, reviewGap = null, routePlan = false, focusTarget = match.focusTarget, fireCoverage = null, previewPowerCut } = {},
   ) {
     const ctx = this.ctx;
     const key = match.mission
@@ -555,6 +555,16 @@ export class Board {
       }
       const area = routeEvent.blackout;
       if (area) circle(ctx, area.x, area.y, area.radius, "#d79b421c", "#ffd277c9", 4);
+      ctx.restore();
+    }
+    const cutoff = match.powerCuts?.[match.coverageWave];
+    const warning = !cutoff && match.state === "build" && match.powerCuts?.[match.coverageWave + 1];
+    const powerCut = previewPowerCut || cutoff || warning;
+    if (powerCut) {
+      ctx.save();
+      ctx.setLineDash([12, 7]);
+      circle(ctx, powerCut.x, powerCut.y, powerCut.radius,
+        warning && !previewPowerCut ? "#d79b421a" : "#d79b4238", "#ffd277", 4);
       ctx.restore();
     }
     for (const pad of match.firePads) {

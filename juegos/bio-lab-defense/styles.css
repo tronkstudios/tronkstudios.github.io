@@ -1131,6 +1131,25 @@ dialog p {
   font-size: 0.83rem;
 }
 .wave-tactics p { margin: 0.25rem 0 0; color: #e2d3c1; }
+#briefing-power label { display: block; margin-bottom: 0.3rem; }
+#briefing-power-wave {
+  width: 100%;
+  min-height: 40px;
+  padding: 0.35rem 0.45rem;
+  border: 1px solid #8a7055;
+  border-radius: 6px;
+  background: #232526;
+  color: var(--text);
+  font: inherit;
+}
+#power-cut {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.8rem;
+}
+#power-cut button { min-height: 40px; border-color: #8a7055; }
 .wave-timeline {
   display: grid;
   gap: 0.25rem;

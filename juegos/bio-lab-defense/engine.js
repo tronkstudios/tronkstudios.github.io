@@ -1,5 +1,5 @@
 import { affinityFor, towerMultiplier } from "./affinities.js?v=1";
-import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=10";
+import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=11";
 
 import { HERO_BY_ID } from "./operations.js?v=7";
 
@@ -738,6 +738,7 @@ export class Match {
     this.gateDiverted = false;
     this.towerLimit = contract?.towerLimit ?? this.mission?.towerLimit;
     this.firePads = [];
+    this.powerCuts = !this.ranked ? this.mission.powerCuts : null;
 
     const event = !daily && ROUTE_EVENTS[this.mission?.routePattern ?? level];
     if (event) {
@@ -863,10 +864,14 @@ export class Match {
       : nextWave === event.wave ? "active" : "rerouted";
   }
 
+  blackoutForWave(wave) {
+    const event = this.routeEvent;
+    return this.powerCuts?.[wave] || (event?.wave === wave ? event.blackout : null);
+  }
+
   towerOffline(tower, wave = this.state === "wave" ? this.wave : 0) {
-    const area = this.routeEvent?.blackout;
-    return !!area && wave === this.routeEvent.wave &&
-      Math.hypot(tower.x - area.x, tower.y - area.y) <= area.radius;
+    const area = this.blackoutForWave(wave);
+    return !!area && Math.hypot(tower.x - area.x, tower.y - area.y) <= area.radius;
   }
 
   get hasAffinities() {

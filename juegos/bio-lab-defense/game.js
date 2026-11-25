@@ -15,18 +15,18 @@ import {
   VARIANT_NAMES,
   escortArmor,
   dailySetup,
-} from "./engine.js?v=31";
+} from "./engine.js?v=32";
 import { routeCoverage, routeTeamCoverage } from "./coverage.js?v=2";
-import { attachDrill } from "./drill.js?v=5";
-import { Board } from "./board.js?v=38";
+import { attachDrill } from "./drill.js?v=6";
+import { Board } from "./board.js?v=39";
 import { towerIcon, heroIcon } from "./art.js?v=4";
-import { createCodex } from "./codex.js?v=19";
-import { Profile, dayKey } from "./profile.js?v=13";
+import { createCodex } from "./codex.js?v=20";
+import { Profile, dayKey } from "./profile.js?v=14";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=7";
-import { CHAPTERS, MISSIONS } from "./campaign.js?v=10";
+import { CHAPTERS, MISSIONS } from "./campaign.js?v=11";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=27";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=28";
 
 import { HEROES, CONTRACTS } from "./operations.js?v=7";
 
@@ -586,8 +586,16 @@ function briefing(level) {
   }
   $("briefing-route-event").hidden = !preview.routeEvent;
   if (preview.routeEvent) updateText("briefing-route-event", describeRouteEvent(preview.routeEvent));
+  const cuts = Object.entries(preview.powerCuts || {});
+  $("briefing-power").hidden = !cuts.length;
+  const powerSelect = $("briefing-power-wave");
+  powerSelect.replaceChildren(...cuts.map(([wave, cut]) => new Option(`Oleada ${wave} · ${cut.name}`, wave)));
+  powerSelect.onchange = () => briefingBoard.draw(preview, null, null, null, true, false, null, {
+    routePlan: true,
+    previewPowerCut: preview.powerCuts?.[powerSelect.value],
+  });
   view("briefing");
-  briefingBoard.draw(preview, null, null, null, true, false, null, { routePlan: true });
+  powerSelect.onchange();
 }
 
 function describeRouteEvent(event, phase = "warning") {
@@ -1595,6 +1603,40 @@ $("field-guide-dismiss").onclick = () => {
   canvas.focus({ preventScroll: true });
 };
 
+$("power-cut-relocate").onclick = () => {
+  if (match.state !== "build" || adBusy) return;
+  const tower = match.towers.find(tower => match.towerOffline(tower, match.coverageWave));
+  if (!tower) return;
+  blueprint = null;
+  selected = tower;
+  movingTower = null;
+  upgradePreview = null;
+  highlightDock();
+  toggleTowerMove(tower);
+  message("Elige una posición fuera de la zona ámbar.");
+  persistPreparation();
+  canvas.scrollIntoView({ block: "nearest" });
+  canvas.focus({ preventScroll: true });
+};
+
+function renderPowerCut(waiting) {
+  const wave = match.coverageWave;
+  const current = match.powerCuts?.[wave];
+  const upcoming = waiting && match.powerCuts?.[wave + 1];
+  const cut = current || upcoming;
+  const visible = cut && (waiting || match.state === "wave");
+  $("power-cut").hidden = !visible;
+  if (!visible) return;
+  const cutWave = current ? wave : wave + 1;
+  const affected = match.towers.filter(tower => match.towerOffline(tower, cutWave)).length;
+  $("power-cut-relocate").hidden = !waiting || !current || !affected;
+  updateText("power-cut-title", `Oleada ${cutWave} · ${cut.name}`);
+  const towers = affected === 1 ? "1 torre afectada" : `${affected} torres afectadas`;
+  updateText("power-cut-detail", current
+    ? `${towers} en la zona ámbar.${waiting ? " Puedes reubicar torres gratis antes de iniciar." : " Este corte dura toda la oleada."}`
+    : `Corte anunciado. ${towers} con la distribución actual.`);
+}
+
 function renderObjectiveCoverage(waiting) {
   const objective = waiting ? match.defenseObjective : null;
   $("objective-coverage").hidden = !objective;
@@ -1631,6 +1673,7 @@ function renderHUD() {
   updateText("wave", `${match.wave}/${match.maxWaves}`);
   const waiting = match.state === "build";
   renderFieldGuide(waiting);
+  renderPowerCut(waiting);
   renderObjectiveCoverage(waiting);
   const targets = $("mission-targets");
   targets.hidden = match.ranked || !["build", "wave"].includes(match.state);

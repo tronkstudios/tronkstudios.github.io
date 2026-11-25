@@ -133,7 +133,7 @@ window.testRun = {
     await page.addInitScript(() => {
       if (!localStorage.getItem("biolab_save_v1"))
         localStorage.setItem("biolab_save_v1", JSON.stringify({
-          unlockedLevel: 22, bioGems: 61, stars: Array(22).fill(1).with(13, 0),
+          unlockedLevel: 31, bioGems: 61, stars: Array(22).fill(1).with(13, 0),
         }));
     });
     await page.goto(base + "/juegos/bio-lab-defense/");
@@ -453,6 +453,31 @@ window.testRun = {
     assert.equal(await page.locator("#zero-state-a").textContent(), "Destruido");
     assert.equal(await page.locator("#zero-state-b").textContent(), "Destruido");
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true);
+    await page.locator("#pause").tap();
+    await page.getByRole("button", { name: "Abandonar partida" }).tap();
+    await page.locator(".level").filter({ hasText: "Eco orbital" }).tap();
+    const powerMap = page.getByLabel("Ver corte de energía");
+    assert.equal(await powerMap.inputValue(), "3");
+    await powerMap.selectOption("4");
+    await page.locator("#launch-mission").tap();
+    await page.evaluate(() => testRun.nextPreparation());
+    await page.locator("#power-cut-detail").getByText(/Corte anunciado/).waitFor();
+    assert.ok(await page.locator("#power-cut-relocate").isHidden());
+    const tapPowerBoard = async (x, y) => {
+      const bounds = await board.boundingBox();
+      await board.tap({ position: { x: (bounds.width - 2) * x / 900, y: (bounds.height - 2) * y / 540 } });
+    };
+    await tapPowerBoard(503, 241);
+    await page.locator("#board-status").getByText("Nano-Láser instalada.").waitFor();
+    await page.evaluate(() => testRun.nextPreparation());
+    await page.locator("#power-cut-detail").getByText(/1 torre afectada/).waitFor();
+    const budget = await page.locator("#atp").textContent();
+    await page.locator("#power-cut-relocate").tap();
+    await page.locator("#board-status").getByText(/fuera de la zona ámbar/).waitFor();
+    await tapPowerBoard(730, 156);
+    await page.locator("#board-status").getByText("Nano-Láser reubicada.").waitFor();
+    await page.locator("#power-cut-detail").getByText(/0 torres afectadas/).waitFor();
+    assert.equal(await page.locator("#atp").textContent(), budget);
     assert.deepEqual(errors, []);
     console.log("Bio-Lab map beacons, hero payment and ads, contracts, equipment and Mirror warnings passed.");
   } finally {

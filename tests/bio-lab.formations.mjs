@@ -77,6 +77,37 @@ test("signature campaign waves route and announce the configured groups without 
   }
 });
 
+test("campaign power cuts rotate by wave and stop affected reactors until they move", () => {
+  for (const level of [27, 31]) {
+    const match = new Match(level);
+    assert.notDeepEqual(match.blackoutForWave(3), match.blackoutForWave(4));
+    assert.equal(match.blackoutForWave(5), null);
+    assert.equal(new Match(level, null, { veteran: true }).blackoutForWave(3), null);
+    const spot = match.firePads.find(point => match.towerOffline(point, 3));
+    assert.ok(spot);
+    const reactor = match.place(BLUEPRINTS.find(type => type.id === "ribosome"), spot.x, spot.y);
+    assert.ok(reactor);
+    match.wave = 2;
+    match.preview = match.planWave(3);
+    reactor.cooldown = 0;
+    assert.ok(match.startWave());
+    assert.equal(match.towerOffline(reactor), true);
+    match.tick();
+    assert.equal(reactor.produced, 0);
+    match.queue = [];
+    match.tick();
+    assert.equal(match.state, "build");
+    const atp = match.atp;
+    const outside = { x: 730, y: 156 };
+    assert.equal(match.towerOffline(outside, 4), false);
+    assert.ok(match.relocate(reactor, outside.x, outside.y));
+    assert.equal(match.atp, atp);
+    assert.ok(match.startWave());
+    match.tick();
+    assert.ok(reactor.produced > 0);
+  }
+});
+
 test("entry alerts use the first enemy actually queued for each lane", () => {
   const match = new Match(8, null, { contract: CONTRACTS.find(contract => contract.pressure) });
   const { arrivals } = match.preview;

@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=41" />
+    <link rel="stylesheet" href="./styles.css?v=42" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -189,6 +189,11 @@
             ></canvas>
             <p id="briefing-tactics" class="wave-tactics" hidden></p>
             <p id="briefing-approach" class="objective-briefing" hidden></p>
+            <div id="briefing-power" class="wave-tactics" hidden>
+              <label for="briefing-power-wave">Ver corte de energía</label>
+              <select id="briefing-power-wave" aria-controls="briefing-map"></select>
+              <p>Las torres dentro de la zona ámbar quedan apagadas durante esa oleada.</p>
+            </div>
             <p id="briefing-route-event" class="route-event" hidden></p>
           </section>
         </div>
@@ -312,6 +317,13 @@
                 <button type="button" id="field-guide-dismiss" aria-label="Ocultar guía del primer despliegue">Ocultar</button>
               </div>
             </section>
+            <aside id="power-cut" class="wave-tactics" aria-label="Corte de energía" hidden>
+              <div>
+                <strong id="power-cut-title"></strong>
+                <p id="power-cut-detail" aria-live="polite"></p>
+              </div>
+              <button type="button" id="power-cut-relocate" hidden>Reubicar torre afectada</button>
+            </aside>
             <aside id="objective-coverage" class="objective-briefing" aria-label="Cobertura del objetivo" hidden>
               <strong id="objective-coverage-title"></strong>
               <p id="objective-coverage-tip"></p>
@@ -564,6 +576,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=53"></script>
+    <script type="module" src="./game.js?v=54"></script>
   </body>
 </html>

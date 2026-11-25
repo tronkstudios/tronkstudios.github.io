@@ -504,6 +504,10 @@ export const MISSIONS = [
         { name: "Eco por ambas entradas" },
       ],
     } },
+    powerCuts: {
+      3: { x: 495, y: 270, radius: 175, name: "Interferencia del anillo interior" },
+      4: { x: 390, y: 140, radius: 165, name: "Interferencia del transmisor norte" },
+    },
   },
   {
     chapter: 7, name: "Paralaje", task: "Sincroniza las dos lentes.",
@@ -551,6 +555,10 @@ export const MISSIONS = [
         { name: "Segunda colada", lane: 1, spacing: 20 },
       ],
     } },
+    powerCuts: {
+      3: { x: 530, y: 307, radius: 175, name: "Calentamiento de la salida B" },
+      4: { x: 235, y: 360, radius: 175, name: "Purga de los conductos iniciales" },
+    },
   },
   {
     chapter: 8, name: "Crisol doble", task: "Protege los registros de las dos coladas.",
