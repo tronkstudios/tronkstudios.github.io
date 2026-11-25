@@ -414,7 +414,7 @@ const Game = (() => {
     const openingDraft = mode === "solo" && !opts.daily && !opts.training && !veteran;
     const runSeconds = sprint ? 600 : TS.RUN_SECONDS;
     st = {
-      mapId, signature:TS.runSignature(setups,{...opts,mods,map:mapId,openingDraft}), openingDraft, training:opts.training || null, sprint, runSeconds,
+      mapId, signature:TS.runSignature(setups,{...opts,mods,map:mapId,openingDraft}), openingDraft, training:opts.training || null, trainingPreset:opts.trainingPreset, trainingSample:null, sprint, runSeconds,
       mods,
       daily: opts.daily || null,
       evolutions: 0,
@@ -478,8 +478,11 @@ const Game = (() => {
       target.baseMaxHp = undefined;
       target.vx = target.vy = 0;
       player.abCd = 0;
-      player.weapons[0].lvl = 4;
-      player.techniques = Object.fromEntries(TS.TECHNIQUES[player.charId].map(move => [move.id, 3]));
+      if (st.trainingPreset !== "base") {
+        const maxed = st.trainingPreset === "max";
+        player.weapons[0].lvl = maxed ? 6 : 4;
+        player.techniques = Object.fromEntries(TS.TECHNIQUES[player.charId].map(move => [move.id, maxed ? move.max : 3]));
+      }
     }
     cam.x = st.players[localId].x;
     cam.y = st.players[localId].y;
@@ -3593,6 +3596,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     if (st.training) {
       updateShots();
       updateZones();
+      if (st.t === 20 * 60) st.trainingSample = Math.round(st.players[0].combat.dealt);
       return;
     }
     spawning();
@@ -3777,6 +3781,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     const abDef = TS.ABILITIES[p.charId],compass=compassTarget(p);
     return {
       training:st.training ? Math.round(p.combat.dealt) : null,
+      trainingSample:st.trainingSample,
       goals:goalCandidates(p).filter((g,i)=>i<20 || g.key===pinnedGoal).map(g=>({...g,distance:Math.round(Math.sqrt(dist2(g,p))/U)})),pinnedGoal,
       site:site?{campChoice:site.kind==="camp" && !site.activated && dist2(site,p)<(70*U)**2,defenders:site.defenders?.filter(defender=>defender.hp>0).length,lampKills:site.lampKills || 0,name:L(TS.siteName(site)),hint:L(TS.SITE_HINTS[site.kind]),kind:site.kind,nest:!!site.nest,pct:Math.round((site.pct ?? 1)*100),progress:Math.min(100,Math.round(site.progress/120*100)),activated:site.activated,used:site.used,seconds:Math.ceil(Math.max(0,site.activeUntil-st.t)/60),guards:st.guest?site.remaining:site.guards.filter(id=>st.enemies.some(e=>e.id===id&&!e.dead)).length}:null,
       breach:st.breach?{remaining:st.breach.remaining,total:st.breach.total}:null,

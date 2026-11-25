@@ -89,3 +89,17 @@
 @media(any-pointer:coarse) and (orientation:landscape){
  #hud-slots{padding:5px;gap:3px}#hud-slots .hud-slot{width:25px;height:27px}#hud-slots .hud-slot img{width:21px;height:21px}#hud-slots .hud-slot.is-passive{width:19px;height:23px}#hud-slots .hud-slot.is-passive img{width:16px;height:16px}
 }
+
+@media (max-width: 600px) and (orientation: portrait) {
+  #menu .menu-layout { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  #menu .menu-stage { padding: 12px 14px; gap: 6px 12px; }
+  #menu .stage-hero img { width: 96px; height: 114px; }
+  #menu .stage-floor { width: 108px; height: 30px; margin-top: -22px; }
+  #menu .stage-info { gap: 4px; }
+  #menu .stage-info .btn { min-height: 44px; }
+  #menu .menu-box { min-width: 0; grid-template-columns: minmax(0, 1fr); padding: 18px; gap: 10px; }
+  #menu .menu-buttons { grid-template-columns: minmax(0, 1fr); }
+  #menu .menu-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #menu .menu-row .btn { padding-inline: 8px; }
+  #menu .menu-foot { flex-wrap: wrap; gap: 6px; }
+}

@@ -23,9 +23,9 @@
     http-equiv="Content-Security-Policy"
     content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://securepubads.g.doubleclick.net https://pagead2.googlesyndication.com; frame-src https://*.doubleclick.net https://*.googlesyndication.com https://*.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.doubleclick.net https://*.googlesyndication.com https://*.google.com; font-src 'self' data:; connect-src 'self' https://qjjnqhbtovjcbwgcwhgl.supabase.co wss://qjjnqhbtovjcbwgcwhgl.supabase.co https://tronkstudios-support.tronkstudios7.workers.dev https://*.doubleclick.net https://*.googlesyndication.com https://*.google.com; object-src 'none'; base-uri 'self'; form-action 'self'"
   />
-  <link rel="stylesheet" href="survivors.css?v=17" />
+  <link rel="stylesheet" href="survivors.css?v=18" />
   <link rel="stylesheet" href="css/depth.css?v=8">
-  <link rel="stylesheet" href="css/mobile.css?v=3">
+  <link rel="stylesheet" href="css/mobile.css?v=4">
 </head>
 <body>
   <canvas id="game" aria-label="Tronk Survivors"></canvas>
@@ -312,6 +312,14 @@
     <div class="modal-box">
       <h2 id="pause-title">Pausa</h2>
       <p id="pause-live" class="play-note" hidden></p>
+      <label id="training-preset-row" class="setting" hidden><span data-i18n="Equipo de prueba">Equipo de prueba</span>
+        <select id="training-preset">
+          <option value="base">Arma base</option>
+          <option value="standard">Arma 4 · técnicas 3</option>
+          <option value="max">Arma 6 · técnicas al máximo</option>
+        </select>
+      </label>
+      <p id="training-comparison" class="play-note" hidden></p>
       <div class="pause-build" id="pause-build"></div>
       <div class="evolution-guide" id="pause-evolution"></div>
       <div id="pause-relics" class="relic-summary"></div>
@@ -323,6 +331,7 @@
       <section class="encounter-plan" aria-labelledby="encounter-title"><h3 id="encounter-title">Próximos encuentros</h3><ol id="pause-encounters"></ol></section>
       <div class="modal-buttons">
         <button class="btn btn-big" id="pause-resume">Seguir</button>
+        <button class="btn" id="pause-retry-training" type="button" data-i18n="Repetir prueba" hidden>Repetir prueba</button>
         <button class="btn" id="pause-fullscreen" type="button">Pantalla completa</button>
         <button class="btn" id="pause-quit">Terminar partida</button>
       </div>
@@ -367,12 +376,12 @@
   <script src="js/render3d.js?v=21" defer></script>
   <script src="js/audio.js?v=6" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-  <script src="js/lang.js?v=27" defer></script>
+  <script src="js/lang.js?v=28" defer></script>
   <script src="js/save.js?v=13" defer></script>
   <script src="js/account.js?v=4" defer></script>
-  <script src="js/game.js?v=38" defer></script>
+  <script src="js/game.js?v=39" defer></script>
   <script src="js/net.js?v=11" defer></script>
   <script src="js/rewarded.js?v=8" defer></script>
-  <script src="js/ui.js?v=35" defer></script>
+  <script src="js/ui.js?v=36" defer></script>
 </body>
 </html>

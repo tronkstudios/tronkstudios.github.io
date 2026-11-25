@@ -3025,3 +3025,64 @@ body:has(#practice-panel:not(.hidden)) #danger-cue {
 
 .skin-ad-progress{display:block;margin-top:.3rem;color:#ffd77b;font-size:.75rem;font-variant-numeric:tabular-nums}
 #skins-container [role="button"]:focus-visible{outline:2px solid #00d9ff;outline-offset:2px}
+
+/* El túnel sigue visible detrás de un panel de mando legible. */
+#screen-main-menu h1 .game-wordmark-name {
+  color: #e8f8ff;
+  text-shadow: 0 2px #335d85, 0 0 36px #12b8f462, 0 8px 24px #020a16;
+}
+#screen-main-menu .hero-cta .brutal-btn-primary {
+  color: #071827;
+  border-color: #b1f6ff;
+  background: linear-gradient(105deg, #c1faff, #6cebf4 56%, #4db7ec);
+  box-shadow: 0 4px #0c7295, 0 10px 30px #0ba0e04a;
+}
+#screen-main-menu .mode-cards {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 620px;
+}
+#screen-main-menu .mode-card {
+  min-width: 0;
+  min-height: 65px;
+  background: linear-gradient(155deg, #172d41f5, #071726f5);
+  border-radius: 10px;
+  box-shadow: inset 0 1px #bdeeff19, 0 4px 16px #020b1766;
+}
+#screen-main-menu .mode-card b { font-size: .75rem; line-height: 1.35; }
+#screen-main-menu .mode-card span { color: #b7ccdd; font-size: .72rem; line-height: 1.4; }
+#screen-main-menu #btn-gravity-course {
+  border-color: #71ddde9c;
+  background: linear-gradient(155deg, #1c4652f5, #10202ff5);
+}
+#screen-main-menu .mode-card:focus-visible,
+#screen-main-menu .mode-card button:focus-visible {
+  outline: 2px solid #aef9ff;
+  outline-offset: 3px;
+}
+.practice-panel,
+#modal-gameover .brutal-card,
+#modal-pause .brutal-card,
+.practice-complete .brutal-card {
+  background: linear-gradient(160deg, #142c3e, #080f1ccf 65%), #0a1622;
+  border-color: #79b2da8c;
+  box-shadow: 0 12px 38px #0009, inset 0 1px #d3f0ff22;
+}
+#modal-gameover .brutal-card { border-top-color: #ffae71; }
+#go-score, #go-distance, #go-energy, #go-best { font-variant-numeric: tabular-nums; }
+#go-advice { color: #b8dbe8; line-height: 1.5; }
+#danger-cue:not(.hidden) { border-color: #ffac73; }
+@media (max-width: 600px) {
+  #screen-main-menu .mode-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+  #screen-main-menu #btn-gravity-course { grid-column: 1 / -1; grid-row: 2; }
+  #screen-main-menu .mode-card { padding: 8px 10px; }
+  body:has(#screen-main-menu:not(.hidden)) #canvas-container::after {
+    background: linear-gradient(180deg, #070e1adb, #070e1a48 42%, #070e1ab8 75%, #070e1aeb);
+  }
+  .practice-panel { padding: 8px 12px; }
+}
+@media (pointer: coarse), (prefers-reduced-motion: reduce) {
+  #modal-gameover, #modal-pause { backdrop-filter: none; }
+}

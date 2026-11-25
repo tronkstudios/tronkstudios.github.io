@@ -181,6 +181,28 @@ async function checkRunner(browser) {
     game.handleGameOver();
   });
   assert.equal(await page.locator("#btn-retry-course").isVisible(), false);
+  const originalBalance = await page.evaluate(() => {
+    gravityShiftGame.returnToMainMenu();
+    return gravityShiftGame.scoreMgr.saveData.totalEnergy;
+  });
+  await page.locator("#btn-gravity-course").tap();
+  await page.waitForFunction(() => gravityShiftGame.state === "PLAYING");
+  await page.evaluate(() => gravityShiftGame.handleGameOver());
+  await page.waitForFunction(() => !gravityShiftGame.practice.pendingRetry);
+  await page.keyboard.press("KeyD");
+  await page.waitForFunction(() => !gravityShiftGame.gravitySys.isTransitioning);
+  await page.keyboard.press("KeyE");
+  for (const [gate, key] of [[2, "KeyD"], [3, "KeyW"], [4, "KeyA"], [5, "KeyS"]]) {
+    await page.waitForFunction(index => gravityShiftGame.practice.index === index, gate - 1);
+    await page.keyboard.press(key);
+  }
+  await page.waitForFunction(() => gravityShiftGame.state === "PRACTICE_DONE");
+  assert.match(await page.locator("#practice-complete-title").textContent(), /cinco bifurcaciones/);
+  assert.ok(await page.evaluate(() => gravityShiftGame.practice.energy > 5));
+  assert.equal(await page.evaluate(() => gravityShiftGame.scoreMgr.saveData.totalEnergy), originalBalance);
+  await page.locator("#btn-repeat-gravity-course").tap();
+  assert.equal(await page.evaluate(() => gravityShiftGame.practice.index), 0);
+
 
   await page.close();
 }

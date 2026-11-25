@@ -567,7 +567,7 @@
     }
     const practiceButton = el("button", "btn btn-small", L("Campo de pruebas"));
     practiceButton.type = "button";
-    practiceButton.addEventListener("click", () => play([{charId:id,stars:have?.stars || 1,meta:Save.shopStats(),mastered:!!save.mastery[id]}], {map:"bosque",training:target.value}));
+    practiceButton.addEventListener("click", () => play([{charId:id,stars:have?.stars || 1,meta:Save.shopStats(),mastered:!!save.mastery[id]}], {map:"bosque",training:target.value,seed:404}));
     practice.append(target,practiceButton);
     box.append(practice);
     if (have) {
@@ -988,7 +988,9 @@
       ? `${site.name} · ${L("Defensores")}: ${site.defenders || 0}${site.seconds?` · ${site.seconds}s`:""}`
       : site?.used && site.kind==="lamp" ? `${site.name} · ${Math.min(8,site.lampKills)}/8 · ${site.seconds}s` : "";
     $("hud-world").textContent=d.training!==null && d.training!==undefined
-      ? `${L("Campo de pruebas")} · ${L("Daño causado")}: ${d.training.toLocaleString(LANG)}`
+      ? d.trainingSample == null
+        ? `${L("Prueba de 20 s")} · ${Math.min(20,d.seconds)}/20 s · ${d.training.toLocaleString(LANG)} ${L("de daño")}`
+        : `${L("Daño en los primeros 20 s")}: ${d.trainingSample.toLocaleString(LANG)} · ${(d.trainingSample/20).toLocaleString(LANG,{maximumFractionDigits:1})} DPS`
       : defence || (d.combo?d.combo:d.site?`${d.site.name} · ${d.site.used?`${L("Activo")} ${d.site.seconds}s`:d.site.nest?`${d.site.hint} · ${d.site.pct}%`:d.site.activated?`${L("Guardianes restantes")}: ${d.site.guards}`:`${d.site.hint} · ${L("Mantente en el círculo")}: ${d.site.progress}%`}`:Game.mapId==="playa" && d.inWater?L("Corriente: puedes moverte contra ella"):"");
     $("hud-sub").textContent = (d.finalPhase ? `${L("Supervivencia final")} · ` : Game.state && Game.state.endless ? `${L("Modo infinito")} · ` : "") + LT("hudSub", { map: L(TS.MAPS[Game.mapId].name), kills: d.kills, coins: d.coins });
     const pct = Math.max(0, d.hp / d.maxHp);
@@ -1195,6 +1197,15 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
         const stat=el("div");stat.append(el("b","",Math.round(value || 0).toLocaleString(LANG)),el("small","",L(label)));$("pause-metrics").append(stat);
       }
       $("pause-fullscreen").hidden=!document.fullscreenEnabled;
+      $("pause-retry-training").hidden = $("training-preset-row").hidden = !Game.state.training;
+      $("training-preset").value = Game.state.trainingPreset || "standard";
+      const comparison = $("training-comparison");
+      const reference = Game.state.training ? lastRun?.opts?.trainingReference : null;
+      comparison.hidden = reference == null || Game.state.trainingSample == null;
+      if (!comparison.hidden) {
+        const delta = Game.state.trainingSample - reference;
+        comparison.textContent = `${L("Frente a la prueba anterior")}: ${delta >= 0 ? "+" : "−"}${Math.abs(delta).toLocaleString(LANG)} ${L("de daño")}`;
+      }
       $("pause-resume").focus();
     } else if(!$("levelup").hidden) $("levelup-cards").querySelector("button")?.focus();
   }
@@ -1253,6 +1264,14 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     catch {toast(L("Pantalla completa no disponible"));}
   });
   $("pause-resume").addEventListener("click", () => pause(false));
+  $("pause-retry-training").addEventListener("click", () => {
+    if (!Game.state?.training || !lastRun?.opts?.training) return;
+    play(lastRun.setups, {
+      ...lastRun.opts,
+      trainingPreset:$("training-preset").value,
+      trainingReference:Game.state.trainingSample ?? lastRun.opts.trainingReference
+    });
+  });
   $("pause-quit").addEventListener("click", () => {
     $("pause").hidden = true;
     Game.setPaused(false);

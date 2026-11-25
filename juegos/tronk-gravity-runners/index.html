@@ -30,7 +30,7 @@
     <!-- Three.js r128 -->
     <!-- Three.js is bundled with the engine. -->
 
-    <link rel="stylesheet" href="./styles.f6963d1399dc.css" />
+    <link rel="stylesheet" href="./styles.7a001241e96a.css" />
   </head>
 
   <body>
@@ -101,15 +101,16 @@
       class="practice-complete hidden"
       role="dialog"
       aria-modal="true"
-      aria-label="Práctica completada"
+      aria-labelledby="practice-complete-title"
     >
       <div class="brutal-card">
         <span>ENTRENAMIENTO COMPLETADO</span>
-        <h2>Ya dominas la gravedad.</h2>
-        <p>
+        <h2 id="practice-complete-title" tabindex="-1">Ya dominas la gravedad.</h2>
+        <p id="practice-complete-summary">
           Has practicado las cuatro superficies, el ajuste lateral y el cambio
           perfecto. No se han modificado tus monedas ni tus récords.
         </p>
+        <button id="btn-repeat-gravity-course" class="brutal-btn" type="button" hidden>REPETIR CIRCUITO</button>
         <button id="btn-practice-play" class="brutal-btn brutal-btn-primary">
           JUGAR UNA PARTIDA</button
         ><button id="btn-practice-menu" class="brutal-btn">
@@ -317,6 +318,9 @@
           <div class="mode-cards">
             <button id="btn-practice" class="mode-card">
               <b>APRENDER</b><span>6 ejercicios · sin perder progreso</span>
+            </button>
+            <button id="btn-gravity-course" class="mode-card" type="button">
+              <b>CIRCUITO DE GRAVEDAD</b><span>5 bifurcaciones · práctica sin recompensas</span>
             </button>
             <div class="mode-card daily-card">
               <button id="btn-daily">
@@ -1366,6 +1370,6 @@
     <!-- =========================================================================
        MODULAR GAME ENGINE IMPLEMENTATION
        ========================================================================= -->
-    <script defer id="engine-script" src="./game.3e9884b6198f.js"></script>
+    <script defer id="engine-script" src="./game.4aa0d2be6a50.js"></script>
   </body>
 </html>
