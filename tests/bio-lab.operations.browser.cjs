@@ -86,6 +86,8 @@ window.testRun = {
   },
   finishCurrentWave() {
     match.enemies = [];
+    this.leakRegularEnemy();
+    match.enemies[0].coverageGaps = [0, 4];
     match.queue = [];
     match.shots = [];
     match.mirrorOrders = [];
@@ -327,7 +329,27 @@ window.testRun = {
     await page.locator("#combat-cue").getByText("Terminal A asegurada").waitFor();
     await page.getByText("Protege la terminal B · Integridad 4/4").waitFor();
     await page.locator("#wave-debrief-title").tap();
-    await page.getByText("Entrada A · 0 fugas / Entrada B · 0 fugas").waitFor();
+    await page.getByText(/Entrada A · [01] fugas? \/ Entrada B · [01] fugas?/).waitFor();
+    const gapText = page.locator("#wave-debrief-gap-text");
+    await gapText.getByText(/Faltó cobertura.*1 enemigo/).waitFor();
+    await page.locator("#wave-debrief-worst").getByText(/Mayor golpe al núcleo · −10 %/).waitFor();
+    const markGap = page.locator("#wave-debrief-map");
+    const yellowPixels = () => page.locator("#board").evaluate(canvas => {
+      const pixels = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
+      let count = 0;
+      for (let i = 0; i < pixels.length; i += 4)
+        if (pixels[i] === 255 && pixels[i + 1] === 240 && pixels[i + 2] === 166) count++;
+      return count;
+    });
+    const beforeMarking = await yellowPixels();
+    await markGap.tap();
+    assert.equal(await markGap.getAttribute("aria-pressed"), "true");
+    await page.locator("#entry-start-a").waitFor({ state: "hidden" });
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    assert.ok(await yellowPixels() > beforeMarking);
+    await markGap.tap();
+    assert.equal(await markGap.getAttribute("aria-pressed"), "false");
+    await page.locator("#entry-start-a").waitFor();
     const payout = await page.locator("#wave-debrief-atp").textContent();
     assert.match(payout, /Cierre de oleada.*Refuerzo/);
     await page.reload();
@@ -335,6 +357,12 @@ window.testRun = {
     await page.getByText("Protege la terminal B · Integridad 4/4").waitFor();
     await page.locator("#wave-debrief-title").tap();
     assert.equal(await page.locator("#wave-debrief-atp").textContent(), payout);
+    await gapText.getByText(/Faltó cobertura.*1 enemigo/).waitFor();
+    await markGap.tap();
+    assert.equal(await markGap.getAttribute("aria-pressed"), "true");
+    await page.locator("#next").tap();
+    await markGap.waitFor({ state: "hidden" });
+    assert.equal(await markGap.getAttribute("aria-pressed"), "false");
     await page.locator("#pause").tap();
     await page.getByRole("button", { name: "Volver con guardado" }).tap();
     await page.locator(".level").nth(19).tap();

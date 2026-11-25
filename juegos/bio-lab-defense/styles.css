@@ -1786,6 +1786,28 @@ dialog::backdrop { background: #031016cf; }
 .wave-debrief summary { cursor: pointer; font-weight: 700; padding-block: 0.3rem; }
 .wave-debrief summary::marker { color: #7ae6b5; }
 #wave-debrief-leaks { margin-top: 0.35rem; }
+#wave-debrief-worst { color: var(--warning); }
+#wave-debrief-gap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.8rem;
+  padding: 0.5rem 0.65rem;
+  margin-block: 0.55rem;
+  border-inline-start: 3px dashed #fff0a6;
+  border-radius: 6px;
+  background: #2b2d2b;
+}
+#wave-debrief-gap p { margin: 0; color: #fff1be; }
+#wave-debrief-map { min-height: 40px; }
+#wave-debrief-map[aria-pressed="true"] {
+  color: #242012;
+  background: #fff0a6;
+  border-color: #fff0a6;
+}
+#field:has(#wave-debrief-map[aria-pressed="true"]) .wave-beacon {
+  visibility: hidden;
+}
 #wave-debrief-atp { margin: 0.4rem 0 0.2rem; }
 #wave-debrief-atp div {
   display: flex;

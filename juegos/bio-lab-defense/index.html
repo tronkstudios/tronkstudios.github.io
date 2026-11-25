@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=34" />
+    <link rel="stylesheet" href="./styles.css?v=35" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -348,6 +348,16 @@
             <div class="lane-brief" id="lane-brief" hidden>
               <b id="lane-a"></b><b id="lane-b"></b>
             </div>
+            <details id="wave-debrief" class="wave-debrief" hidden>
+              <summary id="wave-debrief-title"></summary>
+              <p id="wave-debrief-leaks" hidden></p>
+              <p id="wave-debrief-worst" hidden></p>
+              <div id="wave-debrief-gap" hidden>
+                <p id="wave-debrief-gap-text"></p>
+                <button type="button" id="wave-debrief-map" aria-controls="board" aria-pressed="false">Marcar tramo en el mapa</button>
+              </div>
+              <dl id="wave-debrief-atp"></dl>
+            </details>
             <div class="wave-preview" id="wave-preview">
               <div class="wave-preview-head">
                 <strong id="wave-preview-title"></strong>
@@ -375,11 +385,6 @@
               <summary>Estrellas e insignia</summary>
               <p id="star-pace"></p>
               <p id="medal-pace"></p>
-            </details>
-            <details id="wave-debrief" class="wave-debrief" hidden>
-              <summary id="wave-debrief-title"></summary>
-              <p id="wave-debrief-leaks" hidden></p>
-              <dl id="wave-debrief-atp"></dl>
             </details>
             <section id="gate-panel" class="wave-preview gate-panel" aria-labelledby="gate-title" hidden>
               <strong id="gate-title">Compuerta B</strong>
@@ -490,6 +495,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=46"></script>
+    <script type="module" src="./game.js?v=47"></script>
   </body>
 </html>

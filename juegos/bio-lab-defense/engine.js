@@ -1784,6 +1784,15 @@ export class Match {
       const generated = this.grossATP - this.waveStart.atp;
       this.addATP(payout + reserve + recovery);
       this.charge = Math.min(100, this.charge + 20);
+      let largestGap = null;
+      for (const gap of this.waveLeaks.gaps.values()) {
+        if (gap.count > (largestGap?.count || 0)) largestGap = gap;
+      }
+      const gap = largestGap && {
+        lane: largestGap.lane,
+        count: largestGap.count,
+        points: this.routes[largestGap.lane].points.slice(largestGap.waypoint - 1, largestGap.waypoint + 1),
+      };
       this.debrief = {
         kills: this.kills - this.waveStart.kills,
         damage: this.waveStart.hp - this.hp,
@@ -1794,6 +1803,8 @@ export class Match {
         reactor: this.waveStart.reactor,
         bounties: generated - this.waveStart.reactor,
         leaks: [...this.waveLeaks.lanes],
+        worst: this.waveLeaks.worst,
+        gap,
       };
       this.state = this.wave === this.maxWaves ? "won" : "build";
     }

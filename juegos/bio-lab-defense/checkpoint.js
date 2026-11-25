@@ -1,4 +1,4 @@
-import { BLUEPRINTS, Match, TARGETING, specializations } from "./engine.js?v=28";
+import { BLUEPRINTS, HEIGHT, Match, TARGETING, WIDTH, specializations } from "./engine.js?v=29";
 
 import { MISSIONS } from "./campaign.js?v=8";
 
@@ -193,15 +193,24 @@ export function restoreCheckpoint(data) {
     integer(data.debrief?.kills, 0, 2000) &&
     integer(data.debrief?.atp, 0, 100000)
   ) {
-    const { damage, kills, atp, payout, reserve, recovery, reactor, bounties, leaks } = data.debrief;
+    const { damage, kills, atp, payout, reserve, recovery, reactor, bounties, leaks, worst, gap } = data.debrief;
     match.debrief = { damage, kills, atp, reserve: integer(reserve, 0, atp) ? reserve : 0,
       recovery: integer(recovery, 0, atp) ? recovery : 0 };
     if ([payout, reserve, recovery, reactor, bounties].every(amount => integer(amount, 0, atp)) &&
         payout + reserve + recovery + reactor + bounties === atp)
       Object.assign(match.debrief, { payout, reactor, bounties });
     if (Array.isArray(leaks) && leaks.length === match.routes.length &&
-        leaks.every(count => integer(count, 0, 2000)))
+        leaks.every(count => integer(count, 0, 2000))) {
       match.debrief.leaks = leaks;
+      if (integer(worst?.lane, 0, leaks.length - 1) && leaks[worst.lane] &&
+          number(worst.loss, 1, damage) && typeof worst.name === "string" && worst.name.length <= 120)
+        match.debrief.worst = worst;
+      if (integer(gap?.lane, 0, leaks.length - 1) && integer(gap.count, 1, leaks[gap.lane]) &&
+          Array.isArray(gap.points) && gap.points.length === 2 &&
+          gap.points.every(point => Array.isArray(point) && point.length === 2 &&
+            number(point[0], 0, WIDTH) && number(point[1], 0, HEIGHT)))
+        match.debrief.gap = gap;
+    }
   }
   const selected = integer(data.selected, 0, match.towers.length - 1) ? match.towers[data.selected] : null;
   const blueprint = blueprintById.get(data.blueprint);

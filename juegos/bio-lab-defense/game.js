@@ -15,18 +15,18 @@ import {
   VARIANT_NAMES,
   escortArmor,
   dailySetup,
-} from "./engine.js?v=28";
+} from "./engine.js?v=29";
 import { routeCoverage } from "./coverage.js?v=1";
 import { attachDrill } from "./drill.js?v=2";
-import { Board } from "./board.js?v=34";
+import { Board } from "./board.js?v=35";
 import { towerIcon, heroIcon } from "./art.js?v=4";
-import { createCodex } from "./codex.js?v=16";
+import { createCodex } from "./codex.js?v=17";
 import { Profile, dayKey } from "./profile.js?v=11";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=7";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=8";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=24";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=25";
 
 import { HEROES, CONTRACTS } from "./operations.js?v=7";
 
@@ -1255,8 +1255,9 @@ function renderFieldControls(waiting) {
       const delay = arrival.ticks / (speed * 60);
       return [`${lane ? "B" : "A"} ${delay < 1 ? "al inicio" : `a los ${cadence.format(Math.round(delay * 10) / 10)} s`}`];
     });
+    const startHint = reviewGap ? "" : " Cualquier baliza inicia la oleada completa.";
     updateText("wave-beacon-hint",
-      `Primera llegada · ${arrivals.join(" / ")}. Cualquier baliza inicia la oleada completa.${match.preview.final ? " ★ Jefe" : ""}`);
+      `Primera llegada · ${arrivals.join(" / ")}.${startHint}${match.preview.final ? " ★ Jefe" : ""}`);
   }
   const live = match.state === "wave";
   const groups = match.incomingGroups;
@@ -1353,12 +1354,23 @@ function renderFieldControls(waiting) {
 }
 
 let displayedDebrief;
+let reviewGap = null;
+const reviewGapButton = $("wave-debrief-map");
+reviewGapButton.onclick = () => {
+  if (match.state !== "build" || !match.debrief?.gap) return;
+  reviewGap = reviewGap ? null : match.debrief.gap.points;
+  reviewGapButton.setAttribute("aria-pressed", String(!!reviewGap));
+  if (reviewGap) canvas.scrollIntoView({ block: "nearest" });
+};
+
 function renderWaveDebrief(waiting) {
   const report = $("wave-debrief");
   const data = waiting ? match.debrief : null;
   report.hidden = !data;
   if (displayedDebrief === data) return;
   displayedDebrief = data;
+  reviewGap = null;
+  reviewGapButton.setAttribute("aria-pressed", "false");
   report.open = false;
   if (!data) return;
 
@@ -1369,6 +1381,19 @@ function renderWaveDebrief(waiting) {
   if (data.leaks) {
     const counts = data.leaks.map((count, lane) => `Entrada ${lane ? "B" : "A"} · ${count} ${count === 1 ? "fuga" : "fugas"}`);
     leaks.textContent = counts.join(" / ");
+  }
+  const worst = $("wave-debrief-worst");
+  worst.hidden = !data.worst;
+  if (data.worst) {
+    const { name, loss, lane } = data.worst;
+    updateText("wave-debrief-worst", `Mayor golpe al núcleo · −${loss} % · ${name} · Entrada ${lane ? "B" : "A"}`);
+  }
+  const gap = $("wave-debrief-gap");
+  gap.hidden = !data.gap;
+  if (data.gap) {
+    const { count, lane } = data.gap;
+    const enemies = count === 1 ? "1 enemigo que llegó al núcleo" : `${count} enemigos que llegaron al núcleo`;
+    updateText("wave-debrief-gap-text", `Entrada ${lane ? "B" : "A"} · Faltó cobertura en este tramo durante el paso de ${enemies}.`);
   }
   const sources = [
     ["Enemigos abatidos", data.bounties], ["Bio-Reactores", data.reactor],
@@ -1679,7 +1704,7 @@ function frame(now) {
       reduced.matches,
       aiming,
       hovered,
-      { gatePreview, movingHero, movingTower, skillPreview: abilityPreview || hoverBot, upgradePreview, snapOrigin: draft?.snapped ? cursor : null },
+      { gatePreview, movingHero, movingTower, skillPreview: abilityPreview || hoverBot, upgradePreview, snapOrigin: draft?.snapped ? cursor : null, reviewGap: match.state === "build" ? reviewGap : null },
     );
     renderHUD();
   } else {
