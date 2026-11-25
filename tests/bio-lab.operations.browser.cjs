@@ -125,7 +125,7 @@ window.testRun = {
     await page.addInitScript(() => {
       if (!localStorage.getItem("biolab_save_v1"))
         localStorage.setItem("biolab_save_v1", JSON.stringify({
-          unlockedLevel: 22, bioGems: 61, stars: Array(22).fill(1),
+          unlockedLevel: 22, bioGems: 61, stars: Array(22).fill(1).with(13, 0),
         }));
     });
     await page.goto(base + "/juegos/bio-lab-defense/");
@@ -172,6 +172,21 @@ window.testRun = {
     ]);
     assert.equal(await page.locator(".hero-art").count(), 4);
     assert.match(await page.locator("#fielded-hero").textContent(), /Óptix/);
+    const heroFilter = page.getByLabel("Filtrar nanobots");
+    const contractFilter = page.getByLabel("Filtrar contratos");
+    await heroFilter.selectOption("owned");
+    assert.deepEqual(await page.locator("#heroes h3").allTextContents(), ["Óptix · Reconocimiento"]);
+    await heroFilter.selectOption("locked");
+    assert.equal(await page.locator("#heroes h3").count(), 3);
+    await contractFilter.selectOption("ready");
+    assert.equal(await page.locator("#contracts button:disabled").count(), 0);
+    assert.equal(await page.locator("#contracts button").count(), 5);
+    assert.equal(await page.locator('[data-operation="contract-escolta"]').count(), 0);
+    await contractFilter.selectOption("all");
+    assert.equal(await page.locator('[data-operation="contract-escolta"]').isDisabled(), true);
+    await heroFilter.selectOption("all");
+    await page.getByText("Entre disparos").first().waitFor();
+    await page.getByText("Recarga · 12 s").waitFor();
     await page.locator('[data-operation="buy-vega"]').tap();
     await page.locator('[data-operation="equip-vega"]').tap();
     assert.match(await page.locator("#operations-balance").textContent(), /6 biogemas/);
@@ -183,13 +198,12 @@ window.testRun = {
       await ad.tap();
       await page.waitForFunction((n) => window.testAds === n, index + 1);
       await page.evaluate((it) => finishTestAd(it), viewed);
-      if (index === 0) assert.match(await ad.textContent(), /0\/2/);
-      if (index === 1) {
-        assert.match(await ad.textContent(), /1\/2/);
-        assert.equal(await cryoProgress.getAttribute("value"), "1");
-      }
+      if (index === 0) assert.equal(await cryoProgress.getAttribute("value"), "0");
+      if (index === 1) assert.equal(await cryoProgress.getAttribute("value"), "1");
     }
     await page.locator('[data-operation="equip-mara"]').waitFor();
+    await heroFilter.selectOption("owned");
+    assert.equal(await page.locator("#heroes h3").count(), 3);
     await page.reload();
     await page.locator("#operations-button").tap();
     assert.equal(await page.locator('[data-operation="equip-vega"]').isDisabled(), true);

@@ -230,6 +230,14 @@ function openOperations() {
   renderOperations();
 }
 
+for (const id of ["hero-filter", "contract-filter"])
+  $(id).onchange = renderOperations;
+
+function focusHeroAction(hero, action) {
+  const button = $("heroes").querySelector(`[data-operation="${action}-${hero.id}"]:enabled`);
+  (button || $(`hero-${hero.id}-title`) || $("hero-filter")).focus({ preventScroll: true });
+}
+
 function renderOperations() {
   updateText("operations-balance", `${profile.data.bioGems} biogemas`);
   updateText("operations-status", operationsMessage || adError);
@@ -254,30 +262,46 @@ function renderOperations() {
     button.disabled = disabled;
     return button;
   };
-  $("heroes").replaceChildren(...HEROES.map((hero) => {
+  const heroFilter = $("hero-filter").value;
+  const heroes = HEROES.filter(hero => heroFilter === "all" ||
+    heroFilter === (profile.data.heroOwned[hero.id] ? "owned" : "locked"));
+  $("heroes-empty").hidden = heroes.length !== 0;
+  $("heroes").replaceChildren(...heroes.map((hero) => {
     const owned = profile.data.heroOwned[hero.id];
     const equipped = profile.data.heroEquipped === hero.id;
     const tile = card(`${hero.name} · ${hero.role}`, hero.detail);
     tile.style.setProperty("--operation-color", hero.color);
     tile.classList.toggle("hero-equipped", equipped);
+    tile.classList.add("hero-card");
     const header = document.createElement("header");
     header.className = "hero-profile";
     const identity = document.createElement("div");
-    const state = document.createElement("p");
-    state.textContent = `${hero.rarity} · ${equipped ? "En el equipo" : owned ? "Disponible" : "Bloqueado"}`;
-    identity.append(tile.querySelector("h3"), state);
+    const state = document.createElement("div");
+    state.className = "operation-tags";
+    const rarity = document.createElement("span");
+    rarity.textContent = hero.rarity;
+    const availability = document.createElement("span");
+    availability.textContent = equipped ? "Equipado" : owned ? "Desbloqueado" : "Bloqueado";
+    availability.classList.toggle("operation-ready", equipped || owned);
+    state.append(rarity, availability);
+    const heading = tile.querySelector("h3");
+    heading.id = `hero-${hero.id}-title`;
+    heading.tabIndex = -1;
+    identity.append(heading, state);
     header.append(heroIcon(hero), identity);
     tile.prepend(header);
     const ability = document.createElement("strong");
     ability.className = "hero-ability-label";
     ability.textContent = hero.ability;
-    header.after(ability);
+    const abilityPanel = document.createElement("div");
+    abilityPanel.className = "hero-ability";
+    abilityPanel.append(ability, tile.querySelector("p"));
     const stats = document.createElement("dl");
     stats.className = "hero-stats";
     for (const [label, value] of [
       ["Daño base", hero.damage],
       ["Alcance", hero.range],
-      ["Recarga", `${Math.ceil(hero.recharge / 60)} s`],
+      ["Entre disparos", `${cadence.format(hero.fireRate / 60)} s`],
     ]) {
       const stat = document.createElement("div");
       const term = document.createElement("dt");
@@ -287,38 +311,72 @@ function renderOperations() {
       stat.append(term, description);
       stats.append(stat);
     }
-    tile.append(stats);
+    const cooldown = document.createElement("span");
+    cooldown.className = "ability-cooldown";
+    cooldown.textContent = `Recarga · ${Math.ceil(hero.recharge / 60)} s`;
+    abilityPanel.append(cooldown);
+    const actions = document.createElement("div");
+    actions.className = "operation-actions";
+    tile.append(stats, abilityPanel, actions);
     if (owned) {
-      tile.append(action(`equip-${hero.id}`, equipped ? "En el equipo" : "Equipar",
-        () => profile.equipHero(hero.id), equipped || adBusy));
+      actions.append(action(`equip-${hero.id}`, equipped ? "En el equipo" : "Equipar",
+        () => {
+          if (profile.equipHero(hero.id)) focusHeroAction(hero, "equip");
+        }, equipped || adBusy));
     } else {
+      const missing = Math.max(0, hero.cost - profile.data.bioGems);
+      const purchaseLabel = missing ? `Faltan ${missing} biogemas · Coste ${hero.cost}`
+        : `Desbloquear · ${hero.cost} biogemas`;
+      const purchase = action(`buy-${hero.id}`, purchaseLabel, () => {
+        if (profile.buyHero(hero.id)) {
+          operationsMessage = `${hero.name} ya está disponible.`;
+          renderOperations();
+          focusHeroAction(hero, "equip");
+        }
+      }, adBusy || missing > 0);
+      actions.append(purchase);
+      if (!ad) return tile;
       const count = profile.data.heroAds[hero.id];
       const progress = document.createElement("progress");
       progress.max = hero.ads;
       progress.value = count;
       progress.setAttribute("aria-label", `Anuncios completados para desbloquear a ${hero.name}`);
-      tile.append(progress);
+      const rewardProgress = document.createElement("div");
+      rewardProgress.className = "hero-ad-progress";
+      const progressLabel = document.createElement("span");
+      progressLabel.textContent = `${count}/${hero.ads} anuncios completados`;
+      rewardProgress.append(progressLabel, progress);
       const label = adPreparing ? "Preparando anuncio…"
-        : ad?.prepared ? `Ver anuncio · ${count}/${hero.ads}`
-        : `Preparar anuncio · ${count}/${hero.ads}`;
-      tile.append(
-        action(`buy-${hero.id}`, `Desbloquear · ${hero.cost} biogemas`, () => {
-          if (profile.buyHero(hero.id)) {
-            operationsMessage = `${hero.name} ya está disponible.`;
-            renderOperations();
-          }
-        }, adBusy || profile.data.bioGems < hero.cost),
-        action(`ad-${hero.id}`, label, () => requestHeroAd(hero), !ad || adBusy || adPreparing),
-      );
+        : ad.prepared ? "Ver anuncio" : "Preparar anuncio";
+      actions.append(rewardProgress,
+        action(`ad-${hero.id}`, label, () => requestHeroAd(hero), adBusy || adPreparing));
     }
     return tile;
   }));
-  $("contracts").replaceChildren(...CONTRACTS.map((contract) => {
+  const activeOnly = $("contract-filter").value === "ready";
+  const contracts = CONTRACTS.filter(contract => !activeOnly || profile.data.stars[contract.level - 1] > 0);
+  $("contracts-empty").hidden = contracts.length !== 0;
+  if (!contracts.length) {
+    const first = CONTRACTS[0];
+    updateText("contracts-empty", `Completa el sector ${first.level} · ${MISSIONS[first.level - 1].name} para jugar tu primer contrato.`);
+  }
+  $("contracts").replaceChildren(...contracts.map((contract) => {
     const score = profile.data.contracts[contract.id];
     const unlocked = profile.data.stars[contract.level - 1] > 0;
     const tile = card(contract.name, contract.detail);
+    tile.classList.add("contract-card");
+    const availability = document.createElement("div");
+    availability.className = "operation-tags";
+    const sector = document.createElement("span");
+    sector.textContent = `Sector ${contract.level}`;
+    const state = document.createElement("span");
+    state.classList.toggle("operation-ready", unlocked);
+    state.textContent = unlocked ? "Listo para jugar" : "Bloqueado";
+    availability.append(sector, state);
+    tile.querySelector("h3").after(availability);
     const record = document.createElement("p");
-    record.textContent = score ? `Récord personal · ${score.toLocaleString("es-ES")}` : "Récord personal · —";
+    record.className = "contract-record";
+    record.textContent = score ? `Récord personal · ${score.toLocaleString("es-ES")}` : "Sin récord personal";
     tile.append(record, action(`contract-${contract.id}`, unlocked ? "Jugar contrato" : `Supera el sector ${contract.level}`,
       () => startContract(contract), !unlocked || adBusy));
     return tile;
@@ -343,7 +401,10 @@ function requestHeroAd(hero) {
     adBusy = false;
     $("operations").inert = false;
     operationsMessage = text;
-    if (screen === "operations") renderOperations();
+    if (screen === "operations") {
+      renderOperations();
+      focusHeroAction(hero, profile.data.heroOwned[hero.id] ? "equip" : "ad");
+    }
   };
   adBusy = true;
   adError = "";

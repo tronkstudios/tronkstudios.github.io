@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=37" />
+    <link rel="stylesheet" href="./styles.css?v=38" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -210,11 +210,28 @@
         </nav>
         <div class="operations-layout">
           <section aria-labelledby="operations-heroes">
-            <h2 id="operations-heroes" tabindex="-1">Nanobots de campaña</h2>
+            <div class="operation-list-head">
+              <h2 id="operations-heroes" tabindex="-1">Nanobots de campaña</h2>
+              <label for="hero-filter">Filtrar nanobots</label>
+              <select id="hero-filter" aria-controls="heroes">
+                <option value="all">Todos los nanobots</option>
+                <option value="owned">Desbloqueados</option>
+                <option value="locked">Por desbloquear</option>
+              </select>
+            </div>
+            <p class="operation-empty" id="heroes-empty" role="status" hidden>No quedan nanobots por desbloquear.</p>
             <div class="operations-grid" id="heroes"></div>
           </section>
           <section aria-labelledby="operations-contracts">
-            <h2 id="operations-contracts" tabindex="-1">Contratos de élite</h2>
+            <div class="operation-list-head">
+              <h2 id="operations-contracts" tabindex="-1">Contratos de élite</h2>
+              <label for="contract-filter">Filtrar contratos</label>
+              <select id="contract-filter" aria-controls="contracts">
+                <option value="all">Todos los contratos</option>
+                <option value="ready">Listos para jugar</option>
+              </select>
+            </div>
+            <p class="operation-empty" id="contracts-empty" role="status" hidden></p>
             <div class="operations-grid" id="contracts"></div>
           </section>
         </div>
@@ -524,6 +541,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=49"></script>
+    <script type="module" src="./game.js?v=50"></script>
   </body>
 </html>

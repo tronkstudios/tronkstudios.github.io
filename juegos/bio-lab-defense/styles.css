@@ -1573,7 +1573,7 @@ dialog p {
   padding: 0.65rem;
 }
 .chapter-index label, .codex-entry-type { color: var(--phosphor); font: 600 0.8rem var(--instrument-font); }
-#campaign select, dialog select {
+#campaign select, #operations select, dialog select {
   color: var(--text);
   border: 1px solid #4c6e71;
   border-radius: 6px;
@@ -1804,10 +1804,71 @@ dialog::backdrop { background: #031016cf; }
   font-size: 0.85rem;
 }
 #fielded-hero { font-weight: 750; color: var(--phosphor); }
-.hero-profile { display: flex; align-items: center; gap: 0.65rem; }
+.operation-list-head {
+  display: grid;
+  gap: 0.35rem;
+}
+.operation-list-head h2 { margin-bottom: 0.2rem; }
+.operation-list-head label {
+  color: var(--muted);
+  font: 600 0.75rem var(--instrument-font);
+}
+.operation-list-head select { min-height: 42px; width: 100%; }
+.operation-empty {
+  margin-top: 0.65rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--seam);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.operation-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+.operation-tags span {
+  max-width: 100%;
+  padding: 0.15rem 0.38rem;
+  border: 1px solid #405b69;
+  border-radius: 5px;
+  background: #0e222c;
+  color: #bdcfd9;
+  font: 600 0.68rem/1.35 var(--instrument-font);
+}
+.operation-tags .operation-ready {
+  border-color: #538074;
+  color: #a7efd6;
+  background: #193833;
+}
+.hero-card .operation-tags span:first-child { color: var(--operation-color); }
+.operation-actions {
+  display: grid;
+  align-content: end;
+  gap: 0.38rem;
+}
+.operation-actions button, .contract-card button { min-height: 42px; }
+.hero-card { grid-template-rows: auto auto 1fr auto; }
+.hero-ability {
+  align-self: start;
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+  padding: 0.55rem 0.6rem;
+  border-inline-start: 2px solid var(--operation-color);
+  border-radius: 5px;
+  background: #0d212b;
+}
+.hero-ability .ability-cooldown, .hero-ad-progress span {
+  color: var(--muted);
+  font: 600 0.71rem/1.4 var(--instrument-font);
+}
+.hero-ad-progress { display: grid; gap: 0.22rem; }
+.contract-card .contract-record { color: var(--phosphor); }
+.hero-profile { display: flex; align-items: center; gap: 0.55rem; }
 .hero-profile canvas { flex-shrink: 0; }
 .hero-profile h3 { font-size: 0.98rem; line-height: 1.2; overflow-wrap: anywhere; }
-.hero-profile p { margin-top: 0.2rem; }
+.hero-profile .operation-tags { margin-top: 0.28rem; }
 .hero-equipped { box-shadow: inset 0 0 0 1px var(--operation-color); }
 .hero-ability-label { color: #daeee9; font-size: 0.85rem; }
 .hero-stats {
