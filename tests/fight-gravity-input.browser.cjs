@@ -160,6 +160,10 @@ async function checkRunner(browser) {
 
   await page.locator("#btn-pause-game").tap();
   assert.ok(await page.locator("#modal-pause").isVisible());
+  await page.keyboard.press("KeyP");
+  await page.waitForFunction(() => gravityShiftGame.state === "PLAYING");
+  await page.keyboard.press("KeyP");
+  assert.ok(await page.locator("#modal-pause").isVisible());
   const original = await page.evaluate(() => {
     const game = window.gravityShiftGame;
     game.startNewRun({ instant: true });
@@ -194,6 +198,14 @@ async function checkRunner(browser) {
   await page.keyboard.press("KeyE");
   for (const [gate, key] of [[2, "KeyD"], [3, "KeyW"], [4, "KeyA"], [5, "KeyS"]]) {
     await page.waitForFunction(index => gravityShiftGame.practice.index === index, gate - 1);
+    if (gate === 2) {
+      await page.waitForFunction(() => gravityShiftGame.practice.checkpoint === 1);
+      const banked = await page.evaluate(() => gravityShiftGame.practice.bankedEnergy);
+      await page.evaluate(() => gravityShiftGame.handleGameOver());
+      await page.waitForFunction(() => !gravityShiftGame.practice.pendingRetry);
+      assert.equal(await page.evaluate(() => gravityShiftGame.practice.index), 1);
+      assert.equal(await page.evaluate(() => gravityShiftGame.practice.bankedEnergy), banked);
+    }
     await page.keyboard.press(key);
   }
   await page.waitForFunction(() => gravityShiftGame.state === "PRACTICE_DONE");

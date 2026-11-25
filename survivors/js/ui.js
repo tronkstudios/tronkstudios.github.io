@@ -565,10 +565,14 @@
     for (const [value,label] of [["dummy","Muñeco"],["shield","Guardián con escudo"]]) {
       const option = el("option", "", L(label));option.value=value;target.append(option);
     }
+    const preset = $("training-preset").cloneNode(true);
+    preset.removeAttribute("id");
+    preset.setAttribute("aria-label", L("Equipo de prueba"));
+    preset.value = "standard";
     const practiceButton = el("button", "btn btn-small", L("Campo de pruebas"));
     practiceButton.type = "button";
-    practiceButton.addEventListener("click", () => play([{charId:id,stars:have?.stars || 1,meta:Save.shopStats(),mastered:!!save.mastery[id]}], {map:"bosque",training:target.value,seed:404}));
-    practice.append(target,practiceButton);
+    practiceButton.addEventListener("click", () => play([{charId:id,stars:have?.stars || 1,meta:Save.shopStats(),mastered:!!save.mastery[id]}], {map:"bosque",training:target.value,trainingPreset:preset.value,seed:404}));
+    practice.append(target,preset,practiceButton);
     box.append(practice);
     if (have) {
       const weapon = el("div", "weapon");
@@ -969,8 +973,12 @@
 
   let slotKey = "";
   Game.on("hud", (d) => {
-    updateTips(d.seconds);
-    $("hud-xp-bar").style.width = `${Math.min(100, (d.xp / d.xpNext) * 100)}%`;
+    if (d.training == null) updateTips(d.seconds);
+    const xpPercent = Math.min(100, Math.floor(100 * d.xp / Math.max(1,d.xpNext)));
+    $("hud-xp-bar").style.width = `${xpPercent}%`;
+    const xp = $("hud-xp");
+    xp.setAttribute("aria-valuenow", String(xpPercent));
+    xp.title = `${L("Experiencia")}: ${d.xp} / ${d.xpNext}`;
     const loot=$("hud-loot");loot.hidden=!d.loot;
     if(d.loot)loot.textContent=[d.loot.xp>0?`+${Math.round(d.loot.xp)} XP`:"",d.loot.coins>0?`+${d.loot.coins} ${L("monedas")}`:"",d.loot.healed>0?`+${Math.round(d.loot.healed)} ${L("vida")}`:""].filter(Boolean).join(" · ");
     const chain=$("hud-streak");chain.hidden=!d.streak || d.streak.count<2;
@@ -982,6 +990,12 @@
     if(d.breach)$("hud-phase").textContent+=` · ${L("Brecha")} ${d.breach.total-d.breach.remaining}/${d.breach.total}`;
     $("hud-milestone").textContent=d.nextTechnique?`${L("Próxima técnica")}: ${L(d.nextTechnique.name)} · ${L("Nivel")} ${d.nextTechnique.unlock} · ${fmtTime(Math.ceil((d.nextTechnique.at || 0)*(d.runSeconds || TS.RUN_SECONDS)/TS.RUN_SECONDS))}`:`${L("Rangos de técnicas")}: ${d.techniqueRanks}/${d.techniqueTotal}`;
     if(d.talentNext?.ready)$("hud-milestone").textContent=L("Especialización disponible en tu próxima subida de nivel");
+    if (d.training != null) {
+      $("hud-phase").textContent = d.trainingSample == null
+        ? `${L("Prueba de 20 s")} · ${fmtTime(Math.max(0,20-d.seconds))}`
+        : L("Prueba completada");
+      $("hud-milestone").textContent = L("En pausa puedes cambiar de equipo y repetir la prueba.");
+    }
     const site = d.site;
     $("hud-camp").hidden = !site?.campChoice || d.down;
     const defence = site?.used && site.kind==="camp"
@@ -1075,6 +1089,16 @@
 
   /* ---------- subida de nivel ---------- */
 
+  $("levelup-cards").addEventListener("keydown", event => {
+    const directions = {ArrowLeft:-1, ArrowUp:-1, ArrowRight:1, ArrowDown:1};
+    const direction = directions[event.key];
+    if (!direction || event.altKey || event.ctrlKey || event.metaKey) return;
+    const cards = Array.from(event.currentTarget.querySelectorAll("button:enabled"));
+    const index = cards.indexOf(event.target);
+    if (index < 0) return;
+    event.preventDefault();
+    cards[(index + direction + cards.length) % cards.length].focus();
+  });
   let choiceGeneration=0;
   function showLevelUp(d) {
     cancelAim();
@@ -1161,7 +1185,7 @@
 
   function pause(on) {
     cancelAim();
-    if (current !== "game" || !Game.state || Game.state.over) return;
+    if (current !== "game" || !Game.state || Game.state.over || !$("victory").hidden || $("pause").hidden === !on) return;
     Game.setControlsEnabled(!on && $("levelup").hidden);
     if (Game.mode === "solo") Game.setPaused(on);
     $("pause").hidden = !on;
@@ -1208,6 +1232,7 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
       }
       $("pause-resume").focus();
     } else if(!$("levelup").hidden) $("levelup-cards").querySelector("button")?.focus();
+    else $("hud-pause").focus({preventScroll:true});
   }
   $("pause-goal").addEventListener("change",e=>{Game.setGoal(e.target.value);});
   $("hud-compass").addEventListener("click",()=>{pause(true);$("pause-goal").focus();});

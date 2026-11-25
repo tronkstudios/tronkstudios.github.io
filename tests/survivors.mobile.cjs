@@ -60,8 +60,18 @@ const path = require('node:path');
     await page.waitForTimeout(200);
     assert.equal(await page.evaluate(() => Game.state.t), tick);
     await page.locator('#pause-resume').tap();
-    await page.evaluate(() => { Game.state.pendingLevels = 1; Game.state.choosing = {0:[{kind:'heal'}]};
-      TronkUI.showLevelUp({level:2,options:[{kind:'heal',title:'Curación',desc:'Recupera vida',icon:'bocadillo'}]}); });
+    await page.evaluate(() => {
+      const options = [{kind:'heal',title:'Curación',desc:'Recupera vida',icon:'bocadillo'},
+        {kind:'coins',title:'Monedas',desc:'+25 monedas',icon:'moneda'}];
+      Game.state.pendingLevels = 1;
+      Game.state.choosing = {0:options};
+      TronkUI.showLevelUp({level:2,options});
+    });
+    await page.waitForFunction(() => document.activeElement === document.querySelector('.up-card'));
+    await page.keyboard.press('ArrowLeft');
+    assert.equal(await page.locator('.up-card').last().evaluate(card => card === document.activeElement),true);
+    await page.keyboard.press('ArrowRight');
+    assert.equal(await page.locator('.up-card').first().evaluate(card => card === document.activeElement),true);
     await page.locator('.up-card').first().tap();
     assert.equal(await page.locator('#levelup').isVisible(), false);
     await page.setViewportSize({ width: 844, height: 390 });

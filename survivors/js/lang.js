@@ -38,6 +38,8 @@ const EN = {
   "Arma base": "Base weapon",
   "Arma 4 · técnicas 3": "Weapon 4 · techniques 3",
   "Arma 6 · técnicas al máximo": "Weapon 6 · maxed techniques",
+  "Prueba completada": "Test complete",
+  "En pausa puedes cambiar de equipo y repetir la prueba.": "Pause to change loadout and repeat the test.",
   "Prueba de 20 s": "20-second test",
   "Frente a la prueba anterior": "Compared with the previous test",
   "Daño en los primeros 20 s": "Damage in the first 20 s",
