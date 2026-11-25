@@ -583,23 +583,14 @@
             <span id="hud-mode" class="mode-label">PARTIDA NORMAL</span
             ><span id="hud-zone" class="zone-badge">01 · MUELLE INDUSTRIAL</span
             ><span id="hud-seed-badge">SEED: AUTO</span>
+            <div id="lateral-controls" class="lateral-controls pointer-auto" role="group" aria-label="Ajuste lateral">
+              <button data-nudge="-1" class="h-11" aria-keyshortcuts="Q" aria-label="Ajustar a la izquierda">Q · ◀</button>
+              <button data-nudge="1" class="h-11" aria-keyshortcuts="E" aria-label="Ajustar a la derecha">▶ · E</button>
+            </div>
+            <button id="btn-use-board" class="brutal-btn board-button pointer-auto h-11" aria-keyshortcuts="B" hidden>
+              TABLA · B
+            </button>
             <div class="run-mission">
-              <div id="lateral-controls" class="lateral-controls pointer-auto">
-                <button
-                  data-nudge="-1"
-                  aria-label="Desplazamiento lateral negativo"
-                >
-                  Q · ◀</button
-                ><button
-                  data-nudge="1"
-                  aria-label="Desplazamiento lateral positivo"
-                >
-                  ▶ · E
-                </button>
-              </div>
-              <button id="btn-use-board" class="brutal-btn board-button" hidden>
-                TABLA · B
-              </button>
               <span id="mission-label">RETO 0 / 250 m</span>
               <div><i id="mission-bar"></i></div>
             </div>
@@ -630,7 +621,7 @@
             <button
               id="btn-jump"
               class="brutal-btn rounded text-[8px] font-mono text-cyan"
-              aria-label="Saltar"
+              aria-label="Saltar" aria-keyshortcuts="Space"
             >
               ↑<br />SALTAR
             </button>

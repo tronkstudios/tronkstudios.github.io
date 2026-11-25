@@ -4,7 +4,39 @@ self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys
 self.addEventListener('message',event=>{if(event.data?.type==='ACTIVATE_UPDATE')self.skipWaiting();});
 self.addEventListener('fetch',event=>{const url=new URL(event.request.url);if(event.request.method!=='GET'||url.origin!==self.location.origin)return;
  if(!url.pathname.startsWith(new URL(self.registration.scope).pathname))return;
- if(event.request.mode==='navigate'){event.respondWith(fetch(event.request).then(response=>response.ok?response:caches.match(event.request,{ignoreSearch:true}).then(cached=>cached||caches.match('./index.html'))).catch(()=>caches.match(event.request,{ignoreSearch:true}).then(cached=>cached||caches.match('./index.html'))));return;}
+ if (event.request.mode === 'navigate') {
+   event.respondWith(navigate(event));
+   return;
+ }
  const local='./'+url.pathname.slice(new URL(self.registration.scope).pathname.length);
  if(FILES.includes(local))event.respondWith(caches.match(local).then(cached=>cached||fetch(event.request)));
 });
+async function navigate(event) {
+  const request = event.request;
+  const path = new URL(request.url).pathname;
+  const scope = new URL(self.registration.scope).pathname;
+  const isGame = path === scope || path === scope + 'index.html';
+  let response;
+  try {
+    response = await fetch(request, { cache: 'no-cache' });
+  } catch {
+    // Sin red, se usa la copia instalada.
+  }
+  if (response?.ok) {
+    if (isGame) event.waitUntil(refreshGamePage(response.clone()).catch(() => {}));
+    return response;
+  }
+  const cache = await caches.open(CACHE);
+  const offline = isGame ? await cache.match('./index.html') : await cache.match(request, { ignoreSearch: true });
+  return offline || response || Response.error();
+}
+
+async function refreshGamePage(response) {
+  // Mantener juntos el documento y los archivos de juego disponibles sin conexión.
+  const html = await response.clone().text();
+  const assets = FILES.filter(file => file.startsWith('./game.') || file.startsWith('./styles.'));
+  if (assets.every(file => html.includes('"' + file + '"'))) {
+    const cache = await caches.open(CACHE);
+    await cache.put('./index.html', response);
+  }
+}
