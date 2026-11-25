@@ -322,7 +322,7 @@ function makeFighter(ch, x, face, side) {
   return {
     ch, w: WEAPONS[ch.weapon], side, x, y: GROUND, vx: 0, vy: 0, face,
     hp: 100, trail: 100, trailWait: 0, meter: 0, guard: 100,
-    state: "idle", t: 0, stun: 0, input: {}, prev: {},
+    state: "idle", t: 0, stun: 0, input: {}, prev: {}, presses: new Set(),
     riposteFrames: 0, parryWin: 0, parryLock: 0, dodgeCd: 0, hitDone: false, sd: {},
     combo: 0, comboT: 0, flash: 0, hideWeapon: false,
     pose: null, walkPh: 0, tips: [], ai: null
@@ -633,7 +633,8 @@ function inRecovery(f) {
 /* ---------- ACTUALIZAR UN LUCHADOR ---------- */
 function updateFighter(f, o, M) {
   const inp = f.input, prev = f.prev;
-  const raw = k => !!inp[k] && !prev[k];
+  const raw = k => f.presses.has(k) || (!!inp[k] && !prev[k]);
+  const blocking = inp.block || raw("block");
   // búfer: una pulsación cuenta durante 8 fotogramas, así no se pierde si llega un pelín pronto
   for (const k of ["attack", "special", "dodge"]) if (raw(k)) f.buf = { k, t: 8 };
   if (f.buf && --f.buf.t <= 0) f.buf = null;
@@ -661,7 +662,7 @@ function updateFighter(f, o, M) {
         if (pressed("special") && f.meter >= 100) { useBuf(); startSpecial(f, M); break; }
         if (pressed("attack")) { useBuf(); startAttack(f, M); break; }
         if (pressed("dodge") && f.dodgeCd === 0) { useBuf(); startDodge(f, M); break; }
-        if (inp.block) { startBlock(f, pressed("block")); f.vx = 0; break; }
+        if (blocking) { startBlock(f, pressed("block")); f.vx = 0; break; }
         if (pressed("up")) {
           setState(f, "jump"); f.vy = -JUMP_V; f.vx = dir * f.w.walk * 1.15; fx(M, "jump", { pitch: f.ch.pitch }); dust(M, f.x, 4); break;
         }
@@ -684,7 +685,7 @@ function updateFighter(f, o, M) {
       break;
     case "block":
       f.vx = 0;
-      if (!inp.block || !fight) { f.state = "idle"; f.t = 0; f.parryWin = 0; }
+      if (!blocking || !fight) { f.state = "idle"; f.t = 0; f.parryWin = 0; }
       else if (pressed("block")) startBlock(f, true);
       break;
     case "attack": {
@@ -746,6 +747,7 @@ function updateFighter(f, o, M) {
   }
   f.x = clamp(f.x + f.vx, LEFT, RIGHT);
   f.prev = { ...inp };
+  f.presses.clear();
 }
 
 /* ---------- PROYECTILES Y GOLPES ---------- */
@@ -1119,13 +1121,16 @@ function step(M) {
   const [a, b] = M.f;
 
   if (M.phase === "intro") {
-    a.input = {}; b.input = {};
     // en la primera ronda se da tiempo a que el presentador diga quién pelea
     const go = M.round === 1 ? 150 : 70;
     if (M.phaseT === 1 && M.round === 1) banner(M, `${CHARS[M.c[0]].name} contra ${CHARS[M.c[1]].name}`, 70, "#fff", true);
     if (M.phaseT === 72 && M.round === 1) banner(M, M.roundsToWin === 1 ? "Ronda única" : "Ronda 1", 70, "#fff");
-    if (M.phaseT === go) { banner(M, "¡Lucha!", 40, "#ffd23f"); fx(M, "fight"); say(M, "lucha"); }
-    if (M.phaseT >= go + 30) { M.phase = "fight"; M.phaseT = 0; }
+    if (M.phaseT === go) {
+      M.phase = "fight"; M.phaseT = 0;
+      banner(M, "¡Lucha!", 40, "#ffd23f"); fx(M, "fight"); say(M, "lucha");
+    } else {
+      a.input = {}; b.input = {};
+    }
   } else if (M.phase === "fight") {
     if (a.ai) aiThink(a, b, M);
     if (b.ai) aiThink(b, a, M);
@@ -2467,8 +2472,14 @@ $("#tf-btn-pause").addEventListener("click", pause);
 window.addEventListener("tronk:boss", e => { if (e.detail && e.detail.on && !app.paused) pause(); });
 $("#tf-btn-resume").addEventListener("click", resume);
 $("#tf-btn-restart").addEventListener("click", startFight);
-$("#tf-btn-p-select").addEventListener("click", () => { Sound.music.stop(); openSelect("p1"); });
-$("#tf-btn-p-menu").addEventListener("click", () => { Sound.music.stop(); app.match = null; show("scr-title"); });
+function leavePausedFight() {
+  Sound.music.stop();
+  app.match = null;
+  app.paused = false;
+}
+$("#tf-btn-p-help").addEventListener("click", () => show("scr-help"));
+$("#tf-btn-p-select").addEventListener("click", () => { leavePausedFight(); openSelect("p1"); });
+$("#tf-btn-p-menu").addEventListener("click", () => { leavePausedFight(); show("scr-title"); });
 $("#tf-btn-rematch").addEventListener("click", startFight);
 $("#tf-btn-r-select").addEventListener("click", () => openSelect("p1"));
 $("#tf-btn-r-menu").addEventListener("click", () => { app.match = null; show("scr-title"); });
@@ -2555,9 +2566,24 @@ const KEYS_P2 = {
 };
 const KEYS_SOLO = { ...KEYS_P1, ...KEYS_P2, Space: "up", KeyZ: "attack", KeyX: "block", KeyC: "dodge", KeyV: "special" };
 const heldKeys = new Map();
+// Guarda un toque breve hasta que el luchador pueda leerlo, incluso durante el impacto.
+function queuePress(player, action) {
+  if (app.screen !== "fight" || app.match?.phase !== "fight") return;
+  if (action === "left" || action === "right" || action === "down") return;
+  if (app.touchOn && touch.pads[player].state[action]) return;
+  for (const [side, held] of heldKeys.values()) if (side === player && held === action) return;
+  app.match.f[player].presses.add(action);
+}
 function resetInputs() {
   heldKeys.clear();
   touch.reset();
+  for (const fighter of app.match?.f || []) {
+    if (fighter.ai) continue;
+    fighter.presses.clear();
+    fighter.buf = null;
+    fighter.input = {};
+    fighter.prev = {};
+  }
 }
 function keyTarget(code) {
   if (app.match && app.match.pvp) {
@@ -2582,7 +2608,10 @@ window.addEventListener("keydown", e => {
     const k = keyTarget(e.code);
     if (k) {
       e.preventDefault();
-      if (!e.repeat) heldKeys.set(e.code, k);
+      if (!e.repeat) {
+        queuePress(...k);
+        heldKeys.set(e.code, k);
+      }
     }
     return;
   }
@@ -2639,7 +2668,8 @@ const touch = {
   }
 };
 root.querySelectorAll("." + C("pad")).forEach(pad => {
-  const T = touch.pads[+pad.dataset.p];
+  const player = Number(pad.dataset.p);
+  const T = touch.pads[player];
   T.buttonPointers = new Map();
   const stick = pad.querySelector("." + C("stick")), knob = pad.querySelector("." + C("knob"));
   const zone = pad.querySelector("." + C("zone"));
@@ -2651,6 +2681,7 @@ root.querySelectorAll("." + C("pad")).forEach(pad => {
     const len = Math.hypot(dx, dy); if (len > 1) { dx /= len; dy /= len; }
     knob.style.transform = `translate(calc(-50% + ${dx * rr * 0.55}px), calc(-50% + ${dy * rr * 0.55}px))`;
     T.state.left = dx < -0.3; T.state.right = dx > 0.3;
+    if (dy < -0.55 && !T.state.up) queuePress(player, "up");
     T.state.up = dy < -0.55; T.state.down = dy > 0.6;
   };
   const begin = (e, el) => {
@@ -2700,6 +2731,7 @@ root.querySelectorAll("." + C("pad")).forEach(pad => {
       e.preventDefault();
       Sound.init();
       b.setPointerCapture(e.pointerId);
+      queuePress(player, k);
       T.buttonPointers.set(e.pointerId, k);
       T.state[k] = true;
       b.classList.add(C("on"));

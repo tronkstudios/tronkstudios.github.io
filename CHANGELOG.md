@@ -5,6 +5,11 @@ resume los commits de esa etapa, que se pueden ver en el historial de GitHub.
 
 ## Próxima versión
 
+- Tronk Fight acepta órdenes desde el aviso «¡Lucha!» y registra pulsaciones breves
+  entre fotogramas. Los controles se pueden consultar desde la pausa.
+- En Gravity Runners, los botones de ajuste lateral tienen toda su superficie
+  disponible y la tabla del inventario se puede activar tocándola durante la carrera.
+
 - El hangar sincroniza filtros y vista previa y se puede recorrer y cerrar con teclado.
   Tronk Fight recupera preferencias inválidas y sincroniza la pantalla completa y el movimiento reducido con el navegador.
 
