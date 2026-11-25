@@ -245,6 +245,7 @@ window.testRun = {
       if (await replace.isVisible()) await replace.tap();
     };
     await launch(1);
+    await page.locator("#objective-coverage-title").getByText("Consola · 0 % del acceso cubierto").waitFor();
     await page.getByText(/Protege la consola · Integridad 4\/4/).waitFor();
     const board = page.locator("#board");
     await board.scrollIntoViewIfNeeded();
@@ -274,6 +275,7 @@ window.testRun = {
     assert.equal(Number(await page.locator("#atp").textContent()), atpBeforeDrag);
     await devtools.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
     await page.getByText("Nano-Láser instalada.", { exact: true }).waitFor();
+    await page.locator("#objective-coverage-title").getByText(/Consola · [1-9][0-9]* % del acceso cubierto/).waitFor();
     assert.equal(Number(await page.locator("#atp").textContent()), atpBeforeDrag - 50);
     await devtools.detach();
     const { x, y } = await page.evaluate(() => testRun.state);
@@ -348,6 +350,7 @@ window.testRun = {
     await page.locator(".level").nth(15).tap();
     await page.locator("#launch-mission").tap();
     await page.getByText("Protege la terminal A · Integridad 4/4").waitFor();
+    await page.locator("#objective-coverage-title").getByText("Terminal A · 0 % del acceso cubierto").waitFor();
     await page.locator("#next").tap();
     await page.waitForFunction(() =>
       !document.querySelector("#next-group-a").hidden ||
@@ -357,6 +360,7 @@ window.testRun = {
     await page.evaluate(() => testRun.finishCurrentWave());
     await page.locator("#combat-cue").getByText("Terminal A asegurada").waitFor();
     await page.getByText("Protege la terminal B · Integridad 4/4").waitFor();
+    await page.locator("#objective-coverage-title").getByText("Terminal B · 0 % del acceso cubierto").waitFor();
     await page.locator("#wave-debrief-title").tap();
     await page.getByText(/Entrada A · [01] fugas? \/ Entrada B · [01] fugas?/).waitFor();
     const gapText = page.locator("#wave-debrief-gap-text");

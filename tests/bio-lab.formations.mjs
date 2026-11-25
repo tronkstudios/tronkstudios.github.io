@@ -393,6 +393,52 @@ test("coverage clips at endpoints and counts both arms of a bend", async () => {
   assert.equal(routeCoverage(route, { x: 0, y: 0, range: 200 }), 100);
 });
 
+test("objective approach coverage combines overlapping ranges and stops at the defended device", async () => {
+  const { routeTeamCoverage } = await import("../juegos/bio-lab-defense/coverage.js");
+  const lane = { points: [[0, 0], [100, 0]], remaining: [100, 0] };
+  assert.equal(routeTeamCoverage(lane, [{ x: 20, y: 0, range: 30 }, { x: 60, y: 0, range: 20 }]), 80);
+  assert.equal(routeTeamCoverage(lane, []), 0);
+  const match = new Match(2);
+  const objective = match.defenseObjective;
+  assert.deepEqual(match.objectiveApproach().points.at(-1), [objective.x, objective.y]);
+  match.console.complete = true;
+  assert.equal(match.objectiveApproach(), null);
+});
+
+test("late archive sectors vary the defense order and restore existing checkpoints safely", () => {
+  const levelOf = name => MISSIONS.findIndex(mission => mission.name === name) + 1;
+  const foundry = new Match(levelOf("Crisol doble"));
+  assert.deepEqual(foundry.archive.map(device => device.waypoint), [4, 3]);
+  const garden = new Match(levelOf("Semillas de memoria"));
+  assert.deepEqual(garden.archive.map(device => device.lane), [1, 0]);
+  assert.ok(garden.preview.lanes[1] > garden.preview.lanes[0]);
+  const saved = { ...garden, wave: 1 };
+  const resumed = restoreCheckpoint({ ...saved, archiveFirstLane: 1 });
+  assert.equal(resumed.match.activeTerminal.lane, 0);
+  assert.ok(resumed.match.archive[0].complete);
+  const legacy = restoreCheckpoint(saved);
+  assert.equal(legacy.match.activeTerminal.lane, 1);
+  assert.ok(legacy.match.archive[0].complete);
+});
+
+test("objective targeting prefers an approaching enemy while manual focus overrides it", () => {
+  for (const [mode, manual, expected] of [["first", false, "passed"], ["objective", false, "approach"], ["objective", true, "passed"]]) {
+    const match = new Match(2);
+    const tower = match.place(BLUEPRINTS[0], 265, 195);
+    assert.ok(tower);
+    tower.targeting = mode;
+    match.startWave();
+    match.spawn();
+    match.spawn();
+    const [approach, passed] = match.enemies;
+    Object.assign(approach, { x: 220, y: 185, wp: 2 });
+    Object.assign(passed, { x: 240, y: 150, wp: 3 });
+    if (manual) match.focusFire(passed);
+    match.tick();
+    assert.equal(match.shots[0].target, expected === "passed" ? passed : approach);
+  }
+});
+
 test("focus fire overrides route priority in range and releases a defeated target", () => {
   const match = new Match(1);
   const tower = match.place(BLUEPRINTS[0], 145, 171);

@@ -15,18 +15,18 @@ import {
   VARIANT_NAMES,
   escortArmor,
   dailySetup,
-} from "./engine.js?v=29";
-import { routeCoverage } from "./coverage.js?v=1";
-import { attachDrill } from "./drill.js?v=3";
-import { Board } from "./board.js?v=36";
+} from "./engine.js?v=30";
+import { routeCoverage, routeTeamCoverage } from "./coverage.js?v=2";
+import { attachDrill } from "./drill.js?v=4";
+import { Board } from "./board.js?v=37";
 import { towerIcon, heroIcon } from "./art.js?v=4";
-import { createCodex } from "./codex.js?v=17";
-import { Profile, dayKey } from "./profile.js?v=11";
+import { createCodex } from "./codex.js?v=18";
+import { Profile, dayKey } from "./profile.js?v=12";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=7";
-import { CHAPTERS, MISSIONS } from "./campaign.js?v=8";
+import { CHAPTERS, MISSIONS } from "./campaign.js?v=9";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=25";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=26";
 
 import { HEROES, CONTRACTS } from "./operations.js?v=7";
 
@@ -97,6 +97,7 @@ let abilityPreview = false;
 let lastCombatCue = null;
 let movingTower = null;
 let dockBudgetKey;
+let objectiveCoverageKey;
 let guideDismissed;
 let guideSite;
 const profile = new Profile(refreshProfile);
@@ -572,6 +573,13 @@ function briefing(level) {
     `${best ? "Mejor resultado · " + "★".repeat(best) + "☆".repeat(3 - best) : "Primera victoria pendiente"} · Para tres estrellas, termina con al menos ${starThresholds[2]} % de núcleo.`);
   updateText("briefing-waves", `${preview.maxWaves} oleadas`);
   updateText("briefing-entries", preview.routes.length === 2 ? "2 entradas" : "1 entrada");
+  $("briefing-approach").hidden = !preview.defenseObjective;
+  if (preview.defenseObjective) {
+    const lane = preview.defenseObjective.lane;
+    updateText("briefing-approach", preview.console
+      ? "Ruta a la consola · Intercepta a los enemigos en el tramo marcado."
+      : `Ruta a la terminal ${lane ? "B" : "A"} · En la segunda oleada defenderás ${lane ? "A" : "B"}.`);
+  }
   $("briefing-route-event").hidden = !preview.routeEvent;
   if (preview.routeEvent) updateText("briefing-route-event", describeRouteEvent(preview.routeEvent));
   view("briefing");
@@ -664,6 +672,7 @@ function begin(next, day = null, restored = null) {
   lastState = next.state;
   lastBoss = false;
   match = next;
+  objectiveCoverageKey = null;
   guideDismissed = false;
   guideSite = null;
   $("wave-impact-choice").value = "";
@@ -895,6 +904,7 @@ function renderSelection() {
         movingTower === selected,
         match.atp >= upgradeCost(selected),
         match.power?.first === null,
+        !!match.defenseObjective,
         adBusy,
       ].join(":")
     : blueprint?.id;
@@ -978,9 +988,11 @@ function renderSelection() {
     for (const [id, name] of TARGETING) {
       if (id === "support" && (match.level !== 22 || match.daily)) continue;
       if (id === "escort" && !match.hasEnemyVariants) continue;
+      if (id === "objective" && !match.defenseObjective) continue;
       targeting.add(new Option(name, id));
     }
     targeting.value = tower.targeting;
+    if (!targeting.value) targeting.value = "first";
     targeting.onchange = () => {
       tower.targeting = targeting.value;
       persistPreparation();
@@ -1080,6 +1092,8 @@ function placementForecast(tower, point, original = null, action = "") {
     if (hasPosition) {
       const lanes = routes.map((route, index) => `${index ? "B" : "A"} ${compareCoverage(route)} %`);
       lines.push(`Recorrido al alcance · ${lanes.join(" / ")}`);
+      const approach = match.objectiveApproach();
+      if (approach) lines.push(`Antes del objetivo · ${compareCoverage(approach)} % al alcance`);
     }
     if (target) {
       const after = match.estimateImpact(candidate, target, wave);
@@ -1574,6 +1588,23 @@ $("field-guide-dismiss").onclick = () => {
   canvas.focus({ preventScroll: true });
 };
 
+function renderObjectiveCoverage(waiting) {
+  const objective = waiting ? match.defenseObjective : null;
+  $("objective-coverage").hidden = !objective;
+  if (!objective) return;
+  const wave = match.coverageWave;
+  const towers = match.towers.filter(tower => tower.type !== "eco" && !match.towerOffline(tower, wave));
+  const key = [wave, ...towers.map(tower => `${tower.x},${tower.y},${tower.range}`)].join("|");
+  if (objectiveCoverageKey === key) return;
+  objectiveCoverageKey = key;
+  const coverage = routeTeamCoverage(match.objectiveApproach(objective), towers);
+  const name = match.console ? "Consola" : `Terminal ${objective.lane ? "B" : "A"}`;
+  updateText("objective-coverage-title", `${name} · ${coverage} % del acceso cubierto`);
+  updateText("objective-coverage-tip", coverage
+    ? "La línea verde marca la ruta hasta el objetivo. Puedes asignar «Proteger objetivo de misión» al seleccionar una torre."
+    : "Coloca una torre junto a la línea verde para interceptar a los enemigos antes de que lleguen.");
+}
+
 function renderHUD() {
   const focused = match.state === "wave" && match.focusTarget;
   $("focused-vitals").hidden = !focused;
@@ -1593,6 +1624,7 @@ function renderHUD() {
   updateText("wave", `${match.wave}/${match.maxWaves}`);
   const waiting = match.state === "build";
   renderFieldGuide(waiting);
+  renderObjectiveCoverage(waiting);
   const targets = $("mission-targets");
   targets.hidden = match.ranked || !["build", "wave"].includes(match.state);
   if (!targets.hidden && targets.open) {

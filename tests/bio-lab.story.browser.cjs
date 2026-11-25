@@ -111,6 +111,7 @@ window.forceRunnerLeak = () => {
       assert.equal(await page.locator(".level").nth(2).isDisabled(), true);
       await page.locator("#resume-mission").click();
       await page.getByRole("heading", { name: "Muestreo" }).waitFor();
+      await page.locator("#briefing-approach").getByText(/Ruta a la consola/).waitFor();
       await page.locator("#back-campaign").click();
       await page.locator(".level").first().click();
       await page.getByRole("heading", { name: "Ingreso" }).waitFor();
@@ -119,7 +120,7 @@ window.forceRunnerLeak = () => {
       await map.getByText("1 entrada").waitFor();
       assert.match(
         await page.locator("#briefing-medal").textContent(),
-        /Sin fugas/,
+        /Núcleo estable/,
       );
       assert.ok(
         await page
@@ -132,7 +133,7 @@ window.forceRunnerLeak = () => {
       await page.locator("#launch-mission").click();
       await page.locator("#mission-targets summary").click();
       await page.locator("#star-pace").getByText(/100 %.*★★★/).waitFor();
-      await page.locator("#medal-pace").getByText(/Sin fugas.*Cumples la condición/).waitFor();
+      await page.locator("#medal-pace").getByText(/Núcleo estable.*Cumples la condición/).waitFor();
       await page.locator("#mission-targets summary").click();
       assert.match(await page.locator("#radio-text").textContent(), /Restaura/);
       assert.equal(
@@ -156,7 +157,7 @@ window.forceRunnerLeak = () => {
       await page.getByRole("heading", { name: "Misión completada" }).waitFor();
       assert.match(
         await page.locator("#modal-medal").textContent(),
-        /Insignia: Sin fugas/,
+        /Insignia: Núcleo estable/,
       );
       assert.equal(await page.locator("#modal").getAttribute("data-tone"), "victory");
       assert.equal(await page.locator("#modal-stars").getAttribute("aria-label"), "3 de 3 estrellas");

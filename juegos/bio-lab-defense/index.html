@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=39" />
+    <link rel="stylesheet" href="./styles.css?v=40" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -187,6 +187,7 @@
               role="img"
               aria-label="Plano del sector"
             ></canvas>
+            <p id="briefing-approach" class="objective-briefing" hidden></p>
             <p id="briefing-route-event" class="route-event" hidden></p>
           </section>
         </div>
@@ -310,6 +311,10 @@
                 <button type="button" id="field-guide-dismiss" aria-label="Ocultar guía del primer despliegue">Ocultar</button>
               </div>
             </section>
+            <aside id="objective-coverage" class="objective-briefing" aria-label="Cobertura del objetivo" hidden>
+              <strong id="objective-coverage-title"></strong>
+              <p id="objective-coverage-tip"></p>
+            </aside>
             <p id="core-impact" role="status" hidden></p>
             <div id="placement-analysis" aria-label="Análisis de posición" role="group" hidden></div>
             <p id="wave-beacon-hint" hidden>Cualquier baliza inicia la oleada completa.</p>
@@ -546,6 +551,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=51"></script>
+    <script type="module" src="./game.js?v=52"></script>
   </body>
 </html>

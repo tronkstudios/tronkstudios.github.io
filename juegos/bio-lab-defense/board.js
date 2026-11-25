@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=29";
+import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=30";
 import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=4";
 
 function trace(ctx, points) {
@@ -383,10 +383,24 @@ function target(ctx, enemy, time) {
 }
 
 function drawMissionEquipment(ctx, match) {
-  const objective = match.activeTerminal || match.console;
-  if (objective && !objective.complete) {
+  const objective = match.defenseObjective;
+  if (objective) {
+    const approach = match.state === "build" ? match.objectiveApproach(objective) : null;
     ctx.save();
-    ctx.translate(objective.x, objective.y);
+    if (approach) {
+      trace(ctx, approach.points);
+      ctx.lineWidth = 15;
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = "#80f8c852";
+      ctx.stroke();
+      ctx.setLineDash([6, 10]);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "#9cffdc";
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    const [x, y] = approach?.points.at(-1) || [objective.x, objective.y];
+    ctx.translate(x, y);
     circle(ctx, 0, 0, 23, "#11282c", "#80f8c8", 2);
     ctx.fillStyle = "#07121e";
     ctx.fillRect(-12, -11, 24, 15);

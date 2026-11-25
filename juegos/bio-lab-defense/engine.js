@@ -1,5 +1,5 @@
 import { affinityFor, towerMultiplier } from "./affinities.js?v=1";
-import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=8";
+import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=9";
 
 import { HERO_BY_ID } from "./operations.js?v=7";
 
@@ -394,6 +394,7 @@ export const TARGETING = [
   ["strong", "Mayor resistencia"],
   ["support", "Nodos de apoyo"],
   ["escort", "Escoltas"],
+  ["objective", "Proteger objetivo de misión"],
 ];
 
 export function specializations(tower) {
@@ -701,7 +702,7 @@ export function reactorProduction(tower) {
 }
 
 export class Match {
-  constructor(level, daily = null, { heroId, contract, veteran = false } = {}) {
+  constructor(level, daily = null, { heroId, contract, veteran = false, legacyArchiveOrder = false } = {}) {
     this.level = level;
     this.daily = daily;
     this.contract = contract || null;
@@ -774,10 +775,13 @@ export class Match {
     this.grossATP = 0;
     this.power = !daily && !contract && this.mission.objective === "power" ? { first: null } : null;
     this.archive = !daily && !contract && this.mission.objective === "archive"
-      ? this.routes.map((path, lane) => ({
-          lane, waypoint: 3, x: path.points[3][0], y: path.points[3][1], hp: 4, complete: false,
-        }))
+      ? this.routes.map((path, lane) => {
+          const waypoint = this.mission.archiveWaypoints?.[lane] ?? 3;
+          const [x, y] = path.points[waypoint];
+          return { lane, waypoint, x, y, hp: 4, complete: false };
+        })
       : null;
+    if (this.archive && this.mission.archiveFirstLane === 1 && !legacyArchiveOrder) this.archive.reverse();
     this.combatCue = null;
     this.focusTarget = null;
     this.zeroNodes = [];
@@ -787,7 +791,7 @@ export class Match {
     this.debrief = null;
     this.waveLeaks = null;
     this.console = !daily && !contract && level === 2
-      ? { x: this.routes[0].points[2][0], y: this.routes[0].points[2][1], hp: 4, complete: false }
+      ? { lane: 0, waypoint: 2, x: this.routes[0].points[2][0], y: this.routes[0].points[2][1], hp: 4, complete: false }
       : null;
     this.barrier = !daily && !contract && level === 8
       ? { x: this.routes[0].points.at(-2)[0], y: this.routes[0].points.at(-2)[1], used: false, until: 0 }
@@ -819,9 +823,23 @@ export class Match {
       ? [this.routes[0], event.alternate] : this.routes;
   }
 
+  get defenseObjective() {
+    const objective = this.activeTerminal || this.console;
+    return objective && !objective.complete ? objective : null;
+  }
+
+  objectiveApproach(objective = this.defenseObjective) {
+    if (!objective) return null;
+    const lane = this.routesForWave(this.coverageWave)[objective.lane];
+    return route(lane.points.slice(0, objective.waypoint + 1));
+  }
+
   applyRouteEvent(wave) {
-    if (this.routeEvent && wave >= this.routeEvent.wave)
+    if (this.routeEvent && wave >= this.routeEvent.wave) {
       this.routes[1] = this.routeEvent.alternate;
+      const terminal = this.archive?.find(device => device.lane === 1);
+      if (terminal) [terminal.x, terminal.y] = this.routes[1].points[terminal.waypoint];
+    }
   }
 
   get routeEventStatus() {
@@ -1021,7 +1039,7 @@ export class Match {
     const timeline = formWave(order, formation, theme, this.combatLevel, {
       pressure: this.contract?.pressure,
       veteran: veteranPressure,
-      archiveLane: protectingArchive ? wave - 1 : null,
+      archiveLane: protectingArchive ? this.archive[wave - 1].lane : null,
     });
     if (this.hasEnemyVariants && wave >= 2 && !protectingArchive) {
       const escort = order[0];
@@ -1591,6 +1609,7 @@ export class Match {
       this.spawnIn = this.queue[0]?.delay ?? this.interval;
     }
     const terminal = this.activeTerminal;
+    const defense = this.defenseObjective;
     const escort = this.enemies.find((enemy) => enemy.variant === "escort" && enemy.hp > 0);
     const activeTowers = this.towers.filter((tower) => !this.towerOffline(tower));
     const links = new Map();
@@ -1661,10 +1680,8 @@ export class Match {
         enemy.x = x;
         enemy.y = y;
         enemy.wp++;
-        if (this.console && !this.console.complete && enemy.wp === 3)
-          this.console.hp = Math.max(0, this.console.hp - 1);
-        if (terminal && !terminal.complete && enemy.wp === terminal.waypoint + 1 && enemy.lane === terminal.lane)
-          terminal.hp = Math.max(0, terminal.hp - 1);
+        if (defense && enemy.wp === defense.waypoint + 1 && enemy.lane === defense.lane)
+          defense.hp = Math.max(0, defense.hp - 1);
         if (enemy.wp === points.length) {
           enemy.escaped = true;
           const loss = Math.min(this.hp, enemy.coolingBoss ? 18 : enemy.boss ? 30 : 10);
@@ -1730,7 +1747,8 @@ export class Match {
               : -enemy.remaining;
         const focus = tower.rank && enemy === this.focusTarget ? 3
           : (tower.targeting === "support" && enemy.supportNode) ||
-          (tower.targeting === "escort" && enemy.variant === "escort") ? 2
+          (tower.targeting === "escort" && enemy.variant === "escort") ||
+          (tower.targeting === "objective" && defense && enemy.lane === defense.lane && enemy.wp <= defense.waypoint) ? 2
           : tower.rank && enemy.markedUntil > this.time ? 1 : 0;
         if (focus > bestFocus || (focus === bestFocus && priority > best)) {
           target = enemy;

@@ -1,6 +1,6 @@
-import { BLUEPRINTS, HEIGHT, Match, TARGETING, WIDTH, specializations } from "./engine.js?v=29";
+import { BLUEPRINTS, HEIGHT, Match, TARGETING, WIDTH, specializations } from "./engine.js?v=30";
 
-import { MISSIONS } from "./campaign.js?v=8";
+import { MISSIONS } from "./campaign.js?v=9";
 
 const version = 1;
 const blueprintById = new Map(BLUEPRINTS.map((type) => [type.id, type]));
@@ -56,6 +56,7 @@ export class Checkpoint {
       } : undefined,
       barrierUsed: match.barrier?.used,
       powerFirst: match.power?.first,
+      archiveFirstLane: match.archive?.[0].lane,
 
       gateDiverted: match.gateRoutes ? match.gateDiverted : undefined,
       routeDiverted: match.routeEvent ? match.routes[1] === match.routeEvent.alternate : undefined,
@@ -104,7 +105,10 @@ export class Checkpoint {
 
 export function restoreCheckpoint(data) {
   if (!data || !integer(data.level, 1, MISSIONS.length)) return null;
-  const match = new Match(data.level, null, { heroId: data.hero?.id });
+  const match = new Match(data.level, null, {
+    heroId: data.hero?.id,
+    legacyArchiveOrder: data.wave > 0 && data.archiveFirstLane !== 1,
+  });
   if (
     !integer(data.wave, 0, match.maxWaves - 1) ||
     !integer(data.hp, 1, 100) ||
@@ -129,7 +133,7 @@ export function restoreCheckpoint(data) {
   if (match.console) match.console.complete = data.wave > 0;
   if (match.barrier) match.barrier.used = data.barrierUsed === true;
   if (match.archive)
-    for (const terminal of match.archive) terminal.complete = data.wave > terminal.lane;
+    for (const [index, terminal] of match.archive.entries()) terminal.complete = data.wave > index;
   if (match.power) {
     // Older saves for this sector can already be between the planned cuts.
     match.power.first = [0, 1].includes(data.powerFirst) ? data.powerFirst : data.wave > 0 ? 0 : null;

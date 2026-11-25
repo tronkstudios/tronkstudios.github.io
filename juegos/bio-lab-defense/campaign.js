@@ -48,7 +48,7 @@ export const CHAPTERS = [
 
 const medals = {
   intact: {
-    title: "Sin fugas",
+    title: "Núcleo estable",
     text: "Termina con al menos 90 % de integridad.",
     progress: m => `${m.hp} % de núcleo`,
     test: (m) => m.hp >= 90,
@@ -501,12 +501,13 @@ export const MISSIONS = [
   {
     chapter: 8, name: "Crisol doble", task: "Protege los registros de las dos coladas.",
     speaker: "Ivo · Ingeniería",
-    briefing: "Los pirómetros están antes de la salida. Derriba las escoltas antes de que lleguen al sensor activo.",
+    briefing: "El pirómetro de A está después del giro del horno. El de B está más adelantado y te deja menos recorrido para romper la escolta.",
     cue: "Antes de lanzar la oleada, comprueba qué entrada necesita cobertura.",
     transmission: "Protege los registros de las dos coladas.", end: "Los registros permiten templar el primer sello.",
     waves: 6, bend: 1.12, flip: true, formation: "surge", medal: medals.intact,
     towerLimit: 7,
     objective: "archive",
+    archiveWaypoints: [4, 3],
   },
   {
     chapter: 8, name: "Válvula de purga", task: "Libera la presión del crisol.",
@@ -541,12 +542,13 @@ export const MISSIONS = [
   {
     chapter: 9, name: "Semillas de memoria", task: "Recupera las cápsulas del jardín.",
     speaker: "Ivo · Ingeniería",
-    briefing: "Guarda la primera cápsula en A. Después traslada tus torres a B antes de que empiece la segunda oleada.",
+    briefing: "La primera cápsula está en B. Reubica tus defensas hacia A antes de lanzar la segunda oleada.",
     cue: "Antes de lanzar la oleada, comprueba qué entrada necesita cobertura.",
     transmission: "Recupera las cápsulas del jardín.", end: "Las cápsulas conservan el plano del jardín.",
     waves: 6, bend: 1.12, flip: true, formation: "cross", medal: medals.intact,
     towerLimit: 6,
     objective: "archive",
+    archiveFirstLane: 1,
   },
   {
     chapter: 9, name: "Marea de retorno", task: "Sella la entrada profunda.",
