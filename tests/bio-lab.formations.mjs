@@ -48,6 +48,35 @@ test("the forecast reports the same timings and lanes that the engine spawns", (
   assert.equal(new Match(6, daily).preview.timeline.length, 1);
 });
 
+test("signature campaign waves route and announce the configured groups without changing veteran waves", () => {
+  const planned = MISSIONS.flatMap((mission, index) =>
+    Object.entries(mission.tactics || {}).map(([wave, tactics]) => [index + 1, Number(wave), tactics]));
+  assert.equal(planned.length, 6);
+  for (const [level, wave, tactics] of planned) {
+    const match = new Match(level);
+    const preview = match.planWave(wave);
+    assert.deepEqual(preview.tactics, tactics);
+    assert.equal(new Match(level, null, { veteran: true }).planWave(wave).tactics, null);
+    for (const [index, directive] of tactics.groups.entries()) {
+      const group = preview.timeline[index];
+      assert.equal(group.name, directive.name);
+      const entries = preview.order.filter(entry => entry.groupName === directive.name);
+      assert.ok(entries.length > 0);
+      assert.deepEqual(group.lanes, [0, 1].map(lane => entries.filter(entry => entry.lane === lane).length));
+      if (directive.lane != null) assert.ok(entries.every(entry => entry.lane === directive.lane));
+      if (directive.shield) assert.ok(entries.some(entry => entry.shield >= directive.shield));
+      if (directive.armor) assert.ok(entries.some(entry => entry.armor >= directive.armor));
+      if (directive.speed) assert.ok(entries.every(entry => entry.speed >= directive.speed));
+      if (directive.gap) assert.equal(entries[0].delay, directive.gap);
+      if (directive.spacing) assert.ok(entries.slice(1).every(entry => entry.delay === directive.spacing));
+    }
+    match.wave = wave - 1;
+    match.preview = preview;
+    assert.ok(match.startWave());
+    assert.deepEqual(match.queue, preview.order);
+  }
+});
+
 test("entry alerts use the first enemy actually queued for each lane", () => {
   const match = new Match(8, null, { contract: CONTRACTS.find(contract => contract.pressure) });
   const { arrivals } = match.preview;

@@ -15,18 +15,18 @@ import {
   VARIANT_NAMES,
   escortArmor,
   dailySetup,
-} from "./engine.js?v=30";
+} from "./engine.js?v=31";
 import { routeCoverage, routeTeamCoverage } from "./coverage.js?v=2";
-import { attachDrill } from "./drill.js?v=4";
-import { Board } from "./board.js?v=37";
+import { attachDrill } from "./drill.js?v=5";
+import { Board } from "./board.js?v=38";
 import { towerIcon, heroIcon } from "./art.js?v=4";
-import { createCodex } from "./codex.js?v=18";
-import { Profile, dayKey } from "./profile.js?v=12";
+import { createCodex } from "./codex.js?v=19";
+import { Profile, dayKey } from "./profile.js?v=13";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=7";
-import { CHAPTERS, MISSIONS } from "./campaign.js?v=9";
+import { CHAPTERS, MISSIONS } from "./campaign.js?v=10";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=26";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=27";
 
 import { HEROES, CONTRACTS } from "./operations.js?v=7";
 
@@ -573,6 +573,10 @@ function briefing(level) {
     `${best ? "Mejor resultado · " + "★".repeat(best) + "☆".repeat(3 - best) : "Primera victoria pendiente"} · Para tres estrellas, termina con al menos ${starThresholds[2]} % de núcleo.`);
   updateText("briefing-waves", `${preview.maxWaves} oleadas`);
   updateText("briefing-entries", preview.routes.length === 2 ? "2 entradas" : "1 entrada");
+  const tacticalWaves = Object.entries(mission.tactics || {});
+  $("briefing-tactics").hidden = !tacticalWaves.length;
+  if (tacticalWaves.length)
+    updateText("briefing-tactics", tacticalWaves.map(([wave, plan]) => `Oleada ${wave} · ${plan.name}`).join(" / "));
   $("briefing-approach").hidden = !preview.defenseObjective;
   if (preview.defenseObjective) {
     const lane = preview.defenseObjective.lane;
@@ -1224,7 +1228,12 @@ function renderWavePreview(preview) {
   if (preview === lastPreview) return;
   lastPreview = preview;
   renderCounterSuggestions(preview);
-  const { count, theme, final, lanes, bossTip, order, timeline } = preview;
+  const { count, theme, final, lanes, bossTip, order, timeline, tactics } = preview;
+  $("wave-tactics").hidden = !tactics;
+  if (tactics) {
+    updateText("wave-tactics-title", tactics.name);
+    updateText("wave-tactics-tip", tactics.tip);
+  }
   const finale = match.gateRoutes ? " · Dos jefes" : " · Jefe";
   updateText(
     "wave-preview-title",
@@ -1291,16 +1300,14 @@ function renderBoss(boss, suffix = "") {
   const accelerated = boss.coolingBoss === "runner"
     ? boss.phase >= 2
     : !boss.coolingBoss && boss.phase === 3;
+  const shielded = boss.shield > 0;
+  const phase = `Fase ${boss.phase}/3`;
   updateText(`boss-name${suffix}`, name);
-  updateText(
-    `boss-phase${suffix}`,
-    boss.shield
-      ? "Escudo activo"
-      : accelerated
-        ? "Acelerado"
-        : `Fase ${boss.phase}/3`,
-  );
-  $(`boss-health${suffix}`).value = Math.ceil((100 * boss.hp) / boss.maxHp);
+  $(`boss-stage${suffix}`).hidden = !shielded && !accelerated;
+  if (shielded || accelerated) updateText(`boss-stage${suffix}`, phase);
+  updateText(`boss-phase${suffix}`, shielded ? "Escudo activo" : accelerated ? "Acelerado" : phase);
+  $(`boss-health${suffix}`).value = Math.ceil(100 * boss.hp / boss.maxHp);
+  updateText(`boss-vitals${suffix}`, `Vida ${Math.ceil(boss.hp)} / ${boss.maxHp}${shielded ? ` · Escudo ${Math.ceil(boss.shield)}` : ""}`);
 }
 
 function renderGate(waiting) {

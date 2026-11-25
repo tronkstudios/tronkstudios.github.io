@@ -521,6 +521,13 @@ dialog p {
   gap: 0.3rem 0.7rem;
   color: #ffc799;
 }
+.boss-phase-group { display: flex; flex-wrap: wrap; gap: 0.3rem 0.55rem; }
+.boss-phase-group span {
+  padding: 0.14rem 0.4rem;
+  border-radius: 4px;
+  background: #121b2d;
+}
+.boss-vitals { margin: 0.15rem 0 0; color: #d9dced; font-variant-numeric: tabular-nums; }
 .boss-status progress {
   width: 100%;
   height: 0.62rem;
@@ -1113,6 +1120,17 @@ dialog p {
   color: #c0f2e8;
 }
 
+.wave-tactics {
+  margin-block: 0.55rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #745c44;
+  border-inline-start: 3px solid #ffce88;
+  border-radius: 7px;
+  background: #2b2828;
+  color: #ffe0ad;
+  font-size: 0.83rem;
+}
+.wave-tactics p { margin: 0.25rem 0 0; color: #e2d3c1; }
 .wave-timeline {
   display: grid;
   gap: 0.25rem;

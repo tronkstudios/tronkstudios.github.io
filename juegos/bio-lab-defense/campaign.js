@@ -138,6 +138,15 @@ export const MISSIONS = [
     end: "Repuesto asegurado. La peste bubónica se interpone entre nosotros y el ascensor.",
     medal: medals.researcher,
     bend: 1.22,
+    tactics: { 2: {
+      name: "Escolta del depósito",
+      tip: "Rompe los escudos del primer grupo. Los últimos enemigos aceleran por el mismo conducto.",
+      groups: [
+        { name: "Avanzada con escudos", shield: 0.32 },
+        { name: "Transporte del depósito" },
+        { name: "Corredores de salida", speed: 1.16 },
+      ],
+    } },
   },
   {
     chapter: 0,
@@ -222,6 +231,15 @@ export const MISSIONS = [
       "La consola acepta órdenes manuales. Necesito que aguante una oleada más.",
     end: "Tenemos el mando manual. Todo listo para contener la gripe de 1918.",
     medal: medals.workshop,
+    tactics: { 3: {
+      name: "Cruce del núcleo",
+      tip: "La entrada A abre y cierra la oleada. Coloca una defensa en B que pueda contener el grupo blindado entre ambos ataques.",
+      groups: [
+        { name: "Apertura de A", lane: 0 },
+        { name: "Columna blindada", lane: 1, armor: 10, gap: 48 },
+        { name: "Segundo ataque de A", lane: 0 },
+      ],
+    } },
   },
   {
     chapter: 2,
@@ -280,6 +298,15 @@ export const MISSIONS = [
     formation: "cross",
     waves: 7,
     bend: 1.12,
+    tactics: { 4: {
+      name: "Primera descarga del desvío",
+      tip: "Los primeros corredores ya usan la ruta nueva de B. Deja cubierta A para el grupo que llega después.",
+      groups: [
+        { name: "Corredores por el desvío", lane: 1, speed: 1.18 },
+        { name: "Contraflujo por A", lane: 0 },
+        { name: "Segunda descarga", lane: 1 },
+      ],
+    } },
   },
   {
     chapter: 3,
@@ -339,6 +366,15 @@ export const MISSIONS = [
     formation: "convoy",
     waves: 7,
     bend: 1.17,
+    tactics: { 3: {
+      name: "Asalto al relé",
+      tip: "Dos grupos anuncian el asalto por A. Reserva control para los corredores que cierran por B.",
+      groups: [
+        { name: "Vanguardia blindada", lane: 0, armor: 12 },
+        { name: "Segunda columna", lane: 0 },
+        { name: "Incursión rápida", lane: 1, speed: 1.24, gap: 66 },
+      ],
+    } },
   },
   {
     chapter: 4,
@@ -459,6 +495,15 @@ export const MISSIONS = [
     transmission: "Localiza el origen de la llamada.", end: "La llamada viene del anillo exterior.",
     waves: 5, bend: 0.92, flip: false, formation: "surge", medal: medals.workshop,
     towerLimit: 7,
+    tactics: { 3: {
+      name: "Cruce de señales",
+      tip: "A recibe blindaje primero y B recibe escudos después. La última tanda se reparte entre las dos entradas.",
+      groups: [
+        { name: "Señal blindada", lane: 0, armor: 14 },
+        { name: "Señal con escudos", lane: 1, shield: 0.34 },
+        { name: "Eco por ambas entradas" },
+      ],
+    } },
   },
   {
     chapter: 7, name: "Paralaje", task: "Sincroniza las dos lentes.",
@@ -497,6 +542,15 @@ export const MISSIONS = [
     transmission: "Abre paso hasta la fundición.", end: "La cinta de carga vuelve a moverse.",
     waves: 5, bend: 0.92, flip: false, formation: "cross", medal: medals.workshop,
     towerLimit: 6,
+    tactics: { 3: {
+      name: "Colada de escoria",
+      tip: "B recibe la primera y la última tanda. Con seis puestos, busca una torre que pueda apoyar A durante la columna blindada.",
+      groups: [
+        { name: "Enjambre de B", lane: 1, speed: 1.13, spacing: 17 },
+        { name: "Columna de la fundición", lane: 0, armor: 15 },
+        { name: "Segunda colada", lane: 1, spacing: 20 },
+      ],
+    } },
   },
   {
     chapter: 8, name: "Crisol doble", task: "Protege los registros de las dos coladas.",

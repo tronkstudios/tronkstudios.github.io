@@ -304,6 +304,8 @@ window.forceRunnerLeak = () => {
       await page.evaluate(() => triggerBossPhases());
       await page.getByText("Acelerado", { exact: true }).waitFor();
       await page.getByText("Escudo activo", { exact: true }).waitFor();
+      await page.locator("#boss-stage-b").getByText(/Fase [1-3]\/3/).waitFor();
+      await page.locator("#boss-vitals-b").getByText(/Vida .* · Escudo [1-9]/).waitFor();
       assert.equal(await canvas.evaluate((node) => node.offsetTop), boardTop);
       await page.evaluate(() => forceRunnerLeak());
       await page.getByRole("heading", { name: "Brecha de contención" }).waitFor();

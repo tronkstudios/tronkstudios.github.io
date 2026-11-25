@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=30";
+import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=31";
 import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=4";
 
 function trace(ctx, points) {
@@ -379,6 +379,17 @@ function target(ctx, enemy, time) {
   ctx.fillRect(-width / 2, y, width, 5);
   ctx.fillStyle = health < 0.3 ? "#ff7a70" : enemy.boss ? "#ffbc79" : "#9cf0bd";
   ctx.fillRect(-width / 2, y, width * health, 5);
+  if (enemy.shield > 0) {
+    const badgeX = width / 2 + 7;
+    trace(ctx, [[badgeX - 5, y - 1], [badgeX + 5, y - 1], [badgeX + 4, y + 5],
+      [badgeX, y + 9], [badgeX - 4, y + 5]]);
+    ctx.closePath();
+    ctx.fillStyle = "#a8edff";
+    ctx.strokeStyle = "#091627";
+    ctx.lineWidth = 2;
+    ctx.fill();
+    ctx.stroke();
+  }
   ctx.restore();
 }
 

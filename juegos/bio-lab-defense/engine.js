@@ -1,5 +1,5 @@
 import { affinityFor, towerMultiplier } from "./affinities.js?v=1";
-import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=9";
+import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=10";
 
 import { HERO_BY_ID } from "./operations.js?v=7";
 
@@ -530,7 +530,7 @@ const FORMATIONS = {
   surge: ["Sondeo", "Irrupción rápida", "Último empuje"],
 };
 
-function formWave(order, formation, theme, level, { pressure, veteran, archiveLane }) {
+function formWave(order, formation, theme, level, { pressure, veteran, archiveLane, tactics }) {
   const interval = theme === SWARM ? 24 : theme === RUSH ? 31 : 39;
   const bosses = order.filter((enemy) => enemy.boss);
   const regular = order.length - bosses.length;
@@ -540,7 +540,9 @@ function formWave(order, formation, theme, level, { pressure, veteran, archiveLa
   const groups = FORMATIONS[formation] || ["Avance continuo"];
   const boundaries = [0, Math.ceil(regular / 3), Math.ceil(regular * 2 / 3), regular];
   let elapsed = 0;
-  const timeline = groups.map((name, group) => {
+  const timeline = groups.map((defaultName, group) => {
+    const directive = tactics?.groups[group];
+    const name = directive?.name || defaultName;
     const start = boundaries[group];
     const end = formation ? boundaries[group + 1] : regular;
     const lanes = [0, 0];
@@ -577,6 +579,16 @@ function formWave(order, formation, theme, level, { pressure, veteran, archiveLa
       }
       if (archiveLane != null)
         entry.lane = group === 1 && i - start < 2 ? 1 - archiveLane : archiveLane;
+      if (directive) {
+        if (first && i > 0 && directive.gap) entry.delay = directive.gap;
+        if (!first && directive.spacing) entry.delay = directive.spacing;
+        if (directive.lane != null) entry.lane = directive.lane;
+        if (directive.speed) entry.speed = Math.max(entry.speed, directive.speed);
+        if ((i - start) % 2 === 0) {
+          if (directive.armor) entry.armor = Math.max(entry.armor, directive.armor);
+          if (directive.shield) entry.shield = Math.max(entry.shield, directive.shield);
+        }
+      }
       if (veteran) entry.delay = Math.round(entry.delay * 0.82);
       elapsed += entry.delay;
       if (first) time = elapsed;
@@ -1032,7 +1044,8 @@ export class Match {
         mirror: !this.daily && !zero && (this.level === 10 || (this.veteran && this.routes.length > 1)),
       });
     }
-    const formation = this.daily ? null : veteranPressure
+    const tactics = !this.ranked ? this.mission.tactics?.[wave] : null;
+    const formation = tactics ? "cross" : this.daily ? null : veteranPressure
       ? ["surge", "cross", "convoy"][(wave + level + 1) % 3]
       : this.contract?.formation ?? this.mission.formation ??
         (wave === 1 && level < 6 ? null : ["convoy", "cross", "surge"][(wave + level) % 3]);
@@ -1040,6 +1053,7 @@ export class Match {
       pressure: this.contract?.pressure,
       veteran: veteranPressure,
       archiveLane: protectingArchive ? this.archive[wave - 1].lane : null,
+      tactics,
     });
     if (this.hasEnemyVariants && wave >= 2 && !protectingArchive) {
       const escort = order[0];
@@ -1055,6 +1069,7 @@ export class Match {
     return {
       order,
       timeline,
+      tactics,
       arrivals: nextArrivals(order, order[0]?.delay ?? 0, 0, this.routes.length),
       theme,
       count: order.length,
