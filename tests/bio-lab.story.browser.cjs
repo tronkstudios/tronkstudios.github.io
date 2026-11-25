@@ -106,12 +106,17 @@ window.forceRunnerLeak = () => {
         await page.locator("#campaign-progress").textContent(),
         /1\/38 misiones · 2 estrellas/,
       );
+      assert.equal(await page.locator("#campaign-progress-meter").getAttribute("value"), "1");
+      assert.equal(await page.locator("#campaign-next-sector").textContent(), "Sector 2 · Muestreo");
       assert.equal(await page.locator(".level").nth(2).isDisabled(), true);
       await page.locator("#resume-mission").click();
       await page.getByRole("heading", { name: "Muestreo" }).waitFor();
       await page.locator("#back-campaign").click();
       await page.locator(".level").first().click();
       await page.getByRole("heading", { name: "Ingreso" }).waitFor();
+      const map = page.getByRole("region", { name: "Plano del sector" });
+      await map.getByText("4 oleadas").waitFor();
+      await map.getByText("1 entrada").waitFor();
       assert.match(
         await page.locator("#briefing-medal").textContent(),
         /Sin fugas/,

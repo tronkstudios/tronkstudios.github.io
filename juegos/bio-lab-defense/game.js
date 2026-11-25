@@ -208,6 +208,13 @@ function refreshProfile() {
     "home-progress",
     `${complete}/${MISSIONS.length} misiones · ${medals} insignias`,
   );
+  const next = profile.data.unlockedLevel;
+  updateText("home-story-sector", complete === MISSIONS.length
+    ? "Campaña completada"
+    : `Sector ${next} · ${MISSIONS[next - 1].name}`);
+  updateText("home-supply-status", profile.data.lastDaily >= dayKey()
+    ? "Ya recogido hoy"
+    : "+250 ATP y +10 biogemas");
   const campaignMeter = $("home-progress-meter");
   campaignMeter.max = MISSIONS.length;
   campaignMeter.value = complete;
@@ -377,6 +384,11 @@ function renderLevels() {
     `${complete}/${MISSIONS.length} misiones · ${totalStars} estrellas · ${medals} insignias`,
   );
   const active = profile.data.unlockedLevel;
+  const meter = $("campaign-progress-meter");
+  meter.max = MISSIONS.length;
+  meter.value = complete;
+  updateText("campaign-next-action", complete === MISSIONS.length ? "Repetir último sector" : "Continuar historia");
+  updateText("campaign-next-sector", `Sector ${active} · ${MISSIONS[active - 1].name}`);
   const jump = $("chapter-jump");
   const preferredChapter = jump.value || String(MISSIONS[active - 1].chapter);
   const filter = $("sector-filter").value;
@@ -480,7 +492,7 @@ function briefing(level) {
   $("briefing").style.setProperty("--chapter", chapter.color);
   updateText(
     "briefing-chapter",
-    `Capítulo ${mission.chapter + 1} · ${chapter.name}`,
+    `Sector ${level} · ${chapter.name}`,
   );
   updateText("briefing-title", mission.name);
   updateText("briefing-task", mission.task);
@@ -497,10 +509,8 @@ function briefing(level) {
   const best = profile.data.stars[level - 1];
   updateText("briefing-best", best === 3 ? "Mejor resultado · ★★★" :
     `${best ? "Mejor resultado · " + "★".repeat(best) + "☆".repeat(3 - best) : "Primera victoria pendiente"} · Para tres estrellas, termina con al menos ${starThresholds[2]} % de núcleo.`);
-  updateText(
-    "briefing-waves",
-    `${preview.maxWaves} oleadas · ${preview.routes.length === 2 ? "Dos entradas" : "Una entrada"}`,
-  );
+  updateText("briefing-waves", `${preview.maxWaves} oleadas`);
+  updateText("briefing-entries", preview.routes.length === 2 ? "2 entradas" : "1 entrada");
   $("briefing-route-event").hidden = !preview.routeEvent;
   if (preview.routeEvent) updateText("briefing-route-event", describeRouteEvent(preview.routeEvent));
   view("briefing");
@@ -524,11 +534,13 @@ function refreshCheckpoint() {
   const saved = savedPreparation();
   $("home-resume-run").hidden = !saved;
   $("campaign-checkpoint").hidden = !saved;
-  if (saved)
-    updateText(
-      "saved-sector",
-      `${saved.match.mission.name} · Oleada ${saved.match.wave + 1}/${saved.match.maxWaves} · Núcleo ${saved.match.hp} % · ${saved.match.atp} ATP`,
-    );
+  if (!saved) return;
+  const { match } = saved;
+  const sector = `Sector ${match.level} · ${match.mission.name}`;
+  const wave = `Oleada ${match.wave + 1}/${match.maxWaves}`;
+  updateText("home-saved-run", `${sector} · ${wave}`);
+  updateText("saved-sector", `${sector} · ${wave}`);
+  updateText("saved-resources", `Núcleo ${match.hp} % · ${match.atp} ATP`);
 }
 
 function persistPreparation() {

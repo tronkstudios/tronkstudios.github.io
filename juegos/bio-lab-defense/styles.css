@@ -1521,7 +1521,6 @@ dialog p {
 #home button.primary:hover, #campaign button.primary:hover, #briefing button.primary:hover, dialog button.primary:hover {
   background: #bcf7e4;
 }
-#campaign-button::after { content: " →"; margin-left: 1em; }
 .specimen { margin: 2.8rem 1rem 1.8rem; min-width: 0; text-align: center; }
 #specimen-art, .chapter canvas.sector-route {
   border: 0;
@@ -1530,7 +1529,7 @@ dialog p {
   pointer-events: none;
 }
 #specimen-art { max-width: 470px; margin: auto; }
-.specimen figcaption, .home-progress, .level small, .mission-chapter, #briefing-waves {
+.specimen figcaption, .home-progress, .level small, .mission-chapter {
   font: 600 0.78rem/1.4 var(--instrument-font);
   letter-spacing: 0.025em;
 }
@@ -1665,7 +1664,25 @@ dialog::backdrop { background: #031016cf; }
 .mission-notes .radio-card { margin-top: 0; }
 .mission-notes .mission-medal { margin-bottom: 0; }
 .mission-preview { grid-area: map; align-self: start; }
-.mission-preview > :not(canvas) { margin-top: 0.45rem; }
+#briefing-route-event { margin-top: 0.45rem; }
+.mission-map-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem 0.85rem;
+  margin: 0 0 0.55rem;
+}
+.mission-map-header h2 { color: var(--phosphor); font-size: 0.93rem; }
+.mission-map-stats { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.mission-map-stats span {
+  color: #c0e7df;
+  padding: 0.2rem 0.48rem;
+  border: 1px solid var(--seam);
+  border-radius: 6px;
+  background-color: #0b1b24;
+  font: 600 0.72rem/1.4 var(--instrument-font);
+}
 .mission-deploy { grid-area: deploy; display: grid; gap: 0.55rem; }
 .mission-deploy button { width: 100%; }
 
@@ -1730,20 +1747,6 @@ dialog::backdrop { background: #031016cf; }
   #field .wave-preview-head > button { flex: 1 1 auto; }
 }
 
-#home .home-play:has(#home-resume-run:not([hidden])) #campaign-button {
-  background: #10272e;
-  color: #c9eee4;
-  border-color: #4c6e71;
-  box-shadow: none;
-}
-#home .home-play:has(#home-resume-run:not([hidden])) #campaign-button:hover {
-  background: #1b373d;
-}
-@media (max-width: 480px) {
-  .home-play { display: grid; grid-template-columns: minmax(0, 1fr); }
-  .home-play button { text-align: left; }
-  #campaign-button::after { float: right; }
-}
 
 .chapter-progress {
   display: block;
@@ -2007,8 +2010,63 @@ dialog::backdrop { background: #031016cf; }
 }
 #home-progress-meter::-webkit-progress-bar { background: #284952; }
 #home-progress-meter::-webkit-progress-value { background: var(--phosphor); }
+#home .home-play {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.55rem;
+  max-width: 29rem;
+}
+#home .home-play button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  min-height: 58px;
+  padding: 0.65rem 0.8rem;
+  text-align: left;
+}
+#home .home-play button::after {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: none;
+  border: solid currentColor;
+  border-width: 2px 2px 0 0;
+  transform: rotate(45deg);
+}
+.menu-action-copy { display: grid; gap: 0.2rem; min-width: 0; }
+.menu-action-copy small { color: inherit; font-size: 0.76rem; font-weight: 500; }
+#home .home-play:has(#home-resume-run:not([hidden])) #campaign-button,
+#campaign .campaign-overview:has(#campaign-checkpoint:not([hidden])) #resume-mission {
+  background: #10272e;
+  color: #c9eee4;
+  border-color: #4c6e71;
+  box-shadow: none;
+}
+#home .home-play:has(#home-resume-run:not([hidden])) #campaign-button:hover,
+#campaign .campaign-overview:has(#campaign-checkpoint:not([hidden])) #resume-mission:hover {
+  background: #1b373d;
+}
+.campaign-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+  gap: 0.65rem;
+  margin-bottom: 0.85rem;
+}
+.campaign-overview .campaign-resume { margin: 0; min-width: 0; }
+.campaign-overview strong { color: var(--phosphor); }
+.campaign-overview button strong { color: inherit; }
+.campaign-overview p { margin: 0.28rem 0; }
+.campaign-overview button { min-height: 44px; text-align: left; }
+#saved-resources { font-variant-numeric: tabular-nums; }
+#campaign-progress-meter {
+  display: block;
+  width: min(100%, 14rem);
+  height: 5px;
+  accent-color: var(--phosphor);
+}
 .home-tools button {
-  min-height: 59px;
+  min-height: 76px;
   border-top-color: #5c7978;
   box-shadow: inset 0 1px #acdfd014;
 }
@@ -2023,6 +2081,7 @@ dialog::backdrop { background: #031016cf; }
   transform: rotate(45deg);
 }
 .home-tools button:hover:enabled { background: #203e44; border-color: #83b6a7; }
+.home-tools small { color: #b1cbc9; }
 @media (max-width: 760px) {
   #home .hero { padding-top: 0; }
   #home .specimen { margin: 0; }
@@ -2038,7 +2097,10 @@ dialog::backdrop { background: #031016cf; }
   #home .hero-body > p { max-width: 100%; }
   #home .specimen { margin-right: 0.65rem; }
   #home .home-progress { grid-template-columns: 1fr; gap: 0.38rem; padding-inline: 0.9rem; }
-  .home-tools button { gap: 0.45rem; min-height: 53px; }
+  .home-tools button { gap: 0.45rem; align-items: flex-start; }
+  .home-tools button::before { margin-top: 0.18rem; }
+  .home-tools button::after { display: none; }
+  .campaign-overview button { width: 100%; }
   #home-progress-meter { width: 100%; }
 }
 

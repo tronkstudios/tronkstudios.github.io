@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=36" />
+    <link rel="stylesheet" href="./styles.css?v=37" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -51,10 +51,16 @@
                 id="home-resume-run"
                 hidden
               >
-                Retomar partida
+                <span class="menu-action-copy">
+                  <strong>Retomar partida</strong>
+                  <small id="home-saved-run"></small>
+                </span>
               </button>
               <button type="button" class="primary" id="campaign-button">
-                Modo historia
+                <span class="menu-action-copy">
+                  <strong>Modo historia</strong>
+                  <small id="home-story-sector"></small>
+                </span>
               </button>
             </div>
           </div>
@@ -68,10 +74,18 @@
           </div>
         </div>
         <nav class="home-tools" aria-label="Modos y recursos">
-          <button type="button" id="challenge-button">Reto de hoy</button>
-          <button type="button" id="operations-button" disabled>Nanobots y contratos</button>
-          <button type="button" id="home-codex" aria-haspopup="dialog">Enciclopedia</button>
-          <button type="button" id="daily-button">Suministro diario</button>
+          <button type="button" id="challenge-button">
+            <span class="menu-action-copy"><strong>Reto de hoy</strong><small>Una defensa nueva cada día</small></span>
+          </button>
+          <button type="button" id="operations-button" disabled>
+            <span class="menu-action-copy"><strong>Nanobots y contratos</strong><small>Equipa un héroe o juega una misión de élite</small></span>
+          </button>
+          <button type="button" id="home-codex" aria-haspopup="dialog">
+            <span class="menu-action-copy"><strong>Enciclopedia</strong><small>Torres, enemigos y resistencias</small></span>
+          </button>
+          <button type="button" id="daily-button">
+            <span class="menu-action-copy"><strong>Suministro diario</strong><small id="home-supply-status"></small></span>
+          </button>
         </nav>
         <output id="home-status" role="status"></output>
       </section>
@@ -83,27 +97,30 @@
           </div>
           <p id="profile-balance"></p>
         </div>
-        <div class="campaign-resume">
-          <div>
-            <strong id="campaign-progress-title"></strong>
-            <p id="campaign-progress"></p>
+        <div class="campaign-overview">
+          <div id="campaign-checkpoint" class="campaign-resume" hidden>
+            <div>
+              <strong>Partida guardada</strong>
+              <p id="saved-sector"></p>
+              <p id="saved-resources"></p>
+            </div>
+            <button type="button" class="primary resume-checkpoint" id="campaign-resume-run">
+              Retomar partida
+            </button>
           </div>
-          <button type="button" class="primary" id="resume-mission">
-            Continuar historia
-          </button>
-        </div>
-        <div id="campaign-checkpoint" class="campaign-resume" hidden>
-          <div>
-            <strong>Partida guardada</strong>
-            <p id="saved-sector"></p>
+          <div class="campaign-resume campaign-story">
+            <div>
+              <strong id="campaign-progress-title"></strong>
+              <p id="campaign-progress"></p>
+              <progress id="campaign-progress-meter" aria-label="Misiones superadas" value="0" max="38"></progress>
+            </div>
+            <button type="button" class="primary" id="resume-mission">
+              <span class="menu-action-copy">
+                <strong id="campaign-next-action">Continuar historia</strong>
+                <small id="campaign-next-sector"></small>
+              </span>
+            </button>
           </div>
-          <button
-            type="button"
-            class="primary resume-checkpoint"
-            id="campaign-resume-run"
-          >
-            Retomar partida
-          </button>
         </div>
         <div class="campaign-browser">
           <aside class="chapter-index" aria-label="Explorar sectores">
@@ -158,7 +175,11 @@
               <button type="button" id="launch-veteran">Jugar en Veterano</button>
             </div>
           </div>
-          <div class="mission-preview">
+          <section class="mission-preview" aria-labelledby="briefing-map-label">
+            <div class="mission-map-header">
+              <h2 id="briefing-map-label">Plano del sector</h2>
+              <div class="mission-map-stats"><span id="briefing-waves"></span><span id="briefing-entries"></span></div>
+            </div>
             <canvas
               id="briefing-map"
               width="900"
@@ -166,9 +187,8 @@
               role="img"
               aria-label="Plano del sector"
             ></canvas>
-            <p id="briefing-waves"></p>
             <p id="briefing-route-event" class="route-event" hidden></p>
-          </div>
+          </section>
         </div>
       </section>
       <section id="operations" aria-labelledby="operations-title" hidden>
@@ -504,6 +524,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=48"></script>
+    <script type="module" src="./game.js?v=49"></script>
   </body>
 </html>
