@@ -77,7 +77,7 @@ window.testRun = {
   loseConsole() {
     for (let i = 0; i < 4; i++) {
       match.spawn();
-      Object.assign(match.enemies.at(-1), { x: match.console.x, y: match.console.y, wp: 2 });
+      Object.assign(match.enemies.at(-1), { x: match.console.x, y: match.console.y, wp: 2, coverageGaps: [0, 4] });
     }
   },
   mirrorPhase() {
@@ -324,8 +324,13 @@ window.testRun = {
     assert.ok(await page.evaluate(() => testRun.state.cooldown) > 0);
     await page.evaluate(() => testRun.loseConsole());
     await page.getByText(/La consola de Muestreo fue destruida/).waitFor();
+    await page.getByRole("img", { name: "Tramo hasta el objetivo · Consola · Entrada A" }).waitFor();
+    await page.locator("#modal-text").getByText(/4 enemigos alcanzaron el objetivo/).waitFor();
     await page.getByRole("button", { name: "Repreparar la oleada" }).tap();
     await page.getByText(/Protege la consola · Integridad 4\/4/).waitFor();
+    await page.locator("#retry-review").getByText(/Pasaron 4 enemigos fuera del alcance/).waitFor();
+    await page.getByRole("button", { name: "Quitar marca del mapa" }).tap();
+    assert.ok(await page.locator("#retry-review").isHidden());
     await page.locator("#pause").tap();
     await page.getByRole("button", { name: "Abandonar partida" }).tap();
     await page.locator(".level").nth(7).tap();

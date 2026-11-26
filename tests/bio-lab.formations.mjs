@@ -175,6 +175,27 @@ test("campaign finales apply each advertised phase once and schedule the matchin
   }
 });
 
+test("console defeat records the enemies and uncovered approach separately from core leaks", () => {
+  const match = new Match(2);
+  assert.ok(match.startWave());
+  const console = match.console;
+  for (let index = 0; index < 5; index++) {
+    match.spawn();
+    Object.assign(match.enemies.at(-1), {
+      x: console.x, y: console.y, wp: console.waypoint, coverageGaps: [0, 4],
+    });
+  }
+  match.tick();
+  const report = match.waveObjectiveHits;
+  assert.equal(match.state, "lost");
+  assert.equal(match.hp, 100);
+  assert.deepEqual(match.waveLeaks.lanes, [0]);
+  assert.deepEqual(report.objective.points.at(-1), [console.x, console.y]);
+  assert.equal(report.count, 4);
+  assert.deepEqual([...report.gaps.values()], [{ lane: 0, waypoint: 1, count: 4 }]);
+  assert.equal([...report.entries.values()].reduce((total, entry) => total + entry.count, 0), 4);
+});
+
 test("entry alerts use the first enemy actually queued for each lane", () => {
   const match = new Match(8, null, { contract: CONTRACTS.find(contract => contract.pressure) });
   const { arrivals } = match.preview;

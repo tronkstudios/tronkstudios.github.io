@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=45" />
+    <link rel="stylesheet" href="./styles.css?v=46" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -328,6 +328,10 @@
               <strong id="power-pads-title" aria-live="polite"></strong>
               <p id="power-pads-next"></p>
             </aside>
+            <aside id="retry-review" class="wave-tactics" aria-label="Preparación tras la derrota" hidden>
+              <div><strong>Último intento</strong><p id="retry-review-text"></p></div>
+              <button type="button" id="retry-hide-mark">Quitar marca del mapa</button>
+            </aside>
             <aside id="power-cut" class="wave-tactics" aria-label="Corte de energía" hidden>
               <div>
                 <strong id="power-cut-title"></strong>
@@ -598,6 +602,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=57"></script>
+    <script type="module" src="./game.js?v=58"></script>
   </body>
 </html>

@@ -1,4 +1,4 @@
-import { specializations, upgradeCost } from "./engine.js?v=34";
+import { specializations, upgradeCost } from "./engine.js?v=35";
 
 // Clone the complete state together so references between routes, towers and shots survive.
 // The mission definition contains medal predicates and is read-only during combat.
@@ -83,9 +83,11 @@ export function attachDrill(dialog, board, getMatch, selectTower) {
         if (!active) break;
       }
       const finished = scenarios.every(({ simulation }) => simulation.state !== "wave");
+      const failedObjective = finished && (sim.console?.hp === 0 || sim.activeTerminal?.hp === 0)
+        ? sim.waveObjectiveHits : null;
       if (finished || !staticMap) {
         board.draw(sim, null, null, null, true, false, null, {
-          breach: finished && sim.waveLeaks.worst ? sim.waveLeaks : null,
+          breach: failedObjective || (finished && sim.waveLeaks.worst ? sim.waveLeaks : null),
         });
       }
       if (!finished) {
@@ -167,8 +169,11 @@ export function attachDrill(dialog, board, getMatch, selectTower) {
         return item;
       }));
       ctx.restore();
-      const gaps = [...sim.waveLeaks.gaps.values()].sort((a, b) => b.count - a.count);
-      if (gaps.length) {
+      const gaps = [...(failedObjective || sim.waveLeaks).gaps.values()].sort((a, b) => b.count - a.count);
+      if (failedObjective) {
+        gapHint.hidden = false;
+        gapHint.textContent = `${failedObjective.objective.name} · ${failedObjective.count} enemigos alcanzaron el objetivo. El marcador naranja señala dónde interceptarlos.`;
+      } else if (gaps.length) {
         const gap = gaps[0];
         gapHint.hidden = false;
         gapHint.textContent = `Los trazos amarillos señalan zonas sin cobertura. En el tramo ${gap.waypoint} de ${gap.lane ? "B" : "A"} pasaron ${gap.count} de los enemigos que llegaron al núcleo.`;

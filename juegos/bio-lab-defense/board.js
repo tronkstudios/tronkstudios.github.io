@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=34";
+import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=35";
 import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=4";
 
 function trace(ctx, points) {
@@ -563,21 +563,35 @@ export class Board {
       this.buffers.set(key, background(match.map, match.routes, match.mapIndex));
     }
     ctx.drawImage(this.buffers.get(key), 0, 0);
-    if (reviewGap) drawCoverageGap(ctx, reviewGap);
     if (breach !== null) {
       ctx.save();
-      for (const [lane, count] of breach.lanes.entries()) {
-        if (!count) continue;
-        const { points } = match.routes[lane];
+      if (breach.objective) {
+        const { lane, points } = breach.objective;
+        const [x, y] = points.at(-1);
         trace(ctx, points);
         ctx.lineJoin = "round";
         ctx.lineWidth = 11;
         ctx.strokeStyle = lane ? "#f0a6ff" : "#ff826b";
         ctx.stroke();
-        circle(ctx, 19, points[0][1], 13, ctx.strokeStyle, "#501f2e", 4);
+        circle(ctx, x, y, 22, "#4c222f", "#ffb590", 4);
+        trace(ctx, [[x - 7, y - 7], [x + 7, y + 7]]);
+        ctx.stroke();
+        trace(ctx, [[x + 7, y - 7], [x - 7, y + 7]]);
+        ctx.stroke();
+      } else {
+        for (const [lane, count] of breach.lanes.entries()) {
+          if (!count) continue;
+          const { points } = match.routes[lane];
+          trace(ctx, points);
+          ctx.lineJoin = "round";
+          ctx.lineWidth = 11;
+          ctx.strokeStyle = lane ? "#f0a6ff" : "#ff826b";
+          ctx.stroke();
+          circle(ctx, 19, points[0][1], 13, ctx.strokeStyle, "#501f2e", 4);
+        }
       }
       for (const { lane, waypoint } of breach.gaps.values()) {
-        const { points } = match.routes[lane];
+        const points = breach.objective?.points || match.routes[lane].points;
         drawCoverageGap(ctx, points.slice(waypoint - 1, waypoint + 1));
       }
       ctx.restore();
@@ -636,6 +650,7 @@ export class Board {
       ctx.restore();
     }
     drawMissionEquipment(ctx, match);
+    if (reviewGap) drawCoverageGap(ctx, reviewGap);
     if (gatePreview && match.alternateRoute) {
       ctx.save();
       trace(ctx, match.alternateRoute.points);

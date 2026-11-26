@@ -15,18 +15,18 @@ import {
   VARIANT_NAMES,
   escortArmor,
   dailySetup,
-} from "./engine.js?v=34";
-import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=5";
-import { attachDrill } from "./drill.js?v=8";
-import { Board } from "./board.js?v=41";
+} from "./engine.js?v=35";
+import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=6";
+import { attachDrill } from "./drill.js?v=9";
+import { Board } from "./board.js?v=42";
 import { towerIcon, heroIcon } from "./art.js?v=4";
-import { createCodex } from "./codex.js?v=22";
+import { createCodex } from "./codex.js?v=23";
 import { Profile, dayKey } from "./profile.js?v=16";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=7";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=13";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=30";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=31";
 
 import { HEROES, CONTRACTS } from "./operations.js?v=7";
 
@@ -102,6 +102,7 @@ let laneCoverageKey;
 let guideDismissed;
 let guideSite;
 let powerRelocation = null;
+let retryReview = null;
 const profile = new Profile(refreshProfile);
 let checkpoint,
   checkpointLost = false;
@@ -173,9 +174,15 @@ function ask(title, message, buttons, breach = null, presentation = {}) {
   $("loss-map").hidden = breach === null;
   $("loss-coverage").hidden = breach === null;
   if (breach !== null) {
-    const lanes = breach.lanes.flatMap((count, lane) => count ? [lane ? "B" : "A"] : []);
-    $("loss-map").setAttribute("aria-label",
-      lanes.length === 1 ? `Recorrido de la fuga por la entrada ${lanes[0]}` : "Recorridos de las fugas por las entradas A y B");
+    const objective = breach.objective;
+    updateText("loss-coverage-title", objective ? `Enemigos que alcanzaron el objetivo · ${objective.name}` : "Enemigos que llegaron al núcleo");
+    if (objective) {
+      $("loss-map").setAttribute("aria-label", `Tramo hasta el objetivo · ${objective.name} · Entrada ${objective.lane ? "B" : "A"}`);
+    } else {
+      const lanes = breach.lanes.flatMap((count, lane) => count ? [lane ? "B" : "A"] : []);
+      $("loss-map").setAttribute("aria-label",
+        lanes.length === 1 ? `Recorrido de la fuga por la entrada ${lanes[0]}` : "Recorridos de las fugas por las entradas A y B");
+    }
     lossBoard.draw(match, null, null, null, true, false, null, { breach });
     $("loss-entries").replaceChildren(...Array.from(breach.entries.values(), ({ name, count, lane, uncovered }) => {
       const item = document.createElement("li");
@@ -185,7 +192,9 @@ function ask(title, message, buttons, breach = null, presentation = {}) {
     }));
     updateText("loss-gap-summary", breach.gaps.size
       ? "Los trazos amarillos marcan los tramos donde estos enemigos avanzaron sin cobertura de torres."
-      : "Las fugas ocurrieron sin que se detectaran tramos prolongados fuera del alcance de las torres.");
+      : objective
+        ? "El marcador naranja señala dónde debes detener a los enemigos."
+        : "Las fugas ocurrieron sin que se detectaran tramos prolongados fuera del alcance de las torres.");
   }
   $("modal-actions").replaceChildren(
     ...buttons.map(([label, action], i) => {
@@ -697,6 +706,7 @@ function begin(next, day = null, restored = null) {
   guideDismissed = false;
   guideSite = null;
   powerRelocation = null;
+  retryReview = null;
   $("wave-impact-choice").value = "";
   const level = match.level;
   checkpointLost = false;
@@ -1515,6 +1525,7 @@ let reviewGap = null;
 const reviewGapButton = $("wave-debrief-map");
 reviewGapButton.onclick = () => {
   if (match.state !== "build" || !match.debrief?.gap) return;
+  retryReview = null;
   reviewGap = reviewGap ? null : match.debrief.gap.points;
   reviewGapButton.setAttribute("aria-pressed", String(!!reviewGap));
   if (reviewGap) canvas.scrollIntoView({ block: "nearest" });
@@ -1731,6 +1742,31 @@ function renderLaneCoverage() {
   updateText("wave-lane-coverage", `Recorrido al alcance de tus torres · A ${coverage[0]} % / B ${coverage[1]} %`);
 }
 
+$("retry-hide-mark").onclick = () => {
+  retryReview = null;
+  $("retry-review").hidden = true;
+  canvas.focus({ preventScroll: true });
+};
+
+function retryPlan(report) {
+  if (!report) return null;
+  let largest = null;
+  for (const gap of report.gaps.values()) {
+    if (gap.count > (largest?.count || 0)) largest = gap;
+  }
+  const objective = report.objective;
+  if (!largest && !objective) return null;
+  const lane = largest?.lane ?? objective.lane;
+  const points = largest
+    ? match.routes[lane].points.slice(largest.waypoint - 1, largest.waypoint + 1)
+    : objective.points;
+  const location = `Entrada ${lane ? "B" : "A"}`;
+  const text = largest
+    ? `${location} · ${largest.count === 1 ? "Pasó 1 enemigo" : `Pasaron ${largest.count} enemigos`} fuera del alcance de tus torres por este tramo.`
+    : `${objective.name} · ${location}. El trazo marca dónde debes interceptar a los enemigos.`;
+  return { points, text };
+}
+
 function renderObjectiveCoverage(waiting) {
   const objective = waiting ? match.defenseObjective : null;
   $("objective-coverage").hidden = !objective;
@@ -1769,6 +1805,9 @@ function renderHUD() {
   renderFieldGuide(waiting);
   renderPowerCut(waiting);
   renderPowerPads(waiting);
+  if (!waiting) retryReview = null;
+  $("retry-review").hidden = !retryReview;
+  if (retryReview) updateText("retry-review-text", retryReview.text);
   $("combat-legend").hidden = match.state !== "wave";
   renderObjectiveCoverage(waiting);
   const targets = $("mission-targets");
@@ -1977,7 +2016,7 @@ function frame(now) {
       reduced.matches,
       aiming,
       hovered,
-      { gatePreview, movingHero, movingTower, skillPreview: abilityPreview || hoverBot, upgradePreview, snapOrigin: draft?.snapped ? cursor : null, reviewGap: match.state === "build" ? reviewGap : null },
+      { gatePreview, movingHero, movingTower, skillPreview: abilityPreview || hoverBot, upgradePreview, snapOrigin: draft?.snapped ? cursor : null, reviewGap: match.state === "build" ? retryReview?.points || reviewGap : null },
     );
     renderHUD();
   } else {
@@ -1990,10 +2029,12 @@ function finish() {
   const won = match.state === "won";
   const stars = won ? victoryStars(match.hp) : 0;
   const { level } = match;
-  const breach = !won && match.waveLeaks?.worst ? match.waveLeaks : null;
+  const objectiveLost = match.console?.hp === 0 || match.activeTerminal?.hp === 0;
+  const breach = won ? null : objectiveLost ? match.waveObjectiveHits
+    : match.waveLeaks?.worst ? match.waveLeaks : null;
   const tone = won ? "victory" : "defeat";
   const outcomeStats = [["Oleadas", `${match.wave}/${match.maxWaves}`], ["Bajas", match.kills]];
-  const diagnostics = breach ? `\n\n${lossReport()}` : "";
+  const diagnostics = breach ? `\n\n${lossReport(breach)}` : "";
   sound(won ? "victory" : "defeat");
   if (match.veteran) {
     const score = match.score();
@@ -2068,10 +2109,18 @@ function finish() {
     : [];
   if (!won && !checkpointLost && checkpoint?.raw) {
     const expected = checkpoint.raw;
+    const failedWave = match.wave;
+    const review = retryPlan(breach);
     buttons.push(["Repreparar la oleada", () => {
       const saved = savedPreparation();
-      if (checkpoint.raw === expected && saved) begin(saved.match, null, saved);
-      else campaign();
+      if (checkpoint.raw !== expected || !saved) return campaign();
+      begin(saved.match, null, saved);
+      if (review && saved.match.level === level && saved.match.wave + 1 === failedWave) {
+        retryReview = review;
+        renderHUD();
+        canvas.scrollIntoView({ block: "nearest" });
+        canvas.focus({ preventScroll: true });
+      }
     }]);
   }
   buttons.push(
@@ -2081,14 +2130,13 @@ function finish() {
     }],
     ["Volver a sectores", campaign],
   );
-  const summary = won
+  const failure = match.activeTerminal?.hp === 0 ? "La terminal activa fue destruida."
+    : match.console?.hp === 0 ? "La consola de Muestreo fue destruida."
+    : `El núcleo cayó en la oleada ${match.wave} de ${match.maxWaves}.`;
+  const summary = (won
     ? [mission.end, chapterFinished && nextMission ? `Siguiente destino · ${CHAPTERS[nextMission.chapter].location}.` : ""]
-        .filter(Boolean).join("\n\n")
-    : `${match.activeTerminal?.hp === 0 ? "La terminal activa fue destruida." : match.console?.hp === 0 ? "La consola de Muestreo fue destruida." : `El núcleo cayó en la oleada ${match.wave} de ${match.maxWaves}.`}
-
-${lossReport()}
-
-${mission.cue}`;
+    : [failure, lossReport(breach), objectiveLost ? "" : mission.cue]
+  ).filter(Boolean).join("\n\n");
   ask(
     won
       ? level === MISSIONS.length
@@ -2107,8 +2155,11 @@ ${mission.cue}`;
   );
 }
 
-function lossReport() {
-  const leaks = match.waveLeaks;
+function lossReport(leaks) {
+  if (leaks?.objective) {
+    const { name, lane } = leaks.objective;
+    return `${name} · Entrada ${lane ? "B" : "A"} · ${leaks.count} ${leaks.count === 1 ? "enemigo alcanzó" : "enemigos alcanzaron"} el objetivo.`;
+  }
   if (!leaks?.worst) return "";
   const routes = leaks.lanes.map((count, lane) =>
     `Entrada ${lane === 0 ? "A" : "B"}: ${count}`,

@@ -1160,6 +1160,14 @@ dialog p {
   color: #ffe2c7;
   background: #241d30;
 }
+#retry-review {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.8rem;
+}
+#retry-hide-mark { min-height: 40px; }
 .wave-tactics p { margin: 0.25rem 0 0; color: #e2d3c1; }
 #briefing-power label { display: block; margin-bottom: 0.3rem; }
 #briefing-power-wave {

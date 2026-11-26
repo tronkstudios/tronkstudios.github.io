@@ -804,6 +804,7 @@ export class Match {
     this.waveStart = null;
     this.debrief = null;
     this.waveLeaks = null;
+    this.waveObjectiveHits = null;
     this.console = !daily && !contract && level === 2
       ? { lane: 0, waypoint: 2, x: this.routes[0].points[2][0], y: this.routes[0].points[2][1], hp: 4, complete: false }
       : null;
@@ -918,6 +919,10 @@ export class Match {
     }
     if (loss > (report.worst?.loss || 0))
       report.worst = { name: enemy.name, loss, lane: enemy.lane };
+    this.recordPassage(report, enemy);
+  }
+
+  recordPassage(report, enemy) {
     const label = enemy.variant ? `${enemy.name} · ${VARIANT_NAMES[enemy.variant]}` : enemy.name;
     const key = `${enemy.lane}:${label}`;
     const entry = report.entries.get(key) || { name: label, lane: enemy.lane, count: 0, uncovered: 0 };
@@ -1305,6 +1310,17 @@ export class Match {
     this.lastBuild = null;
     this.waveStart = { hp: this.hp, kills: this.kills, atp: this.grossATP, reactor: 0, count: this.preview.count };
     this.waveLeaks = { lanes: this.routes.map(() => 0), worst: null, entries: new Map(), gaps: new Map() };
+    const objective = this.defenseObjective;
+    this.waveObjectiveHits = objective ? {
+      objective: {
+        name: this.console ? "Consola" : `Terminal ${objective.lane ? "B" : "A"}`,
+        lane: objective.lane,
+        points: this.objectiveApproach(objective).points,
+      },
+      count: 0,
+      entries: new Map(),
+      gaps: new Map(),
+    } : null;
     this.debrief = null;
     this.focusTarget = null;
     this.zeroNodes = [];
@@ -1739,8 +1755,11 @@ export class Match {
         enemy.x = x;
         enemy.y = y;
         enemy.wp++;
-        if (defense && enemy.wp === defense.waypoint + 1 && enemy.lane === defense.lane)
-          defense.hp = Math.max(0, defense.hp - 1);
+        if (defense?.hp > 0 && enemy.wp === defense.waypoint + 1 && enemy.lane === defense.lane) {
+          defense.hp--;
+          this.waveObjectiveHits.count++;
+          this.recordPassage(this.waveObjectiveHits, enemy);
+        }
         if (enemy.wp === points.length) {
           enemy.escaped = true;
           const loss = Math.min(this.hp, enemy.coolingBoss ? 18 : enemy.boss ? 30 : 10);
