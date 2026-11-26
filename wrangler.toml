@@ -82,3 +82,13 @@ simple = { limit = 10, period = 60 }
 # Notificaciones push: cada minuto.
 [triggers]
 crons = ["0 9 * * *", "* * * * *"]
+
+
+[[analytics_engine_datasets]]
+binding = "GAME_EVENTS"
+dataset = "tronk_game_events"
+
+[[ratelimits]]
+name = "GAME_LIMITER"
+namespace_id = "1004"
+simple = { limit = 60, period = 60 }

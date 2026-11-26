@@ -3,12 +3,30 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
 const path=require('node:path');
-function run(char='iria'){
+function run(char='iria', opts={}){
  const ctx=vm.createContext({console,performance,Math,Map,Set,requestAnimationFrame:()=>1,cancelAnimationFrame(){},localStorage:{getItem:()=>null,setItem(){}},Sprites:{get(){}},Sfx:new Proxy({},{get:()=>()=>{}}),L:s=>s,LT:s=>s});
  for(const file of ['data','save','game']){let code=fs.readFileSync(path.join(__dirname,`../survivors/js/${file}.js`),'utf8');if(file==='game')code=code.replace('    difficultyAt,','    _spawn:spawnEnemy,_enemy:updateEnemy,_zones:updateZones,_options:buildOptions,_describe:describe,\n    difficultyAt,');vm.runInContext(code,ctx);}
- const {Game,TS}=vm.runInContext('({Game,TS})',ctx);Game.start([{charId:char}],{seed:37});return {Game,TS,st:Game.state,p:Game.state.players[0]};
+ const {Game,TS}=vm.runInContext('({Game,TS})',ctx);Game.start([{charId:char}],{seed:37,...opts});return {Game,TS,st:Game.state,p:Game.state.players[0]};
 }
 const key=o=>`${o.kind}:${o.id}`;
+test('solo opening choices include the weapon, a technique and the evolution passive', () => {
+ const {Game,TS,st,p}=run();
+ st.level=2;
+ const opening=Array.from(Game._options(p,3,true));
+ assert.deepEqual(opening.map(option=>option.kind), ['weapon','technique','passive']);
+ assert.equal(opening[2].id,TS.EVOLUTIONS[p.weapons[0].id].passive);
+ assert.equal(TS.validRunSignature(st.signature),st.signature);
+ for (const character of TS.CHARACTERS) {
+  const game = run(character.id,{sprint:true});
+  game.st.level=2;
+  assert.deepEqual(Array.from(game.Game._options(game.p,3,true),option=>option.kind),
+   ['weapon','technique','passive'],character.id);
+ }
+ assert.equal(run('iria',{veteran:true}).st.openingDraft,false);
+ assert.equal(run('iria',{daily:'daily'}).st.openingDraft,false);
+ const before=new Set(opening.map(key));
+ assert.ok(Game._options(p,3,true,opening).every(option=>!before.has(key(option))));
+});
 test('reroll offers three fresh upgrades when the eligible pool allows it, without spending a level',()=>{
  const {Game,st,p}=run();st.level=10;st.t=180*60;st.choiceKind='level';st.pendingLevels=1;
  st.choosing={0:Game._options(p,3,true)};

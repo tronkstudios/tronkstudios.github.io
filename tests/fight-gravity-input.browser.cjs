@@ -82,6 +82,8 @@ async function checkRunner(browser) {
   await page.waitForFunction(() => window.gravityShiftGame);
   await page.evaluate(() => {
     const game = window.gravityShiftGame;
+    // Keep the input checks independent of software WebGL frame stalls.
+    game.renderer.render = () => {};
     game.scoreMgr.saveData.settings.touchpad = true;
     game.applySavedSettings();
     game.scoreMgr.saveData.inventory.boards = 2;
@@ -98,8 +100,169 @@ async function checkRunner(browser) {
   await page.locator("#btn-use-board").tap({ timeout: 5000 });
   await page.waitForFunction(() => gravityShiftGame.items.active.board > 0);
   assert.equal(await page.evaluate(() => gravityShiftGame.scoreMgr.saveData.inventory.boards), 1);
+  const swipeResult = await page.evaluate(async () => {
+    const game = window.gravityShiftGame;
+    const canvas = game.renderer.domElement;
+    const surfaces = [];
+    const shift = game.triggerSurfaceShift;
+    game.triggerSurfaceShift = surface => surfaces.push(surface);
+    const pointer = (type, pointerId, clientX = 100) => {
+      canvas.dispatchEvent(new PointerEvent(type, { pointerId, clientX, clientY: 100, pointerType: "touch" }));
+    };
+    pointer("pointerdown", 1);
+    pointer("pointerdown", 2);
+    pointer("pointercancel", 2);
+    pointer("pointerup", 1, 150);
+    pointer("pointerdown", 3);
+    game.pauseGame();
+    game.resumeGame();
+    await new Promise((resolve, reject) => {
+      const deadline = performance.now() + 5000;
+      function check() {
+        if (game.state === "PLAYING") resolve();
+        else if (performance.now() >= deadline) reject(new Error("The run did not resume"));
+        else requestAnimationFrame(check);
+      }
+      check();
+    });
+    pointer("pointerup", 3, 150);
+    game.triggerSurfaceShift = shift;
+    return surfaces;
+  });
+  assert.deepEqual(swipeResult, ["RIGHT"]);
+  const cue = await page.evaluate(() => {
+    const game = window.gravityShiftGame;
+    const original = game.world.obstacles;
+    const element = document.getElementById("danger-cue");
+    const surface = game.gravitySys.targetSurface.id;
+    const exits = ["LEFT", "RIGHT"];
+    const obstacle = (type, surfaceKey, seconds, safeSurfaces = []) => ({
+      type, surfaceKey, safeSurfaces, mesh: { position: { z: -seconds * game.currentSpeed } },
+    });
+    try {
+      const fork = obstacle("BARRIER", surface, 1.4, exits);
+      game.world.obstacles = [obstacle("BARRIER", "CEILING", 0.2), fork];
+      game.ui.updateHUD();
+      const forkMessage = element.classList.contains("hidden") ? "" : element.textContent;
+      game.world.obstacles.push(obstacle("ROTATING", "CEILING", 0.8));
+      game.ui.updateHUD();
+      const nearestMessage = element.textContent;
+      game.world.obstacles = [];
+      game.ui.updateHUD();
+      return { forkMessage, nearestMessage, cleared: element.classList.contains("hidden") };
+    } finally {
+      game.world.obstacles = original;
+    }
+  });
+  assert.match(cue.forkMessage, /DOS SALIDAS/);
+  assert.match(cue.nearestMessage, /BARRA GIRATORIA/);
+  assert.equal(cue.cleared, true);
+
   await page.locator("#btn-pause-game").tap();
   assert.ok(await page.locator("#modal-pause").isVisible());
+  await page.keyboard.press("KeyP");
+  await page.waitForFunction(() => gravityShiftGame.state === "PLAYING");
+  await page.keyboard.press("KeyP");
+  assert.ok(await page.locator("#modal-pause").isVisible());
+  await page.evaluate(() => {
+    const game = window.gravityShiftGame;
+    game.startNewRun({instant:true});
+    const items = game.items;
+    for (let i=0;i<3;i++) items.trackTrailCoin();
+    game.scoreMgr.elapsed += 3;
+    items.trackTrailCoin();
+    if (items.trailCount !== 1) throw Error("Coin route should expire between lines");
+    for (let i=0;i<7;i++) items.trackTrailCoin();
+    if (items.active.magnet !== 5) throw Error("Complete coin route should activate a five-second magnet");
+    items.trackTrailCoin();
+    if (items.trailCount !== 0) throw Error("Magnet pickups should not charge another magnet");
+  });
+  const original = await page.evaluate(() => {
+    const game = window.gravityShiftGame;
+    game.startNewRun({ instant: true });
+    game.lastDeath = { type: "ROTATING", surfaceKey: "FLOOR" };
+    game.handleGameOver();
+    return { seed: game.rng.seedLabel, setting: game.scoreMgr.saveData.settings.customSeed };
+  });
+  assert.match(await page.locator("#go-advice").textContent(), /giro de la barra/);
+  assert.equal(await page.evaluate(() => document.activeElement.id), "go-title");
+  await page.setViewportSize({ width: 320, height: 480 });
+  await page.locator("#btn-retry-course").tap();
+  assert.deepEqual(await page.evaluate(() => {
+    const game = window.gravityShiftGame;
+    return { seed: game.rng.seedLabel, setting: game.scoreMgr.saveData.settings.customSeed };
+  }), original);
+  await page.evaluate(() => {
+    const game = window.gravityShiftGame;
+    game.startNewRun({ instant: true, mode: "daily", challengeDate: "2026-11-25" });
+    game.handleGameOver();
+  });
+  assert.equal(await page.locator("#btn-retry-course").isVisible(), false);
+  const originalBalance = await page.evaluate(() => {
+    gravityShiftGame.returnToMainMenu();
+    return gravityShiftGame.scoreMgr.saveData.totalEnergy;
+  });
+  await page.locator("#btn-gravity-course").tap();
+  await page.waitForFunction(() => gravityShiftGame.state === "PLAYING");
+  await page.evaluate(() => gravityShiftGame.handleGameOver());
+  await page.waitForFunction(() => !gravityShiftGame.practice.pendingRetry);
+  await page.keyboard.press("KeyD");
+  await page.waitForFunction(() => !gravityShiftGame.gravitySys.isTransitioning);
+  await page.keyboard.press("KeyE");
+  for (const [gate, key] of [[2, "KeyD"], [3, "KeyW"], [4, "KeyA"], [5, "KeyS"]]) {
+    await page.waitForFunction(index => gravityShiftGame.practice.index === index, gate - 1);
+    if (gate === 2) {
+      await page.waitForFunction(() => gravityShiftGame.practice.checkpoint === 1);
+      const banked = await page.evaluate(() => gravityShiftGame.practice.bankedEnergy);
+      await page.evaluate(() => gravityShiftGame.handleGameOver());
+      await page.waitForFunction(() => !gravityShiftGame.practice.pendingRetry);
+      assert.equal(await page.evaluate(() => gravityShiftGame.practice.index), 1);
+      assert.equal(await page.evaluate(() => gravityShiftGame.practice.bankedEnergy), banked);
+    }
+    await page.keyboard.press(key);
+  }
+  await page.waitForFunction(() => gravityShiftGame.state === "PRACTICE_DONE");
+  assert.match(await page.locator("#practice-complete-title").textContent(), /cinco bifurcaciones/);
+  assert.ok(await page.evaluate(() => gravityShiftGame.practice.energy > 5));
+  assert.equal(await page.evaluate(() => gravityShiftGame.scoreMgr.saveData.totalEnergy), originalBalance);
+  await page.locator("#btn-repeat-gravity-course").tap();
+  assert.equal(await page.evaluate(() => gravityShiftGame.practice.index), 0);
+
+  await page.evaluate(() => gravityShiftGame.returnToMainMenu());
+  await page.locator("#btn-three-turns").tap();
+  await page.waitForFunction(() => gravityShiftGame.state === "PLAYING");
+  await page.keyboard.press("KeyA");
+  await page.waitForFunction(() => gravityShiftGame.practice.index === 1);
+  await page.keyboard.press("KeyW");
+  await page.waitForFunction(() => gravityShiftGame.practice.index === 2);
+  await page.keyboard.press("KeyS");
+  await page.waitForFunction(() => gravityShiftGame.state === "PRACTICE_DONE");
+  assert.match(await page.locator("#practice-complete-title").textContent(), /Tres giros/);
+  assert.equal(await page.evaluate(() => gravityShiftGame.scoreMgr.saveData.totalEnergy), originalBalance);
+  const challengeUrl = new URL(await page.locator("#three-turn-link").inputValue());
+  assert.equal(challengeUrl.searchParams.get("course"), "three");
+  await page.locator("#btn-repeat-gravity-course").tap();
+  assert.equal(await page.evaluate(() => gravityShiftGame.practice.stageCount), 3);
+  await page.goto(challengeUrl.href);
+  await page.waitForFunction(() => window.gravityShiftGame);
+  assert.match(await page.locator("#btn-three-turns").innerText(), /Supera/);
+  const ghost = await page.evaluate(() => {
+    const game = window.gravityShiftGame;
+    const date = "2026-11-24";
+    game.startNewRun({instant:true, mode:"daily", challengeDate:date});
+    game.scoreMgr.distance = 25;
+    game.scoreMgr.score = 80;
+    game.ui.updateHUD();
+    game.handleGameOver();
+    game.startNewRun({instant:true, mode:"daily", challengeDate:date});
+    game.scoreMgr.distance = 25;
+    game.scoreMgr.score = 100;
+    game.ui.updateHUD();
+    return document.getElementById("daily-ghost").textContent;
+  });
+  assert.match(ghost, /25 m.*\+20 pts/);
+
+
   await page.close();
 }
 

@@ -23,9 +23,9 @@
     http-equiv="Content-Security-Policy"
     content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://securepubads.g.doubleclick.net https://pagead2.googlesyndication.com; frame-src https://*.doubleclick.net https://*.googlesyndication.com https://*.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.doubleclick.net https://*.googlesyndication.com https://*.google.com; font-src 'self' data:; connect-src 'self' https://qjjnqhbtovjcbwgcwhgl.supabase.co wss://qjjnqhbtovjcbwgcwhgl.supabase.co https://tronkstudios-support.tronkstudios7.workers.dev https://*.doubleclick.net https://*.googlesyndication.com https://*.google.com; object-src 'none'; base-uri 'self'; form-action 'self'"
   />
-  <link rel="stylesheet" href="survivors.css?v=17" />
+  <link rel="stylesheet" href="survivors.css?v=18" />
   <link rel="stylesheet" href="css/depth.css?v=8">
-  <link rel="stylesheet" href="css/mobile.css?v=3">
+  <link rel="stylesheet" href="css/mobile.css?v=6">
 </head>
 <body>
   <canvas id="game" aria-label="Tronk Survivors"></canvas>
@@ -48,6 +48,8 @@
         <div class="menu-chips"><span>34 personajes</span><span>34 armas</span><span>7 jefes</span><span>Online</span></div>
         <div class="menu-buttons">
           <button class="btn btn-big" data-go="maps"><img data-icon="tajo" alt="" loading="lazy" decoding="async" /> Jugar</button>
+          <button class="btn" id="menu-preview" type="button"><img data-icon="cofre" alt="" /> <span>Prueba una evolución · 90 s</span></button>
+          <button class="btn" id="menu-sprint" type="button"><img data-icon="reloj" alt="" loading="lazy" decoding="async" /> <span data-i18n="Partida rápida · 10 min">Partida rápida · 10 min</span></button>
           <button class="btn btn-daily" data-go="daily"><img data-icon="reloj" alt="" loading="lazy" decoding="async" /> Reto diario <span id="menu-daily" class="badge" hidden>¡Nuevo!</span></button>
           <button class="btn" data-go="online"><img data-icon="clon" alt="" loading="lazy" decoding="async" /> Jugar con amigos</button>
           <button class="btn" data-go="chars"><img data-icon="corazon" alt="" loading="lazy" decoding="async" /> Personajes</button>
@@ -209,6 +211,7 @@
         <button class="btn btn-small" data-go="menu">← Volver</button>
         <h2>Ajustes</h2>
       </header>
+      <label class="setting"><span>Compartir contadores de partidas y días de regreso con TronkStudios</span><input id="game-measurement" type="checkbox" /></label>
       <label class="setting"><span>Música</span><input type="range" id="vol-music" min="0" max="100" step="5" /><b id="vol-music-v"></b></label>
       <label class="setting"><span>Efectos de sonido</span><input type="range" id="vol-sfx" min="0" max="100" step="5" /><b id="vol-sfx-v"></b></label>
       <div class="setting sound-check"><label for="sfx-sample">Probar sonidos</label><select id="sfx-sample"><option value="bow">Arco</option><option value="growl">Monstruo</option><option value="enemyMagic">Magia</option></select><button class="btn btn-small" id="sfx-preview" type="button">Escuchar</button></div>
@@ -255,7 +258,7 @@
       <b id="hud-name">Ranjay</b>
       <span class="hud-lvl" id="hud-level">Nv. 1</span>
       <div class="hud-hp"><span id="hud-hp-bar"></span><b id="hud-hp">100 / 100</b></div>
-      <div class="hud-xp"><span id="hud-xp-bar"></span></div>
+      <div class="hud-xp" id="hud-xp" role="progressbar" aria-label="Experiencia" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="hud-xp-bar"></span></div>
       <div id="hud-loot" class="hud-loot" hidden></div>
     </div>
     <div class="hud-center">
@@ -263,6 +266,7 @@
       <div class="hud-phase" id="hud-phase">Final 25:00</div>
       <div class="hud-sub" id="hud-sub"></div>
       <div class="hud-status" id="hud-status"></div>
+      <button type="button" id="hud-form" class="hud-form" aria-keyshortcuts="F" hidden><b></b><small></small></button>
     </div>
     <button class="btn btn-small hud-pause" id="hud-pause" type="button" aria-label="Pausa">II</button>
       <div id="hud-streak" class="hud-streak" hidden><b></b><span><i></i></span></div>
@@ -311,6 +315,14 @@
     <div class="modal-box">
       <h2 id="pause-title">Pausa</h2>
       <p id="pause-live" class="play-note" hidden></p>
+      <label id="training-preset-row" class="setting" hidden><span data-i18n="Equipo de prueba">Equipo de prueba</span>
+        <select id="training-preset">
+          <option value="base">Arma base</option>
+          <option value="standard">Arma 4 · técnicas 3</option>
+          <option value="max">Arma 6 · técnicas al máximo</option>
+        </select>
+      </label>
+      <p id="training-comparison" class="play-note" hidden></p>
       <div class="pause-build" id="pause-build"></div>
       <div class="evolution-guide" id="pause-evolution"></div>
       <div id="pause-relics" class="relic-summary"></div>
@@ -322,6 +334,7 @@
       <section class="encounter-plan" aria-labelledby="encounter-title"><h3 id="encounter-title">Próximos encuentros</h3><ol id="pause-encounters"></ol></section>
       <div class="modal-buttons">
         <button class="btn btn-big" id="pause-resume">Seguir</button>
+        <button class="btn" id="pause-retry-training" type="button" data-i18n="Repetir prueba" hidden>Repetir prueba</button>
         <button class="btn" id="pause-fullscreen" type="button">Pantalla completa</button>
         <button class="btn" id="pause-quit">Terminar partida</button>
       </div>
@@ -329,6 +342,17 @@
   </div>
 
   <!-- Fin -->
+  <div id="preview-result" class="modal" role="dialog" aria-modal="true" aria-labelledby="preview-title" hidden>
+    <div class="modal-box"><div class="preview-heading"><img id="preview-portrait" alt="" /><div><b id="preview-name"></b><h2 id="preview-title" tabindex="-1"></h2></div></div><p id="preview-recipe"></p>
+      <div class="modal-buttons"><button class="btn btn-big" id="preview-play">Jugar una partida</button>
+        <button class="btn" id="preview-expedition">Desafiar al Moco Rey · 4 min</button>
+        <button class="btn" id="preview-repeat">Repetir prueba</button>
+        <button class="btn" id="preview-share">Compartir este héroe</button>
+        <button class="btn" id="preview-menu">Menú</button></div>
+      <details><summary>Probar otro estilo</summary><div class="modal-buttons" id="preview-alternatives"></div></details>
+      <input id="preview-link" aria-label="Enlace a la prueba" readonly hidden />
+    </div>
+  </div>
   <div id="end" class="modal" role="dialog" aria-modal="true" aria-labelledby="end-title" hidden>
     <div class="modal-box">
       <h2 id="end-title" tabindex="-1">¡Has caído!</h2>
@@ -341,6 +365,7 @@
       <p id="end-retry-note" class="retry-note"></p>
       <div class="modal-buttons">
         <button class="btn btn-big" id="end-again">Otra vez</button>
+        <button class="btn" id="end-maps" data-i18n="Cambiar de mapa">Cambiar de mapa</button>
         <button class="btn" id="end-menu">Menú</button>
       </div>
     </div>
@@ -357,20 +382,21 @@
     </div>
   </div>
 
-  <script src="js/data.js?v=21" defer></script>
+  <script src="../js/game-metrics.js" data-game="survivors" defer></script>
+  <script src="js/data.js?v=23" defer></script>
   <script src="js/sprites.js?v=19" defer></script>
   <script src="js/people.js?v=4" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js" defer></script>
   <script src="js/stick.js?v=23" defer></script>
-  <script src="js/render3d.js?v=21" defer></script>
+  <script src="js/render3d.js?v=22" defer></script>
   <script src="js/audio.js?v=6" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-  <script src="js/lang.js?v=26" defer></script>
+  <script src="js/lang.js?v=31" defer></script>
   <script src="js/save.js?v=13" defer></script>
   <script src="js/account.js?v=4" defer></script>
-  <script src="js/game.js?v=36" defer></script>
+  <script src="js/game.js?v=41" defer></script>
   <script src="js/net.js?v=11" defer></script>
   <script src="js/rewarded.js?v=8" defer></script>
-  <script src="js/ui.js?v=34" defer></script>
+  <script src="js/ui.js?v=39" defer></script>
 </body>
 </html>

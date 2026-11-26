@@ -89,3 +89,31 @@
 @media(any-pointer:coarse) and (orientation:landscape){
  #hud-slots{padding:5px;gap:3px}#hud-slots .hud-slot{width:25px;height:27px}#hud-slots .hud-slot img{width:21px;height:21px}#hud-slots .hud-slot.is-passive{width:19px;height:23px}#hud-slots .hud-slot.is-passive img{width:16px;height:16px}
 }
+
+@media (max-width: 600px) and (orientation: portrait) {
+  #menu .menu-layout { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  #menu .menu-stage { padding: 12px 14px; gap: 6px 12px; }
+  #menu .stage-hero img { width: 96px; height: 114px; }
+  #menu .stage-floor { width: 108px; height: 30px; margin-top: -22px; }
+  #menu .stage-info { gap: 4px; }
+  #menu .stage-info .btn { min-height: 44px; }
+  #menu .menu-box { min-width: 0; grid-template-columns: minmax(0, 1fr); padding: 18px; gap: 10px; }
+  #menu .menu-buttons { grid-template-columns: minmax(0, 1fr); }
+  #menu .menu-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #menu .menu-row .btn { padding-inline: 8px; }
+  #menu .menu-foot { flex-wrap: wrap; gap: 6px; }
+}
+
+
+.preview-heading { display:flex; align-items:center; gap:14px; text-align:left; }
+.preview-heading img { width:66px; height:66px; object-fit:contain; image-rendering:pixelated; background:radial-gradient(ellipse at bottom, #326453, #10272d); border:1px solid #7ba996; border-radius:12px; }
+.preview-heading b { color:#abdcc4; font-size:.85rem; }
+#preview-result .modal-box { text-align:left; }
+#preview-result summary { cursor:pointer; padding:12px 0; }
+#preview-link { width:100%; box-sizing:border-box; padding:10px; }
+
+.hud-form { pointer-events:auto; display:inline-grid; min-height:44px; max-width:150px; margin-top:3px; padding:3px 8px; border:1px solid var(--form-color); border-radius:9px; color:var(--form-color); background:#101e2a; font:inherit; line-height:1.1; }
+.hud-form[hidden] { display:none; }
+.hud-form small { font-size:10px; color:#dfecf4; }
+.hud-form b { font-size:11px; }
+.hud-form:enabled { box-shadow:0 0 0 2px var(--form-color); cursor:pointer; }

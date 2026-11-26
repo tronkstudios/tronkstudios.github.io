@@ -565,10 +565,14 @@
     for (const [value,label] of [["dummy","Muñeco"],["shield","Guardián con escudo"]]) {
       const option = el("option", "", L(label));option.value=value;target.append(option);
     }
+    const preset = $("training-preset").cloneNode(true);
+    preset.removeAttribute("id");
+    preset.setAttribute("aria-label", L("Equipo de prueba"));
+    preset.value = "standard";
     const practiceButton = el("button", "btn btn-small", L("Campo de pruebas"));
     practiceButton.type = "button";
-    practiceButton.addEventListener("click", () => play([{charId:id,stars:have?.stars || 1,meta:Save.shopStats(),mastered:!!save.mastery[id]}], {map:"bosque",training:target.value}));
-    practice.append(target,practiceButton);
+    practiceButton.addEventListener("click", () => play([{charId:id,stars:have?.stars || 1,meta:Save.shopStats(),mastered:!!save.mastery[id]}], {map:"bosque",training:target.value,trainingPreset:preset.value,seed:404}));
+    practice.append(target,preset,practiceButton);
     box.append(practice);
     if (have) {
       const weapon = el("div", "weapon");
@@ -688,8 +692,10 @@
       button.textContent = L("Buscando anuncio…");
       const screen = current;
       let adShown = false;
+      window.TronkMeasure?.("ad_request");
       const granted = await RewardedAds.request(() => current === screen && button.isConnected,
         kind, () => { adShown = true; Sfx.stopMusic(); });
+      window.TronkMeasure?.(granted ? "ad_reward" : "ad_incomplete");
       if (adShown && current !== "game") Sfx.startMusic("menu");
       if (granted && kind === "character") {
         const progress = Save.recordUnlockAd(character.id);
@@ -860,11 +866,14 @@
     if (o.mode === "solo" && !o.daily && !o.veteran && !o.sprint && !o.training && save.runs < 3) o.easy = true;
     lastRun = { setups:structuredClone(s), opts:structuredClone(o) };
     for (const x of s) Sprites.get(`char:${x.charId}`);
-    if (!o.training && !o.veteran && !o.sprint) Account.startRun();
+    if (!o.preview && !o.training && !o.veteran && !o.sprint) Account.startRun();
     enterGame(() => {
       Game.start(s, o);
+      if (!o.training) window.TronkMeasure?.(o.preview ? "challenge_start" : "run_start");
       chooseCampMode("guns");
-      if (!o.training) startTips(o.easy);
+      if (o.expedition) banner(L("Expedición"), L("Evoluciona tu arma y derrota al Moco Rey antes de cuatro minutos."));
+      else if (o.preview) banner(L("Prueba de evolución"), L("Sobrevive 90 s. A los 45 s recibirás los ingredientes y un cofre."));
+      else if (!o.training) startTips(o.easy);
     });
   }
 
@@ -967,10 +976,31 @@
     if (tipIdx >= TIPS.length) { save.tutorial = true; Save.persist(); }
   }
 
+  $("hud-form").addEventListener("click", () => Game.transform());
+  Game.on("transform", form => banner(L(form.name), L(form.effect)));
   let slotKey = "";
   Game.on("hud", (d) => {
-    updateTips(d.seconds);
-    $("hud-xp-bar").style.width = `${Math.min(100, (d.xp / d.xpNext) * 100)}%`;
+    const formButton = $("hud-form");
+    const form = d.form;
+    formButton.hidden = !form;
+    if (form) {
+      const identity = TS.FORMS[form.kind];
+      const label = L(identity.names[form.stage === 2 || (form.stage === 1 && form.ready) ? 1 : 0]);
+      formButton.disabled = !form.ready;
+      formButton.style.setProperty("--form-color", identity.color);
+      formButton.querySelector("b").textContent = label;
+      const action = L("Transformar") + (isTouch ? "" : " · F");
+      formButton.querySelector("small").textContent = form.ready
+        ? (form.stage ? form.seconds + " s · " : "") + action
+        : form.seconds + " s" + (form.stage === 1 ? " · " + form.kills + "/4 " + L("bajas") : "");
+      formButton.title = L(identity.effect);
+    }
+    if (d.training == null) updateTips(d.seconds);
+    const xpPercent = Math.min(100, Math.floor(100 * d.xp / Math.max(1,d.xpNext)));
+    $("hud-xp-bar").style.width = `${xpPercent}%`;
+    const xp = $("hud-xp");
+    xp.setAttribute("aria-valuenow", String(xpPercent));
+    xp.title = `${L("Experiencia")}: ${d.xp} / ${d.xpNext}`;
     const loot=$("hud-loot");loot.hidden=!d.loot;
     if(d.loot)loot.textContent=[d.loot.xp>0?`+${Math.round(d.loot.xp)} XP`:"",d.loot.coins>0?`+${d.loot.coins} ${L("monedas")}`:"",d.loot.healed>0?`+${Math.round(d.loot.healed)} ${L("vida")}`:""].filter(Boolean).join(" · ");
     const chain=$("hud-streak");chain.hidden=!d.streak || d.streak.count<2;
@@ -982,13 +1012,26 @@
     if(d.breach)$("hud-phase").textContent+=` · ${L("Brecha")} ${d.breach.total-d.breach.remaining}/${d.breach.total}`;
     $("hud-milestone").textContent=d.nextTechnique?`${L("Próxima técnica")}: ${L(d.nextTechnique.name)} · ${L("Nivel")} ${d.nextTechnique.unlock} · ${fmtTime(Math.ceil((d.nextTechnique.at || 0)*(d.runSeconds || TS.RUN_SECONDS)/TS.RUN_SECONDS))}`:`${L("Rangos de técnicas")}: ${d.techniqueRanks}/${d.techniqueTotal}`;
     if(d.talentNext?.ready)$("hud-milestone").textContent=L("Especialización disponible en tu próxima subida de nivel");
+    if (Game.state?.preview) {
+      const expedition = Game.state.expedition;
+      $("hud-phase").textContent = L(expedition ? "Expedición" : "Prueba de evolución") + " · " + fmtTime(Math.max(0, (expedition ? 240 : 90) - d.seconds));
+      $("hud-milestone").textContent = d.seconds < 45 ? L("Cofre de evolución") + " · " + fmtTime(45 - d.seconds) : d.evolution?.name || "";
+    }
+    if (d.training != null) {
+      $("hud-phase").textContent = d.trainingSample == null
+        ? `${L("Prueba de 20 s")} · ${fmtTime(Math.max(0,20-d.seconds))}`
+        : L("Prueba completada");
+      $("hud-milestone").textContent = L("En pausa puedes cambiar de equipo y repetir la prueba.");
+    }
     const site = d.site;
     $("hud-camp").hidden = !site?.campChoice || d.down;
     const defence = site?.used && site.kind==="camp"
       ? `${site.name} · ${L("Defensores")}: ${site.defenders || 0}${site.seconds?` · ${site.seconds}s`:""}`
       : site?.used && site.kind==="lamp" ? `${site.name} · ${Math.min(8,site.lampKills)}/8 · ${site.seconds}s` : "";
     $("hud-world").textContent=d.training!==null && d.training!==undefined
-      ? `${L("Campo de pruebas")} · ${L("Daño causado")}: ${d.training.toLocaleString(LANG)}`
+      ? d.trainingSample == null
+        ? `${L("Prueba de 20 s")} · ${Math.min(20,d.seconds)}/20 s · ${d.training.toLocaleString(LANG)} ${L("de daño")}`
+        : `${L("Daño en los primeros 20 s")}: ${d.trainingSample.toLocaleString(LANG)} · ${(d.trainingSample/20).toLocaleString(LANG,{maximumFractionDigits:1})} DPS`
       : defence || (d.combo?d.combo:d.site?`${d.site.name} · ${d.site.used?`${L("Activo")} ${d.site.seconds}s`:d.site.nest?`${d.site.hint} · ${d.site.pct}%`:d.site.activated?`${L("Guardianes restantes")}: ${d.site.guards}`:`${d.site.hint} · ${L("Mantente en el círculo")}: ${d.site.progress}%`}`:Game.mapId==="playa" && d.inWater?L("Corriente: puedes moverte contra ella"):"");
     $("hud-sub").textContent = (d.finalPhase ? `${L("Supervivencia final")} · ` : Game.state && Game.state.endless ? `${L("Modo infinito")} · ` : "") + LT("hudSub", { map: L(TS.MAPS[Game.mapId].name), kills: d.kills, coins: d.coins });
     const pct = Math.max(0, d.hp / d.maxHp);
@@ -1073,6 +1116,16 @@
 
   /* ---------- subida de nivel ---------- */
 
+  $("levelup-cards").addEventListener("keydown", event => {
+    const directions = {ArrowLeft:-1, ArrowUp:-1, ArrowRight:1, ArrowDown:1};
+    const direction = directions[event.key];
+    if (!direction || event.altKey || event.ctrlKey || event.metaKey) return;
+    const cards = Array.from(event.currentTarget.querySelectorAll("button:enabled"));
+    const index = cards.indexOf(event.target);
+    if (index < 0) return;
+    event.preventDefault();
+    cards[(index + direction + cards.length) % cards.length].focus();
+  });
   let choiceGeneration=0;
   function showLevelUp(d) {
     cancelAim();
@@ -1104,7 +1157,10 @@
       if(o.kind==="talent"){text.querySelector("b").textContent=L(TS.TALENTS[o.id].name);text.querySelector("small").textContent=L(TS.TALENTS[o.id].desc);}
       const ranks=upgradeRanks(o);if(ranks)text.append(ranks);
       if(o.preview?.length){const changes=el("dl","choice-stats");for(const row of o.preview){const value=el("dd",row.loss?"is-loss":"is-gain",`${row.from.toLocaleString(LANG)}${row.unit} → ${row.to.toLocaleString(LANG)}${row.unit}`);changes.append(el("dt","",L(row.label)),value);}text.append(changes);}
-      if(o.synergy)text.append(el("span","synergy-note",L("Necesario para evolucionar")));
+      if (o.synergy) {
+        const recipe = Game.hudData().evolution;
+        text.append(el("span", "synergy-note", recipe ? recipe.name + " · " + recipe.weapon + " " + recipe.level + "/6 + " + recipe.passive : L("Necesario para evolucionar")));
+      }
       card.append(img, text, el("kbd", "", i + 1));
       card.addEventListener("click", () => pickLevel(i));
       box.appendChild(card);
@@ -1150,6 +1206,10 @@
   }
 
   Game.on("chosen", () => {
+    if (Game.state?.preview && !Game.state.previewMeasuredChoice) {
+      Game.state.previewMeasuredChoice = true;
+      window.TronkMeasure?.("first_choice");
+    }
     if (Game.state && Game.state.choosing && Object.keys(Game.state.choosing).length) waitOthers();
     else hideLevelUp();
   });
@@ -1159,7 +1219,7 @@
 
   function pause(on) {
     cancelAim();
-    if (current !== "game" || !Game.state || Game.state.over) return;
+    if (current !== "game" || !Game.state || Game.state.over || !$("victory").hidden || $("pause").hidden === !on) return;
     Game.setControlsEnabled(!on && $("levelup").hidden);
     if (Game.mode === "solo") Game.setPaused(on);
     $("pause").hidden = !on;
@@ -1195,8 +1255,18 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
         const stat=el("div");stat.append(el("b","",Math.round(value || 0).toLocaleString(LANG)),el("small","",L(label)));$("pause-metrics").append(stat);
       }
       $("pause-fullscreen").hidden=!document.fullscreenEnabled;
+      $("pause-retry-training").hidden = $("training-preset-row").hidden = !Game.state.training;
+      $("training-preset").value = Game.state.trainingPreset || "standard";
+      const comparison = $("training-comparison");
+      const reference = Game.state.training ? lastRun?.opts?.trainingReference : null;
+      comparison.hidden = reference == null || Game.state.trainingSample == null;
+      if (!comparison.hidden) {
+        const delta = Game.state.trainingSample - reference;
+        comparison.textContent = `${L("Frente a la prueba anterior")}: ${delta >= 0 ? "+" : "−"}${Math.abs(delta).toLocaleString(LANG)} ${L("de daño")}`;
+      }
       $("pause-resume").focus();
     } else if(!$("levelup").hidden) $("levelup-cards").querySelector("button")?.focus();
+    else $("hud-pause").focus({preventScroll:true});
   }
   $("pause-goal").addEventListener("change",e=>{Game.setGoal(e.target.value);});
   $("hud-compass").addEventListener("click",()=>{pause(true);$("pause-goal").focus();});
@@ -1253,6 +1323,14 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     catch {toast(L("Pantalla completa no disponible"));}
   });
   $("pause-resume").addEventListener("click", () => pause(false));
+  $("pause-retry-training").addEventListener("click", () => {
+    if (!Game.state?.training || !lastRun?.opts?.training) return;
+    play(lastRun.setups, {
+      ...lastRun.opts,
+      trainingPreset:$("training-preset").value,
+      trainingReference:Game.state.trainingSample ?? lastRun.opts.trainingReference
+    });
+  });
   $("pause-quit").addEventListener("click", () => {
     $("pause").hidden = true;
     Game.setPaused(false);
@@ -1322,7 +1400,7 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     const renderSkills=()=>{skillList.textContent="";const skills=Object.entries(combat?.bySkill || {}).sort((a,b)=>(b[1][sorting.value] || 0)-(a[1][sorting.value] || 0));
     if(!skills.length)skillList.append(el("p","",L("Sin impactos registrados")));
     for(const [id,values] of skills){
-      const ch=charById(r.charId),name=id==="weapon"?TS.WEAPONS[ch.weapon].name:id==="active"?TS.ABILITIES[ch.id].name:id==="camp"?"Tronk defensor":TS.TECHNIQUES[ch.id]?.find(m=>m.id===id)?.name || id;
+      const ch=charById(r.charId),name=id==="form"?TS.FORMS[TS.formKind(r.charId)].names[0]:id==="weapon"?TS.WEAPONS[ch.weapon].name:id==="active"?TS.ABILITIES[ch.id].name:id==="camp"?"Tronk defensor":TS.TECHNIQUES[ch.id]?.find(m=>m.id===id)?.name || id;
       const row=el("div","skill-result"),meter=el("meter");meter.min=0;meter.max=Math.max(1,combat?.dealt || 0);meter.value=values.damage || 0;meter.setAttribute("aria-label",L(name));
       const seconds=(values.availableTicks || 0)/60,dps=seconds>0?((values.damage || 0)/seconds).toLocaleString(LANG,{maximumFractionDigits:1}):"—";
       const variant=r.techniquePaths?.[Game.localId]?.[id];
@@ -1341,8 +1419,15 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     const history=(save.history || []).filter(h=>h.charId===r.charId && h.map===r.map && h.coop===!!r.coop && !!h.daily===!!r.daily && !!r.signature && h.signature===r.signature).slice(0,5);
     if(history.length){const list=el("ol","run-history");for(const h of history)list.append(el("li","",`${new Date(h.at).toLocaleDateString(LANG)} · ${fmtTime(h.seconds)} · ${L("Nivel")} ${h.level} · ${L("Enemigos")}: ${h.kills}`));details.append(el("h3","",L("Últimas partidas comparables")),list);}
     const online=lastRun?.guest || lastRun?.opts?.mode==="host";
+    $("end-maps").hidden = !!online || !!r.daily;
     $("end-again").textContent=L(online?"Volver a la sala online":"Repetir configuración");
     $("end-retry-note").textContent=L(online?"Vuelve a crear o unirte a una sala para jugar con tus amigos.":"Mismo personaje, mapa y reglas. El mapa se genera de nuevo salvo en retos con semilla.");
+    const recipe = Game.hudData()?.evolution;
+    if (!online && recipe && !recipe.evolved) {
+      const missing = [recipe.level < 6 && (recipe.weapon + " " + recipe.level + "/6"),
+        !recipe.hasPassive && recipe.passive, L("Cofre")].filter(Boolean);
+      $("end-retry-note").textContent = recipe.name + " · " + missing.join(" → ");
+    }
     if (r.finalPhase) add("Fases superadas", Math.max(0, r.finalRound - 1));
     if (r.finalPhase) add("Contra el jefe final", fmtTime(r.endlessSeconds), "coins");
     else if (r.endless) add("Modo infinito", fmtTime(r.endlessSeconds), "coins");
@@ -1390,17 +1475,85 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     if (!lastRun || lastRun.guest || (lastRun.opts && lastRun.opts.mode === "host")) { demoOn = false; show("online"); }
     else play(lastRun.setups, lastRun.opts);
   });
+  $("end-maps").addEventListener("click", () => {
+    backToMenu();
+    show("maps");
+  });
   $("end-menu").addEventListener("click", backToMenu);
+  const sharedHero = new URLSearchParams(location.search).get("hero");
+  let previewHero = TS.CHARACTERS.find(hero => hero.id === sharedHero)?.id;
+  if (previewHero) window.TronkMeasure?.("shared_open");
+  if (previewHero) $("menu-preview").querySelector("span").textContent = L("Probar") + " · " + charById(previewHero).name;
+  function startPreview(heroId = sharedHero, expedition = false) {
+    Sfx.init();
+    previewHero = TS.CHARACTERS.some(hero => hero.id === heroId) ? heroId : save.selected;
+    $("preview-result").hidden = true;
+    play([{charId:previewHero, stars:1, meta:{}}], {preview:true, expedition, easy:true, map:"bosque", seed:9045});
+  }
+  const sharedExpedition = !!previewHero && new URLSearchParams(location.search).get("trial") === "expedition";
+  if (sharedExpedition) $("menu-preview").querySelector("span").textContent = L("Expedición") + " · " + charById(previewHero).name;
+  $("menu-preview").addEventListener("click", () => startPreview(sharedHero, sharedExpedition));
+  $("preview-expedition").addEventListener("click", () => startPreview(previewHero, true));
+  $("preview-repeat").addEventListener("click", () => startPreview(previewHero, !!lastRun.opts.expedition));
+  $("preview-menu").addEventListener("click", () => { $("preview-result").hidden = true; backToMenu(); });
+  $("preview-play").addEventListener("click", () => { $("preview-result").hidden = true; backToMenu(); play(null, {map:"bosque"}); });
+  $("preview-share").addEventListener("click", async () => {
+    const url = new URL(location.href);
+    url.search = ""; url.hash = ""; url.searchParams.set("hero", previewHero);
+    if (lastRun.opts.expedition) url.searchParams.set("trial", "expedition");
+    window.TronkMeasure?.("share");
+    if (navigator.share) {
+      try { await navigator.share({title:charById(previewHero).name, url:url.href}); return; }
+      catch (error) { if (error.name === "AbortError") return; }
+    }
+    const field = $("preview-link"); field.value = url.href; field.hidden = false; field.select();
+  });
+  Game.on("previewEnd", ({victory, seconds, kills, recipe}) => {
+    window.TronkMeasure?.(victory ? "challenge_finish" : "challenge_exit");
+    $("pause").hidden = true;
+    hideLevelUp();
+    Game.setControlsEnabled(false);
+    $("preview-link").hidden = true;
+    $("preview-title").textContent = L(victory ? "¡Prueba superada!" : "Fin de la prueba");
+    $("preview-recipe").textContent = [fmtTime(seconds), kills + " " + L("Enemigos"),
+      recipe && (recipe.evolved ? recipe.name : recipe.weapon + " 6 + " + recipe.passive + " + " + L("Cofre"))].filter(Boolean).join(" · ");
+    $("preview-expedition").hidden = !!lastRun.opts.expedition;
+    const alternatives = $("preview-alternatives");
+    alternatives.replaceChildren();
+    for (const id of ["ranjay", "bruno", "lia"].filter(id => id !== previewHero)) {
+      const hero = charById(id);
+      const button = el("button", "btn btn-small", hero.name + " · " + L(TS.WEAPONS[hero.weapon].name));
+      button.type = "button";
+      const image = document.createElement("img");
+      image.src = Sprites.iconUrl(hero.weapon, 2);
+      image.alt = "";
+      button.prepend(image);
+      button.addEventListener("click", () => startPreview(id));
+      alternatives.append(button);
+    }
+    const hero = charById(previewHero);
+    $("preview-portrait").src = Sprites.portrait(hero.id, 3);
+    $("preview-name").textContent = hero.name + " · " + L(TS.WEAPONS[hero.weapon].name);
+    $("preview-result").hidden = false;
+    $("preview-title").focus();
+  });
+  $("menu-sprint").addEventListener("click", () => {
+    Sfx.init();
+    const preferred = save.settings.map;
+    const map = TS.MAPS[preferred] && mapUnlocked(preferred) ? preferred : "bosque";
+    play(null, { map, sprint: true });
+  });
 
   /* ---------- teclado ---------- */
   window.addEventListener("keydown", (e) => {
+    if (!e.repeat && e.code === "KeyF" && current === "game" && Game.transform()) { e.preventDefault(); return; }
     if (!e.repeat && !$("levelup").hidden && /^Digit[1-4]$/.test(e.code)) {
       pickLevel(Number(e.code.slice(5)) - 1);
       return;
     }
     if (current === "game" && (e.code === "Escape" || e.code === "KeyP")) {
       if (!$("levelup").hidden || !$("end").hidden || !$("victory").hidden) return;
-      if (!e.repeat) pause($("pause").hidden);
+      if (!e.repeat && $("preview-result").hidden) pause($("pause").hidden);
     }
   });
   window.addEventListener("blur",()=>{

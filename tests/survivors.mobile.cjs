@@ -42,19 +42,36 @@ const path = require('node:path');
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [finger, neutral, { id: 3, ...ability }] });
     await page.waitForTimeout(400);
     assert.ok(await page.evaluate(x => Game.state.players[0].x > x + 3, before), 'movement continues with multiple fingers');
-    assert.ok(await page.evaluate(() => Game.state.abilitiesUsed > 0), 'ability while moving');
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-    await page.waitForTimeout(100);
+    // The aim control casts on pointerup.
+    await page.waitForFunction(() => Game.state.abilitiesUsed > 0, null, { timeout: 5000 });
     const released = await page.evaluate(() => Game.state.players[0].x);
     await page.waitForTimeout(250);
     assert.equal(await page.evaluate(() => Game.state.players[0].x), released, 'release stops movement');
+    // A physical keyboard remains usable after releasing the touch joystick.
+    await page.keyboard.down('KeyD');
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ id: 4, ...pad }] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    const afterTouch = await page.evaluate(() => Game.state.players[0].x);
+    await page.waitForFunction(x => Game.state.players[0].x > x + 3, afterTouch, { timeout: 5000 });
+    await page.keyboard.up('KeyD');
     await page.locator('#hud-pause').tap();
     const tick = await page.evaluate(() => Game.state.t);
     await page.waitForTimeout(200);
     assert.equal(await page.evaluate(() => Game.state.t), tick);
     await page.locator('#pause-resume').tap();
-    await page.evaluate(() => { Game.state.pendingLevels = 1; Game.state.choosing = {0:[{kind:'heal'}]};
-      TronkUI.showLevelUp({level:2,options:[{kind:'heal',title:'Curación',desc:'Recupera vida',icon:'bocadillo'}]}); });
+    await page.evaluate(() => {
+      const options = [{kind:'heal',title:'Curación',desc:'Recupera vida',icon:'bocadillo'},
+        {kind:'coins',title:'Monedas',desc:'+25 monedas',icon:'moneda'}];
+      Game.state.pendingLevels = 1;
+      Game.state.choosing = {0:options};
+      TronkUI.showLevelUp({level:2,options});
+    });
+    await page.waitForFunction(() => document.activeElement === document.querySelector('.up-card'));
+    await page.keyboard.press('ArrowLeft');
+    assert.equal(await page.locator('.up-card').last().evaluate(card => card === document.activeElement),true);
+    await page.keyboard.press('ArrowRight');
+    assert.equal(await page.locator('.up-card').first().evaluate(card => card === document.activeElement),true);
     await page.locator('.up-card').first().tap();
     assert.equal(await page.locator('#levelup').isVisible(), false);
     await page.setViewportSize({ width: 844, height: 390 });
@@ -99,13 +116,22 @@ const path = require('node:path');
         assert.ok(box && box.x>=0 && box.y>=0 && box.x+box.width<=viewport.width+1 && box.y+box.height<=viewport.height+1,`${selector} ${viewport.width}x${viewport.height}`);
       }
     }
-    assert.deepEqual(errors, []);
     if (process.env.SCREENSHOTS_DIR) {
       fs.mkdirSync(process.env.SCREENSHOTS_DIR, { recursive: true });
       await page.screenshot({path:path.join(process.env.SCREENSHOTS_DIR,'survivors-mobile-landscape.png')});
       await page.setViewportSize({width:390,height:844});
       await page.screenshot({path:path.join(process.env.SCREENSHOTS_DIR,'survivors-mobile-portrait.png')});
     }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(() => TronkUI.backToMenu());
+    await page.locator('#menu-sprint').tap();
+    await page.waitForFunction(() => Game.state?.sprint && Game.state.t > 5);
+    assert.equal(await page.evaluate(() => Game.state.runSeconds), 600);
+    await page.evaluate(() => Game.finish(false));
+    await page.locator('#end-maps').tap();
+    assert.ok(await page.locator('#maps').isVisible());
+    assert.equal(await page.locator('#run-sprint').isChecked(), false, 'shortcut preserves saved settings');
+    assert.deepEqual(errors, []);
     console.log('Mobile: portrait, landscape, multitouch, ability, pause, level up, full build and restart passed');
   } finally { await browser.close(); }
 })().catch(error => {console.error(error);process.exitCode=1;});

@@ -816,3 +816,78 @@ test('all eighteen distinct technique cards preview the nominal power actually e
   const emitted=st.shots.find(s=>s.dmg) || st.zones.find(z=>z.dmg);assert.ok(emitted);assert.equal(Math.round(emitted.dmg*p.stats.might*10)/10,nominal,charId+':'+def.id);
  }
 });
+
+test('the shareable trial offers an evolution at 45 seconds and never records a scored finish', () => {
+  const { Game } = engine();
+  let result;
+  Game.on('previewEnd', event => { result = event; });
+  let scored = false;
+  Game.on('end', () => { scored = true; });
+  Game.start([setup('ranjay')], { preview:true, seed:9045 });
+  Game.state.t = 12 * 60 - 1;
+  Game.step();
+  assert.equal(Game.state.level, 2);
+  Game.choose(0, 0);
+  Game.state.t = 45 * 60 - 1;
+  Game.step();
+  assert.equal(Game.state.choosing[0][0].kind, 'evolution');
+  Game.choose(0, 0);
+  Game.state.t = 90 * 60 - 1;
+  Game.step();
+  assert.equal(result.seconds, 90);
+  assert.equal(result.recipe.evolved, true);
+  assert.equal(result.victory, true);
+  assert.equal(scored, false);
+});
+
+test('expedition spawns its boss and distinguishes victory from the time limit', () => {
+  for (const defeated of [false, true]) {
+    const { Game } = engine();
+    let result;
+    Game.on('previewEnd', detail => { result = detail; });
+    Game.start([setup('lia')], {preview:true, expedition:true, seed:9045});
+    Game.state.t = 150 * 60 - 1;
+    Game.step();
+    const boss = Game.state.expeditionBoss;
+    assert.equal(boss.type, 'mocoRey');
+    assert.ok(boss.hp > 0 && boss.hp <= boss.maxHp);
+    boss.dead = defeated;
+    Game.state.t = 240 * 60 - 1;
+    Game.step();
+    assert.equal(result.victory, defeated);
+  }
+});
+
+test('temporary forms charge on simulation time, chain manually, expire and restore stats', () => {
+  for (const hero of ['ranjay','lia','nova']) {
+    const { Game } = engine();
+    Game.start([setup(hero)]);
+    const p = Game.state.players[0], base = {...p.stats};
+    assert.equal(Game.transform(),false);
+    Game.state.t = 12*60;
+    assert.equal(Game.transform(),true);
+    assert.equal(p.form.stage,1);
+    assert.notDeepEqual({...p.stats},base);
+    assert.equal(Game.transform(),false);
+    Game.state.kills += 4;
+    Game.setPaused(true);
+    assert.equal(Game.transform(),false);
+    Game.step();
+    assert.equal(Game.state.t,12*60);
+    Game.setPaused(false);
+    assert.equal(Game.transform(),true);
+    assert.equal(p.form.stage,2);
+    Game.state.t = p.form.until - 1;
+    Game.step();
+    assert.equal(p.form.stage,0);
+    assert.deepEqual({...p.stats},base);
+    assert.equal(Game.transform(),false);
+    Game.state.t = p.form.chargedAt;
+    assert.equal(Game.transform(),true);
+    Game.state.t = p.form.until - 1;
+    Game.step();
+    assert.equal(p.form.stage,0);
+    Game.start([setup(hero)],{daily:'2026-11-26'});
+    assert.equal(Game.transform(),false);
+  }
+});
