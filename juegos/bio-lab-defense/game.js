@@ -16,18 +16,18 @@ import {
   VARIANT_NAMES,
   escortArmor,
   dailySetup,
-} from "./engine.js?v=38";
-import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=9";
-import { attachDrill } from "./drill.js?v=12";
-import { Board } from "./board.js?v=45";
+} from "./engine.js?v=39";
+import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=10";
+import { attachDrill } from "./drill.js?v=13";
+import { Board } from "./board.js?v=46";
 import { towerIcon, heroIcon } from "./art.js?v=5";
-import { createCodex } from "./codex.js?v=26";
+import { createCodex } from "./codex.js?v=27";
 import { Profile, dayKey } from "./profile.js?v=19";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=7";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=16";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=34";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=35";
 
 import { HEROES, CONTRACTS, MASTERY } from "./operations.js?v=8";
 
@@ -168,6 +168,37 @@ function combatDialog(tone, context, stats = []) {
   return { tone, context, stats: [["Núcleo", `${match.hp} %`], ...stats] };
 }
 
+let replayTimer;
+function playBreach(run, breach) {
+  clearTimeout(replayTimer);
+  const frames = run.replay;
+  const ctx = $("loss-map").getContext("2d");
+  function draw(index) {
+    if (!modal.open || match !== run) return;
+    const frame = frames[index];
+    lossBoard.draw(run, null, null, null, true, false, null, { breach });
+    const dot = (x, y, radius, color) => {
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, 2 * Math.PI);
+      ctx.fillStyle = color;
+      ctx.fill();
+    };
+    const culprit = frame.enemies.find(e => e[2] === run.breachEnemy);
+    for (const [x, y, range] of frame.towers) {
+      dot(x, y, 8, "#80d9b1");
+      if (culprit && Math.hypot(x - culprit[0], y - culprit[1]) <= range) {
+        ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(culprit[0],culprit[1]);
+        ctx.strokeStyle = "#8cffbe"; ctx.lineWidth = 2; ctx.stroke();
+      }
+    }
+    if (frame.hero) dot(...frame.hero, 10, "#63ddff");
+    for (const [x,y,id] of frame.enemies) dot(x,y,id === run.breachEnemy ? 13 : 5,id === run.breachEnemy ? "#ff935c" : "#e0c5cc");
+    $("loss-replay").textContent = index === frames.length - 1 ? "Repetir la jugada" : "Reproduciendo · Naranja: fuga · Azul: nanobot";
+    if (index + 1 < frames.length) replayTimer = setTimeout(() => draw(index + 1), (frames[index+1].tick-frame.tick)*1000/60);
+  }
+  draw(0);
+}
+
 function ask(title, message, buttons, breach = null, presentation = {}) {
   const { tone = "generic", context, stats = [], stars, reward = [], medal } = presentation;
   modal.dataset.tone = tone;
@@ -186,6 +217,11 @@ function ask(title, message, buttons, breach = null, presentation = {}) {
   $("modal-title").textContent = title;
   $("modal-text").hidden = !message;
   $("modal-text").textContent = message;
+  clearTimeout(replayTimer);
+  const replayButton = $("loss-replay");
+  replayButton.hidden = !(breach && match.replay?.length);
+  replayButton.textContent = breach?.objective ? "Ver cómo cayó el objetivo" : "Ver la última fuga";
+  replayButton.onclick = () => playBreach(match, breach);
   $("loss-map").hidden = breach === null;
   $("loss-coverage").hidden = breach === null;
   if (breach !== null) {
@@ -1365,6 +1401,25 @@ function affinityHints({ weak, resist, weakness = WEAKNESS, resistance = RESISTA
 function renderWavePreview(preview) {
   if (preview === lastPreview) return;
   lastPreview = preview;
+  const wave = match.coverageWave;
+  const following = wave < match.maxWaves ? match.planWave(wave + 1) : null;
+  const hints = [];
+  if (following) {
+    const arrivals = following.lanes.flatMap((count, lane) => {
+      if (!count) return [];
+      const entries = following.order.filter(e => e.lane === lane);
+      const armored = entries.filter(e => e.armor > 0).length;
+      const shielded = entries.filter(e => e.shield > 0).length;
+      return [`${lane ? "B" : "A"} · ${count}${armored ? `, ${armored} blindados` : ""}${shielded ? `, ${shielded} con escudo` : ""}`];
+    });
+    hints.push(`Después · Oleada ${wave + 1}${following.final ? " con jefe" : ""} · ${arrivals.join(" / ")}`);
+  }
+  const lens = match.lens(wave);
+  if (lens) hints.push(`Lente en ${lens.lane ? "B" : "A"} · CRISPR-Beam inflige +75 % en los dos tramos iluminados. La lente alterna de entrada en cada oleada.`);
+  if (preview.order.some(e => e.variant === "emitter"))
+    hints.push("El emisor móvil llega primero y protege a los seguidores cercanos. CRISPR-Beam le causa el doble de daño. Al abatirlo, los disparos individuales infligen ×2,4 a las tropas normales durante el resto de la oleada.");
+  $("following-wave").textContent = hints.join(" · ");
+  $("following-wave").hidden = !hints.length;
   renderCounterSuggestions(preview);
   const { count, theme, final, lanes, bossTip, order, timeline, tactics, finale } = preview;
   $("wave-finale").hidden = !finale;
@@ -1668,6 +1723,8 @@ function renderWaveDebrief(waiting) {
   ].filter(Boolean);
   $("wave-debrief-synergies").hidden = !synergies.length;
   if (synergies.length) updateText("wave-debrief-synergies", `${synergies.join(" · ")} de daño`);
+  updateText("hero-impact", data.heroImpact || "");
+  $("hero-impact").hidden = !data.heroImpact;
   const worst = $("wave-debrief-worst");
   worst.hidden = !data.worst;
   if (data.worst) {
@@ -2176,6 +2233,8 @@ function finish() {
     : match.waveLeaks?.worst ? match.waveLeaks : null;
   const tone = won ? "victory" : "defeat";
   const outcomeStats = [["Oleadas", `${match.wave}/${match.maxWaves}`], ["Bajas", match.kills]];
+  const heroImpact = match.heroImpact();
+  if (heroImpact) outcomeStats.push(["Nanobot", heroImpact]);
   const diagnostics = breach ? `\n\n${lossReport(breach)}` : "";
   sound(won ? "victory" : "defeat");
   if (match.veteran) {

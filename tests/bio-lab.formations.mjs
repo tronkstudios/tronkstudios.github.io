@@ -997,3 +997,42 @@ test("all mastery rules apply in the right chapter and keep medals separate from
   assert.equal(save.masteryMedals["mastery-4"], true);
   assert.equal(save.masteryMedals["mastery-8"], false);
 });
+
+test("Última luz announces a leading emitter and its destruction benefits precision fire", () => {
+  const match = new Match(38, null, { fixedLayout: true });
+  match.wave = 2;
+  match.preview = match.planWave(3);
+  assert.equal(match.preview.order[0].variant, "emitter");
+  assert.ok(match.preview.order[1].delay >= 75);
+  match.startWave();
+  match.spawn();
+  match.spawn();
+  const [emitter, follower] = match.enemies;
+  match.damage(emitter, emitter.hp * 3, "#fff", { piercing: true });
+  match.tick();
+  assert.ok(follower.signalLost);
+  Object.assign(follower, { affinity: null, shield: 0, armor: 0 });
+  const hp = follower.hp;
+  match.damage(follower, 10, "#fff", { piercing: true }, { id: "sniper", type: "single", rank: 1, inflicted: 0 });
+  assert.ok(Math.abs(hp - follower.hp - 24) < 1e-8);
+});
+
+test("Paralaje alternates visible lens segments and a defeat preserves the last five seconds", () => {
+  const match = new Match(28, null, { fixedLayout: true, heroId: "relay" });
+  assert.equal(match.lens(1).lane, 0);
+  assert.equal(match.lens(2).lane, 1);
+  match.startWave();
+  match.spawnIn = 999;
+  for (let i = 0; i < 310; i++) match.tick();
+  match.spawn();
+  const enemy = match.enemies.at(-1);
+  match.hp = 10;
+  enemy.wp = enemy.path.points.length - 1;
+  [enemy.x, enemy.y] = enemy.path.points.at(-1);
+  match.tick();
+  assert.equal(match.state, "lost");
+  assert.equal(match.breachEnemy, enemy.encounterId);
+  assert.equal(match.replay.length, 31);
+  assert.ok(match.replay.at(-1).enemies.some(([, , id]) => id === match.breachEnemy));
+  assert.ok(match.replay.every(frame => frame.hero.length === 2));
+});

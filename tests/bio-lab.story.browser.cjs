@@ -318,6 +318,8 @@ window.forceRunnerLeak = () => {
       assert.match(report, /Entrada A: 1 · Entrada B: 0/);
       assert.match(report, /Sarampión \(−18 %\)/);
       await page.getByRole("img", { name: "Recorrido de la fuga por la entrada A" }).waitFor();
+      await page.getByRole("button", { name: "Ver la última fuga" }).click();
+      await page.getByRole("button", { name: "Repetir la jugada" }).waitFor();
       await page.getByRole("button", { name: "Repreparar la oleada" }).click();
       await page.getByText("Atajo activo", { exact: true }).waitFor();
       assert.equal(await page.locator("#wave").textContent(), "0/5");

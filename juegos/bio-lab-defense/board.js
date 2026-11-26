@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=38";
+import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=39";
 import { towerAttack } from "./affinities.js?v=3";
 import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=5";
 
@@ -379,6 +379,7 @@ function target(ctx, enemy, time, compact) {
   circle(ctx, 0, 3, enemy.boss ? 27 : 15, "#030811b5");
   if (enemy.shield > 0)
     circle(ctx, 0, 0, enemy.boss ? 33 : 21, "#75d3ff25", "#6bd2ff", 3);
+  if (enemy.variant === "emitter") circle(ctx, 0, 0, 31, "#e6a34b33", "#ffbd67", 3);
   if (enemy.variant === "escort")
     circle(ctx, 0, 0, 90, "#e9b07d0e", "#e9b07d80", 2);
   if (enemy.variant === "scout" && time >= enemy.scoutReady) {
@@ -705,6 +706,29 @@ export class Board {
     }
     const coverageWave = match.coverageWave;
     const coverageRoutes = match.routesForWave(coverageWave);
+    const lens = match.lens(coverageWave);
+    if (lens) {
+      const points = coverageRoutes[lens.lane].points;
+      ctx.save();
+      ctx.setLineDash([12, 8]);
+      ctx.strokeStyle = "#d5c2ff";
+      ctx.lineWidth = 5;
+      for (const end of lens.segments) {
+        trace(ctx, [points[end - 1], points[end]]);
+        ctx.stroke();
+      }
+      const [start, end] = points.slice(lens.segments[0] - 1, lens.segments[0] + 1);
+      const x = (start[0] + end[0]) / 2, y = (start[1] + end[1]) / 2;
+      ctx.setLineDash([]);
+      circle(ctx, x, y, 11, "#221b37", "#d5c2ff", 2);
+      ctx.translate(x, y);
+      ctx.rotate(Math.atan2(end[1] - start[1], end[0] - start[0]));
+      trace(ctx, [[-9, 0], [0, -4], [9, 0], [0, 4], [-9, 0]]);
+      ctx.strokeStyle = "#f1ddff";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+    }
     if (match.fixedLayout && match.state === "build") {
       const modules = match.preview?.finale?.storyModules || [];
       for (const module of modules) {
