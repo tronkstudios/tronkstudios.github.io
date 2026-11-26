@@ -68,6 +68,12 @@ const Game = (() => {
     const add = (obj) => { for (const [k, v] of Object.entries(obj || {})) if (k in s) s[k] += v; };
     add(pl.meta);
     add(ch.perk);
+    if (pl.form?.stage) {
+      const strength = pl.form.stage;
+      if (pl.form.kind === "shell") s.armor += 2 * strength;
+      if (pl.form.kind === "bloom") s.area += .12 * strength;
+      if (pl.form.kind === "orbit") s.speed += .1 * strength;
+    }
     const stars = Math.max(1, pl.stars || 1) - 1;
     s.might += stars * 0.05;
     s.maxHp += stars * 0.05;
@@ -411,10 +417,11 @@ const Game = (() => {
     if (opts.sprint && !mods.includes("rapida")) mods.push("rapida");
     const sprint = mods.includes("rapida");
     const veteran = mods.includes("veterano");
+    const formsAvailable = mode === "solo" && !opts.daily && !opts.training;
     const openingDraft = mode === "solo" && !opts.daily && !opts.training && !veteran;
     const runSeconds = sprint ? 600 : TS.RUN_SECONDS;
     st = {
-      mapId, signature:TS.runSignature(setups,{...opts,mods,map:mapId,openingDraft}), openingDraft, preview:mode === "solo" && opts.preview === true && !opts.daily && !opts.training, expedition:opts.preview === true && opts.expedition === true, training:opts.training || null, trainingPreset:opts.trainingPreset, trainingSample:null, sprint, runSeconds,
+      mapId, signature:TS.runSignature(setups,{...opts,mods,map:mapId,openingDraft,formsAvailable}), openingDraft, preview:mode === "solo" && opts.preview === true && !opts.daily && !opts.training, expedition:opts.preview === true && opts.expedition === true, training:opts.training || null, trainingPreset:opts.trainingPreset, trainingSample:null, sprint, runSeconds,
       mods,
       daily: opts.daily || null,
       evolutions: 0,
@@ -468,6 +475,10 @@ const Game = (() => {
       p.stats = null;
       computeStats(p);
       p.hp = p.stats.maxHp;
+    }
+    if (formsAvailable) {
+      const p = st.players[0];
+      p.form = {kind:TS.formKind(p.charId), stage:0, until:0, chargedAt:12*60, firstKill:0, nextPulse:0};
     }
     if (st.training) {
       st.sites = [];
@@ -1934,10 +1945,70 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     }
   }
 
+  function formStatus(p) {
+    const f = p.form;
+    if (!f) return null;
+    const kills = Math.max(0, st.kills - f.firstKill);
+    const ready = f.stage === 0 ? st.t >= f.chargedAt : f.stage === 1 && st.t < f.until && kills >= 4;
+    return {kind:f.kind, stage:f.stage, kills:Math.min(4,kills), ready,
+      seconds:Math.max(0, Math.ceil(((f.stage ? f.until : f.chargedAt) - st.t) / 60))};
+  }
+
+  function transform() {
+    if (!st || st.over || paused || st.choosing || st.victoryWait || !controlsEnabled) return false;
+    const p = st.players[localId];
+    if (p.down || !formStatus(p)?.ready) return false;
+    const f = p.form;
+    f.stage++;
+    f.firstKill = st.kills;
+    f.until = st.t + (f.stage === 1 ? 12 : 8) * 60;
+    f.nextPulse = st.t + 1;
+    computeStats(p);
+    const identity = TS.FORMS[f.kind];
+    fx({k:"ring",x:p.x,y:p.y,r:52*U,color:identity.color,life:24});
+    sound("levelUp", .1, p.x, p.y);
+    emit("transform",{name:identity.names[f.stage-1], effect:identity.effect});
+    return true;
+  }
+
+  function updateForm(p) {
+    const f = p.form;
+    if (!f?.stage) return;
+    if (st.t >= f.until || p.down) {
+      f.stage = 0;
+      f.chargedAt = st.t + 24*60;
+      computeStats(p);
+      return;
+    }
+    skillRecord(p,"form").availableTicks++;
+    if (st.t < f.nextPulse) return;
+    f.nextPulse = st.t + (f.stage === 1 ? 120 : 75);
+    const radius = (f.kind === "orbit" ? 145 : 57) * U;
+    const targets = enemiesInRadius(p.x,p.y,radius).filter(e=>!e.dead && !e.prop);
+    if (f.kind === "orbit") targets.sort((a,b)=>dist2(a,p)-dist2(b,p));
+    duringAttack(p,"form",()=>{
+      let hits = 0;
+      for (const e of targets.slice(0,f.kind === "orbit" ? 1 + f.stage : 12)) {
+        const hit = hitEnemy(e, (8 + 6*f.stage)*p.stats.might, p, {
+          kx:e.x-p.x, ky:e.y-p.y, kb:f.kind === "shell" ? 5 : .3,
+          slow:f.kind === "bloom" ? .5 : 0, slowFor:f.kind === "bloom" ? 60 : 0
+        });
+        if (hit) hits++;
+        if (f.kind === "orbit") fx({k:"ring",x:e.x,y:e.y,r:12,color:TS.FORMS.orbit.color,life:14});
+      }
+      if (hits && f.kind !== "orbit") fx({k:"ring",x:p.x,y:p.y,r:radius,color:TS.FORMS[f.kind].color,life:18});
+      if (f.kind === "bloom" && hits) {
+        const healed = healPlayer(p, 2*f.stage, true);
+        skillRecord(p,"form").healing += healed;
+      }
+    });
+  }
+
   function updatePlayer(p) {
     if (p.flash > 0) p.flash--;
     if (p.iframes > 0) p.iframes--;
     if (p.disconnected) return;
+    updateForm(p);
     if (p.down) {
       // un compañero cerca lo levanta
       const helper = st.players.filter(o => o !== p && !o.down && !o.disconnected && dist2(o,p) < (24*U)**2)
@@ -3804,6 +3875,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     const site=(st.sites || []).filter(s=>!s.used || s.activeUntil>st.t || s.defenders?.some(defender=>defender.hp>0)).filter(s=>dist2(s,p)<(180*U)**2).sort((a,b)=>dist2(a,p)-dist2(b,p))[0];
     const abDef = TS.ABILITIES[p.charId],compass=compassTarget(p);
     return {
+      form:formStatus(p),
       training:st.training ? Math.round(p.combat.dealt) : null,
       trainingSample:st.trainingSample,
       goals:goalCandidates(p).filter((g,i)=>i<20 || g.key===pinnedGoal).map(g=>({...g,distance:Math.round(Math.sqrt(dist2(g,p))/U)})),pinnedGoal,
@@ -3939,6 +4011,30 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     return [(p.atk.ax || 0)*n,(p.atk.ay || 0)*n];
   }
 
+  function drawForm(p) {
+    const {kind, stage} = p.form;
+    const t = options.reducedMotion ? 0 : st.t / 38;
+    const count = 2 + stage * 2;
+    ctx.save();
+    ctx.translate(p.x, p.y - 23);
+    ctx.lineWidth = 1.5;
+    ctx.fillStyle = TS.FORMS[kind].color;
+    ctx.strokeStyle = "#183342";
+    for (let i=0; i<count; i++) {
+      const a = i*TAU/count + (kind === "shell" ? 0 : t);
+      const x = Math.cos(a)*(16+stage*3), y = Math.sin(a)*10;
+      ctx.beginPath();
+      if (kind === "bloom") ctx.ellipse(x,y-10,5,11,a,0,TAU);
+      else {
+        const size = kind === "shell" ? 8 : 4;
+        ctx.moveTo(x-size,y);ctx.lineTo(x,y-(kind === "shell" ? 14 : 8));
+        ctx.lineTo(x+size,y);ctx.lineTo(x,y+5);ctx.closePath();
+      }
+      ctx.fill();ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   function drawPlayer(p) {
     const set = Sprites.get(`char:${p.charId}`);
     shadow(p.x, p.y, 11);
@@ -3955,9 +4051,31 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
       return;
     }
     if (!options.reducedMotion && p.iframes > 0 && p.iframes % 6 < 3 && !p.flash) ctx.globalAlpha = 0.6;
+    if (p.form?.stage) drawForm(p);
     const img = personImage(set, p.dir, !options.reducedMotion && p.flash > 6, p.moving, p.walkT, p.atk);
     const [ox,oy]=attackOffset(p);
     drawSprite(img, p.x+ox, p.y+oy, People.OY, p.face < 0);
+    if (p.form?.stage) {
+      const {kind,stage} = p.form;
+      ctx.save();
+      ctx.translate(p.x+ox, p.y+oy-23);
+      ctx.fillStyle = TS.FORMS[kind].color;
+      ctx.strokeStyle = "#223142";
+      for (const side of [-1,1]) {
+        ctx.beginPath();
+        ctx.moveTo(side*3,-4);
+        if (kind === "shell") {
+          ctx.lineTo(side*(10+stage*2),-9); ctx.lineTo(side*12,2); ctx.lineTo(side*5,4);
+        } else if (kind === "bloom") {
+          ctx.quadraticCurveTo(side*(18+stage*3),-18,side*10,6);
+          ctx.quadraticCurveTo(side*5,8,side*3,-4);
+        } else {
+          ctx.lineTo(side*12,-(8+stage*3)); ctx.lineTo(side*9,-1); ctx.lineTo(side*5,2);
+        }
+        ctx.closePath();ctx.fill();ctx.stroke();
+      }
+      ctx.restore();
+    }
     ctx.globalAlpha = 1;
     if (p.mastered && p.atk?.t > 0) {
       const x=p.x+(p.atk.ax || 0)*19, y=p.y-24+(p.atk.ay || 0)*13;
@@ -4855,7 +4973,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     else ang = p.ang3 ?? Render3D.angleOf(p.dir, p.face);
     p.ang3 = ang;
     const [ox,oy]=attackOffset(p);
-    return { kind: "char", mastered:p.mastered, evolution:p.weapons.find(w=>w.evo)?.path || (p.weapons.some(w=>w.evo)?"precision":null), id: p.charId, x: p.x+ox, y: p.y+oy, ang, moving: p.moving, walkT: p.walkT, atk: p.atk, inWater: terrain(p.x,p.y) === 2, flash: !options.reducedMotion && (p.flash > 6 || (p.iframes > 0 && p.iframes % 6 < 3)) };
+    return { kind: "char", form:p.form?.stage ? p.form : null, mastered:p.mastered, evolution:p.weapons.find(w=>w.evo)?.path || (p.weapons.some(w=>w.evo)?"precision":null), id: p.charId, x: p.x+ox, y: p.y+oy, ang, moving: p.moving, walkT: p.walkT, atk: p.atk, inWater: terrain(p.x,p.y) === 2, flash: !options.reducedMotion && (p.flash > 6 || (p.iframes > 0 && p.iframes % 6 < 3)) };
   }
 
   function actorOfEnemy(e) {
@@ -5310,6 +5428,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     startGuest,
     applySnapshot,
     setInput(id, inp) { if (st && st.players[id]) st.players[id].input = inp; },
+    transform,
     pressDash(){if(st&&!st.over&&controlsEnabled)input.dash++;},
     pressAbility,
     setCampMode(value) { input.campMode = value === "medic" ? "medic" : "guns"; },

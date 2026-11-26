@@ -7,6 +7,18 @@
 
 const TS = {};
 
+TS.FORMS = {
+  shell:{names:["Coraza de falla", "Ciudadela andante"], color:"#ffab68", effect:"Placas de ámbar que empujan a los enemigos cercanos."},
+  bloom:{names:["Manto de esporas", "Bosque errante"], color:"#89edbd", effect:"Las esporas frenan a los enemigos y te curan al alcanzarlos."},
+  orbit:{names:["Órbita de cristal", "Planetario vivo"], color:"#99bbff", effect:"Los cristales atacan a distancia a varios enemigos."}
+};
+TS.formKind = hero => {
+  const trait = TS.ACTIVE_IDENTITIES[hero]?.[2];
+  if (["guard","heavy","axe","blast"].includes(trait)) return "shell";
+  if (["healer","support","acid","ice","wind"].includes(trait)) return "bloom";
+  return "orbit";
+};
+
 /* ---------- RAREZAS (cofre) ---------- */
 TS.RARITIES = {
   comun: { name: "Común", color: "#a7b0be", rate: 0.6 },
@@ -823,7 +835,7 @@ TS.activePathDescription=(charId,id)=>{
  return (TS.ACTIVE_TRAIT_TEXT[TS.ACTIVE_IDENTITIES[charId]?.[2]] || ["",""])[id==="precision"?0:1];
 };
 TS.siteName=s=>s.kind==="nest"?({ciudad:"Antena de refuerzos",playa:"Nido de coral",bosque:"Nido de refuerzos"}[s.theme] || TS.SITE_NAMES.nest):TS.SITE_NAMES[s.kind];
-TS.runSignature=(setups,opts={})=>JSON.stringify({version:7,party:setups.map(p=>({charId:p.charId,stars:Math.max(1,Math.min(TS.GACHA.maxStars,Number(p.stars)||1)),meta:Object.fromEntries(Object.entries(p.meta || {}).filter(([k,v])=>["maxHp","speed","might","area","cooldown","magnet","armor","regen","growth","greed","amount","revive","reviveSpeed"].includes(k)&&Number.isFinite(v)).sort(([a],[b])=>a.localeCompare(b)))})).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))),rules:{map:opts.map || "bosque",mods:[...(opts.mods || [])].sort(),easy:!!opts.easy,daily:!!opts.daily,seed:opts.daily?opts.seed || 0:null,...(opts.openingDraft===true?{openingDraft:true}:{})}});
+TS.runSignature=(setups,opts={})=>JSON.stringify({version:7,party:setups.map(p=>({charId:p.charId,stars:Math.max(1,Math.min(TS.GACHA.maxStars,Number(p.stars)||1)),meta:Object.fromEntries(Object.entries(p.meta || {}).filter(([k,v])=>["maxHp","speed","might","area","cooldown","magnet","armor","regen","growth","greed","amount","revive","reviveSpeed"].includes(k)&&Number.isFinite(v)).sort(([a],[b])=>a.localeCompare(b)))})).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))),rules:{map:opts.map || "bosque",mods:[...(opts.mods || [])].sort(),easy:!!opts.easy,daily:!!opts.daily,seed:opts.daily?opts.seed || 0:null,...(opts.openingDraft===true?{openingDraft:true}:{}),...(opts.formsAvailable===true?{formsAvailable:true}:{})}});
 
 TS.validRunSignature=value=>{
  if(typeof value!=="string" || value.length>8192)return "";

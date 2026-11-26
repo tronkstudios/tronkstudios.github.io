@@ -857,3 +857,37 @@ test('expedition spawns its boss and distinguishes victory from the time limit',
     assert.equal(result.victory, defeated);
   }
 });
+
+test('temporary forms charge on simulation time, chain manually, expire and restore stats', () => {
+  for (const hero of ['ranjay','lia','nova']) {
+    const { Game } = engine();
+    Game.start([setup(hero)]);
+    const p = Game.state.players[0], base = {...p.stats};
+    assert.equal(Game.transform(),false);
+    Game.state.t = 12*60;
+    assert.equal(Game.transform(),true);
+    assert.equal(p.form.stage,1);
+    assert.notDeepEqual({...p.stats},base);
+    assert.equal(Game.transform(),false);
+    Game.state.kills += 4;
+    Game.setPaused(true);
+    assert.equal(Game.transform(),false);
+    Game.step();
+    assert.equal(Game.state.t,12*60);
+    Game.setPaused(false);
+    assert.equal(Game.transform(),true);
+    assert.equal(p.form.stage,2);
+    Game.state.t = p.form.until - 1;
+    Game.step();
+    assert.equal(p.form.stage,0);
+    assert.deepEqual({...p.stats},base);
+    assert.equal(Game.transform(),false);
+    Game.state.t = p.form.chargedAt;
+    assert.equal(Game.transform(),true);
+    Game.state.t = p.form.until - 1;
+    Game.step();
+    assert.equal(p.form.stage,0);
+    Game.start([setup(hero)],{daily:'2026-11-26'});
+    assert.equal(Game.transform(),false);
+  }
+});

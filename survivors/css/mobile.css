@@ -111,3 +111,9 @@
 #preview-result .modal-box { text-align:left; }
 #preview-result summary { cursor:pointer; padding:12px 0; }
 #preview-link { width:100%; box-sizing:border-box; padding:10px; }
+
+.hud-form { pointer-events:auto; display:inline-grid; min-height:44px; max-width:150px; margin-top:3px; padding:3px 8px; border:1px solid var(--form-color); border-radius:9px; color:var(--form-color); background:#101e2a; font:inherit; line-height:1.1; }
+.hud-form[hidden] { display:none; }
+.hud-form small { font-size:10px; color:#dfecf4; }
+.hud-form b { font-size:11px; }
+.hud-form:enabled { box-shadow:0 0 0 2px var(--form-color); cursor:pointer; }

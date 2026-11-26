@@ -976,8 +976,25 @@
     if (tipIdx >= TIPS.length) { save.tutorial = true; Save.persist(); }
   }
 
+  $("hud-form").addEventListener("click", () => Game.transform());
+  Game.on("transform", form => banner(L(form.name), L(form.effect)));
   let slotKey = "";
   Game.on("hud", (d) => {
+    const formButton = $("hud-form");
+    const form = d.form;
+    formButton.hidden = !form;
+    if (form) {
+      const identity = TS.FORMS[form.kind];
+      const label = L(identity.names[form.stage === 2 || (form.stage === 1 && form.ready) ? 1 : 0]);
+      formButton.disabled = !form.ready;
+      formButton.style.setProperty("--form-color", identity.color);
+      formButton.querySelector("b").textContent = label;
+      const action = L("Transformar") + (isTouch ? "" : " · F");
+      formButton.querySelector("small").textContent = form.ready
+        ? (form.stage ? form.seconds + " s · " : "") + action
+        : form.seconds + " s" + (form.stage === 1 ? " · " + form.kills + "/4 " + L("bajas") : "");
+      formButton.title = L(identity.effect);
+    }
     if (d.training == null) updateTips(d.seconds);
     const xpPercent = Math.min(100, Math.floor(100 * d.xp / Math.max(1,d.xpNext)));
     $("hud-xp-bar").style.width = `${xpPercent}%`;
@@ -1383,7 +1400,7 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     const renderSkills=()=>{skillList.textContent="";const skills=Object.entries(combat?.bySkill || {}).sort((a,b)=>(b[1][sorting.value] || 0)-(a[1][sorting.value] || 0));
     if(!skills.length)skillList.append(el("p","",L("Sin impactos registrados")));
     for(const [id,values] of skills){
-      const ch=charById(r.charId),name=id==="weapon"?TS.WEAPONS[ch.weapon].name:id==="active"?TS.ABILITIES[ch.id].name:id==="camp"?"Tronk defensor":TS.TECHNIQUES[ch.id]?.find(m=>m.id===id)?.name || id;
+      const ch=charById(r.charId),name=id==="form"?TS.FORMS[TS.formKind(r.charId)].names[0]:id==="weapon"?TS.WEAPONS[ch.weapon].name:id==="active"?TS.ABILITIES[ch.id].name:id==="camp"?"Tronk defensor":TS.TECHNIQUES[ch.id]?.find(m=>m.id===id)?.name || id;
       const row=el("div","skill-result"),meter=el("meter");meter.min=0;meter.max=Math.max(1,combat?.dealt || 0);meter.value=values.damage || 0;meter.setAttribute("aria-label",L(name));
       const seconds=(values.availableTicks || 0)/60,dps=seconds>0?((values.damage || 0)/seconds).toLocaleString(LANG,{maximumFractionDigits:1}):"—";
       const variant=r.techniquePaths?.[Game.localId]?.[id];
@@ -1529,6 +1546,7 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
 
   /* ---------- teclado ---------- */
   window.addEventListener("keydown", (e) => {
+    if (!e.repeat && e.code === "KeyF" && current === "game" && Game.transform()) { e.preventDefault(); return; }
     if (!e.repeat && !$("levelup").hidden && /^Digit[1-4]$/.test(e.code)) {
       pickLevel(Number(e.code.slice(5)) - 1);
       return;

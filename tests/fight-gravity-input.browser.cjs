@@ -164,6 +164,19 @@ async function checkRunner(browser) {
   await page.waitForFunction(() => gravityShiftGame.state === "PLAYING");
   await page.keyboard.press("KeyP");
   assert.ok(await page.locator("#modal-pause").isVisible());
+  await page.evaluate(() => {
+    const game = window.gravityShiftGame;
+    game.startNewRun({instant:true});
+    const items = game.items;
+    for (let i=0;i<3;i++) items.trackTrailCoin();
+    game.scoreMgr.elapsed += 3;
+    items.trackTrailCoin();
+    if (items.trailCount !== 1) throw Error("Coin route should expire between lines");
+    for (let i=0;i<7;i++) items.trackTrailCoin();
+    if (items.active.magnet !== 5) throw Error("Complete coin route should activate a five-second magnet");
+    items.trackTrailCoin();
+    if (items.trailCount !== 0) throw Error("Magnet pickups should not charge another magnet");
+  });
   const original = await page.evaluate(() => {
     const game = window.gravityShiftGame;
     game.startNewRun({ instant: true });

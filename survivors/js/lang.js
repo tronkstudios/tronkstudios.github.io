@@ -21,6 +21,11 @@ let LANG = (() => {
 })();
 
 const EN = {
+  "bajas":"kills", "Transformar":"Transform", "Coraza de falla":"Fault Shell", "Ciudadela andante":"Walking Citadel",
+  "Manto de esporas":"Spore Mantle", "Bosque errante":"Wandering Grove", "Órbita de cristal":"Crystal Orbit", "Planetario vivo":"Living Orrery",
+  "Placas de ámbar que empujan a los enemigos cercanos.":"Amber plates push nearby enemies away.",
+  "Las esporas frenan a los enemigos y te curan al alcanzarlos.":"Spores slow enemies and heal you on contact.",
+  "Los cristales atacan a distancia a varios enemigos.":"Crystals strike several enemies at range.",
   "Expedición":"Expedition", "Desafiar al Moco Rey · 4 min":"Challenge the Slime King · 4 min",
   "Evoluciona tu arma y derrota al Moco Rey antes de cuatro minutos.":"Evolve your weapon and defeat the Slime King within four minutes.",
   "Probar otro estilo":"Try another style",
