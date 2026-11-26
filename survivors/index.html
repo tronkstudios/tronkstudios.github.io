@@ -25,7 +25,7 @@
   />
   <link rel="stylesheet" href="survivors.css?v=18" />
   <link rel="stylesheet" href="css/depth.css?v=8">
-  <link rel="stylesheet" href="css/mobile.css?v=4">
+  <link rel="stylesheet" href="css/mobile.css?v=5">
 </head>
 <body>
   <canvas id="game" aria-label="Tronk Survivors"></canvas>
@@ -48,6 +48,7 @@
         <div class="menu-chips"><span>34 personajes</span><span>34 armas</span><span>7 jefes</span><span>Online</span></div>
         <div class="menu-buttons">
           <button class="btn btn-big" data-go="maps"><img data-icon="tajo" alt="" loading="lazy" decoding="async" /> Jugar</button>
+          <button class="btn" id="menu-preview" type="button"><img data-icon="cofre" alt="" /> <span>Prueba una evolución · 90 s</span></button>
           <button class="btn" id="menu-sprint" type="button"><img data-icon="reloj" alt="" loading="lazy" decoding="async" /> <span data-i18n="Partida rápida · 10 min">Partida rápida · 10 min</span></button>
           <button class="btn btn-daily" data-go="daily"><img data-icon="reloj" alt="" loading="lazy" decoding="async" /> Reto diario <span id="menu-daily" class="badge" hidden>¡Nuevo!</span></button>
           <button class="btn" data-go="online"><img data-icon="clon" alt="" loading="lazy" decoding="async" /> Jugar con amigos</button>
@@ -210,6 +211,7 @@
         <button class="btn btn-small" data-go="menu">← Volver</button>
         <h2>Ajustes</h2>
       </header>
+      <label class="setting"><span>Compartir contadores de partidas y días de regreso con TronkStudios</span><input id="game-measurement" type="checkbox" /></label>
       <label class="setting"><span>Música</span><input type="range" id="vol-music" min="0" max="100" step="5" /><b id="vol-music-v"></b></label>
       <label class="setting"><span>Efectos de sonido</span><input type="range" id="vol-sfx" min="0" max="100" step="5" /><b id="vol-sfx-v"></b></label>
       <div class="setting sound-check"><label for="sfx-sample">Probar sonidos</label><select id="sfx-sample"><option value="bow">Arco</option><option value="growl">Monstruo</option><option value="enemyMagic">Magia</option></select><button class="btn btn-small" id="sfx-preview" type="button">Escuchar</button></div>
@@ -339,6 +341,17 @@
   </div>
 
   <!-- Fin -->
+  <div id="preview-result" class="modal" role="dialog" aria-modal="true" aria-labelledby="preview-title" hidden>
+    <div class="modal-box"><div class="preview-heading"><img id="preview-portrait" alt="" /><div><b id="preview-name"></b><h2 id="preview-title" tabindex="-1"></h2></div></div><p id="preview-recipe"></p>
+      <div class="modal-buttons"><button class="btn btn-big" id="preview-play">Jugar una partida</button>
+        <button class="btn" id="preview-expedition">Desafiar al Moco Rey · 4 min</button>
+        <button class="btn" id="preview-repeat">Repetir prueba</button>
+        <button class="btn" id="preview-share">Compartir este héroe</button>
+        <button class="btn" id="preview-menu">Menú</button></div>
+      <details><summary>Probar otro estilo</summary><div class="modal-buttons" id="preview-alternatives"></div></details>
+      <input id="preview-link" aria-label="Enlace a la prueba" readonly hidden />
+    </div>
+  </div>
   <div id="end" class="modal" role="dialog" aria-modal="true" aria-labelledby="end-title" hidden>
     <div class="modal-box">
       <h2 id="end-title" tabindex="-1">¡Has caído!</h2>
@@ -368,6 +381,7 @@
     </div>
   </div>
 
+  <script src="../js/game-metrics.js" data-game="survivors" defer></script>
   <script src="js/data.js?v=22" defer></script>
   <script src="js/sprites.js?v=19" defer></script>
   <script src="js/people.js?v=4" defer></script>
@@ -376,12 +390,12 @@
   <script src="js/render3d.js?v=21" defer></script>
   <script src="js/audio.js?v=6" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-  <script src="js/lang.js?v=29" defer></script>
+  <script src="js/lang.js?v=30" defer></script>
   <script src="js/save.js?v=13" defer></script>
   <script src="js/account.js?v=4" defer></script>
-  <script src="js/game.js?v=39" defer></script>
+  <script src="js/game.js?v=40" defer></script>
   <script src="js/net.js?v=11" defer></script>
   <script src="js/rewarded.js?v=8" defer></script>
-  <script src="js/ui.js?v=37" defer></script>
+  <script src="js/ui.js?v=38" defer></script>
 </body>
 </html>

@@ -21,6 +21,17 @@ let LANG = (() => {
 })();
 
 const EN = {
+  "Expedición":"Expedition", "Desafiar al Moco Rey · 4 min":"Challenge the Slime King · 4 min",
+  "Evoluciona tu arma y derrota al Moco Rey antes de cuatro minutos.":"Evolve your weapon and defeat the Slime King within four minutes.",
+  "Probar otro estilo":"Try another style",
+  "Compartir contadores de partidas y días de regreso con TronkStudios":"Share play counts and return days with TronkStudios",
+  "Prueba una evolución · 90 s":"Try an evolution · 90 s",
+  "Prueba de evolución":"Evolution trial",
+  "Cofre de evolución":"Evolution chest",
+  "Sobrevive 90 s. A los 45 s recibirás los ingredientes y un cofre.":"Survive for 90 seconds. At 45 seconds you'll receive the ingredients and a chest.",
+  "¡Prueba superada!":"Trial complete!", "Fin de la prueba":"Trial over",
+  "Jugar una partida":"Play a run", "Repetir prueba":"Retry trial",
+  "Compartir este héroe":"Share this hero", "Enlace a la prueba":"Trial link", "Probar":"Try",
   "Toca una pieza para ver sus detalles": "Tap an item to see its details",
   "Rango máximo": "Maximum rank",
   "Por rango": "Per rank",

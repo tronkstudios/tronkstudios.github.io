@@ -3086,3 +3086,12 @@ body:has(#practice-panel:not(.hidden)) #danger-cue {
 @media (pointer: coarse), (prefers-reduced-motion: reduce) {
   #modal-gameover, #modal-pause { backdrop-filter: none; }
 }
+
+
+#screen-main-menu #btn-three-turns {
+  background:linear-gradient(125deg, #293e58, #122631);
+  border-color:#82d7df;
+}
+#daily-ghost { color:#a0f0e5; font-variant-numeric:tabular-nums; }
+#three-turn-link { width:100%; padding:.65rem; color:#c3f8ef; background:#101d2b; border:1px solid #7796a1; }
+.practice-complete > div { max-height:90dvh; overflow:auto; }

@@ -692,8 +692,10 @@
       button.textContent = L("Buscando anuncio…");
       const screen = current;
       let adShown = false;
+      window.TronkMeasure?.("ad_request");
       const granted = await RewardedAds.request(() => current === screen && button.isConnected,
         kind, () => { adShown = true; Sfx.stopMusic(); });
+      window.TronkMeasure?.(granted ? "ad_reward" : "ad_incomplete");
       if (adShown && current !== "game") Sfx.startMusic("menu");
       if (granted && kind === "character") {
         const progress = Save.recordUnlockAd(character.id);
@@ -864,11 +866,14 @@
     if (o.mode === "solo" && !o.daily && !o.veteran && !o.sprint && !o.training && save.runs < 3) o.easy = true;
     lastRun = { setups:structuredClone(s), opts:structuredClone(o) };
     for (const x of s) Sprites.get(`char:${x.charId}`);
-    if (!o.training && !o.veteran && !o.sprint) Account.startRun();
+    if (!o.preview && !o.training && !o.veteran && !o.sprint) Account.startRun();
     enterGame(() => {
       Game.start(s, o);
+      if (!o.training) window.TronkMeasure?.(o.preview ? "challenge_start" : "run_start");
       chooseCampMode("guns");
-      if (!o.training) startTips(o.easy);
+      if (o.expedition) banner(L("Expedición"), L("Evoluciona tu arma y derrota al Moco Rey antes de cuatro minutos."));
+      else if (o.preview) banner(L("Prueba de evolución"), L("Sobrevive 90 s. A los 45 s recibirás los ingredientes y un cofre."));
+      else if (!o.training) startTips(o.easy);
     });
   }
 
@@ -990,6 +995,11 @@
     if(d.breach)$("hud-phase").textContent+=` · ${L("Brecha")} ${d.breach.total-d.breach.remaining}/${d.breach.total}`;
     $("hud-milestone").textContent=d.nextTechnique?`${L("Próxima técnica")}: ${L(d.nextTechnique.name)} · ${L("Nivel")} ${d.nextTechnique.unlock} · ${fmtTime(Math.ceil((d.nextTechnique.at || 0)*(d.runSeconds || TS.RUN_SECONDS)/TS.RUN_SECONDS))}`:`${L("Rangos de técnicas")}: ${d.techniqueRanks}/${d.techniqueTotal}`;
     if(d.talentNext?.ready)$("hud-milestone").textContent=L("Especialización disponible en tu próxima subida de nivel");
+    if (Game.state?.preview) {
+      const expedition = Game.state.expedition;
+      $("hud-phase").textContent = L(expedition ? "Expedición" : "Prueba de evolución") + " · " + fmtTime(Math.max(0, (expedition ? 240 : 90) - d.seconds));
+      $("hud-milestone").textContent = d.seconds < 45 ? L("Cofre de evolución") + " · " + fmtTime(45 - d.seconds) : d.evolution?.name || "";
+    }
     if (d.training != null) {
       $("hud-phase").textContent = d.trainingSample == null
         ? `${L("Prueba de 20 s")} · ${fmtTime(Math.max(0,20-d.seconds))}`
@@ -1130,7 +1140,10 @@
       if(o.kind==="talent"){text.querySelector("b").textContent=L(TS.TALENTS[o.id].name);text.querySelector("small").textContent=L(TS.TALENTS[o.id].desc);}
       const ranks=upgradeRanks(o);if(ranks)text.append(ranks);
       if(o.preview?.length){const changes=el("dl","choice-stats");for(const row of o.preview){const value=el("dd",row.loss?"is-loss":"is-gain",`${row.from.toLocaleString(LANG)}${row.unit} → ${row.to.toLocaleString(LANG)}${row.unit}`);changes.append(el("dt","",L(row.label)),value);}text.append(changes);}
-      if(o.synergy)text.append(el("span","synergy-note",L("Necesario para evolucionar")));
+      if (o.synergy) {
+        const recipe = Game.hudData().evolution;
+        text.append(el("span", "synergy-note", recipe ? recipe.name + " · " + recipe.weapon + " " + recipe.level + "/6 + " + recipe.passive : L("Necesario para evolucionar")));
+      }
       card.append(img, text, el("kbd", "", i + 1));
       card.addEventListener("click", () => pickLevel(i));
       box.appendChild(card);
@@ -1176,6 +1189,10 @@
   }
 
   Game.on("chosen", () => {
+    if (Game.state?.preview && !Game.state.previewMeasuredChoice) {
+      Game.state.previewMeasuredChoice = true;
+      window.TronkMeasure?.("first_choice");
+    }
     if (Game.state && Game.state.choosing && Object.keys(Game.state.choosing).length) waitOthers();
     else hideLevelUp();
   });
@@ -1388,6 +1405,12 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     $("end-maps").hidden = !!online || !!r.daily;
     $("end-again").textContent=L(online?"Volver a la sala online":"Repetir configuración");
     $("end-retry-note").textContent=L(online?"Vuelve a crear o unirte a una sala para jugar con tus amigos.":"Mismo personaje, mapa y reglas. El mapa se genera de nuevo salvo en retos con semilla.");
+    const recipe = Game.hudData()?.evolution;
+    if (!online && recipe && !recipe.evolved) {
+      const missing = [recipe.level < 6 && (recipe.weapon + " " + recipe.level + "/6"),
+        !recipe.hasPassive && recipe.passive, L("Cofre")].filter(Boolean);
+      $("end-retry-note").textContent = recipe.name + " · " + missing.join(" → ");
+    }
     if (r.finalPhase) add("Fases superadas", Math.max(0, r.finalRound - 1));
     if (r.finalPhase) add("Contra el jefe final", fmtTime(r.endlessSeconds), "coins");
     else if (r.endless) add("Modo infinito", fmtTime(r.endlessSeconds), "coins");
@@ -1440,6 +1463,63 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     show("maps");
   });
   $("end-menu").addEventListener("click", backToMenu);
+  const sharedHero = new URLSearchParams(location.search).get("hero");
+  let previewHero = TS.CHARACTERS.find(hero => hero.id === sharedHero)?.id;
+  if (previewHero) window.TronkMeasure?.("shared_open");
+  if (previewHero) $("menu-preview").querySelector("span").textContent = L("Probar") + " · " + charById(previewHero).name;
+  function startPreview(heroId = sharedHero, expedition = false) {
+    Sfx.init();
+    previewHero = TS.CHARACTERS.some(hero => hero.id === heroId) ? heroId : save.selected;
+    $("preview-result").hidden = true;
+    play([{charId:previewHero, stars:1, meta:{}}], {preview:true, expedition, easy:true, map:"bosque", seed:9045});
+  }
+  const sharedExpedition = !!previewHero && new URLSearchParams(location.search).get("trial") === "expedition";
+  if (sharedExpedition) $("menu-preview").querySelector("span").textContent = L("Expedición") + " · " + charById(previewHero).name;
+  $("menu-preview").addEventListener("click", () => startPreview(sharedHero, sharedExpedition));
+  $("preview-expedition").addEventListener("click", () => startPreview(previewHero, true));
+  $("preview-repeat").addEventListener("click", () => startPreview(previewHero, !!lastRun.opts.expedition));
+  $("preview-menu").addEventListener("click", () => { $("preview-result").hidden = true; backToMenu(); });
+  $("preview-play").addEventListener("click", () => { $("preview-result").hidden = true; backToMenu(); play(null, {map:"bosque"}); });
+  $("preview-share").addEventListener("click", async () => {
+    const url = new URL(location.href);
+    url.search = ""; url.hash = ""; url.searchParams.set("hero", previewHero);
+    if (lastRun.opts.expedition) url.searchParams.set("trial", "expedition");
+    window.TronkMeasure?.("share");
+    if (navigator.share) {
+      try { await navigator.share({title:charById(previewHero).name, url:url.href}); return; }
+      catch (error) { if (error.name === "AbortError") return; }
+    }
+    const field = $("preview-link"); field.value = url.href; field.hidden = false; field.select();
+  });
+  Game.on("previewEnd", ({victory, seconds, kills, recipe}) => {
+    window.TronkMeasure?.(victory ? "challenge_finish" : "challenge_exit");
+    $("pause").hidden = true;
+    hideLevelUp();
+    Game.setControlsEnabled(false);
+    $("preview-link").hidden = true;
+    $("preview-title").textContent = L(victory ? "¡Prueba superada!" : "Fin de la prueba");
+    $("preview-recipe").textContent = [fmtTime(seconds), kills + " " + L("Enemigos"),
+      recipe && (recipe.evolved ? recipe.name : recipe.weapon + " 6 + " + recipe.passive + " + " + L("Cofre"))].filter(Boolean).join(" · ");
+    $("preview-expedition").hidden = !!lastRun.opts.expedition;
+    const alternatives = $("preview-alternatives");
+    alternatives.replaceChildren();
+    for (const id of ["ranjay", "bruno", "lia"].filter(id => id !== previewHero)) {
+      const hero = charById(id);
+      const button = el("button", "btn btn-small", hero.name + " · " + L(TS.WEAPONS[hero.weapon].name));
+      button.type = "button";
+      const image = document.createElement("img");
+      image.src = Sprites.iconUrl(hero.weapon, 2);
+      image.alt = "";
+      button.prepend(image);
+      button.addEventListener("click", () => startPreview(id));
+      alternatives.append(button);
+    }
+    const hero = charById(previewHero);
+    $("preview-portrait").src = Sprites.portrait(hero.id, 3);
+    $("preview-name").textContent = hero.name + " · " + L(TS.WEAPONS[hero.weapon].name);
+    $("preview-result").hidden = false;
+    $("preview-title").focus();
+  });
   $("menu-sprint").addEventListener("click", () => {
     Sfx.init();
     const preferred = save.settings.map;
@@ -1455,7 +1535,7 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     }
     if (current === "game" && (e.code === "Escape" || e.code === "KeyP")) {
       if (!$("levelup").hidden || !$("end").hidden || !$("victory").hidden) return;
-      if (!e.repeat) pause($("pause").hidden);
+      if (!e.repeat && $("preview-result").hidden) pause($("pause").hidden);
     }
   });
   window.addEventListener("blur",()=>{

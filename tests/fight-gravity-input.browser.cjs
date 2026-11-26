@@ -215,6 +215,40 @@ async function checkRunner(browser) {
   await page.locator("#btn-repeat-gravity-course").tap();
   assert.equal(await page.evaluate(() => gravityShiftGame.practice.index), 0);
 
+  await page.evaluate(() => gravityShiftGame.returnToMainMenu());
+  await page.locator("#btn-three-turns").tap();
+  await page.waitForFunction(() => gravityShiftGame.state === "PLAYING");
+  await page.keyboard.press("KeyA");
+  await page.waitForFunction(() => gravityShiftGame.practice.index === 1);
+  await page.keyboard.press("KeyW");
+  await page.waitForFunction(() => gravityShiftGame.practice.index === 2);
+  await page.keyboard.press("KeyS");
+  await page.waitForFunction(() => gravityShiftGame.state === "PRACTICE_DONE");
+  assert.match(await page.locator("#practice-complete-title").textContent(), /Tres giros/);
+  assert.equal(await page.evaluate(() => gravityShiftGame.scoreMgr.saveData.totalEnergy), originalBalance);
+  const challengeUrl = new URL(await page.locator("#three-turn-link").inputValue());
+  assert.equal(challengeUrl.searchParams.get("course"), "three");
+  await page.locator("#btn-repeat-gravity-course").tap();
+  assert.equal(await page.evaluate(() => gravityShiftGame.practice.stageCount), 3);
+  await page.goto(challengeUrl.href);
+  await page.waitForFunction(() => window.gravityShiftGame);
+  assert.match(await page.locator("#btn-three-turns").innerText(), /Supera/);
+  const ghost = await page.evaluate(() => {
+    const game = window.gravityShiftGame;
+    const date = "2026-11-24";
+    game.startNewRun({instant:true, mode:"daily", challengeDate:date});
+    game.scoreMgr.distance = 25;
+    game.scoreMgr.score = 80;
+    game.ui.updateHUD();
+    game.handleGameOver();
+    game.startNewRun({instant:true, mode:"daily", challengeDate:date});
+    game.scoreMgr.distance = 25;
+    game.scoreMgr.score = 100;
+    game.ui.updateHUD();
+    return document.getElementById("daily-ghost").textContent;
+  });
+  assert.match(ghost, /25 m.*\+20 pts/);
+
 
   await page.close();
 }

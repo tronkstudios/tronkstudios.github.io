@@ -1625,6 +1625,20 @@ export default {
 
         // Chat de Tronker con IA. Con "groq" busca en internet; si falla,
         // responde Workers AI, y si también falla, la web vuelve a los botones.
+        if (url.pathname === "/game-event") {
+          const allowed = await allowRequest(env.GAME_LIMITER, "game:" + clientIp(request), 60);
+          if (!allowed) return json({error:"rate_limit"}, 429, cors);
+          const {data} = await readJsonBody(request);
+          const events = ["visit","run_start","challenge_start","challenge_finish","challenge_exit","gate_one","gate_two","first_choice","share","shared_open","second_start","ad_request","ad_reward","ad_incomplete"];
+          const day = Math.floor(Date.now() / 86400000);
+          if (!["survivors","gravity"].includes(data?.game) || !events.includes(data.event) ||
+              !Number.isInteger(data.cohort) || data.cohort <= 0 || data.cohort > day + 1) {
+            return json({error:"invalid_event"}, 400, cors);
+          }
+          if (!env.GAME_EVENTS) return json({error:"unavailable"}, 503, cors);
+          env.GAME_EVENTS.writeDataPoint({indexes:[data.game], blobs:[data.event], doubles:[data.cohort]});
+          return new Response(null, {status:204, headers:cors});
+        }
         if (url.pathname === "/chat") {
           return await handleChat(request, env, cors);
         }

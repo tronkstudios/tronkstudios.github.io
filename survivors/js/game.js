@@ -414,7 +414,7 @@ const Game = (() => {
     const openingDraft = mode === "solo" && !opts.daily && !opts.training && !veteran;
     const runSeconds = sprint ? 600 : TS.RUN_SECONDS;
     st = {
-      mapId, signature:TS.runSignature(setups,{...opts,mods,map:mapId,openingDraft}), openingDraft, training:opts.training || null, trainingPreset:opts.trainingPreset, trainingSample:null, sprint, runSeconds,
+      mapId, signature:TS.runSignature(setups,{...opts,mods,map:mapId,openingDraft}), openingDraft, preview:mode === "solo" && opts.preview === true && !opts.daily && !opts.training, expedition:opts.preview === true && opts.expedition === true, training:opts.training || null, trainingPreset:opts.trainingPreset, trainingSample:null, sprint, runSeconds,
       mods,
       daily: opts.daily || null,
       evolutions: 0,
@@ -3599,6 +3599,26 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
       if (st.t === 20 * 60) st.trainingSample = Math.round(st.players[0].combat.dealt);
       return;
     }
+    if (st.preview) {
+      const player = st.players[0];
+      if (st.t === 12 * 60 && st.level === 1) st.xp = st.xpNext;
+      if (st.t === 45 * 60 && !player.weapons[0].evo) {
+        const weapon = player.weapons[0];
+        const support = TS.EVOLUTIONS[weapon.id].passive;
+        weapon.lvl = 6;
+        player.passives[support] = Math.max(1, player.passives[support] || 0);
+        computeStats(player);
+        st.rewardQueue.push({kind:"chest"});
+      }
+      if (st.expedition && st.t === 150 * 60) {
+        const boss = spawnAround("mocoRey", player, spawnRadius() * .8);
+        boss.baseMaxHp *= .25;
+        scaleEnemy(boss);
+        st.expeditionBoss = boss;
+      }
+      if (st.expeditionBoss?.dead) { finish(true); return; }
+      if (st.t >= (st.expedition ? 240 : 90) * 60) { finish(!st.expedition); return; }
+    }
     spawning();
     st.activeDefenders = campDefenders();
     for (const e of st.enemies) if (!e.dead) updateEnemy(e);
@@ -3643,6 +3663,10 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     if (!st || st.over) return;
     st.over = true;
     Sfx.stopMusic();
+    if (st.preview) {
+      emit("previewEnd", {victory, seconds:Math.floor(st.t / 60), kills:st.kills, recipe:evolutionInfo(st.players[0])});
+      return;
+    }
     if (st.training) { emit("trainingEnd", {}); return; }
     Sfx.play(victory ? "win" : "die");
     const seconds = Math.floor(st.t / 60);

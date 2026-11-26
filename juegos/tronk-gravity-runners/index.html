@@ -30,7 +30,7 @@
     <!-- Three.js r128 -->
     <!-- Three.js is bundled with the engine. -->
 
-    <link rel="stylesheet" href="./styles.7a001241e96a.css" />
+    <link rel="stylesheet" href="./styles.c45eef9eeba0.css" />
   </head>
 
   <body>
@@ -110,6 +110,8 @@
           Has practicado las cuatro superficies, el ajuste lateral y el cambio
           perfecto. No se han modificado tus monedas ni tus récords.
         </p>
+        <button id="share-three-turns" class="brutal-btn" type="button" hidden>RETAR A UN AMIGO</button>
+        <input id="three-turn-link" aria-label="Enlace para desafiar a un amigo con esta marca" readonly hidden />
         <button id="btn-repeat-gravity-course" class="brutal-btn" type="button" hidden>REPETIR CIRCUITO</button>
         <button id="btn-practice-play" class="brutal-btn brutal-btn-primary">
           JUGAR UNA PARTIDA</button
@@ -316,6 +318,9 @@
           </div>
 
           <div class="mode-cards">
+            <button id="btn-three-turns" class="mode-card" type="button">
+              <b>TRES GIROS</b><span>Aprende a cambiar de pared y reta a un amigo</span>
+            </button>
             <button id="btn-practice" class="mode-card">
               <b>APRENDER</b><span>6 ejercicios · sin perder progreso</span>
             </button>
@@ -587,6 +592,7 @@
             <span id="hud-mode" class="mode-label">PARTIDA NORMAL</span
             ><span id="hud-zone" class="zone-badge">01 · MUELLE INDUSTRIAL</span
             ><span id="hud-seed-badge">SEED: AUTO</span>
+            <div id="daily-ghost" class="text-cyan" hidden></div>
             <div id="lateral-controls" class="lateral-controls pointer-auto" role="group" aria-label="Ajuste lateral">
               <button data-nudge="-1" class="h-11" aria-keyshortcuts="Q" aria-label="Ajustar a la izquierda">Q · ◀</button>
               <button data-nudge="1" class="h-11" aria-keyshortcuts="E" aria-label="Ajustar a la derecha">▶ · E</button>
@@ -1186,6 +1192,7 @@
               resultados de partidas.
             </p>
           </section>
+          <label><input type="checkbox" id="game-measurement" /> Compartir contadores de partidas y días de regreso con TronkStudios</label>
           <section class="native-ad-tools">
             <p id="native-ad-status">La web no muestra anuncios comerciales.</p>
             <button id="btn-test-ads" hidden class="brutal-btn">
@@ -1370,6 +1377,7 @@
     <!-- =========================================================================
        MODULAR GAME ENGINE IMPLEMENTATION
        ========================================================================= -->
-    <script defer id="engine-script" src="./game.295a943bcd06.js"></script>
+    <script defer src="../../js/game-metrics.js" data-game="gravity"></script>
+    <script defer id="engine-script" src="./game.bd599c388c06.js"></script>
   </body>
 </html>
