@@ -41,7 +41,8 @@ queue.forEach(handle);
       const response = await route.fetch();
       await route.fulfill({
         response,
-        body: (await response.text()) + `
+        // The scripted coordinates below exercise the original campaign layout.
+        body: (await response.text()).replaceAll("fixedLayout: true", "fixedLayout: false") + `
 window.testRun = {
   get state() { return { state: match.state, wave: match.wave, hero: match.hero?.id,
     cooldown: match.hero?.abilityCooldown, x: match.hero?.x, y: match.hero?.y, hp: match.hp, time: match.time }; },

@@ -196,6 +196,36 @@ test("console defeat records the enemies and uncovered approach separately from 
   assert.equal([...report.entries.values()].reduce((total, entry) => total + entry.count, 0), 4);
 });
 
+test("all story sectors have longer routes and usable fixed construction sites", () => {
+  for (let level = 1; level <= MISSIONS.length; level++) {
+    const old = new Match(level);
+    const current = new Match(level, null, { fixedLayout: true });
+    assert.ok(current.buildSites.length >= 18, `sector ${level}`);
+    for (const [lane, path] of current.routes.entries()) {
+      assert.ok(path.remaining[0] >= old.routes[lane].remaining[0] * 1.2, `sector ${level}, entrada ${lane}`);
+      assert.deepEqual(path.points.at(-1), old.routes[lane].points.at(-1));
+    }
+    for (const site of current.buildSites)
+      assert.equal(current.checkPlacement(BLUEPRINTS[0], site.x, site.y), "", `sector ${level}`);
+  }
+});
+
+test("fixed layouts round-trip through checkpoints while prior builds keep their positions", () => {
+  const current = new Match(1, null, { fixedLayout: true });
+  const [first, second] = current.buildSites;
+  assert.equal(current.place(BLUEPRINTS[0], first.x + 1, first.y), null);
+  assert.equal(current.closestBuildSite(first.x + 1, first.y), first);
+  const tower = current.place(BLUEPRINTS[0], first.x, first.y);
+  assert.ok(tower);
+  assert.equal(current.place(BLUEPRINTS[0], first.x, first.y), null);
+  assert.ok(current.relocate(tower, second.x, second.y));
+  const restored = restoreCheckpoint({ ...current, towers: [{ ...tower, angle: 0, branch: -1 }] }).match;
+  assert.ok(restored.fixedLayout);
+  assert.deepEqual(restored.buildSites, current.buildSites);
+  assert.deepEqual([restored.towers[0].x, restored.towers[0].y], [second.x, second.y]);
+  assert.equal(restoreCheckpoint({ ...new Match(1), fixedLayout: undefined }).match.fixedLayout, false);
+});
+
 test("entry alerts use the first enemy actually queued for each lane", () => {
   const match = new Match(8, null, { contract: CONTRACTS.find(contract => contract.pressure) });
   const { arrivals } = match.preview;

@@ -20,6 +20,12 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8791";
       (url) => !url.href.startsWith(base),
       (route) => route.abort(),
     );
+    await context.route("**/juegos/bio-lab-defense/game.js?*", async route => {
+      const response = await route.fetch();
+      // These point-save regressions use the original free-placement layout.
+      const body = (await response.text()).replaceAll("fixedLayout: true", "fixedLayout: false");
+      await route.fulfill({ response, body });
+    });
     await page.goto(base + "/juegos/bio-lab-defense/");
     await page.locator("#campaign-button").tap();
     await page.locator(".level").first().tap();

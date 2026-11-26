@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=35";
+import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=36";
 import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=4";
 
 function trace(ctx, points) {
@@ -556,7 +556,7 @@ export class Board {
   ) {
     const ctx = this.ctx;
     const key = match.mission
-      ? `${match.level}:${match.gateDiverted}:${!!match.routeEvent && match.routes[1] === match.routeEvent.alternate}`
+      ? `${match.level}:${match.fixedLayout}:${match.gateDiverted}:${!!match.routeEvent && match.routes[1] === match.routeEvent.alternate}`
       : `reto-${match.mapIndex}`;
     if (!this.buffers.has(key)) {
       if (this.buffers.size >= 4) this.buffers.delete(this.buffers.keys().next().value);
@@ -620,6 +620,24 @@ export class Board {
       ctx.setLineDash([12, 7]);
       circle(ctx, powerCut.x, powerCut.y, powerCut.radius,
         warning && !previewPowerCut ? "#d79b421a" : "#d79b4238", "#ffd277", 4);
+      ctx.restore();
+    }
+    for (const site of match.buildSites || []) {
+      if (match.firePads.includes(site)) continue;
+      ctx.save();
+      ctx.translate(site.x, site.y);
+      polygon(ctx, 6, 21);
+      ctx.fillStyle = "#0c2630e8";
+      ctx.strokeStyle = "#8ebdb6";
+      ctx.lineWidth = 2.5;
+      ctx.fill();
+      ctx.stroke();
+      if (!match.towers.some(tower => tower.x === site.x && tower.y === site.y)) {
+        trace(ctx, [[-6, 0], [6, 0]]);
+        ctx.stroke();
+        trace(ctx, [[0, -6], [0, 6]]);
+        ctx.stroke();
+      }
       ctx.restore();
     }
     const activePad = match.activePad();

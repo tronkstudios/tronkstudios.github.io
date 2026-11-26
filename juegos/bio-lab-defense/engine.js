@@ -1,5 +1,5 @@
 import { affinityFor, towerMultiplier } from "./affinities.js?v=1";
-import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=13";
+import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=14";
 
 import { HERO_BY_ID } from "./operations.js?v=7";
 
@@ -473,6 +473,33 @@ export const VARIANT_NAMES = { escort: "Escolta", scout: "Explorador" };
 const ESCORT_RANGE = 90;
 const LINK_WIDTH = 18;
 
+const APPROACH_SCALE = 0.78;
+
+function extendApproach(points) {
+  const [endX, endY] = points.at(-1);
+  const turnY = endY >= HEIGHT / 2 ? 88 : HEIGHT - 92;
+  return [
+    ...points.slice(0, -1).map(([x, y]) => [x * APPROACH_SCALE, y]),
+    [728, endY], [728, turnY], [827, turnY], [827, endY], [endX, endY],
+  ];
+}
+
+function fixedBuildSites(paths, firePads, plannedPosts = []) {
+  const sites = [...firePads];
+  const add = (x, y) => {
+    if (sites.some(site => Math.hypot(site.x - x, site.y - y) < 58)) return;
+    let distance = Infinity;
+    for (const { points } of paths)
+      for (let i = 1; i < points.length; i++)
+        distance = Math.min(distance, segmentDistance(x, y, points[i - 1], points[i]));
+    if (distance > 39 && distance < 120) sites.push({ x, y });
+  };
+  for (const [x, y] of plannedPosts) add(x, y);
+  for (let y = 60, row = 0; y <= HEIGHT - 45; y += 82, row++)
+    for (let x = 60 + 28 * (row % 2); x <= WIDTH - 45; x += 82) add(x, y);
+  return sites;
+}
+
 function route(points) {
   const remaining = Array(points.length).fill(0);
   for (let i = points.length - 2; i >= 0; i--) {
@@ -714,12 +741,13 @@ export function reactorProduction(tower) {
 }
 
 export class Match {
-  constructor(level, daily = null, { heroId, contract, veteran = false, legacyArchiveOrder = false } = {}) {
+  constructor(level, daily = null, { heroId, contract, veteran = false, legacyArchiveOrder = false, fixedLayout = false } = {}) {
     this.level = level;
     this.daily = daily;
     this.contract = contract || null;
     this.veteran = veteran;
     this.ranked = !!(daily || contract || veteran);
+    this.fixedLayout = fixedLayout && !this.ranked;
     this.mission = daily ? null : MISSIONS[level - 1];
     this.mapIndex = daily?.map ?? CHAPTERS[this.mission.chapter].map;
     const chapter = this.mission && CHAPTERS[this.mission.chapter];
@@ -727,7 +755,7 @@ export class Match {
     const auxiliary = chapter?.aux ?? AUXILIARY_LANES[this.mapIndex - 1];
     const layout = (points) =>
       this.mission
-        ? missionRoutes(points, this.mission, WIDTH, HEIGHT)
+        ? missionRoutes(this.fixedLayout ? extendApproach(points) : points, this.mission, WIDTH, HEIGHT)
         : points;
     this.map = this.mission ? { ...base, points: layout(base.points), floor: this.mission.chapter } : base;
     this.routes = [route(this.map.points)];
@@ -739,6 +767,11 @@ export class Match {
     this.towerLimit = contract?.towerLimit ?? this.mission?.towerLimit;
     this.firePads = [];
     this.powerCuts = !this.ranked ? this.mission.powerCuts : null;
+    if (this.fixedLayout && this.powerCuts) {
+      const scale = APPROACH_SCALE ** (this.mission.bend || 1);
+      this.powerCuts = Object.fromEntries(Object.entries(this.powerCuts).map(([wave, cut]) =>
+        [wave, { ...cut, x: cut.x * scale }]));
+    }
     this.padCycle = !this.ranked ? this.mission.padCycle : null;
 
     const event = !daily && ROUTE_EVENTS[this.mission?.routePattern ?? level];
@@ -765,6 +798,9 @@ export class Match {
         if (pad) this.firePads.push(pad);
       }
     }
+    this.buildSites = this.fixedLayout
+      ? fixedBuildSites([...this.routes, ...(this.gateRoutes || []), ...(this.routeEvent ? [this.routeEvent.alternate] : [])], this.firePads, this.mission.fixedPosts)
+      : null;
     this.hp = contract?.hp ?? 100;
     this.combatLevel = Math.min(level, 10) + Math.max(0, level - 10) * 0.44;
     this.atp = daily?.atp ?? contract?.atp ?? Math.round(180 + this.combatLevel * 12 + Math.max(0, this.combatLevel - 5) * 20);
@@ -1200,10 +1236,24 @@ export class Match {
     return this.checkSite(x, y, null, restoring) || (this.atp < type.cost ? "ATP insuficiente." : "");
   }
 
+  closestBuildSite(x, y, radius = 38) {
+    let closest = null;
+    let distance = radius;
+    for (const site of this.buildSites || []) {
+      const next = Math.hypot(site.x - x, site.y - y);
+      if (next > distance) continue;
+      closest = site;
+      distance = next;
+    }
+    return closest;
+  }
+
   checkSite(x, y, ignored = null, restoring = false) {
     if (!Number.isFinite(x) || !Number.isFinite(y) ||
         x < 24 || x > WIDTH - 24 || y < 24 || y > HEIGHT - 24)
       return "Acércate al interior del tablero.";
+    if (this.fixedLayout && !this.buildSites.some(site => site.x === x && site.y === y))
+      return "Construye en un puesto libre.";
     if (this.routes.some((path, lane) => nearRoute(path, x, y) &&
         !(restoring && lane === 1 && this.routeEvent && path === this.routeEvent.alternate &&
           !nearRoute(this.routeEvent.original, x, y))))

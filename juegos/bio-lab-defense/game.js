@@ -15,18 +15,18 @@ import {
   VARIANT_NAMES,
   escortArmor,
   dailySetup,
-} from "./engine.js?v=35";
-import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=6";
-import { attachDrill } from "./drill.js?v=9";
-import { Board } from "./board.js?v=42";
+} from "./engine.js?v=36";
+import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=7";
+import { attachDrill } from "./drill.js?v=10";
+import { Board } from "./board.js?v=43";
 import { towerIcon, heroIcon } from "./art.js?v=4";
-import { createCodex } from "./codex.js?v=23";
-import { Profile, dayKey } from "./profile.js?v=16";
+import { createCodex } from "./codex.js?v=24";
+import { Profile, dayKey } from "./profile.js?v=17";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=7";
-import { CHAPTERS, MISSIONS } from "./campaign.js?v=13";
+import { CHAPTERS, MISSIONS } from "./campaign.js?v=14";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=31";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=32";
 
 import { HEROES, CONTRACTS } from "./operations.js?v=7";
 
@@ -511,7 +511,7 @@ function renderLevels() {
           ? `${"★".repeat(stars)}${"☆".repeat(3 - stars)}${profile.data.medals[i] ? " · Insignia" : ""}`
           : level === active ? "Siguiente misión" : "Disponible";
       if (!sectorThumbnails.has(level))
-        sectorThumbnails.set(level, routeThumbnail(new Match(level).routes, chapter.color));
+        sectorThumbnails.set(level, routeThumbnail(new Match(level, null, { fixedLayout: true }).routes, chapter.color));
       button.append(number, sectorThumbnails.get(level), label);
       if (chapter.scenery) {
         const objective = document.createElement("small");
@@ -557,7 +557,7 @@ function briefing(level) {
   briefingLevel = level;
   const mission = MISSIONS[level - 1];
   const chapter = CHAPTERS[mission.chapter];
-  const preview = new Match(level);
+  const preview = new Match(level, null, { fixedLayout: true });
   const veteran = profile.data.stars[level - 1] > 0;
   const record = profile.data.veteranRecords[level - 1];
   $("veteran-briefing").hidden = !veteran;
@@ -584,6 +584,9 @@ function briefing(level) {
     `${best ? "Mejor resultado · " + "★".repeat(best) + "☆".repeat(3 - best) : "Primera victoria pendiente"} · Para tres estrellas, termina con al menos ${starThresholds[2]} % de núcleo.`);
   updateText("briefing-waves", `${preview.maxWaves} oleadas`);
   updateText("briefing-entries", preview.routes.length === 2 ? "2 entradas" : "1 entrada");
+  $("briefing-build-sites").hidden = !preview.fixedLayout;
+  if (preview.fixedLayout)
+    updateText("briefing-build-sites", `${preview.buildSites.length} puestos de construcción. Elige si interceptas en las primeras curvas o refuerzas el tramo común antes del núcleo.`);
   $("briefing-finale").hidden = !mission.finale;
   if (mission.finale)
     updateText("briefing-finale", `Final del capítulo · ${mission.finale.name}. ${mission.finale.tip}`);
@@ -671,7 +674,7 @@ function resumePreparation() {
 function start(level, day = null, checkpointChanged = false) {
   if (day) return begin(new Match(level, dailySetup(day)), day);
   const saved = savedPreparation();
-  const launch = () => begin(new Match(level, null, { heroId: profile.data.heroEquipped }));
+  const launch = () => begin(new Match(level, null, { heroId: profile.data.heroEquipped, fixedLayout: true }));
   if (!saved) return launch();
   const confirmedCheckpoint = checkpoint.raw;
   ask(
@@ -743,9 +746,13 @@ function begin(next, day = null, restored = null) {
   }
   renderDock();
   view("field");
+  canvas.setAttribute("aria-label", match.fixedLayout
+    ? "Tablero. Usa las flechas para saltar entre puestos y Espacio para construir o seleccionar una torre."
+    : "Tablero. Flechas para mover el cursor y Espacio para colocar o elegir torre.");
   message(
     restored
       ? `Partida retomada. Prepara la oleada ${match.wave + 1}.`
+      : match.fixedLayout ? "Selecciona una torre y toca un puesto libre marcado con +."
       : matchMedia("(any-pointer: coarse)").matches
         ? "Elige una torre. Mantén pulsado y desliza para previsualizar su posición."
         : "Elige una torre y haz clic fuera del conducto para colocarla.",
@@ -834,13 +841,15 @@ function highlightDock() {
 }
 
 function updateDockBudget() {
-  const limit = match.towerLimit;
+  const limit = match.towerLimit ?? match.buildSites?.length;
   const full = limit != null && match.towers.length >= limit;
   const budgetKey = `${match.atp}:${limit ?? ""}:${match.towers.length}`;
   if (dockBudgetKey === budgetKey) return;
   dockBudgetKey = budgetKey;
   $("tower-limit").hidden = limit == null;
-  if (limit != null) updateText("tower-limit", `${match.towers.length}/${limit} instaladas`);
+  if (limit != null) updateText("tower-limit", match.fixedLayout && match.towerLimit == null
+    ? `${limit - match.towers.length} puestos libres`
+    : `${match.towers.length}/${limit} instaladas`);
   for (const button of $("dock").children) {
     if (button.disabled) continue;
     const cost = Number(button.dataset.cost);
@@ -873,6 +882,7 @@ function toggleBotMove() {
 function place(x, y, draftOnly = false) {
   if (!match || modal.open || !["build", "wave"].includes(match.state)) return;
   if (movingTower) {
+    ({ x, y } = match.closestBuildSite(x, y) || { x, y });
     const problem = match.checkRelocation(movingTower, x, y);
     if (problem) return message(problem, true);
     match.relocate(movingTower, x, y);
@@ -910,6 +920,7 @@ function place(x, y, draftOnly = false) {
     message("Torre seleccionada. Puedes mejorarla o venderla.");
     persistPreparation();
   } else {
+    ({ x, y } = match.closestBuildSite(x, y) || { x, y });
     const problem = match.checkPlacement(blueprint, x, y);
     if (problem)
       return message(
@@ -1618,14 +1629,14 @@ $("field-guide-preview").onclick = () => {
   let best = null;
   let coverage = 0;
   // Keep the marker clear of the entrance beacon and core on narrow screens.
-  for (let x = 240; x <= WIDTH - 160; x += 20) {
-    for (let y = 40; y < HEIGHT - 40; y += 20) {
-      if (match.checkPlacement(type, x, y) || botAt(x, y, null)) continue;
-      const score = routeCoverage(match.routes[0], { x, y, range: type.range });
-      if (score <= coverage) continue;
-      best = { x, y };
-      coverage = score;
-    }
+  const sites = match.buildSites || Array.from({ length: Math.floor((WIDTH - 400) / 20) + 1 }, (_, column) =>
+    Array.from({ length: Math.ceil((HEIGHT - 80) / 20) }, (_, row) => ({ x: 240 + column * 20, y: 40 + row * 20 }))).flat();
+  for (const { x, y } of sites) {
+    if (x < 240 || x > WIDTH - 160 || match.checkPlacement(type, x, y) || botAt(x, y, null)) continue;
+    const score = routeCoverage(match.routes[0], { x, y, range: type.range });
+    if (score <= coverage) continue;
+    best = { x, y };
+    coverage = score;
   }
   if (!best) return;
   $("dock").querySelector(`[data-type="${type.id}"]`).click();
@@ -1931,6 +1942,10 @@ function touchDraft(point, dragging) {
   const check = movingTower
     ? (x, y) => match.checkRelocation(movingTower, x, y)
     : (x, y) => match.checkPlacement(blueprint, x, y);
+  if (match.fixedLayout) {
+    const site = match.closestBuildSite(point.x, point.y);
+    return { point: site || point, reason: site ? check(site.x, site.y) : "Construye en un puesto libre.", snapped: false };
+  }
   const reason = check(point.x, point.y);
   const geometry = ["Acércate al interior del tablero.", "Deja despejado el conducto.", "Deja despejado el futuro desvío.", "Hay otra torre demasiado cerca."];
   const canSuggest = dragging && geometry.includes(reason) &&
@@ -1994,7 +2009,10 @@ function frame(now) {
       updateText("placement-preview", draft.reason || (draft.snapped ? `Punto sugerido · s${hint.slice(1)}` : hint));
       $("placement-preview").classList.toggle("invalid", !!draft.reason);
     }
-    const point = draft?.point || cursor || guideSite || powerRelocation?.point;
+    const rawPoint = cursor || guideSite || powerRelocation?.point;
+    const site = rawPoint && (blueprint || movingTower) && !aiming && !movingHero &&
+      match.closestBuildSite(rawPoint.x, rawPoint.y);
+    const point = draft?.point || site || rawPoint;
     const planned = !aiming && !movingHero && !hoverBot && !hovered && !upgradePreview && point && (movingTower || blueprint);
     const validPlan = planned && !(movingTower ? match.checkRelocation(movingTower, point.x, point.y)
       : match.checkPlacement(planned, point.x, point.y));
@@ -2266,6 +2284,30 @@ canvas.onkeydown = (e) => {
   e.preventDefault();
   const suggested = guideSite || powerRelocation?.point;
   cursor ||= suggested ? { x: suggested.x, y: suggested.y } : { x: WIDTH / 2, y: HEIGHT / 2 };
+  if (match.fixedLayout && !aiming && !movingHero) {
+    const current = match.closestBuildSite(cursor.x, cursor.y, Infinity);
+    if (delta) {
+      let next = current;
+      let best = Infinity;
+      for (const site of match.buildSites) {
+        const x = site.x - current.x;
+        const y = site.y - current.y;
+        const forward = (x * delta[0] + y * delta[1]) / 12;
+        if (forward <= 0) continue;
+        const sideways = Math.abs(x * delta[1] - y * delta[0]) / 12;
+        const score = forward + sideways * 1.8;
+        if (score < best) {
+          next = site;
+          best = score;
+        }
+      }
+      cursor = { ...next };
+    } else {
+      cursor = { ...current };
+      place(current.x, current.y);
+    }
+    return;
+  }
   if (delta) {
     cursor.x = Math.max(25, Math.min(WIDTH - 25, cursor.x + delta[0]));
     cursor.y = Math.max(25, Math.min(HEIGHT - 25, cursor.y + delta[1]));

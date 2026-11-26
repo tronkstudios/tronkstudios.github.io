@@ -23,7 +23,8 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8790";
       );
       await page.route("**/juegos/bio-lab-defense/game.js?*", async (route) => {
         const response = await route.fetch();
-        const script = await response.text();
+        // These cases assert exact coordinates on saves using the original campaign layout.
+        const script = (await response.text()).replaceAll("fixedLayout: true", "fixedLayout: false");
         // Exercise the result and save handlers with a deterministic battle outcome.
         await route.fulfill({
           response,

@@ -1,6 +1,6 @@
-import { BLUEPRINTS, HEIGHT, Match, TARGETING, WIDTH, specializations } from "./engine.js?v=35";
+import { BLUEPRINTS, HEIGHT, Match, TARGETING, WIDTH, specializations } from "./engine.js?v=36";
 
-import { MISSIONS } from "./campaign.js?v=13";
+import { MISSIONS } from "./campaign.js?v=14";
 
 const version = 1;
 const blueprintById = new Map(BLUEPRINTS.map((type) => [type.id, type]));
@@ -33,6 +33,7 @@ export class Checkpoint {
     if (match.ranked || match.state !== "build") return false;
     const data = {
       version,
+      fixedLayout: match.fixedLayout || undefined,
       level: match.level,
       wave: match.wave,
       hp: match.hp,
@@ -107,6 +108,7 @@ export function restoreCheckpoint(data) {
   if (!data || !integer(data.level, 1, MISSIONS.length)) return null;
   const match = new Match(data.level, null, {
     heroId: data.hero?.id,
+    fixedLayout: data.fixedLayout === true,
     legacyArchiveOrder: data.wave > 0 && data.archiveFirstLane !== 1,
   });
   if (

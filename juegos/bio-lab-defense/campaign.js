@@ -549,6 +549,7 @@ export const MISSIONS = [
     transmission: "Salva las dos muestras del herbario.", end: "Las dos muestras permiten reconstruir el índice.",
     waves: 6, bend: 1.12, flip: true, formation: "cross", medal: medals.intact,
     objective: "archive",
+    fixedPosts: [[167, 270], [65, 317]],
   },
   {
     chapter: 6, name: "Canal de riego", task: "Abre el riego de la bóveda.",
@@ -772,6 +773,7 @@ export const MISSIONS = [
           reinforcements: { lane: 1, delay: 140, count: 3, spec: 6, speed: 1.18 } },
       ],
     },
+    fixedPosts: [[40, 378], [200, 368]],
   },
 ];
 
