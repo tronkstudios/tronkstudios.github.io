@@ -1144,7 +1144,7 @@ const Game = (() => {
     if (!st.finalPhase && sec >= runLength()) beginFinalPhase();
     // Los jefes previos siguen su calendario; el final siempre llega al minuto 25.
     const nextBoss = TS.BOSSES[st.bossIdx];
-    if (!st.finalPhase && nextBoss && nextBoss.id !== "rey" && sec >= bossAt(nextBoss)) {
+    if (!st.expedition && !st.finalPhase && nextBoss && nextBoss.id !== "rey" && sec >= bossAt(nextBoss)) {
       st.bossIdx++;
       spawnAround(nextBoss.id === "rey" ? finalBossId() : nextBoss.id, pick(alive), spawnRadius() * 0.8);
     }
