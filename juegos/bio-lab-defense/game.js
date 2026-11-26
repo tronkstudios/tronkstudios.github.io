@@ -1,4 +1,4 @@
-import { affinityFor, towerAttack, waveAffinities } from "./affinities.js?v=2";
+import { affinityFor, damagePercent, towerAttack, waveAffinities, WEAKNESS, RESISTANCE } from "./affinities.js?v=3";
 import { drawSpecimen, routeThumbnail } from "./menu-art.js?v=2";
 import {
   BLUEPRINTS,
@@ -15,18 +15,18 @@ import {
   VARIANT_NAMES,
   escortArmor,
   dailySetup,
-} from "./engine.js?v=36";
-import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=7";
-import { attachDrill } from "./drill.js?v=10";
-import { Board } from "./board.js?v=43";
+} from "./engine.js?v=37";
+import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=8";
+import { attachDrill } from "./drill.js?v=11";
+import { Board } from "./board.js?v=44";
 import { towerIcon, heroIcon } from "./art.js?v=4";
-import { createCodex } from "./codex.js?v=24";
-import { Profile, dayKey } from "./profile.js?v=17";
+import { createCodex } from "./codex.js?v=25";
+import { Profile, dayKey } from "./profile.js?v=18";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=7";
-import { CHAPTERS, MISSIONS } from "./campaign.js?v=14";
+import { CHAPTERS, MISSIONS } from "./campaign.js?v=15";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=32";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=33";
 
 import { HEROES, CONTRACTS } from "./operations.js?v=7";
 
@@ -59,7 +59,7 @@ const fireMap = $("fire-map");
 const fireBoard = new Board(fireMap);
 let fireChoices = [];
 
-const codex = createCodex($("codex"));
+const codex = createCodex($("codex"), () => screen === "field" && match?.fixedLayout);
 const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 const compactField = matchMedia("(max-width: 760px)");
 const ad = createAdSenseProvider(
@@ -593,7 +593,7 @@ function briefing(level) {
   $("briefing-power-pads").hidden = !preview.padCycle;
   if (preview.padCycle)
     updateText("briefing-power-pads", `Plataforma ${padLetter(preview.activePad(1))} activa en la primera oleada · +50 % de daño. El tablero indica cuándo cambia la alimentación.`);
-  const tacticalWaves = Object.entries(mission.tactics || {});
+  const tacticalWaves = Object.entries({ ...mission.tactics, ...mission.counterTactics });
   $("briefing-tactics").hidden = !tacticalWaves.length;
   if (tacticalWaves.length)
     updateText("briefing-tactics", tacticalWaves.map(([wave, plan]) => `Oleada ${wave} · ${plan.name}`).join(" / "));
@@ -1036,6 +1036,7 @@ function renderSelection() {
       if (id === "support" && (match.level !== 22 || match.daily)) continue;
       if (id === "escort" && !match.hasEnemyVariants) continue;
       if (id === "objective" && !match.defenseObjective) continue;
+      if (id === "weakness" && !(match.fixedLayout && match.hasAffinities)) continue;
       targeting.add(new Option(name, id));
     }
     targeting.value = tower.targeting;
@@ -1248,6 +1249,17 @@ function renderCounterSuggestions(preview) {
     const resist = counts.resist === 1 ? "1 resistente" : `${counts.resist} resistentes`;
     detail.textContent = `${weak}${counts.resist ? " · " + resist : ""}`;
     text.append(label, detail);
+    if (match.fixedLayout) {
+      const resisted = [...profile.entries()]
+        .filter(([, count]) => count.resist > count.weak)
+        .sort(([, a], [, b]) => (b.resist - b.weak) - (a.resist - a.weak))[0];
+      if (resisted) {
+        const [attack, { resist }] = resisted;
+        const warning = document.createElement("small");
+        warning.textContent = `Evita ${attack} · ${resist} ${resist === 1 ? "resistente" : "resistentes"}`;
+        text.append(warning);
+      }
+    }
     card.append(text);
     if (tower) {
       const choose = makeButton(`${tower.name} · ${tower.cost} ATP`, () => {
@@ -1267,6 +1279,11 @@ function renderCounterSuggestions(preview) {
   });
   panel.hidden = rows.length === 0;
   $("wave-counter-list").replaceChildren(...rows);
+}
+
+function affinityHints({ weak, resist, weakness = WEAKNESS, resistance = RESISTANCE }) {
+  return [`Débil a ${weak} (+${damagePercent(weakness)} %)`,
+    `Resiste ${resist} (−${damagePercent(resistance)} %)`];
 }
 
 function renderWavePreview(preview) {
@@ -1335,11 +1352,11 @@ function renderWavePreview(preview) {
       const button = makeButton(`${count} × ${label}`, () => codex.show(boss ? "boss" : "enemy", shape));
       button.setAttribute("aria-haspopup", "dialog");
       item.append(button);
-      const affinity = match.hasAffinities && affinityFor(shape);
+      const affinity = match.hasAffinities && affinityFor(shape, match.fixedLayout);
       if (affinity) {
         const hint = document.createElement("small");
         hint.className = "roster-affinity";
-        hint.textContent = `Débil a ${affinity.weak} · Resiste ${affinity.resist}`;
+        hint.textContent = affinityHints(affinity).join(" · ");
         item.append(hint);
       }
       return item;
@@ -2482,7 +2499,7 @@ function inspectFireTarget() {
   const stats = [`Vida ${Math.ceil(enemy.hp)} / ${enemy.maxHp}`];
   if (enemy.shield > 0) stats.push(`Escudo ${Math.ceil(enemy.shield)}`);
   if (enemy.armor > 0) stats.push(`Blindaje ${Math.ceil(enemy.armor)}`);
-  if (enemy.affinity) stats.push(`Débil a ${enemy.affinity.weak}`, `Resiste ${enemy.affinity.resist}`);
+  if (enemy.affinity) stats.push(...affinityHints(enemy.affinity));
   const extraArmor = escortArmor(enemy);
   if (extraArmor) stats.push(`Escolta +${extraArmor} de blindaje`);
   updateText("fire-details", stats.join(" · "));

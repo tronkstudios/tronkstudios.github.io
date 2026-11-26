@@ -1,5 +1,5 @@
-import { affinityFor, towerMultiplier } from "./affinities.js?v=1";
-import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=14";
+import { affinityFor, towerMultiplier } from "./affinities.js?v=3";
+import { CHAPTERS, MISSIONS, missionRoutes } from "./campaign.js?v=15";
 
 import { HERO_BY_ID } from "./operations.js?v=7";
 
@@ -395,6 +395,7 @@ export const TARGETING = [
   ["support", "Nodos de apoyo"],
   ["escort", "Escoltas"],
   ["objective", "Proteger objetivo de misión"],
+  ["weakness", "Enemigos débiles a esta torre"],
 ];
 
 export function specializations(tower) {
@@ -570,6 +571,7 @@ function formWave(order, formation, theme, level, { pressure, veteran, archiveLa
   const timeline = groups.map((defaultName, group) => {
     const directive = tactics?.groups[group];
     const name = directive?.name || defaultName;
+    const species = directive?.species && PATHOGEN_TYPES.find(type => type.id === directive.species);
     const start = boundaries[group];
     const end = formation ? boundaries[group + 1] : regular;
     const lanes = [0, 0];
@@ -607,6 +609,7 @@ function formWave(order, formation, theme, level, { pressure, veteran, archiveLa
       if (archiveLane != null)
         entry.lane = group === 1 && i - start < 2 ? 1 - archiveLane : archiveLane;
       if (directive) {
+        if (species) entry.spec = species;
         if (first && i > 0 && directive.gap) entry.delay = directive.gap;
         if (!first && directive.spacing) entry.delay = directive.spacing;
         if (directive.lane != null) entry.lane = directive.lane;
@@ -1101,7 +1104,8 @@ export class Match {
         mirror: !this.daily && !zero && (this.level === 10 || (this.veteran && this.routes.length > 1)),
       });
     }
-    const tactics = !this.ranked ? this.mission.tactics?.[wave] : null;
+    const counterTactics = this.fixedLayout ? this.mission.counterTactics?.[wave] : null;
+    const tactics = this.ranked ? null : counterTactics || this.mission.tactics?.[wave];
     const formation = tactics ? tactics.formation || "cross" : this.daily ? null : veteranPressure
       ? ["surge", "cross", "convoy"][(wave + level + 1) % 3]
       : this.contract?.formation ?? this.mission.formation ??
@@ -1112,7 +1116,7 @@ export class Match {
       archiveLane: protectingArchive ? this.archive[wave - 1].lane : null,
       tactics,
     });
-    if (this.hasEnemyVariants && wave >= 2 && !protectingArchive) {
+    if (this.hasEnemyVariants && wave >= 2 && !protectingArchive && !counterTactics) {
       const escort = order[0];
       const scout = order.find((entry, i) => i >= 2 && entry.lane !== escort.lane && !entry.boss) || order[2];
       escort.spec = PATHOGEN_TYPES[4];
@@ -1392,10 +1396,11 @@ export class Match {
       (this.combatLevel - 1) * (wave < 3 ? 0.065 : 0.105);
     const bossScale = coolingBoss ? 0.68 : boss ? 1.18 : 1;
     const veteranHealth = this.veteran && !(this.archive && wave <= 2) ? 1.09 : 1;
-    const hp = Math.round(spec.hp * scale * bossScale * hpFactor * veteranHealth);
+    const storyPressure = this.fixedLayout && wave >= 3 ? 1.15 + 0.10 * (wave - 3) : 1;
+    const hp = Math.round(spec.hp * scale * bossScale * hpFactor * veteranHealth * storyPressure);
     return {
       hp,
-      affinity: this.hasAffinities ? affinityFor(spec.shape) : undefined,
+      affinity: this.hasAffinities ? affinityFor(spec.shape, this.fixedLayout) : undefined,
       armor: armor * (this.daily?.armor || 1),
       shield: Math.round(hp * shield),
     };
@@ -1502,7 +1507,8 @@ export class Match {
     this.combo = Math.min(10, this.combo + 1);
     this.comboTime = 210;
     this.charge = Math.min(100, this.charge + (enemy.boss ? 28 : 6));
-    this.addATP(Math.round(enemy.reward * (this.daily && this.combo >= 5 ? 1.25 : 1)));
+    const bounty = this.daily && this.combo >= 5 ? 1.25 : this.fixedLayout && this.wave >= 3 ? 0.85 : 1;
+    this.addATP(Math.round(enemy.reward * bounty));
     this.effect(enemy.x, enemy.y, color, enemy.boss ? 56 : 27);
   }
 
@@ -1876,7 +1882,8 @@ export class Match {
         const focus = tower.rank && enemy === this.focusTarget ? 3
           : (tower.targeting === "support" && enemy.supportNode) ||
           (tower.targeting === "escort" && enemy.variant === "escort") ||
-          (tower.targeting === "objective" && defense && enemy.lane === defense.lane && enemy.wp <= defense.waypoint) ? 2
+          (tower.targeting === "objective" && defense && enemy.lane === defense.lane && enemy.wp <= defense.waypoint) ||
+          (tower.targeting === "weakness" && this.fixedLayout && towerMultiplier(enemy, tower) > 1) ? 2
           : tower.rank && enemy.markedUntil > this.time ? 1 : 0;
         if (focus > bestFocus || (focus === bestFocus && priority > best)) {
           target = enemy;

@@ -765,6 +765,68 @@ test("campaign affinities modify tower damage without changing nanobot damage", 
   assert.equal(new Match(6, dailySetup("2026-11-24")).hasAffinities, false);
 });
 
+test("new Story battles telegraph distinct counters per lane and apply them in combat", () => {
+  for (const [level, wave, weakness] of [
+    [5, 2, ["Térmico", "Láser"]], [15, 3, ["Eléctrico", "Impacto"]],
+    [33, 4, ["Control", "Corrosión"]],
+  ]) {
+    const match = new Match(level, null, { fixedLayout: true });
+    const forecast = match.planWave(wave);
+    for (const [lane, attack] of weakness.entries()) {
+      const enemies = forecast.order.filter(entry => entry.lane === lane);
+      assert.ok(enemies.length);
+      for (const enemy of enemies) {
+        const { affinity } = match.entryDefense(enemy, wave);
+        assert.equal(affinity.weak, attack);
+        assert.equal(affinity.weakness, 1.5);
+        assert.equal(affinity.resistance, 0.5);
+      }
+    }
+    assert.notEqual(new Match(level).planWave(wave).tactics?.name, forecast.tactics.name);
+  }
+
+  const match = new Match(5, null, { fixedLayout: true });
+  match.wave = 1;
+  match.preview = match.planWave(2);
+  match.startWave();
+  const sample = match.preview.order.find(entry => entry.spec.shape === "phage");
+  match.queue.unshift(sample);
+  match.spawn();
+  const enemy = match.enemies.at(-1);
+  const legacy = new Match(5);
+  assert.equal(match.entryDefense(sample, 2).hp, legacy.entryDefense(sample, 2).hp);
+  assert.ok(match.entryDefense(sample, 3).hp > legacy.entryDefense(sample, 3).hp);
+  for (const [id, expected] of [["nanolaser", 30], ["plasma", 10], ["tesla", 20]]) {
+    Object.assign(enemy, { hp: 100, armor: 0, shield: 0 });
+    const tower = { id, rank: 1, inflicted: 0 };
+    match.damage(enemy, 20, "#fff", {}, tower);
+    assert.equal(enemy.hp, 100 - expected);
+  }
+});
+
+test("affinity targeting prefers vulnerable enemies while respecting manual focus", () => {
+  const match = new Match(5, null, { fixedLayout: true });
+  const { x, y } = match.buildSites[0];
+  const tower = match.place(BLUEPRINTS[0], x, y);
+  tower.targeting = "weakness";
+  match.wave = 1;
+  match.preview = match.planWave(2);
+  match.startWave();
+  const [resistant, vulnerable] = ["rod", "phage"].map(shape => {
+    match.queue.unshift(match.preview.order.find(entry => entry.spec.shape === shape));
+    match.spawn();
+    return match.enemies.at(-1);
+  });
+  Object.assign(resistant, { x: x + 40, y, remaining: 100 });
+  Object.assign(vulnerable, { x, y: y + 40, remaining: 250 });
+  match.tick();
+  assert.equal(match.shots[0].target, vulnerable);
+  assert.ok(match.focusFire(resistant));
+  tower.cooldown = 0;
+  match.tick();
+  assert.equal(match.shots.at(-1).target, resistant);
+});
+
 test("the first hit forecast matches affinity, armor, shields and specialization", () => {
   const match = new Match(6);
   const tower = match.place(BLUEPRINTS[0], 50, 60);

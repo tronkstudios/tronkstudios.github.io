@@ -183,6 +183,16 @@ export const MISSIONS = [
     transmission:
       "Estoy desviando los conductos al filtro. Comprueba ambos accesos en el siguiente parte.",
     end: "La estación vuelve a responder. El sensor de la cámara fría sigue por encima del límite.",
+    counterTactics: { 2: {
+      name: "Cruce de afinidades",
+      tip: "El Pulso Plasma cubre los bacilos de A. Guarda el Nano-Láser para los bacteriófagos de B.",
+      formation: "cross",
+      groups: [
+        { name: "Bacilos por A", lane: 0, species: "subtilis" },
+        { name: "Bacteriófagos por B", lane: 1, species: "phage-t4", gap: 36 },
+        { name: "Segunda fila de bacilos", lane: 0, species: "subtilis", spacing: 29 },
+      ],
+    } },
     medal: medals.workshop,
   },
   {
@@ -388,6 +398,16 @@ export const MISSIONS = [
     end: "La ruta aparece en pantalla. Los conductos pasan por un archivo en cuarentena.",
     medal: medals.intact,
     formation: "surge",
+    counterTactics: { 3: {
+      name: "Blindaje y escudos en paralelo",
+      tip: "El Arco Iónico explota la debilidad de A. En B, prepara Impacto y una forma de reducir el blindaje.",
+      formation: "cross",
+      groups: [
+        { name: "Adenovirus escudados por A", lane: 0, species: "adenovirus", shield: 0.23 },
+        { name: "Estafilococos blindados por B", lane: 1, species: "staph-epi", armor: 10, gap: 30 },
+        { name: "Refuerzo por A", lane: 0, species: "adenovirus", gap: 44, spacing: 24 },
+      ],
+    } },
     waves: 6,
     bend: 1.04,
   },
@@ -684,6 +704,16 @@ export const MISSIONS = [
     transmission: "Libera la presión del crisol.", end: "El crisol se enfría lo suficiente para entrar.",
     waves: 7, bend: 0.84, flip: false, formation: "convoy", medal: medals.researcher,
     objective: "power",
+    counterTactics: { 4: {
+      name: "Contrapresión",
+      tip: "Separa el Control de A y la Corrosión de B. Si cambia la ruta, revisa qué puestos siguen teniendo alcance.",
+      formation: "cross",
+      groups: [
+        { name: "Norovirus por A", lane: 0, species: "norovirus", speed: 1.15 },
+        { name: "Lactobacilos por B", lane: 1, species: "lactobacillus", shield: 0.22, gap: 30 },
+        { name: "Norovirus en persecución", lane: 0, species: "norovirus", gap: 40, spacing: 22 },
+      ],
+    } },
     routePattern: 11,
   },
   {

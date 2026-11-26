@@ -1,5 +1,5 @@
-import { affinityFor, towerAttack, WEAKNESS, RESISTANCE } from "./affinities.js?v=1";
-import { BLUEPRINTS, PATHOGEN_TYPES, BOSS_CATALOG, reactorProduction, REACTOR_FIRST_CYCLE, specializations, upgradeCost } from "./engine.js?v=36";
+import { affinityFor, towerAttack, WEAKNESS, RESISTANCE, STORY_WEAKNESS, STORY_RESISTANCE, damagePercent } from "./affinities.js?v=3";
+import { BLUEPRINTS, PATHOGEN_TYPES, BOSS_CATALOG, reactorProduction, REACTOR_FIRST_CYCLE, specializations, upgradeCost } from "./engine.js?v=37";
 import { drawEnemyModel, drawTurretModel } from "./art.js?v=4";
 
 const towerAdvice = {
@@ -100,7 +100,7 @@ function model(entry, tower) {
   return canvas;
 }
 
-export function createCodex(dialog) {
+export function createCodex(dialog, isStory) {
   const buttons = [...dialog.querySelectorAll("[data-codex-kind]")];
   const list = dialog.querySelector("#codex-list");
   const detail = dialog.querySelector("#codex-detail");
@@ -132,12 +132,16 @@ export function createCodex(dialog) {
       ["Velocidad base", `${number.format(entry.speed * 60)} px/s`],
       ["Recompensa base", `${entry.reward} ATP`],
     ]));
-    if (!tower && affinityFor(entry.shape)) {
-      const affinity = affinityFor(entry.shape);
+    const story = isStory();
+    const affinity = !tower && affinityFor(entry.shape, story);
+    if (affinity) {
+      const { weak, resist, weakness = WEAKNESS, resistance = RESISTANCE } = affinity;
       detail.append(statistics([
-        ["Debilidad", `${affinity.weak} · +${Math.round((WEAKNESS - 1) * 100)} %`],
-        ["Resistencia", `${affinity.resist} · −${Math.round((1 - RESISTANCE) * 100)} %`],
-      ]), element("p", "Se aplica desde el sector 3 de campaña, en Veterano y en contratos de esos sectores."));
+        ["Debilidad", `${weak} · +${damagePercent(weakness)} %`],
+        ["Resistencia", `${resist} · −${damagePercent(resistance)} %`],
+      ]), element("p", story
+        ? "Estas afinidades se aplican desde el sector 3 de Historia."
+        : `Las partidas nuevas de Historia aplican +${damagePercent(STORY_WEAKNESS)} % por debilidad y −${damagePercent(STORY_RESISTANCE)} % por resistencia desde el sector 3.`));
     }
     detail.append(element("p", advice, "codex-advice"));
     if (tower) {
