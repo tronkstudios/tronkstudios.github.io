@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=35" />
+    <link rel="stylesheet" href="./styles.css?v=47" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -51,10 +51,16 @@
                 id="home-resume-run"
                 hidden
               >
-                Retomar partida
+                <span class="menu-action-copy">
+                  <strong>Retomar partida</strong>
+                  <small id="home-saved-run"></small>
+                </span>
               </button>
               <button type="button" class="primary" id="campaign-button">
-                Modo historia
+                <span class="menu-action-copy">
+                  <strong>Modo historia</strong>
+                  <small id="home-story-sector"></small>
+                </span>
               </button>
             </div>
           </div>
@@ -68,10 +74,18 @@
           </div>
         </div>
         <nav class="home-tools" aria-label="Modos y recursos">
-          <button type="button" id="challenge-button">Reto de hoy</button>
-          <button type="button" id="operations-button" disabled>Nanobots y contratos</button>
-          <button type="button" id="home-codex" aria-haspopup="dialog">Enciclopedia</button>
-          <button type="button" id="daily-button">Suministro diario</button>
+          <button type="button" id="challenge-button">
+            <span class="menu-action-copy"><strong>Reto de hoy</strong><small>Una defensa nueva cada día</small></span>
+          </button>
+          <button type="button" id="operations-button" disabled>
+            <span class="menu-action-copy"><strong>Nanobots y contratos</strong><small>Equipa un héroe o juega una misión de élite</small></span>
+          </button>
+          <button type="button" id="home-codex" aria-haspopup="dialog">
+            <span class="menu-action-copy"><strong>Enciclopedia</strong><small>Torres, enemigos y resistencias</small></span>
+          </button>
+          <button type="button" id="daily-button">
+            <span class="menu-action-copy"><strong>Suministro diario</strong><small id="home-supply-status"></small></span>
+          </button>
         </nav>
         <output id="home-status" role="status"></output>
       </section>
@@ -83,27 +97,30 @@
           </div>
           <p id="profile-balance"></p>
         </div>
-        <div class="campaign-resume">
-          <div>
-            <strong id="campaign-progress-title"></strong>
-            <p id="campaign-progress"></p>
+        <div class="campaign-overview">
+          <div id="campaign-checkpoint" class="campaign-resume" hidden>
+            <div>
+              <strong>Partida guardada</strong>
+              <p id="saved-sector"></p>
+              <p id="saved-resources"></p>
+            </div>
+            <button type="button" class="primary resume-checkpoint" id="campaign-resume-run">
+              Retomar partida
+            </button>
           </div>
-          <button type="button" class="primary" id="resume-mission">
-            Continuar historia
-          </button>
-        </div>
-        <div id="campaign-checkpoint" class="campaign-resume" hidden>
-          <div>
-            <strong>Partida guardada</strong>
-            <p id="saved-sector"></p>
+          <div class="campaign-resume campaign-story">
+            <div>
+              <strong id="campaign-progress-title"></strong>
+              <p id="campaign-progress"></p>
+              <progress id="campaign-progress-meter" aria-label="Misiones superadas" value="0" max="38"></progress>
+            </div>
+            <button type="button" class="primary" id="resume-mission">
+              <span class="menu-action-copy">
+                <strong id="campaign-next-action">Continuar historia</strong>
+                <small id="campaign-next-sector"></small>
+              </span>
+            </button>
           </div>
-          <button
-            type="button"
-            class="primary resume-checkpoint"
-            id="campaign-resume-run"
-          >
-            Retomar partida
-          </button>
         </div>
         <div class="campaign-browser">
           <aside class="chapter-index" aria-label="Explorar sectores">
@@ -158,7 +175,11 @@
               <button type="button" id="launch-veteran">Jugar en Veterano</button>
             </div>
           </div>
-          <div class="mission-preview">
+          <section class="mission-preview" aria-labelledby="briefing-map-label">
+            <div class="mission-map-header">
+              <h2 id="briefing-map-label">Plano del sector</h2>
+              <div class="mission-map-stats"><span id="briefing-waves"></span><span id="briefing-entries"></span></div>
+            </div>
             <canvas
               id="briefing-map"
               width="900"
@@ -166,9 +187,18 @@
               role="img"
               aria-label="Plano del sector"
             ></canvas>
-            <p id="briefing-waves"></p>
+            <p id="briefing-build-sites" class="objective-briefing" hidden></p>
+            <p id="briefing-finale" class="wave-tactics" hidden></p>
+            <p id="briefing-power-pads" class="objective-briefing" hidden></p>
+            <p id="briefing-tactics" class="wave-tactics" hidden></p>
+            <p id="briefing-approach" class="objective-briefing" hidden></p>
+            <div id="briefing-power" class="wave-tactics" hidden>
+              <label for="briefing-power-wave">Ver corte de energía</label>
+              <select id="briefing-power-wave" aria-controls="briefing-map"></select>
+              <p>Las torres dentro de la zona ámbar quedan apagadas durante esa oleada.</p>
+            </div>
             <p id="briefing-route-event" class="route-event" hidden></p>
-          </div>
+          </section>
         </div>
       </section>
       <section id="operations" aria-labelledby="operations-title" hidden>
@@ -187,15 +217,40 @@
         <nav class="operations-nav" aria-label="Secciones de operaciones">
           <a href="#operations-heroes">Nanobots</a>
           <a href="#operations-contracts">Contratos</a>
+          <a href="#operations-mastery">Maestría</a>
         </nav>
         <div class="operations-layout">
           <section aria-labelledby="operations-heroes">
-            <h2 id="operations-heroes" tabindex="-1">Nanobots de campaña</h2>
+            <div class="operation-list-head">
+              <h2 id="operations-heroes" tabindex="-1">Nanobots de campaña</h2>
+              <label for="hero-filter">Filtrar nanobots</label>
+              <select id="hero-filter" aria-controls="heroes">
+                <option value="all">Todos los nanobots</option>
+                <option value="owned">Desbloqueados</option>
+                <option value="locked">Por desbloquear</option>
+              </select>
+            </div>
+            <p class="operation-empty" id="heroes-empty" role="status" hidden>No quedan nanobots por desbloquear.</p>
             <div class="operations-grid" id="heroes"></div>
           </section>
           <section aria-labelledby="operations-contracts">
-            <h2 id="operations-contracts" tabindex="-1">Contratos de élite</h2>
+            <div class="operation-list-head">
+              <h2 id="operations-contracts" tabindex="-1">Contratos de élite</h2>
+              <label for="contract-filter">Filtrar contratos</label>
+              <select id="contract-filter" aria-controls="contracts">
+                <option value="all">Todos los contratos</option>
+                <option value="ready">Listos para jugar</option>
+              </select>
+            </div>
+            <p class="operation-empty" id="contracts-empty" role="status" hidden></p>
             <div class="operations-grid" id="contracts"></div>
+          </section>
+          <section aria-labelledby="operations-mastery">
+            <div class="operation-list-head">
+              <h2 id="operations-mastery" tabindex="-1">Maestría de campaña</h2>
+            </div>
+            <p class="operation-empty" id="mastery-empty" role="status" hidden>Completa un capítulo para desbloquear su desafío.</p>
+            <div class="operations-grid" id="mastery"></div>
           </section>
         </div>
       </section>
@@ -230,6 +285,11 @@
             ><strong id="threats"></strong>
           </div>
         </div>
+        <nav id="field-tools" aria-label="Acciones rápidas de combate">
+          <div><strong id="field-quick-stats"></strong><small id="field-quick-objective"></small></div>
+          <button type="button" id="field-quick-plan" aria-controls="wave-preview">Oleada</button>
+          <button type="button" id="field-quick-intel" aria-haspopup="dialog">Fichas</button>
+        </nav>
         <div id="radio-log" class="radio-card field-radio" hidden>
           <strong id="radio-speaker"></strong>
           <p id="radio-text" role="status"></p>
@@ -252,7 +312,8 @@
                 tabindex="0"
                 aria-label="Tablero. Flechas para mover el cursor y Espacio para colocar o elegir torre."
               ></canvas>
-              <button type="button" id="field-guide-site" aria-label="Instalar Nano-Láser en la posición sugerida" hidden>+</button>
+              <button type="button" id="field-guide-site" class="board-position-marker" aria-label="Instalar Nano-Láser en la posición sugerida" hidden>+</button>
+              <button type="button" id="power-cut-site" class="board-position-marker" title="Confirmar traslado sugerido" aria-label="Confirmar traslado sugerido" hidden></button>
               <button type="button" class="wave-beacon" id="entry-start-a" hidden></button>
               <button type="button" class="wave-beacon" id="entry-start-b" hidden></button>
               <b id="next-group-a" class="map-alert incoming-group" hidden></b>
@@ -262,6 +323,9 @@
               <b id="core-warning" class="map-alert" hidden>¡Núcleo en peligro!</b>
               <b id="placement-preview" hidden></b>
             </div>
+            <p id="tower-coverage-affinity" class="tower-coverage-affinity" hidden></p>
+            <div id="compact-incoming" aria-label="Próximos grupos"></div>
+            <div id="compact-wave-beacons" role="group" aria-label="Balizas de oleada"></div>
             <section id="field-guide" aria-label="Primer despliegue" hidden>
               <div role="status">
                 <strong id="field-guide-title"></strong>
@@ -272,6 +336,29 @@
                 <button type="button" id="field-guide-dismiss" aria-label="Ocultar guía del primer despliegue">Ocultar</button>
               </div>
             </section>
+            <div id="combat-legend" role="group" aria-label="Indicadores de combate" hidden>
+              <span class="legend-health">Vida</span><span class="legend-shield">Escudo</span><span class="legend-armor">Blindaje</span>
+            </div>
+            <aside id="power-pads" class="objective-briefing" aria-label="Plataformas de tiro" hidden>
+              <strong id="power-pads-title" aria-live="polite"></strong>
+              <p id="power-pads-next"></p>
+            </aside>
+            <aside id="retry-review" class="wave-tactics" aria-label="Preparación tras la derrota" hidden>
+              <div><strong>Último intento</strong><p id="retry-review-text"></p></div>
+              <button type="button" id="retry-hide-mark">Quitar marca del mapa</button>
+            </aside>
+            <aside id="power-cut" class="wave-tactics" aria-label="Corte de energía" hidden>
+              <div>
+                <strong id="power-cut-title"></strong>
+                <p id="power-cut-detail" aria-live="polite"></p>
+                <p id="power-cut-suggestion" aria-live="polite" hidden></p>
+              </div>
+              <button type="button" id="power-cut-relocate" aria-controls="board" hidden>Reubicar torre afectada</button>
+            </aside>
+            <aside id="objective-coverage" class="objective-briefing" aria-label="Cobertura del objetivo" hidden>
+              <strong id="objective-coverage-title"></strong>
+              <p id="objective-coverage-tip"></p>
+            </aside>
             <p id="core-impact" role="status" hidden></p>
             <div id="placement-analysis" aria-label="Análisis de posición" role="group" hidden></div>
             <p id="wave-beacon-hint" hidden>Cualquier baliza inicia la oleada completa.</p>
@@ -329,21 +416,35 @@
             </div>
             <div id="boss-status" class="boss-status" hidden>
               <div>
-                <strong id="boss-name"></strong><span id="boss-phase"></span>
+                <strong id="boss-name"></strong>
+                <span class="boss-phase-group">
+                  <span id="boss-stage" hidden></span><span id="boss-phase"></span>
+                </span>
               </div>
-              <progress
-                id="boss-health"
-                max="100"
-                value="100"
-                aria-label="Vida del jefe"
-              ></progress>
+              <div class="boss-progress">
+                <progress
+                  id="boss-health"
+                  max="100"
+                  value="100"
+                  aria-label="Vida del jefe"
+                ></progress>
+              </div>
+              <p id="boss-vitals" class="boss-vitals"></p>
+              <p id="boss-finale" class="boss-finale" hidden></p>
+              <p id="boss-modules" class="boss-finale" hidden></p>
             </div>
             <div id="boss-status-b" class="boss-status boss-status-b" hidden>
               <div>
-                <strong id="boss-name-b"></strong><span id="boss-phase-b"></span>
+                <strong id="boss-name-b"></strong>
+                <span class="boss-phase-group">
+                  <span id="boss-stage-b" hidden></span><span id="boss-phase-b"></span>
+                </span>
               </div>
-              <progress id="boss-health-b" max="100" value="100"
-                aria-label="Vida del segundo jefe"></progress>
+              <div class="boss-progress">
+                <progress id="boss-health-b" max="100" value="100"
+                  aria-label="Vida del segundo jefe"></progress>
+              </div>
+              <p id="boss-vitals-b" class="boss-vitals"></p>
             </div>
             <div class="lane-brief" id="lane-brief" hidden>
               <b id="lane-a"></b><b id="lane-b"></b>
@@ -352,6 +453,7 @@
               <summary id="wave-debrief-title"></summary>
               <p id="wave-debrief-leaks" hidden></p>
               <p id="wave-debrief-worst" hidden></p>
+              <p id="wave-debrief-synergies" hidden></p>
               <div id="wave-debrief-gap" hidden>
                 <p id="wave-debrief-gap-text"></p>
                 <button type="button" id="wave-debrief-map" aria-controls="board" aria-pressed="false">Marcar tramo en el mapa</button>
@@ -360,9 +462,19 @@
             </details>
             <div class="wave-preview" id="wave-preview">
               <div class="wave-preview-head">
-                <strong id="wave-preview-title"></strong>
+                <strong id="wave-preview-title" tabindex="-1"></strong>
                 <button type="button" id="run-drill" aria-haspopup="dialog">Ensayar oleada</button>
               </div>
+              <section id="wave-finale" class="wave-tactics wave-finale" aria-labelledby="wave-finale-title" hidden>
+                <h3 id="wave-finale-title"></h3>
+                <ol id="wave-finale-stages" start="2"></ol>
+              </section>
+              <p id="wave-lane-coverage" class="wave-lane-coverage" hidden></p>
+              <div id="wave-tactics" class="wave-tactics" hidden>
+                <strong id="wave-tactics-title"></strong>
+                <p id="wave-tactics-tip"></p>
+              </div>
+              <ol id="wave-timeline" class="wave-timeline" aria-label="Orden de llegada"></ol>
               <section id="wave-counters" aria-labelledby="wave-counter-title" hidden>
                 <h3 id="wave-counter-title">Torres recomendadas</h3>
                 <ul id="wave-counter-list"></ul>
@@ -378,7 +490,6 @@
                 class="wave-roster"
                 aria-label="Composición de la oleada"
               ></ul>
-              <ol id="wave-timeline" class="wave-timeline" aria-label="Orden de llegada"></ol>
               <span id="wave-preview-tip"></span>
             </div>
             <details id="mission-targets" class="wave-preview" hidden>
@@ -418,9 +529,19 @@
     </main>
     <dialog id="drill" aria-labelledby="drill-title">
       <h2 id="drill-title">Ensayo de oleada</h2>
-      <p>Prueba tu defensa actual en combate automático. Puedes volver, mover torres y repetir el ensayo gratis.</p>
-      <canvas id="drill-map" width="900" height="540" aria-label="Simulación de la próxima oleada" role="img"></canvas>
+      <p class="drill-intro">Prueba tu defensa actual en combate automático. Puedes volver, mover torres y repetir el ensayo gratis.</p>
       <strong role="status"></strong>
+      <section class="drill-upgrades" aria-labelledby="drill-upgrades-title" hidden>
+        <h3 id="drill-upgrades-title">Resultado de las dos defensas</h3>
+        <table>
+          <caption></caption>
+          <thead><tr><th scope="col">Plan</th><th scope="col">Núcleo</th><th scope="col">Fugas</th><th scope="col">ATP final</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <p id="drill-plan-note">El coste se descuenta solo en el ensayo. El mapa muestra tu defensa actual.</p>
+        <button type="button" id="drill-apply-position" hidden>Aplicar traslado</button>
+      </section>
+      <canvas id="drill-map" width="900" height="540" aria-label="Simulación de la próxima oleada" role="img"></canvas>
       <ul aria-label="Fugas por entrada"></ul>
       <p class="drill-gap" hidden></p>
       <details class="drill-towers" hidden>
@@ -433,11 +554,15 @@
     </dialog>
     <dialog id="fire-orders" aria-labelledby="fire-heading">
       <h2 id="fire-heading">Concentrar fuego</h2>
-      <p>Toca una amenaza en el plano o elígela en la lista. Las torres a su alcance la atacarán primero.</p>
-      <canvas id="fire-map" width="900" height="540" aria-hidden="true"></canvas>
+      <p>Elige una amenaza en la lista o en el mapa. Las torres le darán prioridad cuando esté a su alcance.</p>
       <label for="fire-choice">Objetivo</label>
       <select id="fire-choice"></select>
       <p id="fire-details" aria-live="polite"></p>
+      <div id="fire-coverage" aria-live="polite">
+        <strong id="fire-coverage-title"></strong>
+        <p id="fire-coverage-detail"></p>
+      </div>
+      <canvas id="fire-map" width="900" height="540" aria-hidden="true"></canvas>
       <div class="actions">
         <button type="button" id="fire-confirm" class="primary">Fijar objetivo</button>
         <button type="button" id="fire-clear" hidden>Retirar orden</button>
@@ -495,6 +620,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=47"></script>
+    <script type="module" src="./game.js?v=61"></script>
   </body>
 </html>

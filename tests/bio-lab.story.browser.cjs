@@ -23,7 +23,8 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8790";
       );
       await page.route("**/juegos/bio-lab-defense/game.js?*", async (route) => {
         const response = await route.fetch();
-        const script = await response.text();
+        // These cases assert exact coordinates on saves using the original campaign layout.
+        const script = (await response.text()).replaceAll("fixedLayout: true", "fixedLayout: false");
         // Exercise the result and save handlers with a deterministic battle outcome.
         await route.fulfill({
           response,
@@ -106,15 +107,21 @@ window.forceRunnerLeak = () => {
         await page.locator("#campaign-progress").textContent(),
         /1\/38 misiones · 2 estrellas/,
       );
+      assert.equal(await page.locator("#campaign-progress-meter").getAttribute("value"), "1");
+      assert.equal(await page.locator("#campaign-next-sector").textContent(), "Sector 2 · Muestreo");
       assert.equal(await page.locator(".level").nth(2).isDisabled(), true);
       await page.locator("#resume-mission").click();
       await page.getByRole("heading", { name: "Muestreo" }).waitFor();
+      await page.locator("#briefing-approach").getByText(/Ruta a la consola/).waitFor();
       await page.locator("#back-campaign").click();
       await page.locator(".level").first().click();
       await page.getByRole("heading", { name: "Ingreso" }).waitFor();
+      const map = page.getByRole("region", { name: "Plano del sector" });
+      await map.getByText("4 oleadas").waitFor();
+      await map.getByText("1 entrada").waitFor();
       assert.match(
         await page.locator("#briefing-medal").textContent(),
-        /Sin fugas/,
+        /Núcleo estable/,
       );
       assert.ok(
         await page
@@ -127,7 +134,7 @@ window.forceRunnerLeak = () => {
       await page.locator("#launch-mission").click();
       await page.locator("#mission-targets summary").click();
       await page.locator("#star-pace").getByText(/100 %.*★★★/).waitFor();
-      await page.locator("#medal-pace").getByText(/Sin fugas.*Cumples la condición/).waitFor();
+      await page.locator("#medal-pace").getByText(/Núcleo estable.*Cumples la condición/).waitFor();
       await page.locator("#mission-targets summary").click();
       assert.match(await page.locator("#radio-text").textContent(), /Restaura/);
       assert.equal(
@@ -151,7 +158,7 @@ window.forceRunnerLeak = () => {
       await page.getByRole("heading", { name: "Misión completada" }).waitFor();
       assert.match(
         await page.locator("#modal-medal").textContent(),
-        /Insignia: Sin fugas/,
+        /Insignia: Núcleo estable/,
       );
       assert.equal(await page.locator("#modal").getAttribute("data-tone"), "victory");
       assert.equal(await page.locator("#modal-stars").getAttribute("aria-label"), "3 de 3 estrellas");
@@ -222,6 +229,8 @@ window.forceRunnerLeak = () => {
         const labels = await page.locator("#lane-brief b").allTextContents();
         return labels.map((label) => Number(label.split(" · ").at(-1)));
       };
+      const waveBeacon = page.locator("#entry-start-a");
+      assert.equal(await waveBeacon.evaluate(el => el.parentElement.id), width <= 760 ? "compact-wave-beacons" : "");
       await page.locator("#wave-beacon-hint").getByText(/Primera llegada · A .* \/ B /).waitFor();
       const recommendation = page.locator("#wave-counter-list").getByRole("button").first();
       const suggested = await recommendation.getAttribute("aria-label");
@@ -296,6 +305,8 @@ window.forceRunnerLeak = () => {
       await page.evaluate(() => triggerBossPhases());
       await page.getByText("Acelerado", { exact: true }).waitFor();
       await page.getByText("Escudo activo", { exact: true }).waitFor();
+      await page.locator("#boss-stage-b").getByText(/Fase [1-3]\/3/).waitFor();
+      await page.locator("#boss-vitals-b").getByText(/Vida .* · Escudo [1-9]/).waitFor();
       assert.equal(await canvas.evaluate((node) => node.offsetTop), boardTop);
       await page.evaluate(() => forceRunnerLeak());
       await page.getByRole("heading", { name: "Brecha de contención" }).waitFor();

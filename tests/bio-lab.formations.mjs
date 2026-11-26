@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { Match, BLUEPRINTS, dailySetup, suggestPlacement, reactorProduction, REACTOR_FIRST_CYCLE } from "../juegos/bio-lab-defense/engine.js";
+import { Match, BLUEPRINTS, dailySetup, suggestPlacement, reactorProduction, REACTOR_FIRST_CYCLE, upgradeCost } from "../juegos/bio-lab-defense/engine.js";
 import { CONTRACTS } from "../juegos/bio-lab-defense/operations.js";
 import { MISSIONS } from "../juegos/bio-lab-defense/campaign.js";
 import { restoreCheckpoint } from "../juegos/bio-lab-defense/checkpoint.js";
@@ -46,6 +46,184 @@ test("the forecast reports the same timings and lanes that the engine spawns", (
   const daily = dailySetup("2026-11-23");
   assert.ok(daily.map < 3);
   assert.equal(new Match(6, daily).preview.timeline.length, 1);
+});
+
+test("signature campaign waves route and announce the configured groups without changing veteran waves", () => {
+  const planned = MISSIONS.flatMap((mission, index) =>
+    Object.entries(mission.tactics || {}).map(([wave, tactics]) => [index + 1, Number(wave), tactics]));
+  assert.equal(planned.length, 11);
+  for (const [level, wave, tactics] of planned) {
+    const match = new Match(level);
+    const preview = match.planWave(wave);
+    assert.deepEqual(preview.tactics, tactics);
+    assert.equal(new Match(level, null, { veteran: true }).planWave(wave).tactics, null);
+    for (const [index, directive] of tactics.groups.entries()) {
+      const group = preview.timeline[index];
+      assert.equal(group.name, directive.name);
+      const entries = preview.order.filter(entry => entry.groupName === directive.name);
+      assert.ok(entries.length > 0);
+      assert.deepEqual(group.lanes, [0, 1].map(lane => entries.filter(entry => entry.lane === lane).length));
+      if (directive.lane != null) assert.ok(entries.every(entry => entry.lane === directive.lane));
+      if (directive.shield) assert.ok(entries.some(entry => entry.shield >= directive.shield));
+      if (directive.armor) assert.ok(entries.some(entry => entry.armor >= directive.armor));
+      if (directive.speed) assert.ok(entries.every(entry => entry.speed >= directive.speed));
+      if (directive.gap) assert.equal(entries[0].delay, directive.gap);
+      if (directive.spacing) assert.ok(entries.slice(1).every(entry => entry.delay === directive.spacing));
+    }
+    match.wave = wave - 1;
+    match.preview = preview;
+    assert.ok(match.startWave());
+    assert.deepEqual(match.queue, preview.order);
+  }
+});
+
+test("campaign power cuts rotate by wave and stop affected reactors until they move", () => {
+  for (const level of [27, 31]) {
+    const match = new Match(level);
+    assert.notDeepEqual(match.blackoutForWave(3), match.blackoutForWave(4));
+    assert.equal(match.blackoutForWave(5), null);
+    assert.equal(new Match(level, null, { veteran: true }).blackoutForWave(3), null);
+    const spot = match.firePads.find(point => match.towerOffline(point, 3));
+    assert.ok(spot);
+    const reactor = match.place(BLUEPRINTS.find(type => type.id === "ribosome"), spot.x, spot.y);
+    assert.ok(reactor);
+    match.wave = 2;
+    match.preview = match.planWave(3);
+    reactor.cooldown = 0;
+    assert.ok(match.startWave());
+    assert.equal(match.towerOffline(reactor), true);
+    match.tick();
+    assert.equal(reactor.produced, 0);
+    match.queue = [];
+    match.tick();
+    assert.equal(match.state, "build");
+    const atp = match.atp;
+    const outside = { x: 730, y: 156 };
+    assert.equal(match.towerOffline(outside, 4), false);
+    assert.ok(match.relocate(reactor, outside.x, outside.y));
+    assert.equal(match.atp, atp);
+    assert.ok(match.startWave());
+    match.tick();
+    assert.ok(reactor.produced > 0);
+  }
+});
+
+test("a relocation recommendation restores power and calculates total lane coverage", async () => {
+  const { routeTeamCoverage, suggestPowerRelocation } = await import("../juegos/bio-lab-defense/coverage.js");
+  const match = new Match(27);
+  const pad = match.firePads[1];
+  const tower = match.place(BLUEPRINTS[0], pad.x, pad.y);
+  assert.equal(suggestPowerRelocation(match, tower), null);
+  match.wave = 2;
+  match.preview = match.planWave(3);
+  const before = JSON.stringify(match);
+  const site = suggestPowerRelocation(match, tower);
+  assert.ok(site);
+  assert.equal(JSON.stringify(match), before);
+  assert.equal(match.checkRelocation(tower, site.point.x, site.point.y), "");
+  assert.equal(match.towerOffline(site.point, 3), false);
+  assert.ok(site.lanes.some(({ after }) => after > 0));
+  assert.ok(match.relocate(tower, site.point.x, site.point.y));
+  for (const { lane, before, after } of site.lanes) {
+    assert.equal(before, 0);
+    assert.equal(after, routeTeamCoverage(match.routesForWave(3)[lane], [tower]));
+  }
+});
+
+test("campaign finales apply each advertised phase once and schedule the matching reinforcements", () => {
+  const finales = MISSIONS.flatMap((mission, index) => mission.finale ? [[index + 1, mission.finale]] : []);
+  assert.equal(finales.length, 10);
+  for (const [level, finale] of finales) {
+    const match = new Match(level);
+    if (match.power) assert.ok(match.selectPowerLine(0));
+    match.wave = match.maxWaves - 1;
+    match.preview = match.planWave(match.maxWaves);
+    assert.deepEqual(match.preview.finale, finale);
+    const veteran = new Match(level, null, {veteran: true});
+    assert.equal(veteran.planWave(veteran.maxWaves).finale, null);
+    assert.ok(match.startWave());
+    match.queue = match.queue.filter(entry => entry.boss);
+    match.spawn();
+    const boss = match.enemies[0];
+    if (boss.mirror || boss.zero) continue;
+    const armor = boss.armor;
+    let expectedOrders = 0;
+    for (const [index, stage] of finale.stages.entries()) {
+      boss.hp = boss.maxHp * (index ? 0.3 : 0.6);
+      match.advanceBoss(boss);
+      assert.equal(boss.phase, index + 2);
+      assert.equal(match.combatCue.text, stage.name);
+      if (stage.plating) assert.equal(boss.armor, armor + stage.plating);
+      if (stage.releasePlating) assert.equal(boss.armor, armor);
+      if (stage.shield) assert.equal(boss.shield, Math.round(boss.maxHp * stage.shield));
+      if (stage.discharge) assert.equal(boss.shield, 0);
+      if (stage.reinforcements) {
+        const order = match.mirrorOrders.at(-1);
+        assert.equal(order.lane, stage.reinforcements.lane);
+        assert.equal(order.ticks, stage.reinforcements.delay);
+        expectedOrders++;
+      }
+      match.advanceBoss(boss);
+      assert.equal(match.mirrorOrders.length, expectedOrders);
+    }
+    const first = match.mirrorOrders[0];
+    if (first) {
+      const delay = first.ticks;
+      for (let tick = 0; tick < delay + 1 && !match.queue.length; tick++) match.tick();
+      assert.ok(match.queue.some(entry => entry.lane === first.lane && entry.groupName === first.name));
+    }
+  }
+});
+
+test("console defeat records the enemies and uncovered approach separately from core leaks", () => {
+  const match = new Match(2);
+  assert.ok(match.startWave());
+  const console = match.console;
+  for (let index = 0; index < 5; index++) {
+    match.spawn();
+    Object.assign(match.enemies.at(-1), {
+      x: console.x, y: console.y, wp: console.waypoint, coverageGaps: [0, 4],
+    });
+  }
+  match.tick();
+  const report = match.waveObjectiveHits;
+  assert.equal(match.state, "lost");
+  assert.equal(match.hp, 100);
+  assert.deepEqual(match.waveLeaks.lanes, [0]);
+  assert.deepEqual(report.objective.points.at(-1), [console.x, console.y]);
+  assert.equal(report.count, 4);
+  assert.deepEqual([...report.gaps.values()], [{ lane: 0, waypoint: 1, count: 4 }]);
+  assert.equal([...report.entries.values()].reduce((total, entry) => total + entry.count, 0), 4);
+});
+
+test("all story sectors have longer routes and usable fixed construction sites", () => {
+  for (let level = 1; level <= MISSIONS.length; level++) {
+    const old = new Match(level);
+    const current = new Match(level, null, { fixedLayout: true });
+    assert.ok(current.buildSites.length >= 18, `sector ${level}`);
+    for (const [lane, path] of current.routes.entries()) {
+      assert.ok(path.remaining[0] >= old.routes[lane].remaining[0] * 1.2, `sector ${level}, entrada ${lane}`);
+      assert.deepEqual(path.points.at(-1), old.routes[lane].points.at(-1));
+    }
+    for (const site of current.buildSites)
+      assert.equal(current.checkPlacement(BLUEPRINTS[0], site.x, site.y), "", `sector ${level}`);
+  }
+});
+
+test("fixed layouts round-trip through checkpoints while prior builds keep their positions", () => {
+  const current = new Match(1, null, { fixedLayout: true });
+  const [first, second] = current.buildSites;
+  assert.equal(current.place(BLUEPRINTS[0], first.x + 1, first.y), null);
+  assert.equal(current.closestBuildSite(first.x + 1, first.y), first);
+  const tower = current.place(BLUEPRINTS[0], first.x, first.y);
+  assert.ok(tower);
+  assert.equal(current.place(BLUEPRINTS[0], first.x, first.y), null);
+  assert.ok(current.relocate(tower, second.x, second.y));
+  const restored = restoreCheckpoint({ ...current, towers: [{ ...tower, angle: 0, branch: -1 }] }).match;
+  assert.ok(restored.fixedLayout);
+  assert.deepEqual(restored.buildSites, current.buildSites);
+  assert.deepEqual([restored.towers[0].x, restored.towers[0].y], [second.x, second.y]);
+  assert.equal(restoreCheckpoint({ ...new Match(1), fixedLayout: undefined }).match.fixedLayout, false);
 });
 
 test("entry alerts use the first enemy actually queued for each lane", () => {
@@ -374,14 +552,36 @@ test("expansion sectors have two buildable fire pads and preserve previous compl
   for (let level = 23; level <= MISSIONS.length; level++) {
     const match = new Match(level);
     assert.equal(match.firePads.length, 2);
-    for (const pad of match.firePads) {
+    for (const [index, pad] of match.firePads.entries()) {
       const tower = match.place(BLUEPRINTS[0], pad.x, pad.y);
       assert.ok(tower);
-      assert.equal(match.padBonus(tower), 1.25);
+      const active = match.activePad();
+      assert.equal(match.padBonus(tower), active == null ? 1.25 : index === active ? 1.5 : 1);
       assert.equal(match.padBonus({ ...tower, type: "eco" }), 1);
       assert.equal(match.padBonus({ ...tower, x: -100 }), 1);
     }
   }
+});
+
+test("rotating platforms use the correct wave for forecasts, rehearsals and damage", async () => {
+  const { startDrill } = await import("../juegos/bio-lab-defense/drill.js");
+  const level = MISSIONS.findIndex(mission => mission.name === "Cúpula partida") + 1;
+  const match = new Match(level);
+  assert.equal(match.padCycle.length, match.maxWaves);
+  assert.ok(match.selectPowerLine(0));
+  const towers = match.firePads.map(pad => match.place(BLUEPRINTS[0], pad.x, pad.y));
+  assert.ok(towers.every(Boolean));
+  assert.deepEqual(towers.map(tower => match.padBonus(tower, 1)), [1.5, 1]);
+  assert.deepEqual(towers.map(tower => match.padBonus(tower, 2)), [1, 1.5]);
+  match.wave = 1;
+  match.preview = match.planWave(2);
+  const sim = startDrill(match);
+  assert.deepEqual(sim.towers.map(tower => sim.padBonus(tower)), [1, 1.5]);
+  const entry = { spec: match.preview.order[0].spec, lane: 0 };
+  assert.ok(match.estimateImpact(towers[0], entry, 1).damage > match.estimateImpact(towers[0], entry, 2).damage);
+  const veteran = new Match(level, null, { veteran: true });
+  const pad = veteran.firePads[0];
+  assert.equal(veteran.padBonus({ ...pad, rank: 1, type: "single" }, 2), 1.25);
 });
 
 test("coverage clips at endpoints and counts both arms of a bend", async () => {
@@ -391,6 +591,52 @@ test("coverage clips at endpoints and counts both arms of a bend", async () => {
   assert.equal(routeCoverage(route, { x: 0, y: 0, range: 30 }), 15);
   assert.equal(routeCoverage(route, { x: 30, y: -30, range: 30 }), 0);
   assert.equal(routeCoverage(route, { x: 0, y: 0, range: 200 }), 100);
+});
+
+test("objective approach coverage combines overlapping ranges and stops at the defended device", async () => {
+  const { routeTeamCoverage } = await import("../juegos/bio-lab-defense/coverage.js");
+  const lane = { points: [[0, 0], [100, 0]], remaining: [100, 0] };
+  assert.equal(routeTeamCoverage(lane, [{ x: 20, y: 0, range: 30 }, { x: 60, y: 0, range: 20 }]), 80);
+  assert.equal(routeTeamCoverage(lane, []), 0);
+  const match = new Match(2);
+  const objective = match.defenseObjective;
+  assert.deepEqual(match.objectiveApproach().points.at(-1), [objective.x, objective.y]);
+  match.console.complete = true;
+  assert.equal(match.objectiveApproach(), null);
+});
+
+test("late archive sectors vary the defense order and restore existing checkpoints safely", () => {
+  const levelOf = name => MISSIONS.findIndex(mission => mission.name === name) + 1;
+  const foundry = new Match(levelOf("Crisol doble"));
+  assert.deepEqual(foundry.archive.map(device => device.waypoint), [4, 3]);
+  const garden = new Match(levelOf("Semillas de memoria"));
+  assert.deepEqual(garden.archive.map(device => device.lane), [1, 0]);
+  assert.ok(garden.preview.lanes[1] > garden.preview.lanes[0]);
+  const saved = { ...garden, wave: 1 };
+  const resumed = restoreCheckpoint({ ...saved, archiveFirstLane: 1 });
+  assert.equal(resumed.match.activeTerminal.lane, 0);
+  assert.ok(resumed.match.archive[0].complete);
+  const legacy = restoreCheckpoint(saved);
+  assert.equal(legacy.match.activeTerminal.lane, 1);
+  assert.ok(legacy.match.archive[0].complete);
+});
+
+test("objective targeting prefers an approaching enemy while manual focus overrides it", () => {
+  for (const [mode, manual, expected] of [["first", false, "passed"], ["objective", false, "approach"], ["objective", true, "passed"]]) {
+    const match = new Match(2);
+    const tower = match.place(BLUEPRINTS[0], 265, 195);
+    assert.ok(tower);
+    tower.targeting = mode;
+    match.startWave();
+    match.spawn();
+    match.spawn();
+    const [approach, passed] = match.enemies;
+    Object.assign(approach, { x: 220, y: 185, wp: 2 });
+    Object.assign(passed, { x: 240, y: 150, wp: 3 });
+    if (manual) match.focusFire(passed);
+    match.tick();
+    assert.equal(match.shots[0].target, expected === "passed" ? passed : approach);
+  }
 });
 
 test("focus fire overrides route priority in range and releases a defeated target", () => {
@@ -434,6 +680,28 @@ test("a rehearsal reproduces an unattended wave without changing the prepared de
     assert.deepEqual([sim.hp, sim.kills, sim.state, sim.waveLeaks], [match.hp, match.kills, match.state, match.waveLeaks]);
   }
   assert.equal(startDrill(new Match(20)), null);
+});
+
+test("upgrade rehearsals match a purchased specialization and leave the original defense intact", async () => {
+  const { startDrill } = await import("../juegos/bio-lab-defense/drill.js");
+  const match = new Match(1);
+  const tower = match.place(BLUEPRINTS[0], 145, 171);
+  assert.ok(match.upgrade(tower));
+  const before = JSON.stringify(match);
+  const rehearsals = [0, 1].map(choice => startDrill(match, { towerIndex: 0, choice }));
+  assert.notEqual(rehearsals[0].towers[0].branch.name, rehearsals[1].towers[0].branch.name);
+  for (const sim of rehearsals) {
+    assert.equal(sim.towers[0].rank, 3);
+    assert.equal(sim.atp, match.atp - upgradeCost(tower));
+    while (sim.state === "wave") sim.tick();
+  }
+  assert.equal(JSON.stringify(match), before);
+  assert.equal(startDrill(match, { towerIndex: 9, choice: 0 }), null);
+  assert.ok(match.upgrade(tower, 0));
+  match.startWave();
+  while (match.state === "wave") match.tick();
+  const result = sim => [sim.hp, sim.atp, sim.kills, sim.state, sim.waveLeaks];
+  assert.deepEqual(result(rehearsals[0]), result(match));
 });
 
 test("restored towers keep their investment and legacy saves keep the catalog price", () => {
@@ -497,6 +765,68 @@ test("campaign affinities modify tower damage without changing nanobot damage", 
   assert.equal(new Match(6, dailySetup("2026-11-24")).hasAffinities, false);
 });
 
+test("new Story battles telegraph distinct counters per lane and apply them in combat", () => {
+  for (const [level, wave, weakness] of [
+    [5, 2, ["Térmico", "Láser"]], [15, 3, ["Eléctrico", "Impacto"]],
+    [33, 4, ["Control", "Corrosión"]],
+  ]) {
+    const match = new Match(level, null, { fixedLayout: true });
+    const forecast = match.planWave(wave);
+    for (const [lane, attack] of weakness.entries()) {
+      const enemies = forecast.order.filter(entry => entry.lane === lane);
+      assert.ok(enemies.length);
+      for (const enemy of enemies) {
+        const { affinity } = match.entryDefense(enemy, wave);
+        assert.equal(affinity.weak, attack);
+        assert.equal(affinity.weakness, 1.5);
+        assert.equal(affinity.resistance, 0.5);
+      }
+    }
+    assert.notEqual(new Match(level).planWave(wave).tactics?.name, forecast.tactics.name);
+  }
+
+  const match = new Match(5, null, { fixedLayout: true });
+  match.wave = 1;
+  match.preview = match.planWave(2);
+  match.startWave();
+  const sample = match.preview.order.find(entry => entry.spec.shape === "phage");
+  match.queue.unshift(sample);
+  match.spawn();
+  const enemy = match.enemies.at(-1);
+  const legacy = new Match(5);
+  assert.equal(match.entryDefense(sample, 2).hp, legacy.entryDefense(sample, 2).hp);
+  assert.ok(match.entryDefense(sample, 3).hp > legacy.entryDefense(sample, 3).hp);
+  for (const [id, expected] of [["nanolaser", 30], ["plasma", 10], ["tesla", 20]]) {
+    Object.assign(enemy, { hp: 100, armor: 0, shield: 0 });
+    const tower = { id, rank: 1, inflicted: 0 };
+    match.damage(enemy, 20, "#fff", {}, tower);
+    assert.equal(enemy.hp, 100 - expected);
+  }
+});
+
+test("affinity targeting prefers vulnerable enemies while respecting manual focus", () => {
+  const match = new Match(5, null, { fixedLayout: true });
+  const { x, y } = match.buildSites[0];
+  const tower = match.place(BLUEPRINTS[0], x, y);
+  tower.targeting = "weakness";
+  match.wave = 1;
+  match.preview = match.planWave(2);
+  match.startWave();
+  const [resistant, vulnerable] = ["rod", "phage"].map(shape => {
+    match.queue.unshift(match.preview.order.find(entry => entry.spec.shape === shape));
+    match.spawn();
+    return match.enemies.at(-1);
+  });
+  Object.assign(resistant, { x: x + 40, y, remaining: 100 });
+  Object.assign(vulnerable, { x, y: y + 40, remaining: 250 });
+  match.tick();
+  assert.equal(match.shots[0].target, vulnerable);
+  assert.ok(match.focusFire(resistant));
+  tower.cooldown = 0;
+  match.tick();
+  assert.equal(match.shots.at(-1).target, resistant);
+});
+
 test("the first hit forecast matches affinity, armor, shields and specialization", () => {
   const match = new Match(6);
   const tower = match.place(BLUEPRINTS[0], 50, 60);
@@ -528,4 +858,142 @@ test("the first hit forecast matches affinity, armor, shields and specialization
   assert.equal(shots, preview.hitsToDefeat);
   const boss = match.planWave(match.maxWaves).order.find(item => item.boss);
   assert.equal(match.estimateImpact(tower, boss, match.maxWaves).hitsToDefeat, null);
+});
+
+test("Filtrado and Paralaje preview the precise routes, counters and archive objective", () => {
+  const filtration = new Match(5, null, { fixedLayout: true });
+  const split = filtration.planWave(4);
+  assert.equal(split.tactics.name, "Intercepción en el cruce");
+  assert.deepEqual([...new Set(split.order.filter(e => e.lane === 1).map(e => e.spec.id))],
+    ["phage-t4", "subtilis"]);
+
+  const parallax = new Match(28, null, { fixedLayout: true });
+  parallax.wave = 1;
+  parallax.archive[0].complete = true;
+  parallax.preview = parallax.planWave(2);
+  assert.equal(parallax.defenseObjective.lane, 1);
+  assert.ok(parallax.preview.order.filter(e => e.lane === 0).some(e => e.armor >= 11));
+  assert.ok(parallax.preview.order.filter(e => e.lane === 1).every(e => e.spec.id === "borrelia" && !e.armor));
+  const scheduled = parallax.preview.order.map(e => e.spec.id);
+  assert.ok(parallax.startWave());
+  assert.deepEqual(parallax.queue.map(e => e.spec.id), scheduled);
+});
+
+test("the last Story boss's emisor and regulator have independent effects and expire on defeat", () => {
+  for (const first of ["reinforcements", "shield"]) {
+    const match = new Match(38, null, { fixedLayout: true });
+    match.wave = match.maxWaves;
+    match.queue.push(match.planWave(match.wave).order.find(entry => entry.boss));
+    match.spawn();
+    const boss = match.enemies[0];
+    match.damage(boss, boss.hp * 0.37, "#fff", { piercing: true });
+    assert.ok(boss.shield > 0);
+    assert.equal(match.zeroNodes.length, 2);
+    const target = match.zeroNodes.find(node => node.role === first);
+    match.damage(target, target.hp, "#fff", { piercing: true });
+    match.time += 131;
+    match.tickZeroNodes();
+    if (first === "reinforcements") {
+      assert.ok(boss.shield > 0);
+      assert.equal(match.queue.length, 0);
+    } else {
+      assert.equal(boss.shield, 0);
+      assert.ok(boss.moduleExposureUntil > match.time);
+      const health = boss.hp;
+      const needle = { id: "phagocyte", rank: 1, inflicted: 0 };
+      match.damage(boss, 20, "#fff", { piercing: true }, needle);
+      assert.equal(health - boss.hp, 24);
+      assert.equal(match.queue.length, 3);
+      assert.ok(match.queue.every(entry => entry.lane === 0));
+    }
+    match.damage(boss, boss.hp * 2, "#fff", { piercing: true });
+    assert.ok(match.zeroNodes.every(node => node.hp <= 0));
+  }
+});
+
+test("the tower combinations add real armor and area damage and count each contribution", () => {
+  const match = new Match(5, null, { fixedLayout: true });
+  match.startWave();
+  match.spawn();
+  const enemy = match.enemies[0];
+  Object.assign(enemy, { hp: 300, affinity: null, armor: 15, shield: 0 });
+  const tower = id => ({ ...BLUEPRINTS.find(entry => entry.id === id), rank: 1, inflicted: 0 });
+  const fire = (source, damage = source.damage) => match.hit(enemy,
+    { tower: source, type: source.type, damage, color: "#fff", branch: {}, radius: 70 });
+  fire(tower("toxin"));
+  assert.ok(enemy.corrodedUntil > match.time);
+  const phagocyte = tower("phagocyte");
+  fire(phagocyte, 30);
+  assert.ok(phagocyte.corrosionDamage > 8);
+  assert.equal(phagocyte.corrosionDamage, match.waveStart.corrosionDamage);
+  fire(tower("cryo"));
+  assert.ok(enemy.chilledUntil > match.time);
+  const plasma = tower("plasma");
+  fire(plasma, 30);
+  assert.ok(plasma.chillDamage > 4);
+  assert.equal(plasma.chillDamage, match.waveStart.chillDamage);
+  match.time = enemy.chilledUntil;
+  fire(plasma, 30);
+  assert.equal(plasma.chillDamage, match.waveStart.chillDamage);
+});
+
+test("Vatio reactivates the nearest offline tower and Nexo pulls back within the current route segment", () => {
+  const relay = new Match(30, null, { fixedLayout: true, heroId: "relay" });
+  const [site] = relay.buildSites;
+  const tower = relay.place(BLUEPRINTS[0], site.x, site.y);
+  relay.moveHero(site.x, site.y);
+  relay.powerCuts = { 1: { ...site, radius: 35 } };
+  relay.startWave();
+  assert.ok(relay.towerOffline(tower));
+  assert.ok(relay.heroAbility());
+  assert.equal(relay.towerOffline(tower), false);
+  relay.time += 300;
+  assert.ok(relay.towerOffline(tower));
+
+  const anchor = new Match(5, null, { fixedLayout: true, heroId: "lure" });
+  anchor.startWave();
+  anchor.spawn();
+  const enemy = anchor.enemies[0];
+  const [x, y] = enemy.path.points[0];
+  const [endX, endY] = enemy.path.points[1];
+  Object.assign(enemy, { x: x + (endX - x) * 0.6, y: y + (endY - y) * 0.6, remaining: 0 });
+  Object.assign(anchor.hero, { x, y });
+  assert.ok(anchor.heroAbility());
+  anchor.tick();
+  assert.ok(enemy.remaining > 0);
+  assert.ok(Math.hypot(x - enemy.x, y - enemy.y) < Math.hypot(x - endX, y - endY) * 0.6);
+  assert.equal(enemy.wp, 1);
+});
+
+test("a rehearsal compares a relocation without moving or charging the real tower", async () => {
+  const { startDrill } = await import("../juegos/bio-lab-defense/drill.js");
+  const match = new Match(5, null, { fixedLayout: true });
+  const [site, destination] = match.buildSites;
+  const tower = match.place(BLUEPRINTS[0], site.x, site.y);
+  const simulation = startDrill(match, { towerIndex: 0, position: destination });
+  assert.equal(simulation.towers[0].x, destination.x);
+  assert.equal(simulation.towers[0].y, destination.y);
+  assert.equal(simulation.atp, match.atp);
+  assert.deepEqual([tower.x, tower.y], [site.x, site.y]);
+  assert.equal(match.state, "build");
+});
+
+test("all mastery rules apply in the right chapter and keep medals separate from ordinary contracts", async () => {
+  const { MASTERY } = await import("../juegos/bio-lab-defense/operations.js");
+  assert.equal(MASTERY.length, new Set(MISSIONS.map(mission => mission.chapter)).size);
+  for (const contract of MASTERY) {
+    const match = new Match(contract.level, null, { fixedLayout: true, contract, heroId: "lure" });
+    assert.equal(match.mission.chapter, contract.chapter);
+    assert.ok(match.ranked && match.fixedLayout);
+    assert.equal(match.hero.id, "lure");
+    const [site] = match.buildSites;
+    const tower = match.place(BLUEPRINTS[0], site.x, site.y);
+    assert.equal(match.sell(tower), !contract.noSell);
+    assert.equal(match.towerLimit, contract.towerLimit ?? match.mission.towerLimit);
+  }
+  const save = normalize({ contracts: { "mastery-4": 7300, guardia: 500 }, masteryMedals: { "mastery-4": true } });
+  assert.equal(save.contracts["mastery-4"], 7300);
+  assert.equal(save.contracts.guardia, 500);
+  assert.equal(save.masteryMedals["mastery-4"], true);
+  assert.equal(save.masteryMedals["mastery-8"], false);
 });

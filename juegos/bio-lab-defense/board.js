@@ -1,5 +1,6 @@
-import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=29";
-import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=4";
+import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=38";
+import { towerAttack } from "./affinities.js?v=3";
+import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=5";
 
 function trace(ctx, points) {
   ctx.beginPath();
@@ -46,6 +47,10 @@ const floors = [
   { light: "#433827", dark: "#181522", grid: "#a87d6148", fixture: "#67463c" },
   { light: "#203e58", dark: "#051321", grid: "#4186964c", fixture: "#26536a" },
   { light: "#47324e", dark: "#180d24", grid: "#ae71944a", fixture: "#684366" },
+  { light: "#26584b", dark: "#081d20", grid: "#47896c44", fixture: "#396858" },
+  { light: "#382b58", dark: "#101224", grid: "#7164aa55", fixture: "#514675" },
+  { light: "#5c3323", dark: "#21131b", grid: "#b36e5044", fixture: "#754838" },
+  { light: "#16475c", dark: "#081927", grid: "#3b82905c", fixture: "#245b6c" },
 ];
 
 function floorTile(ctx, x, y, chapter, palette, accent) {
@@ -72,6 +77,33 @@ function floorTile(ctx, x, y, chapter, palette, accent) {
       ctx.fillStyle = palette.fixture;
       ctx.fill();
     }
+  } else if (chapter === 3) {
+    for (const [dx, dy, size] of [[-31, 13, 19], [21, 12, 27], [-3, -15, 28]]) {
+      trace(ctx, [[dx - size, dy], [dx - size / 2, dy - size * 0.8],
+        [dx + size / 2, dy - size * 0.65], [dx + size, dy + 7], [dx, dy + size / 2], [dx - size, dy]]);
+      ctx.fill();
+      ctx.stroke();
+    }
+  } else if (chapter === 4) {
+    ctx.fillRect(-49, -26, 98, 52);
+    ctx.strokeRect(-49, -26, 98, 52);
+    for (const offset of [-24, 24]) {
+      ctx.fillStyle = "#071c29";
+      ctx.fillRect(offset - 13, -15, 26, 30);
+      ctx.strokeStyle = accent + "5e";
+      trace(ctx, [[offset - 20, 0], [offset - 10, 0], [offset - 3, -9], [offset + 4, 9], [offset + 11, 0], [offset + 20, 0]]);
+      ctx.stroke();
+    }
+  } else if (chapter === 5) {
+    circle(ctx, 0, 0, 41, palette.fixture + "85", palette.grid, 2);
+    for (let i = 0; i < 4; i++) {
+      ctx.rotate(Math.PI / 2);
+      ctx.fillStyle = accent + "2f";
+      ctx.fillRect(-13, -32, 26, 12);
+      trace(ctx, [[-23, -16], [-23, -23], [-17, -28]]);
+      ctx.stroke();
+    }
+    circle(ctx, 0, 0, 15, "#130e22", accent + "57", 2);
   } else {
     polygon(ctx, 6, 38);
     ctx.fill();
@@ -114,9 +146,9 @@ function scenery(ctx, map) {
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(scale, scale);
-    ctx.strokeStyle = map.accent + "72";
-    ctx.fillStyle = map.accent + "22";
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = map.accent + "9a";
+    ctx.fillStyle = map.accent + "30";
+    ctx.lineWidth = 3;
     if (map.scenery === "crystal") {
       for (const [dx, height] of [[-20, 31], [0, 54], [21, 39]]) {
         trace(ctx, [[dx - 10, 18], [dx - 9, 5 - height], [dx, -height], [dx + 10, 8 - height], [dx + 9, 18], [dx - 10, 18]]);
@@ -159,7 +191,7 @@ function background(map, routes, chapter) {
   base.width = WIDTH;
   base.height = HEIGHT;
   const ctx = base.getContext("2d");
-  const palette = floors[chapter];
+  const palette = floors[map.floor ?? chapter];
   const glow = ctx.createRadialGradient(490, 240, 36, 490, 270, 595);
   glow.addColorStop(0, palette.light);
   glow.addColorStop(1, palette.dark);
@@ -317,6 +349,19 @@ function drawSupportNode(ctx, node) {
   ctx.textBaseline = "middle";
   ctx.textAlign = "center";
   ctx.fillText(node.lane ? "B" : "A", 0, 0);
+  if (node.role === "reinforcements") {
+    ctx.beginPath();
+    ctx.moveTo(-31, -7);
+    ctx.lineTo(-37, 0);
+    ctx.lineTo(-31, 7);
+    ctx.moveTo(31, -7);
+    ctx.lineTo(37, 0);
+    ctx.lineTo(31, 7);
+    ctx.stroke();
+  } else if (node.role === "shield") {
+    trace(ctx, [[-11, 26], [0, 34], [11, 26]]);
+    ctx.stroke();
+  }
   ctx.fillStyle = "#0a1320";
   ctx.fillRect(-24, -36, 48, 8);
   ctx.fillStyle = node.color;
@@ -324,7 +369,7 @@ function drawSupportNode(ctx, node) {
   ctx.restore();
 }
 
-function target(ctx, enemy, time) {
+function target(ctx, enemy, time, compact) {
   if (enemy.supportNode) {
     drawSupportNode(ctx, enemy);
     return;
@@ -356,8 +401,14 @@ function target(ctx, enemy, time) {
   if (enemy.stun) circle(ctx, 0, 0, enemy.boss ? 30 : 18, null, "#e9edff", 2);
   if (enemy.slow) circle(ctx, 0, 0, enemy.boss ? 29 : 16, null, "#97e9ff", 2);
   if (enemy.burn) circle(ctx, 0, 0, enemy.boss ? 32 : 19, null, "#b4ef68", 1.5);
+  if (enemy.corrodedUntil > time || enemy.anchor?.until > time) {
+    ctx.save();
+    ctx.setLineDash([5, 4]);
+    circle(ctx, 0, 0, enemy.boss ? 37 : 24, null, enemy.anchor?.until > time ? "#c2b1ff" : "#c5ff81", 2);
+    ctx.restore();
+  }
   const marker = enemy.markedUntil > time ? "#ffe3a0"
-    : enemy.frozenUntil > time ? "#9be9ff" : enemy.exposedUntil > time ? "#daaaff" : null;
+    : enemy.frozenUntil > time ? "#9be9ff" : (enemy.exposedUntil > time || enemy.moduleExposureUntil > time) ? "#daaaff" : null;
   if (marker) {
     ctx.save();
     ctx.setLineDash([4, 4]);
@@ -370,23 +421,58 @@ function target(ctx, enemy, time) {
   ctx.restore();
   if (enemy.shield > 0)
     circle(ctx, 0, 0, enemy.boss ? 35 : 22, null, "#91dfff", 2);
-  const width = enemy.boss ? 52 : 25;
-  const y = enemy.boss ? -39 : -22;
+  const width = enemy.boss ? 52 : compact ? 34 : 25;
+  const y = enemy.boss ? -39 : compact ? -25 : -22;
+  const barHeight = compact ? 7 : 5;
   const health = Math.max(0, enemy.hp / enemy.maxHp);
   ctx.fillStyle = "#030811";
-  ctx.fillRect(-width / 2 - 1, y - 1, width + 2, 7);
+  ctx.fillRect(-width / 2 - 2, y - 2, width + 4, barHeight + 4);
   ctx.fillStyle = "#354555";
-  ctx.fillRect(-width / 2, y, width, 5);
+  ctx.fillRect(-width / 2, y, width, barHeight);
   ctx.fillStyle = health < 0.3 ? "#ff7a70" : enemy.boss ? "#ffbc79" : "#9cf0bd";
-  ctx.fillRect(-width / 2, y, width * health, 5);
+  ctx.fillRect(-width / 2, y, width * health, barHeight);
+  if (enemy.shield > 0) {
+    const badgeRadius = compact ? 7 : 5;
+    const badgeX = width / 2 + badgeRadius + 3;
+    trace(ctx, [[badgeX - badgeRadius, y - 1], [badgeX + badgeRadius, y - 1], [badgeX + badgeRadius - 1, y + 5],
+      [badgeX, y + badgeRadius + 5], [badgeX - badgeRadius + 1, y + 5]]);
+    ctx.closePath();
+    ctx.fillStyle = "#a8edff";
+    ctx.strokeStyle = "#091627";
+    ctx.lineWidth = 2;
+    ctx.fill();
+    ctx.stroke();
+  }
+  if (enemy.armor > 0 || escortArmor(enemy)) {
+    const armorWidth = compact ? 10 : 7;
+    const armorX = -width / 2 - armorWidth - 5;
+    ctx.fillStyle = "#091627";
+    ctx.fillRect(armorX - 2, y - 2, armorWidth + 4, barHeight + 4);
+    ctx.fillStyle = "#ffc47d";
+    ctx.fillRect(armorX, y, armorWidth, barHeight);
+  }
   ctx.restore();
 }
 
 function drawMissionEquipment(ctx, match) {
-  const objective = match.activeTerminal || match.console;
-  if (objective && !objective.complete) {
+  const objective = match.defenseObjective;
+  if (objective) {
+    const approach = match.state === "build" ? match.objectiveApproach(objective) : null;
     ctx.save();
-    ctx.translate(objective.x, objective.y);
+    if (approach) {
+      trace(ctx, approach.points);
+      ctx.lineWidth = 15;
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = "#80f8c852";
+      ctx.stroke();
+      ctx.setLineDash([6, 10]);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "#9cffdc";
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    const [x, y] = approach?.points.at(-1) || [objective.x, objective.y];
+    ctx.translate(x, y);
     circle(ctx, 0, 0, 23, "#11282c", "#80f8c8", 2);
     ctx.fillStyle = "#07121e";
     ctx.fillRect(-12, -11, 24, 15);
@@ -486,32 +572,46 @@ export class Board {
     reduced,
     aiming,
     hovered = null,
-    { gatePreview, movingHero, movingTower, skillPreview, upgradePreview, snapOrigin, breach = null, reviewGap = null, routePlan = false, focusTarget = match.focusTarget } = {},
+    { gatePreview, movingHero, movingTower, skillPreview, upgradePreview, snapOrigin, breach = null, reviewGap = null, routePlan = false, focusTarget = match.focusTarget, fireCoverage = null, previewPowerCut, affinityProfiles = [] } = {},
   ) {
     const ctx = this.ctx;
     const key = match.mission
-      ? `${match.level}:${match.gateDiverted}:${!!match.routeEvent && match.routes[1] === match.routeEvent.alternate}`
+      ? `${match.level}:${match.fixedLayout}:${match.gateDiverted}:${!!match.routeEvent && match.routes[1] === match.routeEvent.alternate}`
       : `reto-${match.mapIndex}`;
     if (!this.buffers.has(key)) {
       if (this.buffers.size >= 4) this.buffers.delete(this.buffers.keys().next().value);
       this.buffers.set(key, background(match.map, match.routes, match.mapIndex));
     }
     ctx.drawImage(this.buffers.get(key), 0, 0);
-    if (reviewGap) drawCoverageGap(ctx, reviewGap);
     if (breach !== null) {
       ctx.save();
-      for (const [lane, count] of breach.lanes.entries()) {
-        if (!count) continue;
-        const { points } = match.routes[lane];
+      if (breach.objective) {
+        const { lane, points } = breach.objective;
+        const [x, y] = points.at(-1);
         trace(ctx, points);
         ctx.lineJoin = "round";
         ctx.lineWidth = 11;
         ctx.strokeStyle = lane ? "#f0a6ff" : "#ff826b";
         ctx.stroke();
-        circle(ctx, 19, points[0][1], 13, ctx.strokeStyle, "#501f2e", 4);
+        circle(ctx, x, y, 22, "#4c222f", "#ffb590", 4);
+        trace(ctx, [[x - 7, y - 7], [x + 7, y + 7]]);
+        ctx.stroke();
+        trace(ctx, [[x + 7, y - 7], [x - 7, y + 7]]);
+        ctx.stroke();
+      } else {
+        for (const [lane, count] of breach.lanes.entries()) {
+          if (!count) continue;
+          const { points } = match.routes[lane];
+          trace(ctx, points);
+          ctx.lineJoin = "round";
+          ctx.lineWidth = 11;
+          ctx.strokeStyle = lane ? "#f0a6ff" : "#ff826b";
+          ctx.stroke();
+          circle(ctx, 19, points[0][1], 13, ctx.strokeStyle, "#501f2e", 4);
+        }
       }
       for (const { lane, waypoint } of breach.gaps.values()) {
-        const { points } = match.routes[lane];
+        const points = breach.objective?.points || match.routes[lane].points;
         drawCoverageGap(ctx, points.slice(waypoint - 1, waypoint + 1));
       }
       ctx.restore();
@@ -532,23 +632,63 @@ export class Board {
       if (area) circle(ctx, area.x, area.y, area.radius, "#d79b421c", "#ffd277c9", 4);
       ctx.restore();
     }
-    for (const pad of match.firePads) {
+    const cutoff = match.powerCuts?.[match.coverageWave];
+    const warning = !cutoff && match.state === "build" && match.powerCuts?.[match.coverageWave + 1];
+    const powerCut = previewPowerCut || cutoff || warning;
+    if (powerCut) {
       ctx.save();
-      ctx.translate(pad.x, pad.y);
-      polygon(ctx, 6, 26);
-      ctx.fillStyle = "#14263a";
+      ctx.setLineDash([12, 7]);
+      circle(ctx, powerCut.x, powerCut.y, powerCut.radius,
+        warning && !previewPowerCut ? "#d79b421a" : "#d79b4238", "#ffd277", 4);
+      ctx.restore();
+    }
+    for (const site of match.buildSites || []) {
+      if (match.firePads.includes(site)) continue;
+      ctx.save();
+      ctx.translate(site.x, site.y);
+      polygon(ctx, 6, 21);
+      ctx.fillStyle = "#0c2630e8";
+      ctx.strokeStyle = "#8ebdb6";
+      ctx.lineWidth = 2.5;
       ctx.fill();
-      ctx.strokeStyle = match.map.accent;
-      ctx.lineWidth = 3;
       ctx.stroke();
-      circle(ctx, 0, 0, 20, null, match.map.accent + "88", 1);
-      for (const y of [-4, 4]) {
-        trace(ctx, [[-7, y + 4], [0, y - 2], [7, y + 4]]);
+      if (!match.towers.some(tower => tower.x === site.x && tower.y === site.y)) {
+        trace(ctx, [[-6, 0], [6, 0]]);
+        ctx.stroke();
+        trace(ctx, [[0, -6], [0, 6]]);
         ctx.stroke();
       }
       ctx.restore();
     }
+    const activePad = match.activePad();
+    for (const [index, pad] of match.firePads.entries()) {
+      const boosted = activePad == null || activePad === index;
+      const tint = boosted ? match.map.accent : "#6a7883";
+      ctx.save();
+      ctx.translate(pad.x, pad.y);
+      polygon(ctx, 6, 26);
+      ctx.fillStyle = boosted ? "#193a38" : "#141e29";
+      ctx.fill();
+      ctx.strokeStyle = tint;
+      ctx.lineWidth = boosted ? 4 : 2;
+      ctx.stroke();
+      circle(ctx, 0, 0, 20, null, tint + "88", 1);
+      if (activePad != null) {
+        ctx.font = "bold 20px system-ui";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = tint;
+        ctx.fillText(index === 0 ? "A" : "B", 0, 0);
+      } else {
+        for (const y of [-4, 4]) {
+          trace(ctx, [[-7, y + 4], [0, y - 2], [7, y + 4]]);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
     drawMissionEquipment(ctx, match);
+    if (reviewGap) drawCoverageGap(ctx, reviewGap);
     if (gatePreview && match.alternateRoute) {
       ctx.save();
       trace(ctx, match.alternateRoute.points);
@@ -565,6 +705,21 @@ export class Board {
     }
     const coverageWave = match.coverageWave;
     const coverageRoutes = match.routesForWave(coverageWave);
+    if (match.fixedLayout && match.state === "build") {
+      const modules = match.preview?.finale?.storyModules || [];
+      for (const module of modules) {
+        const [x, y] = coverageRoutes[module.lane].points[module.waypoint];
+        ctx.save();
+        ctx.setLineDash([5, 5]);
+        circle(ctx, x, y, 25, "#102338c0", module.color, 3);
+        ctx.fillStyle = module.color;
+        ctx.font = "bold 19px system-ui";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(module.lane ? "B" : "A", x, y);
+        ctx.restore();
+      }
+    }
     const draft = movingTower || blueprint;
     const ghost = !aiming && !hovered && cursor && draft ? { ...draft, ...cursor } : null;
     const validSpot = ghost && !(movingTower
@@ -612,7 +767,20 @@ export class Board {
           color + "b0",
           2,
         );
-        if (valid) highlightCoverage(ctx, tower, coverageRoutes);
+        if (valid) {
+          highlightCoverage(ctx, tower, coverageRoutes);
+          if (!isGhost) {
+            const attack = towerAttack[tower.id];
+            affinityProfiles.forEach((profile, lane) => {
+              const counts = profile.get(attack);
+              if (!counts || counts.resist <= counts.weak) return;
+              ctx.save();
+              ctx.setLineDash([9, 9]);
+              highlightCoverage(ctx, tower, [coverageRoutes[lane]], tower.range, "#ffd09a");
+              ctx.restore();
+            });
+          }
+        }
       }
       if (isGhost) {
         ctx.save();
@@ -640,10 +808,26 @@ export class Board {
       const partner = match.linkPartner(tower, coverageWave);
       if (partner) drawCircuit(ctx, tower, partner);
     }
+    if (fireCoverage?.length && focusTarget) {
+      ctx.save();
+      ctx.setLineDash([8, 6]);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "#ffe292a8";
+      for (const tower of fireCoverage) {
+        trace(ctx, [[tower.x, tower.y], [focusTarget.x, focusTarget.y]]);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
     match.towers.forEach((tower) =>
       turret(ctx, tower, tower === selected || tower === hovered),
     );
+    if (fireCoverage)
+      for (const tower of fireCoverage)
+        circle(ctx, tower.x, tower.y, 24, null, "#ffe292", 3);
     for (const tower of match.towers) {
+      if (match.state === "wave" && tower.relayUntil > match.time)
+        circle(ctx, tower.x, tower.y, 28, null, "#ffe394", 2);
       if (!match.towerOffline(tower, coverageWave)) continue;
       circle(ctx, tower.x, tower.y, 24, "#091024a6", "#ffd890", 2);
       trace(ctx, [[tower.x - 12, tower.y + 9], [tower.x + 12, tower.y - 9]]);
@@ -667,7 +851,8 @@ export class Board {
       circle(ctx, cue.x, cue.y, radius, null, color, 2);
       circle(ctx, cue.x, cue.y, radius + 6, null, color + "66", 2);
     }
-    match.enemies.forEach((enemy) => target(ctx, enemy, match.time));
+    const compactCombat = ctx.canvas.clientWidth < 550;
+    match.enemies.forEach((enemy) => target(ctx, enemy, match.time, compactCombat));
     if (focusTarget?.hp > 0 && !focusTarget.escaped) {
       ctx.save();
       ctx.translate(focusTarget.x, focusTarget.y);

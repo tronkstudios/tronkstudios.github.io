@@ -20,12 +20,18 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8791";
       (url) => !url.href.startsWith(base),
       (route) => route.abort(),
     );
+    await context.route("**/juegos/bio-lab-defense/game.js?*", async route => {
+      const response = await route.fetch();
+      // These point-save regressions use the original free-placement layout.
+      const body = (await response.text()).replaceAll("fixedLayout: true", "fixedLayout: false");
+      await route.fulfill({ response, body });
+    });
     await page.goto(base + "/juegos/bio-lab-defense/");
     await page.locator("#campaign-button").tap();
     await page.locator(".level").first().tap();
     await page.locator("#launch-mission").tap();
 
-    async function tapBoard(x = 170, y = 205) {
+    async function tapBoard(x = 165, y = 165) {
       const canvas = page.locator("#board");
       const box = await canvas.boundingBox();
       await canvas.tap({
@@ -67,6 +73,20 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8791";
     assert.equal(await page.locator("#near-board-selection #selection").isVisible(), true);
     await page.getByText(/Daño 14 → 20 · Alcance 120 → 133/).waitFor();
     await page.getByRole("button", { name: /^Mejorar/ }).tap();
+    const beforeComparison = await page.locator("#atp").textContent();
+    const checkpointBeforeComparison = await page.evaluate(() => localStorage.getItem("biolab_checkpoint:guest"));
+    await page.getByRole("button", { name: "Ensayar mejoras" }).tap();
+    const comparison = drill.getByRole("region", { name: "Resultado por mejora" });
+    await comparison.waitFor();
+    assert.equal(await comparison.getByRole("row").count(), 4);
+    for (const label of [/Defensa actual/, /Perforante · .* ATP/, /Cadencia · .* ATP/])
+      await comparison.getByRole("rowheader", { name: label }).waitFor();
+    assert.equal(await comparison.getByText(/^\d+ de daño$/).count(), 3);
+    const width = await drill.evaluate(node => ({ inner: node.clientWidth, content: node.scrollWidth }));
+    assert.ok(width.content <= width.inner);
+    await drill.getByRole("button", { name: "Volver a preparar" }).tap();
+    assert.equal(await page.locator("#atp").textContent(), beforeComparison);
+    assert.equal(await page.evaluate(() => localStorage.getItem("biolab_checkpoint:guest")), checkpointBeforeComparison);
     await page.getByText(/Daño 20 → 46 · Alcance 133 → 146/).waitFor();
     const range = page.getByRole("button", { name: "Ver alcance · Cadencia" });
     const beforePreview = await page.locator("#atp").textContent();
@@ -109,6 +129,11 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8791";
     await guide.waitFor({ state: "hidden" });
     assert.equal(await page.locator("#relocate-tower").count(), 0);
     await page.reload();
+    await page.locator("#home-saved-run").getByText("Sector 1 · Ingreso · Oleada 1/4").waitFor();
+    await page.locator("#campaign-button").tap();
+    await page.locator("#saved-sector").getByText("Sector 1 · Ingreso · Oleada 1/4").waitFor();
+    await page.locator("#saved-resources").getByText(`Núcleo ${before.hp} % · ${before.atp} ATP`).waitFor();
+    await page.locator("#back-home").tap();
     await page.locator("#home-resume-run").tap();
     assert.equal(await page.locator("#wave").textContent(), "0/4");
     assert.equal(await page.locator("#atp").textContent(), String(before.atp));

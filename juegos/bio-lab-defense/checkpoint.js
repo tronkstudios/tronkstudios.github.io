@@ -1,6 +1,6 @@
-import { BLUEPRINTS, HEIGHT, Match, TARGETING, WIDTH, specializations } from "./engine.js?v=29";
+import { BLUEPRINTS, HEIGHT, Match, TARGETING, WIDTH, specializations } from "./engine.js?v=38";
 
-import { MISSIONS } from "./campaign.js?v=8";
+import { MISSIONS } from "./campaign.js?v=16";
 
 const version = 1;
 const blueprintById = new Map(BLUEPRINTS.map((type) => [type.id, type]));
@@ -33,6 +33,7 @@ export class Checkpoint {
     if (match.ranked || match.state !== "build") return false;
     const data = {
       version,
+      fixedLayout: match.fixedLayout || undefined,
       level: match.level,
       wave: match.wave,
       hp: match.hp,
@@ -56,6 +57,7 @@ export class Checkpoint {
       } : undefined,
       barrierUsed: match.barrier?.used,
       powerFirst: match.power?.first,
+      archiveFirstLane: match.archive?.[0].lane,
 
       gateDiverted: match.gateRoutes ? match.gateDiverted : undefined,
       routeDiverted: match.routeEvent ? match.routes[1] === match.routeEvent.alternate : undefined,
@@ -77,6 +79,8 @@ export class Checkpoint {
         slowTicks: t.slowTicks,
         shieldsBroken: t.shieldsBroken,
         synergyHits: t.synergyHits,
+        corrosionDamage: t.corrosionDamage,
+        chillDamage: t.chillDamage,
       })),
     };
     try {
@@ -104,7 +108,11 @@ export class Checkpoint {
 
 export function restoreCheckpoint(data) {
   if (!data || !integer(data.level, 1, MISSIONS.length)) return null;
-  const match = new Match(data.level, null, { heroId: data.hero?.id });
+  const match = new Match(data.level, null, {
+    heroId: data.hero?.id,
+    fixedLayout: data.fixedLayout === true,
+    legacyArchiveOrder: data.wave > 0 && data.archiveFirstLane !== 1,
+  });
   if (
     !integer(data.wave, 0, match.maxWaves - 1) ||
     !integer(data.hp, 1, 100) ||
@@ -129,7 +137,7 @@ export function restoreCheckpoint(data) {
   if (match.console) match.console.complete = data.wave > 0;
   if (match.barrier) match.barrier.used = data.barrierUsed === true;
   if (match.archive)
-    for (const terminal of match.archive) terminal.complete = data.wave > terminal.lane;
+    for (const [index, terminal] of match.archive.entries()) terminal.complete = data.wave > index;
   if (match.power) {
     // Older saves for this sector can already be between the planned cuts.
     match.power.first = [0, 1].includes(data.powerFirst) ? data.powerFirst : data.wave > 0 ? 0 : null;
@@ -167,6 +175,8 @@ export function restoreCheckpoint(data) {
       slowTicks: integer(item.slowTicks, 0, 1000000) ? item.slowTicks : 0,
       shieldsBroken: integer(item.shieldsBroken, 0, 2000) ? item.shieldsBroken : 0,
       synergyHits: integer(item.synergyHits, 0, 200000) ? item.synergyHits : 0,
+      corrosionDamage: number(item.corrosionDamage, 0, 1000000) ? item.corrosionDamage : 0,
+      chillDamage: number(item.chillDamage, 0, 1000000) ? item.chillDamage : 0,
     });
   }
   for (const key of [
@@ -196,6 +206,8 @@ export function restoreCheckpoint(data) {
     const { damage, kills, atp, payout, reserve, recovery, reactor, bounties, leaks, worst, gap } = data.debrief;
     match.debrief = { damage, kills, atp, reserve: integer(reserve, 0, atp) ? reserve : 0,
       recovery: integer(recovery, 0, atp) ? recovery : 0 };
+    for (const stat of ["corrosionDamage", "chillDamage"])
+      if (integer(data.debrief[stat], 0, 1000000)) match.debrief[stat] = data.debrief[stat];
     if ([payout, reserve, recovery, reactor, bounties].every(amount => integer(amount, 0, atp)) &&
         payout + reserve + recovery + reactor + bounties === atp)
       Object.assign(match.debrief, { payout, reactor, bounties });

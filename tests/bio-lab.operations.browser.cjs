@@ -41,13 +41,29 @@ queue.forEach(handle);
       const response = await route.fetch();
       await route.fulfill({
         response,
-        body: (await response.text()) + `
+        // The scripted coordinates below exercise the original campaign layout.
+        body: (await response.text()).replaceAll("fixedLayout: true", "fixedLayout: false") + `
 window.testRun = {
   get state() { return { state: match.state, wave: match.wave, hero: match.hero?.id,
     cooldown: match.hero?.abilityCooldown, x: match.hero?.x, y: match.hero?.y, hp: match.hp, time: match.time }; },
   spawnNearHero() {
     match.spawn();
     Object.assign(match.enemies.at(-1), { x: match.hero.x + 15, y: match.hero.y });
+  },
+  triggerFinale() {
+    match.queue = match.queue.filter(entry => entry.boss);
+    match.enemies = [];
+    match.spawn();
+    const boss = match.enemies[0];
+    match.damage(boss, boss.maxHp * 0.55, "#fff", { piercing: true });
+  },
+  inspectCoverage(inRange) {
+    const enemy = fireChoices[$("fire-choice").selectedIndex];
+    const tower = match.towers[0];
+    const original = { x: enemy.x, y: enemy.y };
+    Object.assign(enemy, inRange ? { x: tower.x + 55, y: tower.y } : { x: WIDTH - 30, y: 25 });
+    inspectFireTarget();
+    Object.assign(enemy, original);
   },
   winContract() { match.kills = 15; match.state = "won"; },
   towerCap() {
@@ -62,7 +78,7 @@ window.testRun = {
   loseConsole() {
     for (let i = 0; i < 4; i++) {
       match.spawn();
-      Object.assign(match.enemies.at(-1), { x: match.console.x, y: match.console.y, wp: 2 });
+      Object.assign(match.enemies.at(-1), { x: match.console.x, y: match.console.y, wp: 2, coverageGaps: [0, 4] });
     }
   },
   mirrorPhase() {
@@ -125,7 +141,7 @@ window.testRun = {
     await page.addInitScript(() => {
       if (!localStorage.getItem("biolab_save_v1"))
         localStorage.setItem("biolab_save_v1", JSON.stringify({
-          unlockedLevel: 22, bioGems: 61, stars: Array(22).fill(1),
+          unlockedLevel: 31, bioGems: 61, stars: Array(22).fill(1).with(13, 0),
         }));
     });
     await page.goto(base + "/juegos/bio-lab-defense/");
@@ -169,9 +185,25 @@ window.testRun = {
     await page.getByRole("heading", { name: "Nanobots de campaña" }).waitFor();
     assert.deepEqual(await page.locator("#heroes h3").allTextContents(), [
       "Óptix · Reconocimiento", "Crión · Control térmico", "Volt · Antiescudos", "Helio · Asalto",
+      "Vatio · Energía de emergencia", "Nexo · Control de rutas",
     ]);
-    assert.equal(await page.locator(".hero-art").count(), 4);
+    assert.equal(await page.locator(".hero-art").count(), 6);
     assert.match(await page.locator("#fielded-hero").textContent(), /Óptix/);
+    const heroFilter = page.getByLabel("Filtrar nanobots");
+    const contractFilter = page.getByLabel("Filtrar contratos");
+    await heroFilter.selectOption("owned");
+    assert.deepEqual(await page.locator("#heroes h3").allTextContents(), ["Óptix · Reconocimiento"]);
+    await heroFilter.selectOption("locked");
+    assert.equal(await page.locator("#heroes h3").count(), 5);
+    await contractFilter.selectOption("ready");
+    assert.equal(await page.locator("#contracts button:disabled").count(), 0);
+    assert.equal(await page.locator("#contracts button").count(), 5);
+    assert.equal(await page.locator('[data-operation="contract-escolta"]').count(), 0);
+    await contractFilter.selectOption("all");
+    assert.equal(await page.locator('[data-operation="contract-escolta"]').isDisabled(), true);
+    await heroFilter.selectOption("all");
+    await page.getByText("Entre disparos").first().waitFor();
+    await page.locator("#heroes article").filter({ hasText: "Óptix" }).getByText("Recarga · 12 s").waitFor();
     await page.locator('[data-operation="buy-vega"]').tap();
     await page.locator('[data-operation="equip-vega"]').tap();
     assert.match(await page.locator("#operations-balance").textContent(), /6 biogemas/);
@@ -183,17 +215,28 @@ window.testRun = {
       await ad.tap();
       await page.waitForFunction((n) => window.testAds === n, index + 1);
       await page.evaluate((it) => finishTestAd(it), viewed);
-      if (index === 0) assert.match(await ad.textContent(), /0\/2/);
-      if (index === 1) {
-        assert.match(await ad.textContent(), /1\/2/);
-        assert.equal(await cryoProgress.getAttribute("value"), "1");
-      }
+      if (index === 0) assert.equal(await cryoProgress.getAttribute("value"), "0");
+      if (index === 1) assert.equal(await cryoProgress.getAttribute("value"), "1");
     }
     await page.locator('[data-operation="equip-mara"]').waitFor();
+    await heroFilter.selectOption("owned");
+    assert.equal(await page.locator("#heroes h3").count(), 3);
     await page.reload();
     await page.locator("#operations-button").tap();
     assert.equal(await page.locator('[data-operation="equip-vega"]').isDisabled(), true);
     await page.locator('[data-operation="equip-mara"]').waitFor();
+    const mastery = page.locator('[data-operation="contract-mastery-4"]');
+    await mastery.getByText("Jugar desafío").waitFor();
+    assert.equal(await page.locator('[data-operation="contract-mastery-14"]').isDisabled(), true);
+    await mastery.tap();
+    await page.locator("#sector").getByText("Cuatro puestos").waitFor();
+    await page.locator("#tower-limit").getByText("0/4 instaladas").waitFor();
+    assert.equal(await page.locator("#supplies").isVisible(), false);
+    await page.locator("#next").tap();
+    await page.evaluate(() => testRun.winContract());
+    await page.getByRole("heading", { name: "Nuevo récord de maestría" }).waitFor();
+    await page.getByRole("button", { name: "Volver a maestría" }).tap();
+    await page.locator("#mastery").getByText("Medalla de maestría obtenida").waitFor();
     await page.locator('[data-operation="contract-guardia"]').tap();
     assert.equal(await page.locator("#supplies").isVisible(), false);
     assert.equal(await page.locator("#field-specials").isVisible(), false);
@@ -212,7 +255,7 @@ window.testRun = {
     await page.evaluate(() => testRun.winContract());
     await page.getByRole("heading", { name: "Nuevo récord de élite" }).waitFor();
     await page.getByRole("button", { name: "Volver a contratos" }).tap();
-    await page.getByText(/Récord personal · \d/).waitFor();
+    await page.locator("#contracts").getByText(/Récord personal · \d/).waitFor();
     await page.locator("#back-operations").tap();
 
     const launch = async (index) => {
@@ -223,6 +266,7 @@ window.testRun = {
       if (await replace.isVisible()) await replace.tap();
     };
     await launch(1);
+    await page.locator("#objective-coverage-title").getByText("Consola · 0 % del acceso cubierto").waitFor();
     await page.getByText(/Protege la consola · Integridad 4\/4/).waitFor();
     const board = page.locator("#board");
     await board.scrollIntoViewIfNeeded();
@@ -252,6 +296,7 @@ window.testRun = {
     assert.equal(Number(await page.locator("#atp").textContent()), atpBeforeDrag);
     await devtools.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
     await page.getByText("Nano-Láser instalada.", { exact: true }).waitFor();
+    await page.locator("#objective-coverage-title").getByText(/Consola · [1-9][0-9]* % del acceso cubierto/).waitFor();
     assert.equal(Number(await page.locator("#atp").textContent()), atpBeforeDrag - 50);
     await devtools.detach();
     const { x, y } = await page.evaluate(() => testRun.state);
@@ -276,7 +321,14 @@ window.testRun = {
     const stopped = await page.evaluate(() => testRun.state.time);
     await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
     assert.equal(await page.evaluate(() => testRun.state.time), stopped);
-    await page.locator("#fire-details").getByText(/Vida .* con alcance/).waitFor();
+    await page.locator("#fire-details").getByText(/Vida \d+ \/ \d+/).waitFor();
+    await page.evaluate(() => testRun.inspectCoverage(false));
+    await page.getByText("0 torres operativas con alcance").waitFor();
+    await page.getByText("La orden queda activa hasta que alguna torre pueda alcanzarlo.").waitFor();
+    assert.equal(await page.locator("#fire-confirm").isEnabled(), true);
+    await page.evaluate(() => testRun.inspectCoverage(true));
+    await page.getByText("1 torre operativa con alcance").waitFor();
+    await page.locator("#fire-coverage-detail").getByText("Nano-Láser", { exact: true }).waitFor();
     await page.locator("#fire-confirm").tap();
     await page.locator("#focus-fire").getByText(/Objetivo ·/).waitFor();
     await page.locator("#focus-fire").tap();
@@ -286,8 +338,13 @@ window.testRun = {
     assert.ok(await page.evaluate(() => testRun.state.cooldown) > 0);
     await page.evaluate(() => testRun.loseConsole());
     await page.getByText(/La consola de Muestreo fue destruida/).waitFor();
+    await page.getByRole("img", { name: "Tramo hasta el objetivo · Consola · Entrada A" }).waitFor();
+    await page.locator("#modal-text").getByText(/4 enemigos alcanzaron el objetivo/).waitFor();
     await page.getByRole("button", { name: "Repreparar la oleada" }).tap();
     await page.getByText(/Protege la consola · Integridad 4\/4/).waitFor();
+    await page.locator("#retry-review").getByText(/Pasaron 4 enemigos fuera del alcance/).waitFor();
+    await page.getByRole("button", { name: "Quitar marca del mapa" }).tap();
+    assert.ok(await page.locator("#retry-review").isHidden());
     await page.locator("#pause").tap();
     await page.getByRole("button", { name: "Abandonar partida" }).tap();
     await page.locator(".level").nth(7).tap();
@@ -319,6 +376,7 @@ window.testRun = {
     await page.locator(".level").nth(15).tap();
     await page.locator("#launch-mission").tap();
     await page.getByText("Protege la terminal A · Integridad 4/4").waitFor();
+    await page.locator("#objective-coverage-title").getByText("Terminal A · 0 % del acceso cubierto").waitFor();
     await page.locator("#next").tap();
     await page.waitForFunction(() =>
       !document.querySelector("#next-group-a").hidden ||
@@ -328,6 +386,7 @@ window.testRun = {
     await page.evaluate(() => testRun.finishCurrentWave());
     await page.locator("#combat-cue").getByText("Terminal A asegurada").waitFor();
     await page.getByText("Protege la terminal B · Integridad 4/4").waitFor();
+    await page.locator("#objective-coverage-title").getByText("Terminal B · 0 % del acceso cubierto").waitFor();
     await page.locator("#wave-debrief-title").tap();
     await page.getByText(/Entrada A · [01] fugas? \/ Entrada B · [01] fugas?/).waitFor();
     const gapText = page.locator("#wave-debrief-gap-text");
@@ -420,6 +479,78 @@ window.testRun = {
     assert.equal(await page.locator("#zero-state-a").textContent(), "Destruido");
     assert.equal(await page.locator("#zero-state-b").textContent(), "Destruido");
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true);
+    await page.locator("#pause").tap();
+    await page.getByRole("button", { name: "Abandonar partida" }).tap();
+    await page.locator(".level").filter({ hasText: "Eco orbital" }).tap();
+    const powerMap = page.getByLabel("Ver corte de energía");
+    assert.equal(await powerMap.inputValue(), "3");
+    await powerMap.selectOption("4");
+    await page.locator("#launch-mission").tap();
+    await page.evaluate(() => testRun.nextPreparation());
+    await page.locator("#power-cut-detail").getByText(/Corte anunciado/).waitFor();
+    assert.ok(await page.locator("#power-cut-relocate").isHidden());
+    const tapPowerBoard = async (x, y) => {
+      const bounds = await board.boundingBox();
+      await board.tap({ position: { x: (bounds.width - 2) * x / 900, y: (bounds.height - 2) * y / 540 } });
+    };
+    await tapPowerBoard(503, 241);
+    await page.locator("#board-status").getByText("Nano-Láser instalada.").waitFor();
+    await page.evaluate(() => testRun.nextPreparation());
+    await page.locator("#power-cut-detail").getByText(/1 torre afectada/).waitFor();
+    const budget = await page.locator("#atp").textContent();
+    await page.locator("#power-cut-relocate").tap();
+    await page.locator("#board-status").getByText(/fuera de la zona ámbar/).waitFor();
+    const marker = page.getByRole("button", { name: "Confirmar traslado sugerido" });
+    await marker.waitFor();
+    await page.locator("#power-cut-suggestion").getByText(/Cobertura total prevista/).waitFor();
+    await page.locator("#placement-analysis").getByText(/0 → 14 de daño por impacto/).waitFor();
+    await page.keyboard.press("Escape");
+    await marker.waitFor({ state: "hidden" });
+    assert.equal(await page.locator("#atp").textContent(), budget);
+    await page.locator("#power-cut-relocate").tap();
+    await marker.tap();
+    await marker.waitFor({ state: "hidden" });
+    await page.locator("#board-status").getByText("Nano-Láser reubicada.").waitFor();
+    await page.locator("#power-cut-detail").getByText(/0 torres afectadas/).waitFor();
+    assert.equal(await page.locator("#atp").textContent(), budget);
+    await page.locator("#pause").tap();
+    await page.getByRole("button", { name: "Abandonar partida" }).tap();
+    await page.locator(".level").filter({ hasText: "Cúpula partida" }).tap();
+    await page.locator("#briefing-power-pads").getByText(/Plataforma A activa/).waitFor();
+    await page.locator("#launch-mission").tap();
+    await page.locator("#power-pads-title").getByText(/Plataforma A activa/).waitFor();
+    await page.locator("#cut-a").tap();
+    await tapPowerBoard(302, 166);
+    await page.locator("#board-status").getByText("Nano-Láser instalada.").waitFor();
+    await tapPowerBoard(302, 166);
+    await forecast.getByText(/21 de daño por impacto · Plataforma \+50 %/).waitFor();
+    await page.evaluate(() => testRun.nextPreparation());
+    await page.locator("#power-pads-title").getByText(/Plataforma B activa/).waitFor();
+    await forecast.getByText(/14 de daño por impacto/).waitFor();
+    await page.locator("#next").tap();
+    const legend = page.getByRole("group", { name: "Indicadores de combate" });
+    await legend.getByText("Blindaje", { exact: true }).waitFor();
+    await legend.getByText("Escudo", { exact: true }).waitFor();
+    assert.equal(await page.locator("#next-group-a").evaluate(node => node.parentElement.id), "compact-incoming");
+    await page.locator("#pause").tap();
+    await page.getByRole("button", { name: "Abandonar partida" }).tap();
+    await page.locator(".level").filter({ hasText: "Cúpula partida" }).tap();
+    await page.locator("#briefing-finale").getByText(/Descarga de la cúpula/).waitFor();
+    await page.locator("#launch-mission").tap();
+    await page.locator("#cut-a").tap();
+    await page.evaluate(() => testRun.previewFinalWave());
+    const finale = page.getByRole("region", { name: "Descarga de la cúpula" });
+    await finale.getByText(/Escudo del jefe y escoltas por A/).waitFor();
+    await page.locator("#next").tap();
+    await page.evaluate(() => testRun.triggerFinale());
+    await page.locator("#boss-finale").getByText(/Relevo de la cúpula/).waitFor();
+    const warning = page.locator("#compact-incoming #entry-warning");
+    await warning.getByText(/Relevo de la cúpula · Entrada A/).waitFor();
+    await page.evaluate(() => testRun.winContract());
+    await page.getByRole("heading", { name: "Final de capítulo superado" }).waitFor();
+    await page.locator("#modal-context").getByText("Capítulo 7 · Marea de vidrio").waitFor();
+    await page.getByRole("button", { name: "Siguiente capítulo" }).tap();
+    await page.getByRole("heading", { name: "Eco orbital" }).waitFor();
     assert.deepEqual(errors, []);
     console.log("Bio-Lab map beacons, hero payment and ads, contracts, equipment and Mirror warnings passed.");
   } finally {

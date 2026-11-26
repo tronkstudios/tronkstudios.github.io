@@ -1,32 +1,86 @@
+import { specializations, upgradeCost } from "./engine.js?v=38";
+
 // Clone the complete state together so references between routes, towers and shots survive.
 // The mission definition contains medal predicates and is read-only during combat.
-export function startDrill(match) {
+export function startDrill(match, change = null) {
   if (match.state !== "build" || match.power?.first === null) return null;
   const { mission, ...state } = match;
   const simulation = Object.assign(Object.create(Object.getPrototypeOf(match)), structuredClone(state), { mission });
+  if (change) {
+    const tower = simulation.towers[change.towerIndex];
+    if (!tower) return null;
+    const applied = change.position
+      ? simulation.relocate(tower, change.position.x, change.position.y)
+      : simulation.upgrade(tower, change.choice);
+    if (!applied) return null;
+  }
   return simulation.startWave() ? simulation : null;
 }
 
-export function attachDrill(dialog, board, getMatch, selectTower) {
+function waveResult(simulation) {
+  const objectiveLost = simulation.console?.hp === 0 ||
+    simulation.archive?.some(terminal => terminal.hp === 0);
+  const leaks = simulation.waveLeaks.lanes.reduce((total, count) => total + count, 0);
+  const outcome = objectiveLost ? "Objetivo perdido" : simulation.hp <= 0 ? "Núcleo perdido" : "Oleada contenida";
+  return { hp: simulation.hp, atp: simulation.atp, leaks, outcome };
+}
+
+export function attachDrill(dialog, board, getMatch, selectTower, applyPosition) {
   const title = dialog.querySelector("h2");
+  const intro = dialog.querySelector(".drill-intro");
+  const normalIntro = intro.textContent;
   const result = dialog.querySelector("[role=status]");
   const lanes = dialog.querySelector("ul");
   const performancePanel = dialog.querySelector(".drill-towers");
   const towerList = performancePanel.querySelector("ol");
   const compare = dialog.querySelector(".drill-comparison");
   const gapHint = dialog.querySelector(".drill-gap");
+  const upgradeComparison = dialog.querySelector(".drill-upgrades");
+  const heading = upgradeComparison.querySelector("h3");
+  const note = upgradeComparison.querySelector("#drill-plan-note");
+  const apply = upgradeComparison.querySelector("#drill-apply-position");
+  const upgradeTitle = upgradeComparison.querySelector("caption");
+  const upgradeRows = upgradeComparison.querySelector("tbody");
   let frame;
   let previous;
 
-  function open() {
+  function open(tower = null, position = null) {
     const match = getMatch();
     const sim = startDrill(match);
     if (!sim) return;
+    const scenarios = [{ simulation: sim, label: "Defensa actual" }];
+    const towerIndex = match.towers.indexOf(tower);
+    if (towerIndex >= 0 && position) {
+      const simulation = startDrill(match, { towerIndex, position });
+      if (!simulation) return;
+      scenarios.push({ simulation, label: "Trasladar a otro puesto" });
+    } else if (towerIndex >= 0 && tower.rank < 3) {
+      const labels = tower.rank === 1 ? ["Nivel 2"] : specializations(tower).map(branch => branch.name);
+      for (const [choice, label] of labels.entries()) {
+        const simulation = startDrill(match, { towerIndex, choice });
+        if (simulation) scenarios.push({ simulation, label: `${label} · ${upgradeCost(tower)} ATP` });
+      }
+    }
+    const comparing = scenarios.length > 1;
     cancelAnimationFrame(frame);
     const wave = sim.wave;
     const startingHP = sim.hp;
     title.textContent = `Ensayo de la oleada ${wave}`;
-    result.textContent = "Simulando el combate…";
+    intro.textContent = comparing
+      ? position ? "Compara la misma oleada antes y después del traslado." : "La misma oleada con tu defensa actual y cada mejora disponible."
+      : normalIntro;
+    result.textContent = comparing ? "Simulando la defensa actual y las mejoras…" : "Simulando el combate…";
+    upgradeComparison.hidden = true;
+    heading.textContent = position ? "Resultado del traslado" : "Resultado por mejora";
+    note.textContent = position
+      ? "El anillo violeta señala el puesto alternativo. Tu preparación se mantiene hasta que apliques el traslado."
+      : "El coste se descuenta solo en el ensayo. El mapa muestra tu defensa actual.";
+    apply.hidden = !position;
+    apply.onclick = position ? () => {
+      dialog.close();
+      applyPosition(tower, position);
+    } : null;
+    upgradeRows.replaceChildren();
     lanes.replaceChildren();
     performancePanel.hidden = true;
     performancePanel.open = false;
@@ -39,21 +93,69 @@ export function attachDrill(dialog, board, getMatch, selectTower) {
     function advance() {
       if (!dialog.open) return;
       const deadline = performance.now() + 7;
-      for (let i = 0; i < 90 && sim.state === "wave" && performance.now() < deadline; i++) sim.tick();
-      const finished = sim.state !== "wave";
+      for (let i = 0; i < 90 && performance.now() < deadline; i++) {
+        let active = false;
+        for (const { simulation } of scenarios) {
+          if (simulation.state !== "wave") continue;
+          simulation.tick();
+          active = true;
+        }
+        if (!active) break;
+      }
+      const finished = scenarios.every(({ simulation }) => simulation.state !== "wave");
+      const failedObjective = finished && (sim.console?.hp === 0 || sim.activeTerminal?.hp === 0)
+        ? sim.waveObjectiveHits : null;
       if (finished || !staticMap) {
         board.draw(sim, null, null, null, true, false, null, {
-          breach: finished && sim.waveLeaks.worst ? sim.waveLeaks : null,
+          breach: failedObjective || (finished && sim.waveLeaks.worst ? sim.waveLeaks : null),
         });
+      }
+      if (position && (finished || !staticMap)) {
+        const ctx = board.ctx;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(position.x, position.y, 25, 0, 2 * Math.PI);
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "#d7bbff";
+        ctx.setLineDash([6, 4]);
+        ctx.stroke();
+        ctx.restore();
       }
       if (!finished) {
         frame = requestAnimationFrame(advance);
         return;
       }
       const leaks = sim.waveLeaks.lanes;
-      const objectiveLost = sim.console?.hp === 0 || sim.archive?.some(terminal => terminal.hp === 0);
-      const outcome = objectiveLost ? "Objetivo perdido" : sim.hp <= 0 ? "Núcleo perdido" : "Oleada contenida";
-      result.textContent = `${outcome} · Núcleo ${startingHP} % → ${sim.hp} %`;
+      const current = waveResult(sim);
+      result.textContent = `${current.outcome} · Núcleo ${startingHP} % → ${current.hp} %`;
+      if (comparing) {
+        upgradeTitle.textContent = `${tower.name} · Nivel ${tower.rank}`;
+        for (const { simulation, label } of scenarios) {
+          const { outcome, hp, atp, leaks } = waveResult(simulation);
+          const row = upgradeRows.insertRow();
+          const name = document.createElement("th");
+          name.scope = "row";
+          name.textContent = label;
+          const tested = simulation.towers[towerIndex];
+          const contribution = document.createElement("small");
+          contribution.className = "drill-contribution";
+          contribution.textContent = tested.type === "eco"
+            ? `${tested.produced - tower.produced} ATP generados`
+            : `${Math.round(tested.inflicted - tower.inflicted)} de daño`;
+          name.append(contribution);
+          row.append(name);
+          const core = row.insertCell();
+          core.textContent = `${hp} %`;
+          if (outcome !== "Oleada contenida") {
+            const status = document.createElement("small");
+            status.textContent = outcome;
+            core.append(status);
+          }
+          row.insertCell().textContent = leaks;
+          row.insertCell().textContent = atp.toLocaleString("es-ES");
+        }
+        upgradeComparison.hidden = false;
+      }
       lanes.replaceChildren(...leaks.map((count, lane) => {
         const item = document.createElement("li");
         const names = [...sim.waveLeaks.entries.values()].filter(entry => entry.lane === lane)
@@ -72,6 +174,10 @@ export function attachDrill(dialog, board, getMatch, selectTower) {
         const damage = Math.round(tested.inflicted - original.inflicted);
         const stats = tested.type === "eco" ? [`+${tested.produced - original.produced} ATP`]
           : [`${damage} de daño`, `${tested.defeated - original.defeated} bajas`];
+        const corrosion = Math.round(tested.corrosionDamage - original.corrosionDamage);
+        if (corrosion > 0) stats.push(`+${corrosion} de daño por Corrosión + Impacto`);
+        const chill = Math.round(tested.chillDamage - original.chillDamage);
+        if (chill > 0) stats.push(`+${chill} de daño por Frío + Área`);
         const slow = tested.slowTicks - original.slowTicks;
         if (slow) stats.push(`${(slow / 60).toLocaleString("es-ES", { maximumFractionDigits: 1 })} s de ralentización acumulada`);
         ctx.fillStyle = "#0c1e32";
@@ -98,17 +204,20 @@ export function attachDrill(dialog, board, getMatch, selectTower) {
         return item;
       }));
       ctx.restore();
-      const gaps = [...sim.waveLeaks.gaps.values()].sort((a, b) => b.count - a.count);
-      if (gaps.length) {
+      const gaps = [...(failedObjective || sim.waveLeaks).gaps.values()].sort((a, b) => b.count - a.count);
+      if (failedObjective) {
+        gapHint.hidden = false;
+        gapHint.textContent = `${failedObjective.objective.name} · ${failedObjective.count} enemigos alcanzaron el objetivo. El marcador naranja señala dónde interceptarlos.`;
+      } else if (gaps.length) {
         const gap = gaps[0];
         gapHint.hidden = false;
         gapHint.textContent = `Los trazos amarillos señalan zonas sin cobertura. En el tramo ${gap.waypoint} de ${gap.lane ? "B" : "A"} pasaron ${gap.count} de los enemigos que llegaron al núcleo.`;
       }
-      if (previous?.match === match && previous.wave === wave) {
+      if (!comparing && previous?.match === match && previous.wave === wave) {
         compare.hidden = false;
         compare.textContent = `Ensayo anterior · ${previous.outcome} · Núcleo ${previous.hp} % · ${previous.leaks} fugas`;
       }
-      previous = { match, wave, outcome, hp: sim.hp, leaks: leaks.reduce((sum, n) => sum + n, 0) };
+      if (!comparing) previous = { match, wave, ...current };
     }
     frame = requestAnimationFrame(advance);
   }

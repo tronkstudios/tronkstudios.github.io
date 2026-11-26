@@ -48,7 +48,7 @@ export const CHAPTERS = [
 
 const medals = {
   intact: {
-    title: "Sin fugas",
+    title: "Núcleo estable",
     text: "Termina con al menos 90 % de integridad.",
     progress: m => `${m.hp} % de núcleo`,
     test: (m) => m.hp >= 90,
@@ -138,6 +138,15 @@ export const MISSIONS = [
     end: "Repuesto asegurado. La peste bubónica se interpone entre nosotros y el ascensor.",
     medal: medals.researcher,
     bend: 1.22,
+    tactics: { 2: {
+      name: "Escolta del depósito",
+      tip: "Rompe los escudos del primer grupo. Los últimos enemigos aceleran por el mismo conducto.",
+      groups: [
+        { name: "Avanzada con escudos", shield: 0.32 },
+        { name: "Transporte del depósito" },
+        { name: "Corredores de salida", speed: 1.16 },
+      ],
+    } },
   },
   {
     chapter: 0,
@@ -153,6 +162,15 @@ export const MISSIONS = [
     medal: medals.stabilize,
     flip: true,
     bend: 0.88,
+    finale: {
+      name: "Evacuación del ascensor",
+      tip: "Guarda el pulso para romper el escudo antes del último giro.",
+      stages: [
+        { name: "Escolta del ascensor", detail: "El jefe gana un escudo y recibe tres escoltas por la única entrada.", shield: 0.16,
+          reinforcements: { lane: 0, delay: 115, count: 3, spec: 1, armor: 5 } },
+        { name: "Carrera al ascensor", detail: "El jefe acelera hacia el núcleo.", speed: 1.42 },
+      ],
+    },
   },
   {
     chapter: 1,
@@ -165,6 +183,25 @@ export const MISSIONS = [
     transmission:
       "Estoy desviando los conductos al filtro. Comprueba ambos accesos en el siguiente parte.",
     end: "La estación vuelve a responder. El sensor de la cámara fría sigue por encima del límite.",
+    counterTactics: { 2: {
+      name: "Cruce de afinidades",
+      tip: "El Pulso Plasma cubre los bacilos de A. Guarda el Nano-Láser para los bacteriófagos de B.",
+      formation: "cross",
+      groups: [
+        { name: "Bacilos por A", lane: 0, species: "subtilis" },
+        { name: "Bacteriófagos por B", lane: 1, species: "phage-t4", gap: 36 },
+        { name: "Segunda fila de bacilos", lane: 0, species: "subtilis", spacing: 29 },
+      ],
+    }, 4: {
+      name: "Intercepción en el cruce",
+      tip: "B alterna bacteriófagos y bacilos. Coloca ataques térmicos cerca de la unión y guarda Láser para el primer grupo de B.",
+      formation: "cross",
+      groups: [
+        { name: "Espirales rápidas por A", lane: 0, species: "borrelia" },
+        { name: "Bacteriófagos por B", lane: 1, species: "phage-t4", gap: 34 },
+        { name: "Bacilos por las dos entradas", species: "subtilis", gap: 36 },
+      ],
+    } },
     medal: medals.workshop,
   },
   {
@@ -209,6 +246,15 @@ export const MISSIONS = [
     medal: medals.doubleSpec,
     flip: true,
     bend: 1.18,
+    finale: {
+      name: "Cierre del puente",
+      tip: "Guarda la barrera del puente para cuando el jefe empiece a correr.",
+      stages: [
+        { name: "Blindaje del puente", detail: "El jefe refuerza su blindaje y dos corredores entran por A.", plating: 6,
+          reinforcements: { lane: 0, delay: 150, count: 2, spec: 2, speed: 1.12 } },
+        { name: "Carga al puente", detail: "El jefe pierde el blindaje extra y acelera.", releasePlating: true, speed: 1.44 },
+      ],
+    },
   },
   {
     chapter: 2,
@@ -222,6 +268,15 @@ export const MISSIONS = [
       "La consola acepta órdenes manuales. Necesito que aguante una oleada más.",
     end: "Tenemos el mando manual. Todo listo para contener la gripe de 1918.",
     medal: medals.workshop,
+    tactics: { 3: {
+      name: "Cruce del núcleo",
+      tip: "La entrada A abre y cierra la oleada. Coloca una defensa en B que pueda contener el grupo blindado entre ambos ataques.",
+      groups: [
+        { name: "Apertura de A", lane: 0 },
+        { name: "Columna blindada", lane: 1, armor: 10, gap: 48 },
+        { name: "Segundo ataque de A", lane: 0 },
+      ],
+    } },
   },
   {
     chapter: 2,
@@ -237,6 +292,14 @@ export const MISSIONS = [
     medal: medals.final,
     flip: true,
     bend: 0.92,
+    finale: {
+      name: "Cierre del laboratorio",
+      tip: "Reserva fuego cerca de ambas entradas. El jefe pide refuerzos en lados distintos.",
+      stages: [
+        { name: "Primera llamada", detail: "El jefe levanta un escudo y anuncia refuerzos por A." },
+        { name: "Segundo flanco", detail: "El jefe acelera mientras los refuerzos cambian a B." },
+      ],
+    },
   },
   {
     chapter: 3,
@@ -280,6 +343,15 @@ export const MISSIONS = [
     formation: "cross",
     waves: 7,
     bend: 1.12,
+    tactics: { 4: {
+      name: "Primera descarga del desvío",
+      tip: "Los primeros corredores ya usan la ruta nueva de B. Deja cubierta A para el grupo que llega después.",
+      groups: [
+        { name: "Corredores por el desvío", lane: 1, speed: 1.18 },
+        { name: "Contraflujo por A", lane: 0 },
+        { name: "Segunda descarga", lane: 1 },
+      ],
+    } },
   },
   {
     chapter: 3,
@@ -295,6 +367,34 @@ export const MISSIONS = [
     waves: 7,
     bend: 1.18,
     flip: true,
+    tactics: { 3: {
+      name: "Separación de la escolta",
+      tip: "Los grupos llegan separados. Aprovecha las pausas para distinguir qué escolta cubre cada entrada y cambiar el objetivo de tus torres.",
+      formation: "convoy",
+      groups: [
+        { name: "Escolta inicial", lane: 0, spacing: 32 },
+        { name: "Relevo por B", lane: 1, gap: 150, spacing: 32 },
+        { name: "Última escolta", lane: 0, gap: 135 },
+      ],
+    }, 4: {
+      name: "Rotación de prismas",
+      tip: "El primer grupo entra por B. Después cruza A y deja al descubierto el último grupo de B.",
+      formation: "convoy",
+      groups: [
+        { name: "Avanzada de B", lane: 1, spacing: 41 },
+        { name: "Cruce de A", lane: 0, gap: 155, spacing: 40 },
+        { name: "Reserva del prisma", lane: 1, gap: 150, spacing: 41 },
+      ],
+    } },
+    finale: {
+      name: "Ruptura del prisma",
+      tip: "Usa el daño en área contra la escolta y deja una torre rápida para el último giro.",
+      stages: [
+        { name: "Reflejo del prisma", detail: "El jefe renueva su escudo y llegan escoltas blindadas por A.", shield: 0.14,
+          reinforcements: { lane: 0, delay: 140, count: 3, spec: 4, armor: 6 } },
+        { name: "Última fractura", detail: "El jefe acelera por B.", speed: 1.34 },
+      ],
+    },
   },
   {
     chapter: 4,
@@ -307,6 +407,16 @@ export const MISSIONS = [
     end: "La ruta aparece en pantalla. Los conductos pasan por un archivo en cuarentena.",
     medal: medals.intact,
     formation: "surge",
+    counterTactics: { 3: {
+      name: "Blindaje y escudos en paralelo",
+      tip: "El Arco Iónico explota la debilidad de A. En B, prepara Impacto y una forma de reducir el blindaje.",
+      formation: "cross",
+      groups: [
+        { name: "Adenovirus escudados por A", lane: 0, species: "adenovirus", shield: 0.23 },
+        { name: "Estafilococos blindados por B", lane: 1, species: "staph-epi", armor: 10, gap: 30 },
+        { name: "Refuerzo por A", lane: 0, species: "adenovirus", gap: 44, spacing: 24 },
+      ],
+    } },
     waves: 6,
     bend: 1.04,
   },
@@ -339,6 +449,15 @@ export const MISSIONS = [
     formation: "convoy",
     waves: 7,
     bend: 1.17,
+    tactics: { 3: {
+      name: "Asalto al relé",
+      tip: "Dos grupos anuncian el asalto por A. Reserva control para los corredores que cierran por B.",
+      groups: [
+        { name: "Vanguardia blindada", lane: 0, armor: 12 },
+        { name: "Segunda columna", lane: 0 },
+        { name: "Incursión rápida", lane: 1, speed: 1.24, gap: 66 },
+      ],
+    } },
   },
   {
     chapter: 4,
@@ -354,6 +473,16 @@ export const MISSIONS = [
     waves: 7,
     bend: 0.94,
     flip: true,
+    finale: {
+      name: "El faro se apaga",
+      tip: "Tras el escudo llegan dos señales. Conserva torres capaces de responder a ambos conductos.",
+      stages: [
+        { name: "Primera baliza", detail: "El jefe levanta un escudo y llama refuerzos blindados por B.", shield: 0.16,
+          reinforcements: { lane: 1, delay: 150, count: 2, spec: 4, armor: 7 } },
+        { name: "Baliza de reserva", detail: "El jefe acelera y una segunda tanda rápida llega por A.", speed: 1.29,
+          reinforcements: { lane: 0, delay: 125, count: 2, spec: 2, speed: 1.2 } },
+      ],
+    },
   },
   {
     chapter: 5,
@@ -398,6 +527,16 @@ export const MISSIONS = [
     formation: "convoy",
     waves: 7,
     bend: 1.22,
+    tactics: { 3: {
+      name: "Relevo entre conductos",
+      tip: "Las columnas blindadas se anuncian por separado. La última entra por B, así que guarda el pulso para la que vaya a alcanzar el núcleo.",
+      formation: "convoy",
+      groups: [
+        { name: "Columna de A", lane: 0, spacing: 38 },
+        { name: "Relevo de A", lane: 0, gap: 135, spacing: 33 },
+        { name: "Escolta de B", lane: 1, gap: 155, spacing: 32 },
+      ],
+    } },
   },
   {
     chapter: 5,
@@ -413,6 +552,14 @@ export const MISSIONS = [
     waves: 8,
     bend: 0.96,
     flip: true,
+    finale: {
+      name: "Cierre de la estación",
+      tip: "Puedes dar prioridad a Nodos de apoyo para exponer al jefe.",
+      stages: [
+        { name: "Activación de los nodos", detail: "La viruela se protege y abre un nodo de refuerzos en cada entrada." },
+        { name: "Último avance", detail: "La viruela acelera. Los nodos que queden siguen activos hasta agotarse." },
+      ],
+    },
   },
   {
     chapter: 6, name: "Los primeros brotes", task: "Recupera las semillas bajo el vidrio.",
@@ -431,6 +578,7 @@ export const MISSIONS = [
     transmission: "Salva las dos muestras del herbario.", end: "Las dos muestras permiten reconstruir el índice.",
     waves: 6, bend: 1.12, flip: true, formation: "cross", medal: medals.intact,
     objective: "archive",
+    fixedPosts: [[167, 270], [65, 317]],
   },
   {
     chapter: 6, name: "Canal de riego", task: "Abre el riego de la bóveda.",
@@ -445,11 +593,22 @@ export const MISSIONS = [
     chapter: 6, name: "Cúpula partida", task: "Restablece la alimentación de la antena.",
     speaker: "Ivo · Ingeniería",
     briefing: "El aislante aguanta dos oleadas por línea. Elige cuál frenar primero y deja cobertura en la otra.",
-    cue: "Reserva el pulso para la entrada que reciba los refuerzos.",
+    cue: "La energía cambia de plataforma cada oleada. Reubica gratis una torre de ataque para seguir la corriente.",
     transmission: "Restablece la alimentación de la antena.", end: "La antena recibe una llamada desde el observatorio.",
     waves: 8, bend: 1.2, flip: true, formation: "convoy", medal: medals.final,
     towerLimit: 8,
     objective: "power",
+    padCycle: [0, 1, 0, 1, 0, 1, 0, 1],
+    finale: {
+      name: "Descarga de la cúpula",
+      tip: "Mantén cubiertas ambas entradas cuando el jefe cambie de fase.",
+      stages: [
+        { name: "Relevo de la cúpula", detail: "Escudo del jefe y escoltas por A.", shield: 0.16,
+          reinforcements: { lane: 0, delay: 125, count: 3, spec: 4, armor: 8 } },
+        { name: "Última descarga", detail: "El jefe acelera y llegan corredores por B.", speed: 1.28,
+          reinforcements: { lane: 1, delay: 105, count: 2, spec: 2, speed: 1.18 } },
+      ],
+    },
   },
   {
     chapter: 7, name: "Eco orbital", task: "Localiza el origen de la llamada.",
@@ -459,6 +618,19 @@ export const MISSIONS = [
     transmission: "Localiza el origen de la llamada.", end: "La llamada viene del anillo exterior.",
     waves: 5, bend: 0.92, flip: false, formation: "surge", medal: medals.workshop,
     towerLimit: 7,
+    tactics: { 3: {
+      name: "Cruce de señales",
+      tip: "A recibe blindaje primero y B recibe escudos después. La última tanda se reparte entre las dos entradas.",
+      groups: [
+        { name: "Señal blindada", lane: 0, armor: 14 },
+        { name: "Señal con escudos", lane: 1, shield: 0.34 },
+        { name: "Eco por ambas entradas" },
+      ],
+    } },
+    powerCuts: {
+      3: { x: 495, y: 270, radius: 175, name: "Interferencia del anillo interior" },
+      4: { x: 390, y: 140, radius: 165, name: "Interferencia del transmisor norte" },
+    },
   },
   {
     chapter: 7, name: "Paralaje", task: "Sincroniza las dos lentes.",
@@ -466,6 +638,16 @@ export const MISSIONS = [
     briefing: "Cada lente necesita una oleada de exposición. La segunda está en B y la escolta puede ocultar a los exploradores.",
     cue: "Antes de lanzar la oleada, comprueba qué entrada necesita cobertura.",
     transmission: "Sincroniza las dos lentes.", end: "Las lentes distinguen una segunda señal.",
+    counterTactics: { 2: {
+      name: "Las dos lentes",
+      tip: "B protege la lente de la segunda oleada. Frena a los exploradores con Control. En A, combina Corrosión e Impacto contra el blindaje.",
+      formation: "cross",
+      groups: [
+        { name: "Blindados por A", lane: 0, species: "staph-epi", armor: 11, speed: 0.92 },
+        { name: "Exploradores por B", lane: 1, species: "borrelia", armor: 0, speed: 1.17, gap: 26 },
+        { name: "Refuerzos por A", lane: 0, species: "staph-epi", armor: 7, gap: 48 },
+      ],
+    } },
     waves: 6, bend: 1.12, flip: true, formation: "convoy", medal: medals.intact,
     towerLimit: 8,
     objective: "archive",
@@ -474,11 +656,12 @@ export const MISSIONS = [
     chapter: 7, name: "Órbita baja", task: "Sostén el anillo durante el giro.",
     speaker: "Mara · Operaciones",
     briefing: "El giro alineará B con otro conducto. Conserva ATP para ajustar tu segunda línea.",
-    cue: "Busca una curva que quede al alcance desde ambos lados.",
+    cue: "El cambio de alimentación coincide con el desvío. Lee qué plataforma queda activa antes de mover tus torres.",
     transmission: "Sostén el anillo durante el giro.", end: "El anillo vuelve a seguir la baliza.",
     waves: 7, bend: 0.84, flip: false, formation: "cross", medal: medals.researcher,
     towerLimit: 7,
     routePattern: 13,
+    padCycle: [1, 1, 1, 0, 0, 1, 0],
   },
   {
     chapter: 7, name: "Noche polar", task: "Transmite las coordenadas antes del apagón.",
@@ -488,6 +671,16 @@ export const MISSIONS = [
     transmission: "Transmite las coordenadas antes del apagón.", end: "Las coordenadas apuntan a una fundición.",
     waves: 8, bend: 1.2, flip: true, formation: "surge", medal: medals.final,
     routePattern: 19,
+    finale: {
+      name: "Última transmisión",
+      tip: "Reserva daño perforante para la segunda fase y un pulso para el último escudo.",
+      stages: [
+        { name: "Guarda polar", detail: "Llegan refuerzos blindados por B.", plating: 7,
+          reinforcements: { lane: 1, delay: 135, count: 3, spec: 4, armor: 10 } },
+        { name: "Señal de emergencia", detail: "El jefe pierde blindaje, gana un escudo y llama refuerzos por A.", releasePlating: true, shield: 0.12, speed: 1.18,
+          reinforcements: { lane: 0, delay: 140, count: 2, spec: 2, speed: 1.18 } },
+      ],
+    },
   },
   {
     chapter: 8, name: "Río de escoria", task: "Abre paso hasta la fundición.",
@@ -497,16 +690,30 @@ export const MISSIONS = [
     transmission: "Abre paso hasta la fundición.", end: "La cinta de carga vuelve a moverse.",
     waves: 5, bend: 0.92, flip: false, formation: "cross", medal: medals.workshop,
     towerLimit: 6,
+    tactics: { 3: {
+      name: "Colada de escoria",
+      tip: "B recibe la primera y la última tanda. Con seis puestos, busca una torre que pueda apoyar A durante la columna blindada.",
+      groups: [
+        { name: "Enjambre de B", lane: 1, speed: 1.13, spacing: 17 },
+        { name: "Columna de la fundición", lane: 0, armor: 15 },
+        { name: "Segunda colada", lane: 1, spacing: 20 },
+      ],
+    } },
+    powerCuts: {
+      3: { x: 530, y: 307, radius: 175, name: "Calentamiento de la salida B" },
+      4: { x: 235, y: 360, radius: 175, name: "Purga de los conductos iniciales" },
+    },
   },
   {
     chapter: 8, name: "Crisol doble", task: "Protege los registros de las dos coladas.",
     speaker: "Ivo · Ingeniería",
-    briefing: "Los pirómetros están antes de la salida. Derriba las escoltas antes de que lleguen al sensor activo.",
+    briefing: "El pirómetro de A está después del giro del horno. El de B está más adelantado y te deja menos recorrido para romper la escolta.",
     cue: "Antes de lanzar la oleada, comprueba qué entrada necesita cobertura.",
     transmission: "Protege los registros de las dos coladas.", end: "Los registros permiten templar el primer sello.",
     waves: 6, bend: 1.12, flip: true, formation: "surge", medal: medals.intact,
     towerLimit: 7,
     objective: "archive",
+    archiveWaypoints: [4, 3],
   },
   {
     chapter: 8, name: "Válvula de purga", task: "Libera la presión del crisol.",
@@ -516,6 +723,16 @@ export const MISSIONS = [
     transmission: "Libera la presión del crisol.", end: "El crisol se enfría lo suficiente para entrar.",
     waves: 7, bend: 0.84, flip: false, formation: "convoy", medal: medals.researcher,
     objective: "power",
+    counterTactics: { 4: {
+      name: "Contrapresión",
+      tip: "Separa el Control de A y la Corrosión de B. Si cambia la ruta, revisa qué puestos siguen teniendo alcance.",
+      formation: "cross",
+      groups: [
+        { name: "Norovirus por A", lane: 0, species: "norovirus", speed: 1.15 },
+        { name: "Lactobacilos por B", lane: 1, species: "lactobacillus", shield: 0.22, gap: 30 },
+        { name: "Norovirus en persecución", lane: 0, species: "norovirus", gap: 40, spacing: 22 },
+      ],
+    } },
     routePattern: 11,
   },
   {
@@ -527,6 +744,14 @@ export const MISSIONS = [
     waves: 8, bend: 1.2, flip: true, formation: "cross", medal: medals.final,
     towerLimit: 7,
     routePattern: 19,
+    finale: {
+      name: "Temple de la llave",
+      tip: "Atraviesa el blindaje mientras el jefe es lento. El último tramo exige alcance y control.",
+      stages: [
+        { name: "Coraza templada", detail: "El jefe gana blindaje y avanza más despacio.", plating: 18, speed: 0.78 },
+        { name: "Fuga del crisol", detail: "El jefe pierde la coraza y acelera.", releasePlating: true, speed: 1.63 },
+      ],
+    },
   },
   {
     chapter: 9, name: "Bosque de sifones", task: "Ventila las galerías inundadas.",
@@ -541,22 +766,41 @@ export const MISSIONS = [
   {
     chapter: 9, name: "Semillas de memoria", task: "Recupera las cápsulas del jardín.",
     speaker: "Ivo · Ingeniería",
-    briefing: "Guarda la primera cápsula en A. Después traslada tus torres a B antes de que empiece la segunda oleada.",
+    briefing: "La primera cápsula está en B. Reubica tus defensas hacia A antes de lanzar la segunda oleada.",
     cue: "Antes de lanzar la oleada, comprueba qué entrada necesita cobertura.",
     transmission: "Recupera las cápsulas del jardín.", end: "Las cápsulas conservan el plano del jardín.",
     waves: 6, bend: 1.12, flip: true, formation: "cross", medal: medals.intact,
     towerLimit: 6,
     objective: "archive",
+    archiveFirstLane: 1,
+    tactics: { 5: {
+      name: "Doble siembra",
+      tip: "A recibe la primera y la última incursión. Conserva una segunda defensa para el grupo que cruza por B.",
+      groups: [
+        { name: "Primera siembra", lane: 0, spacing: 46 },
+        { name: "Desvío por B", lane: 1, gap: 170, spacing: 42 },
+        { name: "Segunda siembra", lane: 0, gap: 175, spacing: 46 },
+      ],
+    }, 6: {
+      name: "Último trasplante",
+      tip: "Las cápsulas ya están a salvo. Reparte el fuego entre las dos entradas y conserva el pulso para el jefe que llega por B.",
+      groups: [
+        { name: "Escolta del jardín", lane: 0, spacing: 35 },
+        { name: "Avanzada de B", lane: 1, gap: 130, spacing: 31 },
+        { name: "Último cruce", gap: 140, spacing: 33 },
+      ],
+    } },
   },
   {
     chapter: 9, name: "Marea de retorno", task: "Sella la entrada profunda.",
     speaker: "Mara · Operaciones",
     briefing: "El cambio de marea desviará B. Solo dispones de siete puestos para cubrir los dos trazados.",
-    cue: "Busca una curva que quede al alcance desde ambos lados.",
+    cue: "La marea cambia el conducto y la plataforma que recibe energía. Usa el alcance de las torres para cubrir el otro lado.",
     transmission: "Sella la entrada profunda.", end: "La última compuerta conduce a la cámara de semillas.",
     waves: 7, bend: 0.84, flip: false, formation: "surge", medal: medals.researcher,
     towerLimit: 7,
     routePattern: 13,
+    padCycle: [0, 0, 0, 1, 1, 0, 1],
   },
   {
     chapter: 9, name: "Última luz", task: "Devuelve la luz al jardín.",
@@ -568,6 +812,21 @@ export const MISSIONS = [
     towerLimit: 8,
     objective: "archive",
     routePattern: 19,
+    finale: {
+      name: "Defensa de la reserva",
+      tip: "Guarda control para los refuerzos y alcance para el último tramo de B.",
+      storyModules: [
+        { lane: 0, waypoint: 3, name: "Emisor de refuerzos", role: "reinforcements", hp: 245, color: "#fbbf78" },
+        { lane: 1, waypoint: 3, name: "Regulador de escudo", role: "shield", hp: 280, color: "#9ccaff" },
+      ],
+      stages: [
+        { name: "Escolta de la reserva", detail: "El jefe gana un escudo y llegan refuerzos con escudo por A.", shield: 0.16,
+          reinforcements: { lane: 0, delay: 165, count: 3, spec: 8, shield: 0.24 } },
+        { name: "Salida de emergencia", detail: "Cae el escudo del jefe, que acelera mientras llegan corredores por B.", discharge: true, speed: 1.27,
+          reinforcements: { lane: 1, delay: 140, count: 3, spec: 6, speed: 1.18 } },
+      ],
+    },
+    fixedPosts: [[40, 378], [200, 368]],
   },
 ];
 

@@ -19,13 +19,22 @@ const enemyTypes = {
 };
 export const WEAKNESS = 1.25;
 export const RESISTANCE = 0.75;
-export const affinityFor = shape => enemyTypes[shape];
+export const STORY_WEAKNESS = 1.5;
+export const STORY_RESISTANCE = 0.5;
+
+export function affinityFor(shape, story = false) {
+  const affinity = enemyTypes[shape];
+  if (!story || !affinity) return affinity;
+  return { ...affinity, weakness: STORY_WEAKNESS, resistance: STORY_RESISTANCE };
+}
+
+export const damagePercent = multiplier => Math.round(Math.abs(multiplier - 1) * 100);
 
 export function towerMultiplier(enemy, tower) {
   if (!enemy.affinity || !tower?.rank) return 1;
   const attack = towerAttack[tower.id];
-  if (attack === enemy.affinity.weak) return WEAKNESS;
-  if (attack === enemy.affinity.resist) return RESISTANCE;
+  if (attack === enemy.affinity.weak) return enemy.affinity.weakness ?? WEAKNESS;
+  if (attack === enemy.affinity.resist) return enemy.affinity.resistance ?? RESISTANCE;
   return 1;
 }
 
