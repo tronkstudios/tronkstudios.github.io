@@ -1,4 +1,4 @@
-import { BLUEPRINTS, HEIGHT, Match, TARGETING, WIDTH, specializations } from "./engine.js?v=38";
+import { BLUEPRINTS, HEIGHT, Match, TARGETING, WIDTH, specializations } from "./engine.js?v=39";
 
 import { MISSIONS } from "./campaign.js?v=16";
 
@@ -206,6 +206,7 @@ export function restoreCheckpoint(data) {
     const { damage, kills, atp, payout, reserve, recovery, reactor, bounties, leaks, worst, gap } = data.debrief;
     match.debrief = { damage, kills, atp, reserve: integer(reserve, 0, atp) ? reserve : 0,
       recovery: integer(recovery, 0, atp) ? recovery : 0 };
+    if (typeof data.debrief.heroImpact === "string") match.debrief.heroImpact = data.debrief.heroImpact.slice(0, 600);
     for (const stat of ["corrosionDamage", "chillDamage"])
       if (integer(data.debrief[stat], 0, 1000000)) match.debrief[stat] = data.debrief[stat];
     if ([payout, reserve, recovery, reactor, bounties].every(amount => integer(amount, 0, atp)) &&

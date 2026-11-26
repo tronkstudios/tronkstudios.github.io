@@ -78,8 +78,8 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8928";
       await page.locator("#wave").getByText("1/4", { exact: true }).waitFor();
       // Restore the preparation phase for the first split counter wave.
       await page.evaluate(async () => {
-        const { Match } = await import("/juegos/bio-lab-defense/engine.js?v=38");
-        const { Checkpoint } = await import("/juegos/bio-lab-defense/checkpoint.js?v=34");
+        const { Match } = await import("/juegos/bio-lab-defense/engine.js?v=39");
+        const { Checkpoint } = await import("/juegos/bio-lab-defense/checkpoint.js?v=35");
         localStorage.setItem("biolab_save_v1", JSON.stringify({ unlockedLevel: 5, stars: [2, 2, 2, 2] }));
         localStorage.removeItem("biolab_checkpoint:guest");
         const counterMatch = new Match(5, null, { fixedLayout: true });
