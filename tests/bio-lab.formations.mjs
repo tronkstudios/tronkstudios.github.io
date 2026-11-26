@@ -859,3 +859,141 @@ test("the first hit forecast matches affinity, armor, shields and specialization
   const boss = match.planWave(match.maxWaves).order.find(item => item.boss);
   assert.equal(match.estimateImpact(tower, boss, match.maxWaves).hitsToDefeat, null);
 });
+
+test("Filtrado and Paralaje preview the precise routes, counters and archive objective", () => {
+  const filtration = new Match(5, null, { fixedLayout: true });
+  const split = filtration.planWave(4);
+  assert.equal(split.tactics.name, "Intercepción en el cruce");
+  assert.deepEqual([...new Set(split.order.filter(e => e.lane === 1).map(e => e.spec.id))],
+    ["phage-t4", "subtilis"]);
+
+  const parallax = new Match(28, null, { fixedLayout: true });
+  parallax.wave = 1;
+  parallax.archive[0].complete = true;
+  parallax.preview = parallax.planWave(2);
+  assert.equal(parallax.defenseObjective.lane, 1);
+  assert.ok(parallax.preview.order.filter(e => e.lane === 0).some(e => e.armor >= 11));
+  assert.ok(parallax.preview.order.filter(e => e.lane === 1).every(e => e.spec.id === "borrelia" && !e.armor));
+  const scheduled = parallax.preview.order.map(e => e.spec.id);
+  assert.ok(parallax.startWave());
+  assert.deepEqual(parallax.queue.map(e => e.spec.id), scheduled);
+});
+
+test("the last Story boss's emisor and regulator have independent effects and expire on defeat", () => {
+  for (const first of ["reinforcements", "shield"]) {
+    const match = new Match(38, null, { fixedLayout: true });
+    match.wave = match.maxWaves;
+    match.queue.push(match.planWave(match.wave).order.find(entry => entry.boss));
+    match.spawn();
+    const boss = match.enemies[0];
+    match.damage(boss, boss.hp * 0.37, "#fff", { piercing: true });
+    assert.ok(boss.shield > 0);
+    assert.equal(match.zeroNodes.length, 2);
+    const target = match.zeroNodes.find(node => node.role === first);
+    match.damage(target, target.hp, "#fff", { piercing: true });
+    match.time += 131;
+    match.tickZeroNodes();
+    if (first === "reinforcements") {
+      assert.ok(boss.shield > 0);
+      assert.equal(match.queue.length, 0);
+    } else {
+      assert.equal(boss.shield, 0);
+      assert.ok(boss.moduleExposureUntil > match.time);
+      const health = boss.hp;
+      const needle = { id: "phagocyte", rank: 1, inflicted: 0 };
+      match.damage(boss, 20, "#fff", { piercing: true }, needle);
+      assert.equal(health - boss.hp, 24);
+      assert.equal(match.queue.length, 3);
+      assert.ok(match.queue.every(entry => entry.lane === 0));
+    }
+    match.damage(boss, boss.hp * 2, "#fff", { piercing: true });
+    assert.ok(match.zeroNodes.every(node => node.hp <= 0));
+  }
+});
+
+test("the tower combinations add real armor and area damage and count each contribution", () => {
+  const match = new Match(5, null, { fixedLayout: true });
+  match.startWave();
+  match.spawn();
+  const enemy = match.enemies[0];
+  Object.assign(enemy, { hp: 300, affinity: null, armor: 15, shield: 0 });
+  const tower = id => ({ ...BLUEPRINTS.find(entry => entry.id === id), rank: 1, inflicted: 0 });
+  const fire = (source, damage = source.damage) => match.hit(enemy,
+    { tower: source, type: source.type, damage, color: "#fff", branch: {}, radius: 70 });
+  fire(tower("toxin"));
+  assert.ok(enemy.corrodedUntil > match.time);
+  const phagocyte = tower("phagocyte");
+  fire(phagocyte, 30);
+  assert.ok(phagocyte.corrosionDamage > 8);
+  assert.equal(phagocyte.corrosionDamage, match.waveStart.corrosionDamage);
+  fire(tower("cryo"));
+  assert.ok(enemy.chilledUntil > match.time);
+  const plasma = tower("plasma");
+  fire(plasma, 30);
+  assert.ok(plasma.chillDamage > 4);
+  assert.equal(plasma.chillDamage, match.waveStart.chillDamage);
+  match.time = enemy.chilledUntil;
+  fire(plasma, 30);
+  assert.equal(plasma.chillDamage, match.waveStart.chillDamage);
+});
+
+test("Vatio reactivates the nearest offline tower and Nexo pulls back within the current route segment", () => {
+  const relay = new Match(30, null, { fixedLayout: true, heroId: "relay" });
+  const [site] = relay.buildSites;
+  const tower = relay.place(BLUEPRINTS[0], site.x, site.y);
+  relay.moveHero(site.x, site.y);
+  relay.powerCuts = { 1: { ...site, radius: 35 } };
+  relay.startWave();
+  assert.ok(relay.towerOffline(tower));
+  assert.ok(relay.heroAbility());
+  assert.equal(relay.towerOffline(tower), false);
+  relay.time += 300;
+  assert.ok(relay.towerOffline(tower));
+
+  const anchor = new Match(5, null, { fixedLayout: true, heroId: "lure" });
+  anchor.startWave();
+  anchor.spawn();
+  const enemy = anchor.enemies[0];
+  const [x, y] = enemy.path.points[0];
+  const [endX, endY] = enemy.path.points[1];
+  Object.assign(enemy, { x: x + (endX - x) * 0.6, y: y + (endY - y) * 0.6, remaining: 0 });
+  Object.assign(anchor.hero, { x, y });
+  assert.ok(anchor.heroAbility());
+  anchor.tick();
+  assert.ok(enemy.remaining > 0);
+  assert.ok(Math.hypot(x - enemy.x, y - enemy.y) < Math.hypot(x - endX, y - endY) * 0.6);
+  assert.equal(enemy.wp, 1);
+});
+
+test("a rehearsal compares a relocation without moving or charging the real tower", async () => {
+  const { startDrill } = await import("../juegos/bio-lab-defense/drill.js");
+  const match = new Match(5, null, { fixedLayout: true });
+  const [site, destination] = match.buildSites;
+  const tower = match.place(BLUEPRINTS[0], site.x, site.y);
+  const simulation = startDrill(match, { towerIndex: 0, position: destination });
+  assert.equal(simulation.towers[0].x, destination.x);
+  assert.equal(simulation.towers[0].y, destination.y);
+  assert.equal(simulation.atp, match.atp);
+  assert.deepEqual([tower.x, tower.y], [site.x, site.y]);
+  assert.equal(match.state, "build");
+});
+
+test("all mastery rules apply in the right chapter and keep medals separate from ordinary contracts", async () => {
+  const { MASTERY } = await import("../juegos/bio-lab-defense/operations.js");
+  assert.equal(MASTERY.length, new Set(MISSIONS.map(mission => mission.chapter)).size);
+  for (const contract of MASTERY) {
+    const match = new Match(contract.level, null, { fixedLayout: true, contract, heroId: "lure" });
+    assert.equal(match.mission.chapter, contract.chapter);
+    assert.ok(match.ranked && match.fixedLayout);
+    assert.equal(match.hero.id, "lure");
+    const [site] = match.buildSites;
+    const tower = match.place(BLUEPRINTS[0], site.x, site.y);
+    assert.equal(match.sell(tower), !contract.noSell);
+    assert.equal(match.towerLimit, contract.towerLimit ?? match.mission.towerLimit);
+  }
+  const save = normalize({ contracts: { "mastery-4": 7300, guardia: 500 }, masteryMedals: { "mastery-4": true } });
+  assert.equal(save.contracts["mastery-4"], 7300);
+  assert.equal(save.contracts.guardia, 500);
+  assert.equal(save.masteryMedals["mastery-4"], true);
+  assert.equal(save.masteryMedals["mastery-8"], false);
+});

@@ -1,5 +1,6 @@
-import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=37";
-import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=4";
+import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=38";
+import { towerAttack } from "./affinities.js?v=3";
+import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=5";
 
 function trace(ctx, points) {
   ctx.beginPath();
@@ -348,6 +349,19 @@ function drawSupportNode(ctx, node) {
   ctx.textBaseline = "middle";
   ctx.textAlign = "center";
   ctx.fillText(node.lane ? "B" : "A", 0, 0);
+  if (node.role === "reinforcements") {
+    ctx.beginPath();
+    ctx.moveTo(-31, -7);
+    ctx.lineTo(-37, 0);
+    ctx.lineTo(-31, 7);
+    ctx.moveTo(31, -7);
+    ctx.lineTo(37, 0);
+    ctx.lineTo(31, 7);
+    ctx.stroke();
+  } else if (node.role === "shield") {
+    trace(ctx, [[-11, 26], [0, 34], [11, 26]]);
+    ctx.stroke();
+  }
   ctx.fillStyle = "#0a1320";
   ctx.fillRect(-24, -36, 48, 8);
   ctx.fillStyle = node.color;
@@ -387,8 +401,14 @@ function target(ctx, enemy, time, compact) {
   if (enemy.stun) circle(ctx, 0, 0, enemy.boss ? 30 : 18, null, "#e9edff", 2);
   if (enemy.slow) circle(ctx, 0, 0, enemy.boss ? 29 : 16, null, "#97e9ff", 2);
   if (enemy.burn) circle(ctx, 0, 0, enemy.boss ? 32 : 19, null, "#b4ef68", 1.5);
+  if (enemy.corrodedUntil > time || enemy.anchor?.until > time) {
+    ctx.save();
+    ctx.setLineDash([5, 4]);
+    circle(ctx, 0, 0, enemy.boss ? 37 : 24, null, enemy.anchor?.until > time ? "#c2b1ff" : "#c5ff81", 2);
+    ctx.restore();
+  }
   const marker = enemy.markedUntil > time ? "#ffe3a0"
-    : enemy.frozenUntil > time ? "#9be9ff" : enemy.exposedUntil > time ? "#daaaff" : null;
+    : enemy.frozenUntil > time ? "#9be9ff" : (enemy.exposedUntil > time || enemy.moduleExposureUntil > time) ? "#daaaff" : null;
   if (marker) {
     ctx.save();
     ctx.setLineDash([4, 4]);
@@ -552,7 +572,7 @@ export class Board {
     reduced,
     aiming,
     hovered = null,
-    { gatePreview, movingHero, movingTower, skillPreview, upgradePreview, snapOrigin, breach = null, reviewGap = null, routePlan = false, focusTarget = match.focusTarget, fireCoverage = null, previewPowerCut } = {},
+    { gatePreview, movingHero, movingTower, skillPreview, upgradePreview, snapOrigin, breach = null, reviewGap = null, routePlan = false, focusTarget = match.focusTarget, fireCoverage = null, previewPowerCut, affinityProfiles = [] } = {},
   ) {
     const ctx = this.ctx;
     const key = match.mission
@@ -685,6 +705,21 @@ export class Board {
     }
     const coverageWave = match.coverageWave;
     const coverageRoutes = match.routesForWave(coverageWave);
+    if (match.fixedLayout && match.state === "build") {
+      const modules = match.preview?.finale?.storyModules || [];
+      for (const module of modules) {
+        const [x, y] = coverageRoutes[module.lane].points[module.waypoint];
+        ctx.save();
+        ctx.setLineDash([5, 5]);
+        circle(ctx, x, y, 25, "#102338c0", module.color, 3);
+        ctx.fillStyle = module.color;
+        ctx.font = "bold 19px system-ui";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(module.lane ? "B" : "A", x, y);
+        ctx.restore();
+      }
+    }
     const draft = movingTower || blueprint;
     const ghost = !aiming && !hovered && cursor && draft ? { ...draft, ...cursor } : null;
     const validSpot = ghost && !(movingTower
@@ -732,7 +767,20 @@ export class Board {
           color + "b0",
           2,
         );
-        if (valid) highlightCoverage(ctx, tower, coverageRoutes);
+        if (valid) {
+          highlightCoverage(ctx, tower, coverageRoutes);
+          if (!isGhost) {
+            const attack = towerAttack[tower.id];
+            affinityProfiles.forEach((profile, lane) => {
+              const counts = profile.get(attack);
+              if (!counts || counts.resist <= counts.weak) return;
+              ctx.save();
+              ctx.setLineDash([9, 9]);
+              highlightCoverage(ctx, tower, [coverageRoutes[lane]], tower.range, "#ffd09a");
+              ctx.restore();
+            });
+          }
+        }
       }
       if (isGhost) {
         ctx.save();
@@ -778,6 +826,8 @@ export class Board {
       for (const tower of fireCoverage)
         circle(ctx, tower.x, tower.y, 24, null, "#ffe292", 3);
     for (const tower of match.towers) {
+      if (match.state === "wave" && tower.relayUntil > match.time)
+        circle(ctx, tower.x, tower.y, 28, null, "#ffe394", 2);
       if (!match.towerOffline(tower, coverageWave)) continue;
       circle(ctx, tower.x, tower.y, 24, "#091024a6", "#ffd890", 2);
       trace(ctx, [[tower.x - 12, tower.y + 9], [tower.x + 12, tower.y - 9]]);

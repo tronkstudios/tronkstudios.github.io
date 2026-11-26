@@ -1,5 +1,5 @@
 import { affinityFor, damagePercent, towerAttack, waveAffinities, WEAKNESS, RESISTANCE } from "./affinities.js?v=3";
-import { drawSpecimen, routeThumbnail } from "./menu-art.js?v=2";
+import { drawSpecimen, routeThumbnail } from "./menu-art.js?v=3";
 import {
   BLUEPRINTS,
   Match,
@@ -8,6 +8,7 @@ import {
   upgradeCost,
   upgradeStats,
   reactorProduction,
+  route,
   REACTOR_FIRST_CYCLE,
   suggestPlacement,
   specializations,
@@ -15,20 +16,20 @@ import {
   VARIANT_NAMES,
   escortArmor,
   dailySetup,
-} from "./engine.js?v=37";
-import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=8";
-import { attachDrill } from "./drill.js?v=11";
-import { Board } from "./board.js?v=44";
-import { towerIcon, heroIcon } from "./art.js?v=4";
-import { createCodex } from "./codex.js?v=25";
-import { Profile, dayKey } from "./profile.js?v=18";
+} from "./engine.js?v=38";
+import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=9";
+import { attachDrill } from "./drill.js?v=12";
+import { Board } from "./board.js?v=45";
+import { towerIcon, heroIcon } from "./art.js?v=5";
+import { createCodex } from "./codex.js?v=26";
+import { Profile, dayKey } from "./profile.js?v=19";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=7";
-import { CHAPTERS, MISSIONS } from "./campaign.js?v=15";
+import { CHAPTERS, MISSIONS } from "./campaign.js?v=16";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=33";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=34";
 
-import { HEROES, CONTRACTS } from "./operations.js?v=7";
+import { HEROES, CONTRACTS, MASTERY } from "./operations.js?v=8";
 
 const $ = (id) => document.getElementById(id);
 drawSpecimen($("specimen-art"));
@@ -52,6 +53,12 @@ const openDrill = attachDrill(drill, new Board($("drill-map")), () => match, tow
   $("selection").scrollIntoView({ block: "nearest" });
   $("selection").focus({ preventScroll: true });
   persistPreparation();
+}, (tower, position) => {
+  if (match.relocate(tower, position.x, position.y)) {
+    message(`${tower.name} reubicada.`);
+    persistPreparation();
+  }
+  renderHUD();
 });
 $("run-drill").onclick = () => openDrill();
 const fireOrders = $("fire-orders");
@@ -108,6 +115,14 @@ let checkpoint,
   checkpointLost = false;
 
 $("home-codex").onclick = () => codex.show();
+$("field-quick-plan").onclick = () => {
+  $("wave-preview").scrollIntoView({ block: "start" });
+  $("wave-preview-title").focus({ preventScroll: true });
+};
+$("field-quick-intel").onclick = () => {
+  if (match.state === "wave" && match.enemies.some(enemy => enemy.hp > 0 && !enemy.escaped)) $("focus-fire").click();
+  else $("field-codex").click();
+};
 $("field-codex").onclick = () => {
   if (adBusy) return;
   const tower = selected || blueprint;
@@ -366,39 +381,65 @@ function renderOperations() {
     return tile;
   }));
   const activeOnly = $("contract-filter").value === "ready";
-  const contracts = CONTRACTS.filter(contract => !activeOnly || profile.data.stars[contract.level - 1] > 0);
-  $("contracts-empty").hidden = contracts.length !== 0;
-  if (!contracts.length) {
-    const first = CONTRACTS[0];
-    updateText("contracts-empty", `Completa el sector ${first.level} · ${MISSIONS[first.level - 1].name} para jugar tu primer contrato.`);
+  for (const [id, catalog] of [["contracts", CONTRACTS], ["mastery", MASTERY]]) {
+    const contracts = catalog.filter(contract => !activeOnly || contractUnlocked(contract));
+    $(`${id}-empty`).hidden = contracts.length !== 0;
+    if (id === "contracts" && !contracts.length) {
+      const first = CONTRACTS[0];
+      updateText("contracts-empty", `Completa el sector ${first.level} · ${MISSIONS[first.level - 1].name} para jugar tu primer contrato.`);
+    }
+    $(id).replaceChildren(...contracts.map((contract) => {
+      const score = profile.data.contracts[contract.id];
+      const unlocked = contractUnlocked(contract);
+      const title = contract.mastery ? CHAPTERS[contract.chapter].name : `Sector ${contract.level}`;
+      const unlock = contract.mastery ? `Completa el capítulo ${contract.chapter + 1}` : `Supera el sector ${contract.level}`;
+      const tile = card(contract.name, contract.detail);
+      tile.classList.add("contract-card");
+      const availability = document.createElement("div");
+      availability.className = "operation-tags";
+      const sector = document.createElement("span");
+      sector.textContent = title;
+      const state = document.createElement("span");
+      state.classList.toggle("operation-ready", unlocked);
+      state.textContent = unlocked ? "Listo para jugar" : "Bloqueado";
+      availability.append(sector, state);
+      tile.querySelector("h3").after(availability);
+      const record = document.createElement("p");
+      record.className = "contract-record";
+      record.textContent = score ? `Récord personal · ${score.toLocaleString("es-ES")}` : "Sin récord personal";
+      tile.append(record);
+      if (contract.mastery) {
+        const medal = document.createElement("p");
+        medal.className = "contract-record";
+        medal.textContent = profile.data.masteryMedals[contract.id]
+          ? "Medalla de maestría obtenida" : "Medalla · Victoria con al menos 90 % de núcleo";
+        tile.append(medal);
+      }
+      tile.append(action(`contract-${contract.id}`, unlocked
+        ? contract.mastery ? "Jugar desafío" : "Jugar contrato" : unlock,
+        () => startContract(contract), !unlocked || adBusy));
+      return tile;
+    }));
   }
-  $("contracts").replaceChildren(...contracts.map((contract) => {
-    const score = profile.data.contracts[contract.id];
-    const unlocked = profile.data.stars[contract.level - 1] > 0;
-    const tile = card(contract.name, contract.detail);
-    tile.classList.add("contract-card");
-    const availability = document.createElement("div");
-    availability.className = "operation-tags";
-    const sector = document.createElement("span");
-    sector.textContent = `Sector ${contract.level}`;
-    const state = document.createElement("span");
-    state.classList.toggle("operation-ready", unlocked);
-    state.textContent = unlocked ? "Listo para jugar" : "Bloqueado";
-    availability.append(sector, state);
-    tile.querySelector("h3").after(availability);
-    const record = document.createElement("p");
-    record.className = "contract-record";
-    record.textContent = score ? `Récord personal · ${score.toLocaleString("es-ES")}` : "Sin récord personal";
-    tile.append(record, action(`contract-${contract.id}`, unlocked ? "Jugar contrato" : `Supera el sector ${contract.level}`,
-      () => startContract(contract), !unlocked || adBusy));
-    return tile;
-  }));
   if (focusedAction) $("operations").querySelector(`[data-operation="${focusedAction}"]:enabled`)?.focus({preventScroll:true});
 }
 
+function openMastery(contract) {
+  openOperations();
+  const control = contract && $("mastery").querySelector(`[data-operation="contract-${contract.id}"]`);
+  (control || $("operations-mastery")).focus();
+}
+
+function contractUnlocked(contract) {
+  if (!contract.mastery) return profile.data.stars[contract.level - 1] > 0;
+  return MISSIONS.every((mission, i) => mission.chapter !== contract.chapter || profile.data.stars[i] > 0);
+}
+
 function startContract(contract) {
-  if (adBusy || !profile.data.stars[contract.level - 1]) return;
-  begin(new Match(contract.level, null, { contract }));
+  if (adBusy || !contractUnlocked(contract)) return;
+  begin(new Match(contract.level, null, {
+    contract, fixedLayout: contract.mastery, heroId: profile.data.heroEquipped,
+  }));
 }
 
 function requestHeroAd(hero) {
@@ -588,8 +629,10 @@ function briefing(level) {
   if (preview.fixedLayout)
     updateText("briefing-build-sites", `${preview.buildSites.length} puestos de construcción. Elige si interceptas en las primeras curvas o refuerzas el tramo común antes del núcleo.`);
   $("briefing-finale").hidden = !mission.finale;
-  if (mission.finale)
-    updateText("briefing-finale", `Final del capítulo · ${mission.finale.name}. ${mission.finale.tip}`);
+  if (mission.finale) {
+    const finale = preview.planWave(preview.maxWaves).finale;
+    updateText("briefing-finale", `Final del capítulo · ${finale.name}. ${finale.tip}`);
+  }
   $("briefing-power-pads").hidden = !preview.padCycle;
   if (preview.padCycle)
     updateText("briefing-power-pads", `Plataforma ${padLetter(preview.activePad(1))} activa en la primera oleada · +50 % de daño. El tablero indica cuándo cambia la alimentación.`);
@@ -1026,6 +1069,15 @@ function renderSelection() {
     relocate.id = "relocate-tower";
     actions.append(relocate);
   }
+  if (match.state === "build" && match.fixedLayout && tower.type !== "eco") {
+    const compare = makeButton("Ensayar traslado", () => {
+      const point = rehearsalPosition(tower);
+      if (point) openDrill(tower, point);
+      else message("No hay otro puesto operativo para ensayar el traslado.", true);
+    });
+    compare.disabled = match.power?.first === null || adBusy;
+    options.append(compare);
+  }
   if (tower.type !== "eco") {
     const label = document.createElement("label");
     label.className = "tower-targeting";
@@ -1033,7 +1085,7 @@ function renderSelection() {
     const targeting = document.createElement("select");
     targeting.id = "tower-targeting";
     for (const [id, name] of TARGETING) {
-      if (id === "support" && (match.level !== 22 || match.daily)) continue;
+      if (id === "support" && !hasBossModules(match)) continue;
       if (id === "escort" && !match.hasEnemyVariants) continue;
       if (id === "objective" && !match.defenseObjective) continue;
       if (id === "weakness" && !(match.fixedLayout && match.hasAffinities)) continue;
@@ -1050,7 +1102,7 @@ function renderSelection() {
     label.append(targeting);
     actions.append(label);
   }
-  actions.append(
+  if (!match.contract?.noSell) actions.append(
     makeButton(`Vender · +${Math.floor(tower.paid * 0.65)} ATP`, () => {
       if (match.sell(tower)) {
         message(`${tower.name} retirada.`);
@@ -1063,6 +1115,28 @@ function renderSelection() {
   );
   const performance = elPerformance(tower);
   panel.replaceChildren(heading, detail, performance, options, actions);
+}
+
+function rehearsalPosition(tower) {
+  const wave = match.coverageWave;
+  const gap = retryReview?.points || reviewGap;
+  const focus = gap ? route(gap) : match.objectiveApproach();
+  const routes = match.routesForWave(wave);
+  const pointScore = point => routes.reduce((score, path, lane) =>
+    score + routeCoverage(path, point) * (match.preview.lanes[lane] || 0), 0) +
+    (focus ? routeCoverage(focus, point) * match.preview.count : 0);
+  let best;
+  let score = -1;
+  for (const point of match.buildSites) {
+    if (point.x === tower.x && point.y === tower.y || match.checkRelocation(tower, point.x, point.y) ||
+        match.towerOffline(point, wave)) continue;
+    const candidate = pointScore({ ...point, range: tower.range });
+    if (candidate > score) {
+      score = candidate;
+      best = point;
+    }
+  }
+  return best;
 }
 
 function upgradeRow(tower, purchase, branch) {
@@ -1212,6 +1286,8 @@ function towerReport(tower) {
   if (tower.slowTicks) extras.push(`${cadence.format(tower.slowTicks / 60)} s de ralentización acumulada`);
   if (tower.shieldsBroken) extras.push(`Escudos rotos ${tower.shieldsBroken}`);
   if (tower.synergyHits) extras.push(`Impactos sobre ralentizados ${tower.synergyHits}`);
+  if (tower.corrosionDamage) extras.push(`Corrosión + Impacto · +${Math.round(tower.corrosionDamage)} de daño`);
+  if (tower.chillDamage) extras.push(`Frío + Área · +${Math.round(tower.chillDamage)} de daño`);
   return [basic, ...extras].join(" · ");
 }
 
@@ -1364,6 +1440,10 @@ function renderWavePreview(preview) {
   );
 }
 
+function hasBossModules(run) {
+  return !run.daily && (run.level === 22 || run.fixedLayout && !!run.mission.finale?.storyModules);
+}
+
 function renderBoss(boss, suffix = "") {
   $(`boss-status${suffix}`).hidden = !boss;
   if (!boss) return;
@@ -1371,6 +1451,10 @@ function renderBoss(boss, suffix = "") {
     const stage = boss.finale?.stages[boss.phase - 2];
     $("boss-finale").hidden = !stage;
     if (stage) updateText("boss-finale", `${stage.name} · ${stage.detail}`);
+    const modules = match.zeroNodes.filter(node => node.role && node.bossOwner === boss);
+    $("boss-modules").hidden = !modules.length;
+    if (modules.length) updateText("boss-modules", modules.map(node =>
+      `${node.lane ? "B" : "A"} · ${node.name} · ${node.destroyed ? "Destruido" : node.hp <= 0 ? "Desactivado" : `${Math.ceil(node.hp)} PV`}`).join(" / "));
   }
   const name = boss.coolingBoss
     ? `${boss.name} · Entrada ${boss.lane === 0 ? "A" : "B"}`
@@ -1545,7 +1629,7 @@ function renderFieldControls(waiting) {
   else if (match.console)
     updateText("mission-objective", match.console.complete ? "Copia recuperada" : `Protege la consola · Integridad ${match.console.hp}/4`);
   if (combo)
-    updateText("battle-notice", `Combo de torres · ${match.comboNotice.count} enemigos ralentizados alcanzados`);
+    updateText("battle-notice", match.comboNotice.label);
 }
 
 let displayedDebrief;
@@ -1578,6 +1662,12 @@ function renderWaveDebrief(waiting) {
     const counts = data.leaks.map((count, lane) => `Entrada ${lane ? "B" : "A"} · ${count} ${count === 1 ? "fuga" : "fugas"}`);
     leaks.textContent = counts.join(" / ");
   }
+  const synergies = [
+    data.corrosionDamage && `Corrosión + Impacto +${data.corrosionDamage}`,
+    data.chillDamage && `Frío + Área +${data.chillDamage}`,
+  ].filter(Boolean);
+  $("wave-debrief-synergies").hidden = !synergies.length;
+  if (synergies.length) updateText("wave-debrief-synergies", `${synergies.join(" · ")} de daño`);
   const worst = $("wave-debrief-worst");
   worst.hidden = !data.worst;
   if (data.worst) {
@@ -1767,7 +1857,7 @@ function renderLaneCoverage() {
   if (laneCoverageKey === key) return;
   laneCoverageKey = key;
   const coverage = match.routesForWave(wave).map(route => routeTeamCoverage(route, towers));
-  updateText("wave-lane-coverage", `Recorrido al alcance de tus torres · A ${coverage[0]} % / B ${coverage[1]} %`);
+  updateText("wave-lane-coverage", `Cobertura de torres · A ${coverage[0]} % / B ${coverage[1]} %`);
 }
 
 $("retry-hide-mark").onclick = () => {
@@ -1830,6 +1920,13 @@ function renderHUD() {
   updateText("atp", match.atp);
   updateText("wave", `${match.wave}/${match.maxWaves}`);
   const waiting = match.state === "build";
+  updateText("field-quick-stats", `Oleada ${waiting ? match.wave + 1 : match.wave}/${match.maxWaves} · ${match.atp} ATP`);
+  const defended = match.defenseObjective;
+  const goal = defended ? `${match.console ? "Consola" : `Terminal ${defended.lane ? "B" : "A"}`} · ${defended.hp}/4`
+    : `Núcleo · ${match.hp} %`;
+  updateText("field-quick-objective", goal);
+  $("field-quick-plan").hidden = !waiting;
+  $("field-quick-intel").disabled = adBusy;
   renderFieldGuide(waiting);
   renderPowerCut(waiting);
   renderPowerPads(waiting);
@@ -1838,6 +1935,16 @@ function renderHUD() {
   if (retryReview) updateText("retry-review-text", retryReview.text);
   $("combat-legend").hidden = match.state !== "wave";
   renderObjectiveCoverage(waiting);
+  const selectedAttack = selected && towerAttack[selected.id];
+  if (waiting) renderWavePreview(match.preview);
+  const selectedProfiles = waiting && selectedAttack && match.hasAffinities ? waveCounterProfiles : [];
+  const laneReport = selectedProfiles.flatMap((profile, lane) => {
+    const counts = profile.get(selectedAttack);
+    if (!counts?.resist && !counts?.weak) return [];
+    return [`${lane ? "B" : "A"} · ${counts.weak} débiles, ${counts.resist} resistentes`];
+  });
+  $("tower-coverage-affinity").hidden = !laneReport.length;
+  if (laneReport.length) updateText("tower-coverage-affinity", `${selected.name} · ${laneReport.join(" / ")}. Tramo discontinuo si predominan resistencias.`);
   const targets = $("mission-targets");
   targets.hidden = match.ranked || !["build", "wave"].includes(match.state);
   if (!targets.hidden && targets.open) {
@@ -1873,7 +1980,6 @@ function renderHUD() {
   $("wave-preview").hidden = !waiting;
   $("run-drill").disabled = match.power?.first === null || adBusy;
   if (waiting) {
-    renderWavePreview(match.preview);
     renderLaneCoverage();
   }
   const split = match.routes.length > 1 && (waiting || match.state === "wave");
@@ -2051,7 +2157,8 @@ function frame(now) {
       reduced.matches,
       aiming,
       hovered,
-      { gatePreview, movingHero, movingTower, skillPreview: abilityPreview || hoverBot, upgradePreview, snapOrigin: draft?.snapped ? cursor : null, reviewGap: match.state === "build" ? retryReview?.points || reviewGap : null },
+      { gatePreview, movingHero, movingTower, skillPreview: abilityPreview || hoverBot, upgradePreview, snapOrigin: draft?.snapped ? cursor : null, reviewGap: match.state === "build" ? retryReview?.points || reviewGap : null,
+        affinityProfiles: match.state === "build" && match.fixedLayout ? waveCounterProfiles : [] },
     );
     renderHUD();
   } else {
@@ -2083,11 +2190,16 @@ function finish() {
   if (match.contract) {
     const contract = match.contract;
     const score = match.score();
-    const record = won && profile.recordContract(contract.id, score);
-    ask(record ? "Nuevo récord de élite" : won ? "Contrato completado" : "Contrato fallido",
+    const medal = contract.mastery && won && match.hp >= 90;
+    const record = won && profile.recordContract(contract.id, score, medal);
+    ask(record ? contract.mastery ? "Nuevo récord de maestría" : "Nuevo récord de élite"
+      : won ? contract.mastery ? "Desafío superado" : "Contrato completado"
+        : contract.mastery ? "Desafío fallido" : "Contrato fallido",
       diagnostics.trim(),
-      [["Reintentar", () => startContract(contract)], ["Volver a contratos", openOperations]], breach,
-      combatDialog(tone, contract.name, [...outcomeStats, ["Puntos", score.toLocaleString("es-ES")]]));
+      [["Reintentar", () => startContract(contract)], [contract.mastery ? "Volver a maestría" : "Volver a contratos",
+        () => contract.mastery ? openMastery() : openOperations()]], breach,
+      { ...combatDialog(tone, contract.name, [...outcomeStats, ["Puntos", score.toLocaleString("es-ES")]]),
+        medal: medal ? "Maestría" : null });
     return;
   }
   if (challengeDay) {
@@ -2142,6 +2254,10 @@ function finish() {
   const buttons = won && nextMission
     ? [[chapterFinished ? "Siguiente capítulo" : "Siguiente sector", () => briefing(level + 1)]]
     : [];
+  if (chapterFinished) {
+    const entry = MASTERY.find(contract => contract.chapter === mission.chapter);
+    if (entry && contractUnlocked(entry)) buttons.push(["Desafío de maestría", () => openMastery(entry)]);
+  }
   if (!won && !checkpointLost && checkpoint?.raw) {
     const expected = checkpoint.raw;
     const failedWave = match.wave;
@@ -2150,8 +2266,8 @@ function finish() {
       const saved = savedPreparation();
       if (checkpoint.raw !== expected || !saved) return campaign();
       begin(saved.match, null, saved);
-      if (review && saved.match.level === level && saved.match.wave + 1 === failedWave) {
-        retryReview = review;
+      if (saved.match.level === level && saved.match.wave + 1 === failedWave) {
+        retryReview = review ? { ...review, text: `${review.text} Selecciona una torre para ensayar un traslado.` } : { text: "Prueba otro reparto de torres y compara la defensa en el ensayo de oleada." };
         renderHUD();
         canvas.scrollIntoView({ block: "nearest" });
         canvas.focus({ preventScroll: true });
@@ -2387,7 +2503,12 @@ $("hero-ability").onclick = () => {
   if (match.heroAbility()) {
     sound("pulse", true);
     message(`${match.hero.ability} activada.`);
-  } else message("Acerca el nanobot a los enemigos para usar su habilidad.", true);
+  } else {
+    const guidance = match.hero.id === "relay" ? "Acerca a Vatio a una torre apagada."
+      : match.hero.id === "lure" ? "Coloca a Nexo detrás de los enemigos para atraerlos hacia atrás."
+        : "Acerca el nanobot a los enemigos para usar su habilidad.";
+    message(guidance, true);
+  }
   renderHUD();
 };
 $("barrier-action").onclick = () => {
@@ -2429,7 +2550,8 @@ $("daily-button").onclick = () => {
   ]);
 };
 function startNextWave() {
-  if (adBusy) return;
+  if (adBusy || match.state !== "build" || match.power?.first === null) return;
+  persistPreparation();
   if (match.startWave()) {
     gatePreview = false;
     movingTower = null;
@@ -2500,6 +2622,7 @@ function inspectFireTarget() {
   if (enemy.shield > 0) stats.push(`Escudo ${Math.ceil(enemy.shield)}`);
   if (enemy.armor > 0) stats.push(`Blindaje ${Math.ceil(enemy.armor)}`);
   if (enemy.affinity) stats.push(...affinityHints(enemy.affinity));
+  if (enemy.moduleExposureUntil > match.time) stats.push("Expuesto · +20 % de daño de torres");
   const extraArmor = escortArmor(enemy);
   if (extraArmor) stats.push(`Escolta +${extraArmor} de blindaje`);
   updateText("fire-details", stats.join(" · "));

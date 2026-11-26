@@ -2400,3 +2400,39 @@ dialog::backdrop { background: #031016cf; }
 }
 .wave-impact small { color: var(--muted); }
 #wave-impact-result { margin: 0.25rem 0 0; color: #caf4e7; font-weight: 700; font-size: 0.81rem; }
+
+#field-tools { display: none; }
+.operations-layout > [aria-labelledby="operations-mastery"] { grid-column: 1 / -1; }
+.tower-coverage-affinity {
+  margin: 0.5rem 0 0;
+  padding: 0.45rem 0.65rem;
+  border-left: 3px dashed #ffd09a;
+  border-radius: 4px;
+  background: #142732;
+  color: #ffe6c8;
+  font-size: 0.8rem;
+}
+#boss-modules { margin-top: 0.35rem; color: #ffe3b5; }
+#drill-apply-position { margin-top: 0.35rem; min-height: 44px; }
+@media (max-width: 760px) {
+  #field-tools {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.36rem 0.45rem;
+    margin: 0.4rem 0 0.65rem;
+    border: 1px solid #3c7778;
+    border-radius: 9px;
+    color: #dcfff5;
+    background: #0d232c;
+    box-shadow: 0 5px 16px #020c189c;
+  }
+  #field-tools > div { flex: 1; min-width: 0; }
+  #field-tools strong, #field-tools small { display: block; font-size: 0.74rem; }
+  #field-tools small { color: #b6d5d1; }
+  #field-tools button { min-height: 44px; padding: 0.35rem 0.48rem; font-size: 0.75rem; }
+  #wave-preview { scroll-margin-top: 70px; }
+}

@@ -185,15 +185,16 @@ window.testRun = {
     await page.getByRole("heading", { name: "Nanobots de campaña" }).waitFor();
     assert.deepEqual(await page.locator("#heroes h3").allTextContents(), [
       "Óptix · Reconocimiento", "Crión · Control térmico", "Volt · Antiescudos", "Helio · Asalto",
+      "Vatio · Energía de emergencia", "Nexo · Control de rutas",
     ]);
-    assert.equal(await page.locator(".hero-art").count(), 4);
+    assert.equal(await page.locator(".hero-art").count(), 6);
     assert.match(await page.locator("#fielded-hero").textContent(), /Óptix/);
     const heroFilter = page.getByLabel("Filtrar nanobots");
     const contractFilter = page.getByLabel("Filtrar contratos");
     await heroFilter.selectOption("owned");
     assert.deepEqual(await page.locator("#heroes h3").allTextContents(), ["Óptix · Reconocimiento"]);
     await heroFilter.selectOption("locked");
-    assert.equal(await page.locator("#heroes h3").count(), 3);
+    assert.equal(await page.locator("#heroes h3").count(), 5);
     await contractFilter.selectOption("ready");
     assert.equal(await page.locator("#contracts button:disabled").count(), 0);
     assert.equal(await page.locator("#contracts button").count(), 5);
@@ -202,7 +203,7 @@ window.testRun = {
     assert.equal(await page.locator('[data-operation="contract-escolta"]').isDisabled(), true);
     await heroFilter.selectOption("all");
     await page.getByText("Entre disparos").first().waitFor();
-    await page.getByText("Recarga · 12 s").waitFor();
+    await page.locator("#heroes article").filter({ hasText: "Óptix" }).getByText("Recarga · 12 s").waitFor();
     await page.locator('[data-operation="buy-vega"]').tap();
     await page.locator('[data-operation="equip-vega"]').tap();
     assert.match(await page.locator("#operations-balance").textContent(), /6 biogemas/);
@@ -224,6 +225,18 @@ window.testRun = {
     await page.locator("#operations-button").tap();
     assert.equal(await page.locator('[data-operation="equip-vega"]').isDisabled(), true);
     await page.locator('[data-operation="equip-mara"]').waitFor();
+    const mastery = page.locator('[data-operation="contract-mastery-4"]');
+    await mastery.getByText("Jugar desafío").waitFor();
+    assert.equal(await page.locator('[data-operation="contract-mastery-14"]').isDisabled(), true);
+    await mastery.tap();
+    await page.locator("#sector").getByText("Cuatro puestos").waitFor();
+    await page.locator("#tower-limit").getByText("0/4 instaladas").waitFor();
+    assert.equal(await page.locator("#supplies").isVisible(), false);
+    await page.locator("#next").tap();
+    await page.evaluate(() => testRun.winContract());
+    await page.getByRole("heading", { name: "Nuevo récord de maestría" }).waitFor();
+    await page.getByRole("button", { name: "Volver a maestría" }).tap();
+    await page.locator("#mastery").getByText("Medalla de maestría obtenida").waitFor();
     await page.locator('[data-operation="contract-guardia"]').tap();
     assert.equal(await page.locator("#supplies").isVisible(), false);
     assert.equal(await page.locator("#field-specials").isVisible(), false);
@@ -242,7 +255,7 @@ window.testRun = {
     await page.evaluate(() => testRun.winContract());
     await page.getByRole("heading", { name: "Nuevo récord de élite" }).waitFor();
     await page.getByRole("button", { name: "Volver a contratos" }).tap();
-    await page.getByText(/Récord personal · \d/).waitFor();
+    await page.locator("#contracts").getByText(/Récord personal · \d/).waitFor();
     await page.locator("#back-operations").tap();
 
     const launch = async (index) => {

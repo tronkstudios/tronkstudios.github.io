@@ -192,6 +192,15 @@ export const MISSIONS = [
         { name: "Bacteriófagos por B", lane: 1, species: "phage-t4", gap: 36 },
         { name: "Segunda fila de bacilos", lane: 0, species: "subtilis", spacing: 29 },
       ],
+    }, 4: {
+      name: "Intercepción en el cruce",
+      tip: "B alterna bacteriófagos y bacilos. Coloca ataques térmicos cerca de la unión y guarda Láser para el primer grupo de B.",
+      formation: "cross",
+      groups: [
+        { name: "Espirales rápidas por A", lane: 0, species: "borrelia" },
+        { name: "Bacteriófagos por B", lane: 1, species: "phage-t4", gap: 34 },
+        { name: "Bacilos por las dos entradas", species: "subtilis", gap: 36 },
+      ],
     } },
     medal: medals.workshop,
   },
@@ -629,6 +638,16 @@ export const MISSIONS = [
     briefing: "Cada lente necesita una oleada de exposición. La segunda está en B y la escolta puede ocultar a los exploradores.",
     cue: "Antes de lanzar la oleada, comprueba qué entrada necesita cobertura.",
     transmission: "Sincroniza las dos lentes.", end: "Las lentes distinguen una segunda señal.",
+    counterTactics: { 2: {
+      name: "Las dos lentes",
+      tip: "B protege la lente de la segunda oleada. Frena a los exploradores con Control. En A, combina Corrosión e Impacto contra el blindaje.",
+      formation: "cross",
+      groups: [
+        { name: "Blindados por A", lane: 0, species: "staph-epi", armor: 11, speed: 0.92 },
+        { name: "Exploradores por B", lane: 1, species: "borrelia", armor: 0, speed: 1.17, gap: 26 },
+        { name: "Refuerzos por A", lane: 0, species: "staph-epi", armor: 7, gap: 48 },
+      ],
+    } },
     waves: 6, bend: 1.12, flip: true, formation: "convoy", medal: medals.intact,
     towerLimit: 8,
     objective: "archive",
@@ -796,6 +815,10 @@ export const MISSIONS = [
     finale: {
       name: "Defensa de la reserva",
       tip: "Guarda control para los refuerzos y alcance para el último tramo de B.",
+      storyModules: [
+        { lane: 0, waypoint: 3, name: "Emisor de refuerzos", role: "reinforcements", hp: 245, color: "#fbbf78" },
+        { lane: 1, waypoint: 3, name: "Regulador de escudo", role: "shield", hp: 280, color: "#9ccaff" },
+      ],
       stages: [
         { name: "Escolta de la reserva", detail: "El jefe gana un escudo y llegan refuerzos con escudo por A.", shield: 0.16,
           reinforcements: { lane: 0, delay: 165, count: 3, spec: 8, shield: 0.24 } },

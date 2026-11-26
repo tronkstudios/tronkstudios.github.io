@@ -22,7 +22,7 @@
       href="https://tronkstudios.github.io/juegos/bio-lab-defense/"
     />
     <link rel="icon" href="/favicon.png" />
-    <link rel="stylesheet" href="./styles.css?v=46" />
+    <link rel="stylesheet" href="./styles.css?v=47" />
     <title>Bio-Lab Defense · TronkStudios</title>
   </head>
   <body>
@@ -217,6 +217,7 @@
         <nav class="operations-nav" aria-label="Secciones de operaciones">
           <a href="#operations-heroes">Nanobots</a>
           <a href="#operations-contracts">Contratos</a>
+          <a href="#operations-mastery">Maestría</a>
         </nav>
         <div class="operations-layout">
           <section aria-labelledby="operations-heroes">
@@ -243,6 +244,13 @@
             </div>
             <p class="operation-empty" id="contracts-empty" role="status" hidden></p>
             <div class="operations-grid" id="contracts"></div>
+          </section>
+          <section aria-labelledby="operations-mastery">
+            <div class="operation-list-head">
+              <h2 id="operations-mastery" tabindex="-1">Maestría de campaña</h2>
+            </div>
+            <p class="operation-empty" id="mastery-empty" role="status" hidden>Completa un capítulo para desbloquear su desafío.</p>
+            <div class="operations-grid" id="mastery"></div>
           </section>
         </div>
       </section>
@@ -277,6 +285,11 @@
             ><strong id="threats"></strong>
           </div>
         </div>
+        <nav id="field-tools" aria-label="Acciones rápidas de combate">
+          <div><strong id="field-quick-stats"></strong><small id="field-quick-objective"></small></div>
+          <button type="button" id="field-quick-plan" aria-controls="wave-preview">Oleada</button>
+          <button type="button" id="field-quick-intel" aria-haspopup="dialog">Fichas</button>
+        </nav>
         <div id="radio-log" class="radio-card field-radio" hidden>
           <strong id="radio-speaker"></strong>
           <p id="radio-text" role="status"></p>
@@ -310,6 +323,7 @@
               <b id="core-warning" class="map-alert" hidden>¡Núcleo en peligro!</b>
               <b id="placement-preview" hidden></b>
             </div>
+            <p id="tower-coverage-affinity" class="tower-coverage-affinity" hidden></p>
             <div id="compact-incoming" aria-label="Próximos grupos"></div>
             <div id="compact-wave-beacons" role="group" aria-label="Balizas de oleada"></div>
             <section id="field-guide" aria-label="Primer despliegue" hidden>
@@ -417,6 +431,7 @@
               </div>
               <p id="boss-vitals" class="boss-vitals"></p>
               <p id="boss-finale" class="boss-finale" hidden></p>
+              <p id="boss-modules" class="boss-finale" hidden></p>
             </div>
             <div id="boss-status-b" class="boss-status boss-status-b" hidden>
               <div>
@@ -438,6 +453,7 @@
               <summary id="wave-debrief-title"></summary>
               <p id="wave-debrief-leaks" hidden></p>
               <p id="wave-debrief-worst" hidden></p>
+              <p id="wave-debrief-synergies" hidden></p>
               <div id="wave-debrief-gap" hidden>
                 <p id="wave-debrief-gap-text"></p>
                 <button type="button" id="wave-debrief-map" aria-controls="board" aria-pressed="false">Marcar tramo en el mapa</button>
@@ -446,7 +462,7 @@
             </details>
             <div class="wave-preview" id="wave-preview">
               <div class="wave-preview-head">
-                <strong id="wave-preview-title"></strong>
+                <strong id="wave-preview-title" tabindex="-1"></strong>
                 <button type="button" id="run-drill" aria-haspopup="dialog">Ensayar oleada</button>
               </div>
               <section id="wave-finale" class="wave-tactics wave-finale" aria-labelledby="wave-finale-title" hidden>
@@ -516,13 +532,14 @@
       <p class="drill-intro">Prueba tu defensa actual en combate automático. Puedes volver, mover torres y repetir el ensayo gratis.</p>
       <strong role="status"></strong>
       <section class="drill-upgrades" aria-labelledby="drill-upgrades-title" hidden>
-        <h3 id="drill-upgrades-title">Resultado por mejora</h3>
+        <h3 id="drill-upgrades-title">Resultado de las dos defensas</h3>
         <table>
           <caption></caption>
           <thead><tr><th scope="col">Plan</th><th scope="col">Núcleo</th><th scope="col">Fugas</th><th scope="col">ATP final</th></tr></thead>
           <tbody></tbody>
         </table>
-        <p>El coste se descuenta solo en el ensayo. El mapa muestra tu defensa actual.</p>
+        <p id="drill-plan-note">El coste se descuenta solo en el ensayo. El mapa muestra tu defensa actual.</p>
+        <button type="button" id="drill-apply-position" hidden>Aplicar traslado</button>
       </section>
       <canvas id="drill-map" width="900" height="540" aria-label="Simulación de la próxima oleada" role="img"></canvas>
       <ul aria-label="Fugas por entrada"></ul>
@@ -603,6 +620,6 @@
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
       defer
     ></script>
-    <script type="module" src="./game.js?v=60"></script>
+    <script type="module" src="./game.js?v=61"></script>
   </body>
 </html>

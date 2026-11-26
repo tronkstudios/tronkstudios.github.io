@@ -78,8 +78,8 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8928";
       await page.locator("#wave").getByText("1/4", { exact: true }).waitFor();
       // Restore the preparation phase for the first split counter wave.
       await page.evaluate(async () => {
-        const { Match } = await import("/juegos/bio-lab-defense/engine.js?v=37");
-        const { Checkpoint } = await import("/juegos/bio-lab-defense/checkpoint.js?v=33");
+        const { Match } = await import("/juegos/bio-lab-defense/engine.js?v=38");
+        const { Checkpoint } = await import("/juegos/bio-lab-defense/checkpoint.js?v=34");
         localStorage.setItem("biolab_save_v1", JSON.stringify({ unlockedLevel: 5, stars: [2, 2, 2, 2] }));
         localStorage.removeItem("biolab_checkpoint:guest");
         const counterMatch = new Match(5, null, { fixedLayout: true });
@@ -89,6 +89,14 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8928";
       await page.reload();
       await page.locator("#home-resume-run").click();
       await page.locator("#wave-tactics-title").getByText("Cruce de afinidades").waitFor();
+      if (mobile) {
+        await page.locator("#field-quick-stats").getByText(/Oleada 2\/5/).waitFor();
+        await page.locator("#field-quick-objective").getByText(/Núcleo/).waitFor();
+        await page.locator("#field-quick-plan").click();
+        assert.equal(await page.evaluate(() => document.activeElement.id), "wave-preview-title");
+        await page.locator("#field-quick-intel").click();
+        await page.locator("#codex").getByRole("button", { name: "Cerrar" }).click();
+      }
       const counters = page.locator("#wave-counter-list");
       await counters.getByText("Entrada A · Térmico").waitFor();
       await counters.getByText(/Evita Láser/).waitFor();
@@ -106,6 +114,16 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8928";
       await touchBoard(counterSite.x, counterSite.y);
       await page.locator("#tower-targeting").selectOption("weakness");
       assert.equal((await saved()).towers[0].targeting, "weakness");
+      await page.locator("#tower-coverage-affinity").getByText(/A · 0 débiles, .* resistentes/).waitFor();
+      const beforeTrial = await saved();
+      await page.getByRole("button", { name: "Ensayar traslado" }).click();
+      const compare = page.getByRole("region", { name: "Resultado del traslado" });
+      await compare.getByText("Trasladar a otro puesto", { exact: false }).waitFor();
+      assert.deepEqual((await saved()).towers, beforeTrial.towers);
+      await compare.getByRole("button", { name: "Aplicar traslado" }).click();
+      const afterTrial = await saved();
+      assert.notDeepEqual([afterTrial.towers[0].x, afterTrial.towers[0].y], [counterSite.x, counterSite.y]);
+      assert.equal(afterTrial.atp, beforeTrial.atp);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
       assert.deepEqual(errors, []);
       await page.close();

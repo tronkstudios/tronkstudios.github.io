@@ -75,6 +75,41 @@ export const HEROES = [
     abilityRange: 141,
     recharge: 1040,
   },
+  {
+    id: "relay",
+    name: "Vatio",
+    role: "Energía de emergencia",
+    color: "#f7d779",
+    cost: 30,
+    rarity: "Épico",
+    ads: 3,
+    range: 113,
+    damage: 12,
+    fireRate: 39,
+    type: "single",
+    ability: "Puente de energía",
+    detail: "Reactiva durante 5 segundos la torre apagada más cercana dentro de su alcance. Acércalo a la torre antes de activar la habilidad.",
+    abilityRange: 155,
+    recharge: 680,
+  },
+  {
+    id: "lure",
+    name: "Nexo",
+    role: "Control de rutas",
+    color: "#bfb0ff",
+    cost: 44,
+    rarity: "Épico",
+    ads: 5,
+    range: 108,
+    damage: 10,
+    fireRate: 38,
+    type: "slow",
+    branch: { slow: 64, slowFactor: 0.68 },
+    ability: "Ancla magnética",
+    detail: "Durante 2 segundos atrae a los enemigos cercanos hacia atrás por su conducto. Colócalo detrás del grupo. Los jefes y módulos no se mueven.",
+    abilityRange: 143,
+    recharge: 760,
+  },
 ];
 
 export const HERO_BY_ID = new Map(HEROES.map((hero) => [hero.id, hero]));
@@ -130,4 +165,27 @@ export const CONTRACTS = [
   },
 ];
 
-export const CONTRACT_BY_ID = new Map(CONTRACTS.map((contract) => [contract.id, contract]));
+export const MASTERY = [
+  { level: 4, name: "Cuatro puestos", towerLimit: 4 },
+  { level: 8, name: "Defensa permanente", noSell: true, atp: 240 },
+  { level: 10, name: "Presupuesto cerrado", noSell: true, atp: 310 },
+  { level: 14, name: "Dos frentes", towerLimit: 5 },
+  { level: 18, name: "Contención sin recambios", noSell: true, towerLimit: 7 },
+  { level: 22, name: "La última guardia", towerLimit: 6 },
+  { level: 26, name: "Circuito reducido", noSell: true, towerLimit: 7 },
+  { level: 30, name: "Apagón en órbita", towerLimit: 5 },
+  { level: 34, name: "Crisol sin recambios", noSell: true, towerLimit: 7 },
+  { level: 38, name: "Reserva de élite", towerLimit: 7, noSell: true },
+].map((entry, chapter) => ({
+  ...entry,
+  id: `mastery-${entry.level}`,
+  chapter,
+  mastery: true,
+  detail: [
+    entry.towerLimit && `Máximo de ${entry.towerLimit} torres`,
+    entry.noSell && "Sin venta de torres",
+    entry.atp && `${entry.atp} ATP al inicio`,
+  ].filter(Boolean).join(" · "),
+}));
+
+export const CONTRACT_BY_ID = new Map([...CONTRACTS, ...MASTERY].map((contract) => [contract.id, contract]));

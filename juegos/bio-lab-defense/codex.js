@@ -1,6 +1,6 @@
 import { affinityFor, towerAttack, WEAKNESS, RESISTANCE, STORY_WEAKNESS, STORY_RESISTANCE, damagePercent } from "./affinities.js?v=3";
-import { BLUEPRINTS, PATHOGEN_TYPES, BOSS_CATALOG, reactorProduction, REACTOR_FIRST_CYCLE, specializations, upgradeCost } from "./engine.js?v=37";
-import { drawEnemyModel, drawTurretModel } from "./art.js?v=4";
+import { BLUEPRINTS, PATHOGEN_TYPES, BOSS_CATALOG, reactorProduction, REACTOR_FIRST_CYCLE, specializations, upgradeCost } from "./engine.js?v=38";
+import { drawEnemyModel, drawTurretModel } from "./art.js?v=5";
 
 const towerAdvice = {
   nanolaser: "Una buena primera torre. Colócala donde su alcance cubra dos tramos del conducto.",
@@ -145,6 +145,13 @@ export function createCodex(dialog, isStory) {
     }
     detail.append(element("p", advice, "codex-advice"));
     if (tower) {
+      const combo = {
+        toxin: "Corrosión + Impacto. El Ácido Lítico marca al blanco durante 3 segundos. El Fagocito ignora el 55 % de su blindaje durante ese tiempo.",
+        phagocyte: "Corrosión + Impacto. Si el Ácido Lítico ha corroído al blanco, el Fagocito ignora el 55 % del blindaje.",
+        cryo: "Frío + Área. Las torres de área infligen un 14 % más de daño a blancos ralentizados por una torre.",
+        magnet: "Frío + Área. Las torres de área infligen un 14 % más de daño a blancos ralentizados por una torre.",
+      }[entry.id] || (entry.type === "splash" && "Frío + Área. Inflige un 14 % más de daño a blancos ralentizados por una torre.");
+      if (combo) detail.append(element("p", `Historia y Maestría · ${combo}`, "codex-advice"));
       const paths = element("ul", undefined, "codex-paths");
       for (const path of specializations(entry)) {
         const item = element("li");

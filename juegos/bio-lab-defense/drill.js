@@ -1,14 +1,18 @@
-import { specializations, upgradeCost } from "./engine.js?v=37";
+import { specializations, upgradeCost } from "./engine.js?v=38";
 
 // Clone the complete state together so references between routes, towers and shots survive.
 // The mission definition contains medal predicates and is read-only during combat.
-export function startDrill(match, upgrade = null) {
+export function startDrill(match, change = null) {
   if (match.state !== "build" || match.power?.first === null) return null;
   const { mission, ...state } = match;
   const simulation = Object.assign(Object.create(Object.getPrototypeOf(match)), structuredClone(state), { mission });
-  if (upgrade) {
-    const tower = simulation.towers[upgrade.towerIndex];
-    if (!tower || !simulation.upgrade(tower, upgrade.choice)) return null;
+  if (change) {
+    const tower = simulation.towers[change.towerIndex];
+    if (!tower) return null;
+    const applied = change.position
+      ? simulation.relocate(tower, change.position.x, change.position.y)
+      : simulation.upgrade(tower, change.choice);
+    if (!applied) return null;
   }
   return simulation.startWave() ? simulation : null;
 }
@@ -21,7 +25,7 @@ function waveResult(simulation) {
   return { hp: simulation.hp, atp: simulation.atp, leaks, outcome };
 }
 
-export function attachDrill(dialog, board, getMatch, selectTower) {
+export function attachDrill(dialog, board, getMatch, selectTower, applyPosition) {
   const title = dialog.querySelector("h2");
   const intro = dialog.querySelector(".drill-intro");
   const normalIntro = intro.textContent;
@@ -32,18 +36,25 @@ export function attachDrill(dialog, board, getMatch, selectTower) {
   const compare = dialog.querySelector(".drill-comparison");
   const gapHint = dialog.querySelector(".drill-gap");
   const upgradeComparison = dialog.querySelector(".drill-upgrades");
+  const heading = upgradeComparison.querySelector("h3");
+  const note = upgradeComparison.querySelector("#drill-plan-note");
+  const apply = upgradeComparison.querySelector("#drill-apply-position");
   const upgradeTitle = upgradeComparison.querySelector("caption");
   const upgradeRows = upgradeComparison.querySelector("tbody");
   let frame;
   let previous;
 
-  function open(tower = null) {
+  function open(tower = null, position = null) {
     const match = getMatch();
     const sim = startDrill(match);
     if (!sim) return;
     const scenarios = [{ simulation: sim, label: "Defensa actual" }];
     const towerIndex = match.towers.indexOf(tower);
-    if (towerIndex >= 0 && tower.rank < 3) {
+    if (towerIndex >= 0 && position) {
+      const simulation = startDrill(match, { towerIndex, position });
+      if (!simulation) return;
+      scenarios.push({ simulation, label: "Trasladar a otro puesto" });
+    } else if (towerIndex >= 0 && tower.rank < 3) {
       const labels = tower.rank === 1 ? ["Nivel 2"] : specializations(tower).map(branch => branch.name);
       for (const [choice, label] of labels.entries()) {
         const simulation = startDrill(match, { towerIndex, choice });
@@ -56,10 +67,19 @@ export function attachDrill(dialog, board, getMatch, selectTower) {
     const startingHP = sim.hp;
     title.textContent = `Ensayo de la oleada ${wave}`;
     intro.textContent = comparing
-      ? "La misma oleada con tu defensa actual y cada mejora disponible."
+      ? position ? "Compara la misma oleada antes y después del traslado." : "La misma oleada con tu defensa actual y cada mejora disponible."
       : normalIntro;
     result.textContent = comparing ? "Simulando la defensa actual y las mejoras…" : "Simulando el combate…";
     upgradeComparison.hidden = true;
+    heading.textContent = position ? "Resultado del traslado" : "Resultado por mejora";
+    note.textContent = position
+      ? "El anillo violeta señala el puesto alternativo. Tu preparación se mantiene hasta que apliques el traslado."
+      : "El coste se descuenta solo en el ensayo. El mapa muestra tu defensa actual.";
+    apply.hidden = !position;
+    apply.onclick = position ? () => {
+      dialog.close();
+      applyPosition(tower, position);
+    } : null;
     upgradeRows.replaceChildren();
     lanes.replaceChildren();
     performancePanel.hidden = true;
@@ -89,6 +109,17 @@ export function attachDrill(dialog, board, getMatch, selectTower) {
         board.draw(sim, null, null, null, true, false, null, {
           breach: failedObjective || (finished && sim.waveLeaks.worst ? sim.waveLeaks : null),
         });
+      }
+      if (position && (finished || !staticMap)) {
+        const ctx = board.ctx;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(position.x, position.y, 25, 0, 2 * Math.PI);
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "#d7bbff";
+        ctx.setLineDash([6, 4]);
+        ctx.stroke();
+        ctx.restore();
       }
       if (!finished) {
         frame = requestAnimationFrame(advance);
@@ -143,6 +174,10 @@ export function attachDrill(dialog, board, getMatch, selectTower) {
         const damage = Math.round(tested.inflicted - original.inflicted);
         const stats = tested.type === "eco" ? [`+${tested.produced - original.produced} ATP`]
           : [`${damage} de daño`, `${tested.defeated - original.defeated} bajas`];
+        const corrosion = Math.round(tested.corrosionDamage - original.corrosionDamage);
+        if (corrosion > 0) stats.push(`+${corrosion} de daño por Corrosión + Impacto`);
+        const chill = Math.round(tested.chillDamage - original.chillDamage);
+        if (chill > 0) stats.push(`+${chill} de daño por Frío + Área`);
         const slow = tested.slowTicks - original.slowTicks;
         if (slow) stats.push(`${(slow / 60).toLocaleString("es-ES", { maximumFractionDigits: 1 })} s de ralentización acumulada`);
         ctx.fillStyle = "#0c1e32";

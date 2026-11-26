@@ -1,6 +1,6 @@
-import { HEROES, HERO_BY_ID, CONTRACT_BY_ID } from "./operations.js?v=7";
+import { HEROES, HERO_BY_ID, CONTRACT_BY_ID, MASTERY } from "./operations.js?v=8";
 
-import { MISSIONS } from "./campaign.js?v=15";
+import { MISSIONS } from "./campaign.js?v=16";
 
 const KEY = "biolab_save_v1";
 const bounded = (value, max, fallback = 0) =>
@@ -33,6 +33,7 @@ export function normalize(data = {}) {
     heroOwned,
     heroEquipped: heroOwned[data?.heroEquipped] === true ? data.heroEquipped : "iris",
     contracts,
+    masteryMedals: Object.fromEntries(MASTERY.map(({ id }) => [id, data?.masteryMedals?.[id] === true])),
     veteranRecords: Array.from({ length: MISSIONS.length }, (_, i) => bounded(data?.veteranRecords?.[i], 1000000)),
     unlockedLevel: Math.max(nextSector, bounded(data?.unlockedLevel, MISSIONS.length, 1)),
     atpBank: bounded(data?.atpBank, 99999, 500),
@@ -166,6 +167,8 @@ export class Profile {
       }
       if (next.heroOwned[this.data.heroEquipped])
         next.heroEquipped = this.data.heroEquipped;
+      for (const { id } of MASTERY)
+        next.masteryMedals[id] ||= this.data.masteryMedals[id];
       for (const [id, score] of Object.entries(this.data.contracts))
         next.contracts[id] = Math.max(next.contracts[id], score);
     }
@@ -221,11 +224,15 @@ export class Profile {
     return true;
   }
 
-  recordContract(id, points) {
-    if (!CONTRACT_BY_ID.has(id) || points <= this.data.contracts[id]) return false;
-    this.data.contracts[id] = points;
-    this.commit();
-    return true;
+  recordContract(id, points, medal = false) {
+    const contract = CONTRACT_BY_ID.get(id);
+    if (!contract) return false;
+    const improved = points > this.data.contracts[id];
+    const earnedMedal = contract.mastery && medal && !this.data.masteryMedals[id];
+    if (improved) this.data.contracts[id] = points;
+    if (earnedMedal) this.data.masteryMedals[id] = true;
+    if (improved || earnedMedal) this.commit();
+    return improved;
   }
 
   recordVeteran(level, points) {
