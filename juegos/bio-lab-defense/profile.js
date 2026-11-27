@@ -29,6 +29,7 @@ export function normalize(data = {}) {
   const stars = Array.from({ length: MISSIONS.length }, (_, i) => bounded(data?.stars?.[i], 3));
   const nextSector = Math.min(MISSIONS.length, stars.findLastIndex(Boolean) + 2);
   return {
+    learnedUpgrade: data?.learnedUpgrade === true,
     heroAds,
     heroOwned,
     heroEquipped: heroOwned[data?.heroEquipped] === true ? data.heroEquipped : "iris",
@@ -144,6 +145,7 @@ export class Profile {
       next.stars = next.stars.map((stars, i) =>
         Math.max(stars, this.data.stars[i]),
       );
+      next.learnedUpgrade ||= this.data.learnedUpgrade;
       next.medals = next.medals.map(
         (earned, i) => earned || this.data.medals[i],
       );

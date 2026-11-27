@@ -1,4 +1,4 @@
-import { BLUEPRINTS, HEIGHT, Match, TARGETING, WIDTH, specializations } from "./engine.js?v=39";
+import { BLUEPRINTS, HEIGHT, Match, TARGETING, WIDTH, specializations } from "./engine.js?v=40";
 
 import { MISSIONS } from "./campaign.js?v=16";
 
@@ -34,6 +34,7 @@ export class Checkpoint {
     const data = {
       version,
       fixedLayout: match.fixedLayout || undefined,
+      limitedConstruction: match.limitedConstruction,
       level: match.level,
       wave: match.wave,
       hp: match.hp,
@@ -111,6 +112,7 @@ export function restoreCheckpoint(data) {
   const match = new Match(data.level, null, {
     heroId: data.hero?.id,
     fixedLayout: data.fixedLayout === true,
+    limitedConstruction: data.limitedConstruction === true,
     legacyArchiveOrder: data.wave > 0 && data.archiveFirstLane !== 1,
   });
   if (

@@ -16,18 +16,18 @@ import {
   VARIANT_NAMES,
   escortArmor,
   dailySetup,
-} from "./engine.js?v=39";
-import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=10";
-import { attachDrill } from "./drill.js?v=13";
-import { Board } from "./board.js?v=46";
+} from "./engine.js?v=40";
+import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=11";
+import { attachDrill } from "./drill.js?v=14";
+import { Board } from "./board.js?v=47";
 import { towerIcon, heroIcon } from "./art.js?v=5";
-import { createCodex } from "./codex.js?v=27";
-import { Profile, dayKey } from "./profile.js?v=19";
+import { createCodex } from "./codex.js?v=28";
+import { Profile, dayKey } from "./profile.js?v=20";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=7";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=16";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=35";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=36";
 
 import { HEROES, CONTRACTS, MASTERY } from "./operations.js?v=8";
 
@@ -648,7 +648,7 @@ function briefing(level) {
   updateText("briefing-task", mission.task);
   updateText("briefing-speaker", mission.speaker);
   updateText("briefing-voice", mission.briefing);
-  updateText("briefing-tip", [mission.cue, preview.firePads.length && !preview.padCycle ? "Las plataformas iluminadas dan +25 % de daño a las torres de ataque." : "", preview.towerLimit ? `Dispones de ${preview.towerLimit} puestos.` : ""].filter(Boolean).join(" "));
+  updateText("briefing-tip", [mission.cue, preview.firePads.length && !preview.padCycle ? "Las plataformas iluminadas dan +25 % de daño a las torres de ataque." : "", preview.limitedConstruction ? `Puedes instalar hasta ${preview.towerLimit} torres. Desde la tercera oleada llegan enemigos más resistentes. Reserva ATP para mejorar.` : preview.towerLimit ? `Dispones de ${preview.towerLimit} puestos.` : ""].filter(Boolean).join(" "));
   updateText(
     "briefing-medal",
     profile.data.medals[level - 1]
@@ -1073,6 +1073,7 @@ function renderSelection() {
   if (tower.rank === 1) {
     const improve = makeButton(`Mejorar · ${cost} ATP`, () => {
       if (match.upgrade(tower)) {
+        rememberUpgrade();
         message(`${tower.name} mejorada a nivel 2.`);
         persistPreparation();
       }
@@ -1084,6 +1085,7 @@ function renderSelection() {
     for (const [choice, branch] of specializations(tower).entries()) {
       const improve = makeButton(`${branch.name} · ${cost} ATP`, () => {
         if (match.upgrade(tower, choice)) {
+          rememberUpgrade();
           message(`Especialización «${branch.name}» activada.`);
           persistPreparation();
         }
@@ -1792,9 +1794,38 @@ function renderWaveDebrief(waiting) {
   }));
 }
 
+function rememberUpgrade() {
+  if (match.ranked || profile.data.learnedUpgrade) return;
+  profile.data.learnedUpgrade = true;
+  profile.commit();
+}
+
+function introductoryTower() {
+  return match.towers.find(tower => tower.rank === 1 && tower.type !== "eco");
+}
+
+$("field-guide-upgrade").onclick = () => {
+  if (match.state !== "build" || adBusy) return;
+  const tower = introductoryTower();
+  if (!tower) return;
+  selected = tower;
+  blueprint = movingTower = null;
+  aiming = movingHero = false;
+  highlightDock();
+  renderHUD();
+  persistPreparation();
+  const panel = $("selection");
+  panel.scrollIntoView({ block: "center" });
+  (panel.querySelector(".upgrade-controls button:not(:disabled)") || panel).focus({ preventScroll: true });
+};
+
 function renderFieldGuide(waiting) {
-  const visible = waiting && !match.ranked && match.level === 1 &&
-    !profile.data.stars[0] && !guideDismissed && match.wave < 2;
+  const canTeach = waiting && !match.ranked && !guideDismissed;
+  const tower = canTeach && !profile.data.learnedUpgrade && introductoryTower();
+  const intro = canTeach && match.level === 1 && !profile.data.stars[0] && match.wave < 2;
+  const visible = intro || !!tower;
+  $("field-guide-upgrade").hidden = !tower;
+  if (tower) updateText("field-guide-upgrade", `Ver mejora de ${tower.name} · ${upgradeCost(tower)} ATP`);
   const showPreview = visible && match.wave === 0 && match.towers.length === 0 &&
     match.atp >= BLUEPRINTS[0].cost && !adBusy;
   $("field-guide").hidden = !visible;
@@ -1804,7 +1835,11 @@ function renderFieldGuide(waiting) {
   $("field-guide-site").hidden = !guideSite;
   if (showPreview) updateText("field-guide-preview", guideSite ? "Quitar marcador" : "Ver posición sugerida");
   if (!visible) return;
-  if (match.wave === 1) {
+  if (tower) {
+    const next = upgradeStats(tower);
+    updateText("field-guide-title", intro && match.wave === 0 ? "Lanza tu primera oleada" : "Mejora una torre instalada");
+    updateText("field-guide-text", `Tu ${tower.name} puede subir a nivel 2. Daño ${tower.damage} → ${next.damage} y alcance ${tower.range} → ${next.range} desde el mismo puesto. Toca la torre para elegir la mejora.`);
+  } else if (match.wave === 1) {
     updateText("field-guide-title", "Refuerza la defensa");
     updateText("field-guide-text", match.towers.length
       ? "Selecciona una torre instalada para ver cuánto ganan su daño y su alcance al mejorarla."

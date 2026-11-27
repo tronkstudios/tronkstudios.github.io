@@ -38,7 +38,7 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8791";
         position: { x: ((box.width - 2) * x) / 900, y: ((box.height - 2) * y) / 540 },
       });
     }
-    const guide = page.getByRole("region", { name: "Primer despliegue" });
+    const guide = page.getByRole("region", { name: "Guía de defensa" });
     await guide.getByText("Instala tu primera torre").waitFor();
     const guideATP = Number(await page.locator("#atp").textContent());
     await guide.getByRole("button", { name: "Ver posición sugerida" }).tap();
@@ -72,7 +72,10 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8791";
     assert.equal(await page.locator("#selection").evaluate(el => el === document.activeElement), true);
     assert.equal(await page.locator("#near-board-selection #selection").isVisible(), true);
     await page.locator(".upgrade-metrics dd").getByText("14 → 20", { exact: true }).waitFor();
+    await page.locator("#field-guide-upgrade").tap();
+    assert.equal(await page.evaluate(() => document.activeElement.closest(".upgrade-controls") !== null), true);
     await page.getByRole("button", { name: /^Mejorar/ }).tap();
+    assert.equal(await page.locator("#field-guide-upgrade").isVisible(), false);
     const beforeComparison = await page.locator("#atp").textContent();
     const checkpointBeforeComparison = await page.evaluate(() => localStorage.getItem("biolab_checkpoint:guest"));
     await page.getByRole("button", { name: "Ensayar mejoras" }).tap();
