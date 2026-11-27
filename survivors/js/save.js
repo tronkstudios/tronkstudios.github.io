@@ -14,6 +14,7 @@ const Save = (() => {
   function fresh() {
     return {
       coins: 0,
+      dailyDone: null,
       lastCoinAd: 0,
       adUnlocks: {},
       lastChestAd: 0,
@@ -76,6 +77,11 @@ const Save = (() => {
     return true;
   }
 
+  // ISO challenge dates sort chronologically, independently of save timestamps.
+  function latestDaily(days) {
+    return days.filter(day => typeof day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(day)).sort().pop() || null;
+  }
+
   function normalize(d) {
     const owned = {};
     for (const ch of TS.CHARACTERS) if (d.owned && d.owned[ch.id]) {
@@ -100,6 +106,7 @@ const Save = (() => {
     }));
     unlockRoster(d);
     d.history=normalizeHistory(d.history);
+    d.dailyDone = latestDaily([d.dailyDone, ...d.history.map(run => run.daily)]);
     d.formTiers = Object.fromEntries(TS.CHARACTERS.map(ch => {
       const prior = d.history.filter(row => row.charId === ch.id && !row.coop && !row.daily);
       return [ch.id, Math.min(2,Math.max(integer(d.formTiers?.[ch.id]), ...prior.map(row=>TS.formTier(row.level))))];
@@ -171,6 +178,7 @@ const Save = (() => {
     Object.assign(d, {
       ...d,
       owned,
+      dailyDone: latestDaily([d.dailyDone, remote.dailyDone]),
       lastCoinAd: Math.max(integer(d.lastCoinAd), integer(remote.lastCoinAd)),
       lastChestAd: Math.max(integer(d.lastChestAd), integer(remote.lastChestAd)),
       redeemedChestAd: Math.max(integer(d.redeemedChestAd), integer(remote.redeemedChestAd)),

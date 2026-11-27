@@ -878,11 +878,11 @@
   function play(setups, opts) {
     const s = setups || [localSetup()];
     const o = { mode: "solo", localId: 0, map: save.settings.map || "bosque", ...(opts || {}) };
+    lastRun = { setups:structuredClone(s), opts:structuredClone(o) };
     // en las 3 primeras partidas los enemigos pegan menos
     if (o.mode === "solo" && !o.daily && !o.veteran && !o.sprint && !o.training && save.runs < 3) o.easy = true;
     rematchLevel = o.mode === "solo" && !o.daily && !o.preview && !o.training ? o.rematchLevel || 0 : 0;
     $("hud-rematch").hidden = !rematchLevel;
-    lastRun = { setups:structuredClone(s), opts:structuredClone(o) };
     for (const x of s) Sprites.get(`char:${x.charId}`);
     if (!o.preview && !o.training && !o.veteran && !o.sprint) Account.startRun();
     enterGame(() => {
@@ -1382,7 +1382,7 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     const generation=gameGeneration,endedState=Game.state;
     Game.setControlsEnabled(false);
     if (Game.mode === "guest") r={...r,charId:Game.state?.players[Game.localId]?.charId || save.selected,coop:true};
-    if (r.daily && save.dailyDone !== r.daily) {
+    if (r.daily && (!save.dailyDone || r.daily > save.dailyDone)) {
       save.dailyDone = r.daily;
       r.coins += 100;
       scheduleNotice(() => toast(LT("dailyBonus")), 400);
