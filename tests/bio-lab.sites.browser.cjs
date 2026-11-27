@@ -125,6 +125,26 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8928";
       assert.notDeepEqual([afterTrial.towers[0].x, afterTrial.towers[0].y], [counterSite.x, counterSite.y]);
       assert.equal(afterTrial.atp, beforeTrial.atp);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+      await page.evaluate(() => {
+        const key = "biolab_checkpoint:guest";
+        const checkpoint = JSON.parse(localStorage.getItem(key));
+        checkpoint.atp = 0;
+        localStorage.setItem(key, JSON.stringify(checkpoint));
+      });
+      await page.reload();
+      await page.locator("#home-resume-run").click();
+      const unaffordable = counters.getByRole("button", { name: "Faltan 50 ATP" });
+      await unaffordable.waitFor();
+      assert.ok(await unaffordable.isDisabled());
+      await page.evaluate(() => {
+        localStorage.setItem("biolab_save_v1", JSON.stringify({ unlockedLevel: 38, stars: Array(37).fill(2) }));
+      });
+      await page.reload();
+      await page.locator("#campaign-button").click();
+      const sector = page.locator("#campaign-sector-23");
+      await sector.getByText("Máximo de 6 torres").waitFor();
+      await sector.click();
+      await page.locator("#briefing-build-sites").getByText(/28 puestos de construcción. Puedes ocupar hasta 6 a la vez/).waitFor();
       assert.deepEqual(errors, []);
       await page.close();
       console.log(`Fixed construction, relocation, and checkpoint passed at ${width}px.`);

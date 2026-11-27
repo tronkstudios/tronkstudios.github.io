@@ -564,7 +564,7 @@ export const MISSIONS = [
   {
     chapter: 6, name: "Los primeros brotes", task: "Recupera las semillas bajo el vidrio.",
     speaker: "Mara · Operaciones",
-    briefing: "Tras el cierre de la estación han germinado cuatro cámaras olvidadas. Solo caben ocho torres entre los semilleros.",
+    briefing: "Tras el cierre de la estación han germinado cuatro cámaras olvidadas. Busca un cruce desde el que puedas cubrir varios semilleros.",
     cue: "Usa los puestos iluminados para aumentar el daño de tus torres.",
     transmission: "Recupera las semillas bajo el vidrio.", end: "Los primeros brotes responden a la luz.",
     waves: 5, bend: 0.92, flip: false, formation: "convoy", medal: medals.workshop,
@@ -738,7 +738,7 @@ export const MISSIONS = [
   {
     chapter: 8, name: "La llave templada", task: "Forja la llave de la reserva.",
     speaker: "Ivo · Ingeniería",
-    briefing: "Tienes siete puestos y una parada eléctrica programada. Una torre en el centro no cubrirá todo el turno.",
+    briefing: "Hay una parada eléctrica programada. Una torre en el centro no cubrirá todo el turno.",
     cue: "Reserva el pulso para la entrada que reciba los refuerzos.",
     transmission: "Forja la llave de la reserva.", end: "La llave abre una esclusa bajo la escoria.",
     waves: 8, bend: 1.2, flip: true, formation: "cross", medal: medals.final,
@@ -794,7 +794,7 @@ export const MISSIONS = [
   {
     chapter: 9, name: "Marea de retorno", task: "Sella la entrada profunda.",
     speaker: "Mara · Operaciones",
-    briefing: "El cambio de marea desviará B. Solo dispones de siete puestos para cubrir los dos trazados.",
+    briefing: "El cambio de marea desviará B. Busca puestos que conserven alcance tras el desvío.",
     cue: "La marea cambia el conducto y la plataforma que recibe energía. Usa el alcance de las torres para cubrir el otro lado.",
     transmission: "Sella la entrada profunda.", end: "La última compuerta conduce a la cámara de semillas.",
     waves: 7, bend: 0.84, flip: false, formation: "surge", medal: medals.researcher,

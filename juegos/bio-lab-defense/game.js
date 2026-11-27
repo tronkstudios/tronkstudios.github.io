@@ -19,12 +19,12 @@ import {
 } from "./engine.js?v=40";
 import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=11";
 import { attachDrill } from "./drill.js?v=14";
-import { Board } from "./board.js?v=47";
+import { Board } from "./board.js?v=48";
 import { towerIcon, heroIcon } from "./art.js?v=5";
 import { createCodex } from "./codex.js?v=28";
 import { Profile, dayKey } from "./profile.js?v=20";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=7";
-import { CHAPTERS, MISSIONS } from "./campaign.js?v=16";
+import { CHAPTERS, MISSIONS } from "./campaign.js?v=17";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
 import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=36";
@@ -33,7 +33,7 @@ import { HEROES, CONTRACTS, MASTERY } from "./operations.js?v=8";
 
 const $ = (id) => document.getElementById(id);
 drawSpecimen($("specimen-art"));
-const sectorThumbnails = new Map();
+const sectorPreviews = new Map();
 const panels = ["home", "campaign", "briefing", "operations", "field"];
 const canvas = $("board");
 const board = new Board(canvas);
@@ -587,15 +587,18 @@ function renderLevels() {
         : stars
           ? `${"★".repeat(stars)}${"☆".repeat(3 - stars)}${profile.data.medals[i] ? " · Insignia" : ""}`
           : level === active ? "Siguiente misión" : "Disponible";
-      if (!sectorThumbnails.has(level))
-        sectorThumbnails.set(level, routeThumbnail(new Match(level, null, { fixedLayout: true }).routes, chapter.color));
-      button.append(number, sectorThumbnails.get(level), label);
+      if (!sectorPreviews.has(level)) {
+        const preview = new Match(level, null, { fixedLayout: true });
+        sectorPreviews.set(level, { thumbnail: routeThumbnail(preview.routes, chapter.color), limit: preview.towerLimit });
+      }
+      const { thumbnail, limit } = sectorPreviews.get(level);
+      button.append(number, thumbnail, label);
       if (chapter.scenery) {
         const objective = document.createElement("small");
         objective.textContent = mission.objective === "archive" ? "Proteger terminales"
           : mission.objective === "power" ? "Aislar una línea"
           : mission.routePattern === 19 ? "Apagón programado"
-          : mission.routePattern ? "Desvío programado" : `${mission.towerLimit} puestos de defensa`;
+          : mission.routePattern ? "Desvío programado" : limit ? `Máximo de ${limit} torres` : "Defender el núcleo";
         button.append(objective);
       }
       if (filter === "medal") {
@@ -648,7 +651,7 @@ function briefing(level) {
   updateText("briefing-task", mission.task);
   updateText("briefing-speaker", mission.speaker);
   updateText("briefing-voice", mission.briefing);
-  updateText("briefing-tip", [mission.cue, preview.firePads.length && !preview.padCycle ? "Las plataformas iluminadas dan +25 % de daño a las torres de ataque." : "", preview.limitedConstruction ? `Puedes instalar hasta ${preview.towerLimit} torres. Desde la tercera oleada llegan enemigos más resistentes. Reserva ATP para mejorar.` : preview.towerLimit ? `Dispones de ${preview.towerLimit} puestos.` : ""].filter(Boolean).join(" "));
+  updateText("briefing-tip", [mission.cue, preview.firePads.length && !preview.padCycle ? "Las plataformas iluminadas dan +25 % de daño a las torres de ataque." : "", preview.limitedConstruction ? `Desde la tercera oleada llegan enemigos más resistentes. Reserva ATP para mejorar.` : preview.towerLimit ? `Dispones de ${preview.towerLimit} puestos.` : ""].filter(Boolean).join(" "));
   updateText(
     "briefing-medal",
     profile.data.medals[level - 1]
@@ -662,8 +665,11 @@ function briefing(level) {
   updateText("briefing-waves", `${preview.maxWaves} oleadas`);
   updateText("briefing-entries", preview.routes.length === 2 ? "2 entradas" : "1 entrada");
   $("briefing-build-sites").hidden = !preview.fixedLayout;
-  if (preview.fixedLayout)
-    updateText("briefing-build-sites", `${preview.buildSites.length} puestos de construcción. Elige si interceptas en las primeras curvas o refuerzas el tramo común antes del núcleo.`);
+  if (preview.fixedLayout) {
+    const sites = preview.buildSites.length;
+    const capacity = preview.towerLimit != null && preview.towerLimit < sites ? `Puedes ocupar hasta ${preview.towerLimit} a la vez.` : "Puedes ocuparlos todos.";
+    updateText("briefing-build-sites", `${sites} puestos de construcción. ${capacity}`);
+  }
   $("briefing-finale").hidden = !mission.finale;
   if (mission.finale) {
     const finale = preview.planWave(preview.maxWaves).finale;
@@ -929,6 +935,13 @@ function updateDockBudget() {
   if (limit != null) updateText("tower-limit", match.fixedLayout && match.towerLimit == null
     ? `${limit - match.towers.length} puestos libres`
     : `${match.towers.length}/${limit} instaladas`);
+  for (const button of $("wave-counter-list").querySelectorAll("button[data-cost]")) {
+    const shortfall = Number(button.dataset.cost) - match.atp;
+    button.disabled = full || shortfall > 0;
+    button.textContent = full ? "Límite de torres alcanzado" : shortfall > 0 ? `Faltan ${shortfall} ATP` : button.dataset.price;
+    if (button.disabled) button.removeAttribute("aria-label");
+    else button.setAttribute("aria-label", button.dataset.action);
+  }
   for (const button of $("dock").children) {
     if (button.disabled) continue;
     const cost = Number(button.dataset.cost);
@@ -1419,7 +1432,9 @@ function renderCounterSuggestions(preview) {
         canvas.scrollIntoView({ block: "nearest" });
         message(`${tower.name} seleccionada. Busca cobertura en la entrada ${lane ? "B" : "A"}.`);
       });
-      choose.setAttribute("aria-label", `Elegir ${tower.name} para la entrada ${lane ? "B" : "A"} por ${tower.cost} ATP`);
+      choose.dataset.cost = tower.cost;
+      choose.dataset.price = choose.textContent;
+      choose.dataset.action = `Elegir ${tower.name} para la entrada ${lane ? "B" : "A"} por ${tower.cost} ATP`;
       card.append(choose);
     } else {
       const status = document.createElement("small");
@@ -1430,6 +1445,7 @@ function renderCounterSuggestions(preview) {
   });
   panel.hidden = rows.length === 0;
   $("wave-counter-list").replaceChildren(...rows);
+  dockBudgetKey = null;
 }
 
 function affinityHints({ weak, resist, weakness = WEAKNESS, resistance = RESISTANCE }) {
