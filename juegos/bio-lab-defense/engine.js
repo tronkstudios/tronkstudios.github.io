@@ -1639,7 +1639,7 @@ export class Match {
     this.addATP(Math.round(enemy.reward * bounty));
     this.effects.push({
       kind: "death", x: enemy.x, y: enemy.y, color: enemy.color,
-      radius: enemy.boss ? 56 : 24, boss: enemy.boss, angle: enemy.angle, life: 22,
+      shape: enemy.shape, boss: enemy.boss, angle: enemy.angle, life: 22,
     });
   }
 

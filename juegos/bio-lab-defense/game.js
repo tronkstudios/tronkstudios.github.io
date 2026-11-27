@@ -16,18 +16,18 @@ import {
   VARIANT_NAMES,
   escortArmor,
   dailySetup,
-} from "./engine.js?v=43";
-import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=14";
-import { attachDrill } from "./drill.js?v=17";
-import { Board } from "./board.js?v=51";
+} from "./engine.js?v=44";
+import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=15";
+import { attachDrill } from "./drill.js?v=18";
+import { Board } from "./board.js?v=52";
 import { towerIcon, heroIcon } from "./art.js?v=5";
-import { createCodex } from "./codex.js?v=31";
+import { createCodex } from "./codex.js?v=32";
 import { Profile, dayKey } from "./profile.js?v=21";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=7";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=17";
 import { combatAudio, sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=5";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=40";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=41";
 
 import { HEROES, CONTRACTS, MASTERY } from "./operations.js?v=8";
 
@@ -2324,7 +2324,8 @@ function frame(now) {
       aiming,
       hovered,
       { gatePreview, movingHero, movingTower, skillPreview: abilityPreview || hoverBot, upgradePreview, snapOrigin: draft?.snapped ? cursor : null, reviewGap: match.state === "build" ? retryReview?.points || reviewGap : null,
-        affinityProfiles: match.state === "build" && match.fixedLayout ? waveCounterProfiles : [] },
+        affinityProfiles: match.state === "build" && match.fixedLayout ? waveCounterProfiles : [],
+        effectFraction: (finalBurst ? resultEffectTime : accumulator) / (1000 / 60) },
     );
     renderHUD();
   } else {

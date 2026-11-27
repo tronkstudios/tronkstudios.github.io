@@ -1,5 +1,5 @@
 import { affinityFor, towerAttack, WEAKNESS, RESISTANCE, STORY_WEAKNESS, STORY_RESISTANCE, damagePercent } from "./affinities.js?v=3";
-import { BLUEPRINTS, PATHOGEN_TYPES, BOSS_CATALOG, reactorProduction, REACTOR_FIRST_CYCLE, specializations, upgradeCost } from "./engine.js?v=43";
+import { BLUEPRINTS, PATHOGEN_TYPES, BOSS_CATALOG, reactorProduction, REACTOR_FIRST_CYCLE, specializations, upgradeCost } from "./engine.js?v=44";
 import { drawEnemyModel, drawTurretModel } from "./art.js?v=5";
 
 const towerAdvice = {

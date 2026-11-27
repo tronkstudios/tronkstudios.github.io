@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=43";
+import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=44";
 import { towerAttack } from "./affinities.js?v=3";
 import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=5";
 
@@ -567,6 +567,81 @@ function highlightCoverage(ctx, tower, routes, range = tower.range, color = towe
   ctx.restore();
 }
 
+const fragmentShapes = {
+  rod: "capsule", "e-coli": "capsule", lactobacillus: "capsule",
+  tuberculosis: "capsule", diphtheria: "capsule", plague: "capsule",
+  spiral: "curve", cholera: "curve",
+  phage: "shard", hex: "shard", norovirus: "shard",
+  rhinovirus: "shard", polio: "shard",
+};
+
+function drawDeathBurst(ctx, effect, life) {
+  const progress = 1 - life / 22;
+  const travel = 1 - (1 - progress) ** 2;
+  const scale = effect.boss ? 1.65 : 1;
+  const opacity = (1 - progress) ** 1.5;
+  ctx.save();
+  ctx.translate(effect.x, effect.y);
+  ctx.globalAlpha = opacity * 0.8;
+  circle(ctx, 0, 0, (8 + travel * 19) * scale, effect.color + "42");
+  if (progress < 0.35) {
+    ctx.globalAlpha = (1 - progress / 0.35) * 0.85;
+    circle(ctx, 0, 0, (4 + travel * 10) * scale, "#fff4da");
+  }
+
+  const count = effect.boss ? 13 : 8;
+  const shape = fragmentShapes[effect.shape];
+  for (let i = 0; i < count; i++) {
+    const angle = (effect.angle || 0) + i * 2.39996;
+    const distance = scale * (4 + (18 + (i * 13 % 31)) * travel);
+    const size = scale * (1.8 + (i % 4) * 0.52) * (1 - progress * 0.7);
+    const x = Math.cos(angle) * distance;
+    const y = Math.sin(angle) * distance + progress ** 2 * 9;
+    ctx.globalAlpha = opacity * (i % 3 === 0 ? 0.95 : 0.82);
+    if (!shape) {
+      circle(ctx, x, y, size, effect.color);
+      continue;
+    }
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle + progress * (i % 2 ? 2 : -2));
+    ctx.fillStyle = ctx.strokeStyle = effect.color;
+    ctx.lineCap = "round";
+    ctx.lineWidth = size;
+    if (shape === "shard") {
+      trace(ctx, [[-size, -size], [size * 1.8, 0], [-size * 0.5, size]]);
+      ctx.fill();
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(-size * 1.3, 0);
+      if (shape === "curve") ctx.quadraticCurveTo(0, size * 1.7, size * 1.3, 0);
+      else ctx.lineTo(size * 1.3, 0);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function drawImpact(ctx, effect, life, reduced) {
+  const progress = reduced ? 0.2 : 1 - life / 18;
+  const tint = effect.shielded ? "#a9eaff" : effect.color;
+  ctx.save();
+  ctx.translate(effect.x, effect.y);
+  ctx.rotate(effect.angle);
+  ctx.globalAlpha = (life / 18) ** 1.25;
+  if (effect.shielded || reduced) {
+    circle(ctx, 0, 0, 10 + progress * 10, null, tint, 2.5);
+  } else {
+    const spread = 5 + 20 * (1 - (1 - progress) ** 2);
+    circle(ctx, 0, 0, 5 * (1 - progress), "#fff4d9", tint, 2);
+    for (const side of [-1, 1]) {
+      circle(ctx, spread * 0.65, side * spread * 0.4, 3 * (1 - progress), tint);
+    }
+  }
+  ctx.restore();
+}
+
 export class Board {
   constructor(canvas) {
     this.ctx = canvas.getContext("2d");
@@ -581,7 +656,7 @@ export class Board {
     reduced,
     aiming,
     hovered = null,
-    { gatePreview, movingHero, movingTower, skillPreview, upgradePreview, snapOrigin, breach = null, reviewGap = null, routePlan = false, focusTarget = match.focusTarget, fireCoverage = null, previewPowerCut, affinityProfiles = [] } = {},
+    { gatePreview, movingHero, movingTower, skillPreview, upgradePreview, snapOrigin, breach = null, reviewGap = null, routePlan = false, focusTarget = match.focusTarget, fireCoverage = null, previewPowerCut, affinityProfiles = [], effectFraction = 0 } = {},
   ) {
     const ctx = this.ctx;
     const key = match.mission
@@ -941,10 +1016,12 @@ export class Board {
     });
     for (const fx of match.effects) {
       if (reduced && fx.kind !== "impact" && fx.kind !== "core-hit") continue;
-      ctx.globalAlpha = fx.life / 25;
+      const life = Math.max(0, fx.life - effectFraction);
+      if (life === 0) continue;
+      ctx.globalAlpha = Math.min(1, life / 22);
       if (fx.kind === "core-hit") {
-        const progress = reduced ? 0.2 : 1 - fx.life / 33;
-        ctx.globalAlpha = Math.min(1, fx.life / 12);
+        const progress = reduced ? 0.2 : 1 - life / 33;
+        ctx.globalAlpha = Math.min(1, life / 12);
         circle(ctx, fx.x, fx.y, 39 + progress * 32, "#e2354f65", "#ff586b", 6);
         circle(ctx, fx.x, fx.y, 28 + progress * 15, null, "#ffd4a7", 3);
         ctx.save();
@@ -959,40 +1036,9 @@ export class Board {
         ctx.fillText(`−${fx.loss} %`, labelX, labelY);
         ctx.restore();
       } else if (fx.kind === "death") {
-        const progress = 1 - fx.life / 22;
-        const count = fx.boss ? 10 : 6;
-        const radius = 5 + fx.radius * Math.sqrt(progress);
-        ctx.strokeStyle = fx.color;
-        ctx.lineWidth = fx.boss ? 3 : 2;
-        for (let i = 0; i < count; i++) {
-          const angle = (fx.angle || 0) + i * 2 * Math.PI / count;
-          const dx = Math.cos(angle), dy = Math.sin(angle);
-          const x = fx.x + dx * radius, y = fx.y + dy * radius;
-          trace(ctx, [[x - 4 * dx + 2 * dy, y - 4 * dy - 2 * dx], [x, y], [x - 3 * dy, y + 3 * dx]]);
-          ctx.stroke();
-        }
-        if (fx.boss) circle(ctx, fx.x, fx.y, radius * 0.72, null, fx.color, 2);
+        drawDeathBurst(ctx, fx, life);
       } else if (fx.kind === "impact") {
-        ctx.save();
-        ctx.translate(fx.x, fx.y);
-        ctx.rotate(fx.angle);
-        ctx.globalAlpha = Math.min(1, fx.life / 10);
-        const spread = reduced ? 17 : 13 + (18 - fx.life) * 0.9;
-        const tint = fx.shielded ? "#a9eaff" : fx.color;
-        circle(ctx, 0, 0, spread * 0.8, null, tint, 3);
-        if (!fx.shielded && fx.life > 12) circle(ctx, 0, 0, 7, "#fff4d9", tint, 3);
-        if (fx.attack === "dot") {
-          for (const offset of [-1, 0, 1])
-            circle(ctx, spread * (1.2 - Math.abs(offset) * 0.5), offset * spread, 2.5, fx.color);
-        } else {
-          for (const offset of [-1, 1]) {
-            trace(ctx, [[5, offset * 4], [spread, offset * spread]]);
-            ctx.strokeStyle = tint;
-            ctx.lineWidth = 3;
-            ctx.stroke();
-          }
-        }
-        ctx.restore();
+        drawImpact(ctx, fx, life, reduced);
       } else if (fx.to) {
         trace(ctx, [
           [fx.x, fx.y],
@@ -1006,7 +1052,7 @@ export class Board {
           ctx,
           fx.x,
           fx.y,
-          5 + fx.radius * (1 - fx.life / 22),
+          5 + fx.radius * (1 - life / 22),
           null,
           fx.color,
           2,
