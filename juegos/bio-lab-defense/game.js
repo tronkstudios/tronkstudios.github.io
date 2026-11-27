@@ -16,18 +16,18 @@ import {
   VARIANT_NAMES,
   escortArmor,
   dailySetup,
-} from "./engine.js?v=42";
-import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=13";
-import { attachDrill } from "./drill.js?v=16";
-import { Board } from "./board.js?v=50";
+} from "./engine.js?v=43";
+import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=14";
+import { attachDrill } from "./drill.js?v=17";
+import { Board } from "./board.js?v=51";
 import { towerIcon, heroIcon } from "./art.js?v=5";
-import { createCodex } from "./codex.js?v=30";
+import { createCodex } from "./codex.js?v=31";
 import { Profile, dayKey } from "./profile.js?v=21";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=7";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=17";
-import { combatAudio, sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=4";
+import { combatAudio, sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=5";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=39";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=40";
 
 import { HEROES, CONTRACTS, MASTERY } from "./operations.js?v=8";
 
@@ -789,7 +789,7 @@ function startVeteran(level) {
 function begin(next, day = null, restored = null) {
   challengeDay = day;
   lastState = next.state;
-  winEffectTime = 0;
+  resultEffectTime = 0;
   lastBoss = false;
   match = next;
   objectiveCoverageKey = null;
@@ -1022,7 +1022,7 @@ function place(x, y, draftOnly = false) {
         blueprint ? problem : "Selecciona una torre en el panel.",
         true,
       );
-    match.place(blueprint, x, y);
+    if (!match.place(blueprint, x, y)) return;
     sound("build", true);
     persistPreparation();
     message(`${blueprint.name} instalada.`);
@@ -2213,7 +2213,7 @@ function announce() {
 }
 
 let lastState;
-let winEffectTime = 0;
+let resultEffectTime = 0;
 function touchDraft(point, dragging) {
   const check = movingTower
     ? (x, y) => match.checkRelocation(movingTower, x, y)
@@ -2264,13 +2264,15 @@ function frame(now) {
     }
     if (!tacticalPaused && !adBusy) combatAudio(match);
     // Give the final burst time to appear before covering the board with results.
-    const finalBurst = match.state === "won" && !reduced.matches &&
-      match.effects.some(effect => effect.kind === "death" && effect.boss && effect.life > 5);
+    const finalBurst = !reduced.matches && match.effects.some(effect => effect.life > 5 && (
+      match.state === "won" && effect.kind === "death" && effect.boss ||
+      match.state === "lost" && effect.kind === "core-hit"
+    ));
     if (finalBurst) {
-      winEffectTime += elapsed;
-      while (winEffectTime >= 1000 / 60) {
+      resultEffectTime += elapsed;
+      while (resultEffectTime >= 1000 / 60) {
         match.tick();
-        winEffectTime -= 1000 / 60;
+        resultEffectTime -= 1000 / 60;
       }
     }
     if (!finalBurst && lastState !== match.state) {

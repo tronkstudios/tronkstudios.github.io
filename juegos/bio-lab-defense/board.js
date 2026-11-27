@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=42";
+import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=43";
 import { towerAttack } from "./affinities.js?v=3";
 import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=5";
 
@@ -321,13 +321,14 @@ function turret(ctx, tower, chosen, recoil) {
   if (chosen) circle(ctx, 0, 0, 26, null, "#d3f7ff", 2);
   if (tower.branch) circle(ctx, 0, 0, 23, null, "#f7d494", 2);
   ctx.rotate(tower.angle || 0);
-  if (recoil > 0) ctx.translate(-3 * recoil, 0);
+  if (recoil > 0) ctx.translate(-4 * recoil, 0);
   drawTurretModel(ctx, tower);
   if (recoil > 0) {
     ctx.globalAlpha = recoil;
-    trace(ctx, [[19, -3], [25 + recoil * 9, 0], [19, 3]]);
+    trace(ctx, [[18, -5], [26, -5], [36 + recoil * 8, 0], [26, 5], [18, 5]]);
     ctx.fillStyle = tower.color;
     ctx.fill();
+    circle(ctx, 24, 0, 4 + recoil * 2, "#fff9dd");
   }
   ctx.restore();
   for (let i = 0; i < tower.rank; i++)
@@ -853,7 +854,7 @@ export class Board {
     }
     match.towers.forEach((tower) =>
       turret(ctx, tower, tower === selected || tower === hovered,
-        reduced || tower.firedAt == null ? 0 : Math.max(0, 1 - (match.time - tower.firedAt) / 7)),
+        reduced || tower.firedAt == null ? 0 : Math.max(0, 1 - (match.time - tower.firedAt) / 10)),
     );
     if (fireCoverage)
       for (const tower of fireCoverage)
@@ -938,10 +939,26 @@ export class Board {
       circle(ctx, shot.x, shot.y, shot.type === "splash" ? 4.5 : 3, shot.color);
       circle(ctx, shot.x, shot.y, 1.5, "#f0fbff");
     });
-    if (reduced) return;
     for (const fx of match.effects) {
+      if (reduced && fx.kind !== "impact" && fx.kind !== "core-hit") continue;
       ctx.globalAlpha = fx.life / 25;
-      if (fx.kind === "death") {
+      if (fx.kind === "core-hit") {
+        const progress = reduced ? 0.2 : 1 - fx.life / 33;
+        ctx.globalAlpha = Math.min(1, fx.life / 12);
+        circle(ctx, fx.x, fx.y, 39 + progress * 32, "#e2354f65", "#ff586b", 6);
+        circle(ctx, fx.x, fx.y, 28 + progress * 15, null, "#ffd4a7", 3);
+        ctx.save();
+        ctx.font = "bold 28px system-ui";
+        ctx.textAlign = "center";
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = "#270c21";
+        ctx.fillStyle = "#fff1dc";
+        const labelX = Math.max(48, Math.min(WIDTH - 48, fx.x));
+        const labelY = Math.max(38, Math.min(HEIGHT - 14, fx.y + (fx.lane ? 49 : -49) - progress * 10));
+        ctx.strokeText(`−${fx.loss} %`, labelX, labelY);
+        ctx.fillText(`−${fx.loss} %`, labelX, labelY);
+        ctx.restore();
+      } else if (fx.kind === "death") {
         const progress = 1 - fx.life / 22;
         const count = fx.boss ? 10 : 6;
         const radius = 5 + fx.radius * Math.sqrt(progress);
@@ -959,16 +976,19 @@ export class Board {
         ctx.save();
         ctx.translate(fx.x, fx.y);
         ctx.rotate(fx.angle);
-        ctx.globalAlpha = fx.life / 13;
-        const spread = 4 + (12 - fx.life) * 0.8;
+        ctx.globalAlpha = Math.min(1, fx.life / 10);
+        const spread = reduced ? 17 : 13 + (18 - fx.life) * 0.9;
+        const tint = fx.shielded ? "#a9eaff" : fx.color;
+        circle(ctx, 0, 0, spread * 0.8, null, tint, 3);
+        if (!fx.shielded && fx.life > 12) circle(ctx, 0, 0, 7, "#fff4d9", tint, 3);
         if (fx.attack === "dot") {
           for (const offset of [-1, 0, 1])
             circle(ctx, spread * (1.2 - Math.abs(offset) * 0.5), offset * spread, 2.5, fx.color);
         } else {
           for (const offset of [-1, 1]) {
-            trace(ctx, [[2, offset * 2], [spread, offset * spread]]);
-            ctx.strokeStyle = fx.color;
-            ctx.lineWidth = 2;
+            trace(ctx, [[5, offset * 4], [spread, offset * spread]]);
+            ctx.strokeStyle = tint;
+            ctx.lineWidth = 3;
             ctx.stroke();
           }
         }
