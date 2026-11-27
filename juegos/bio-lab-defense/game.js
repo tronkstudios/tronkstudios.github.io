@@ -19,7 +19,7 @@ import {
 } from "./engine.js?v=44";
 import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=15";
 import { attachDrill } from "./drill.js?v=18";
-import { Board } from "./board.js?v=52";
+import { Board } from "./board.js?v=53";
 import { towerIcon, heroIcon } from "./art.js?v=5";
 import { createCodex } from "./codex.js?v=32";
 import { Profile, dayKey } from "./profile.js?v=21";
@@ -2325,7 +2325,7 @@ function frame(now) {
       hovered,
       { gatePreview, movingHero, movingTower, skillPreview: abilityPreview || hoverBot, upgradePreview, snapOrigin: draft?.snapped ? cursor : null, reviewGap: match.state === "build" ? retryReview?.points || reviewGap : null,
         affinityProfiles: match.state === "build" && match.fixedLayout ? waveCounterProfiles : [],
-        effectFraction: (finalBurst ? resultEffectTime : accumulator) / (1000 / 60) },
+        effectFraction: (finalBurst ? resultEffectTime : accumulator * speed) / (1000 / 60) },
     );
     renderHUD();
   } else {

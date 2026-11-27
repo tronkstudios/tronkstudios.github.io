@@ -377,7 +377,7 @@ function drawSupportNode(ctx, node) {
   ctx.restore();
 }
 
-function target(ctx, enemy, time, compact) {
+function target(ctx, enemy, time) {
   if (enemy.supportNode) {
     drawSupportNode(ctx, enemy);
     return;
@@ -430,6 +430,13 @@ function target(ctx, enemy, time, compact) {
   ctx.restore();
   if (enemy.shield > 0)
     circle(ctx, 0, 0, enemy.boss ? 35 : 22, null, "#91dfff", 2);
+  ctx.restore();
+}
+
+function drawEnemyHealth(ctx, enemy, compact) {
+  if (enemy.supportNode) return;
+  ctx.save();
+  ctx.translate(enemy.x, enemy.y);
   const width = enemy.boss ? 52 : compact ? 34 : 25;
   const y = enemy.boss ? -39 : compact ? -25 : -22;
   const barHeight = compact ? 7 : 5;
@@ -582,11 +589,19 @@ function drawDeathBurst(ctx, effect, life) {
   const opacity = (1 - progress) ** 1.5;
   ctx.save();
   ctx.translate(effect.x, effect.y);
-  ctx.globalAlpha = opacity * 0.8;
-  circle(ctx, 0, 0, (8 + travel * 19) * scale, effect.color + "42");
-  if (progress < 0.35) {
-    ctx.globalAlpha = (1 - progress / 0.35) * 0.85;
-    circle(ctx, 0, 0, (4 + travel * 10) * scale, "#fff4da");
+  if (progress < 0.48) {
+    const flare = 1 - progress / 0.48;
+    const radius = (11 + travel * 17) * scale;
+    const light = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+    light.addColorStop(0, "#fff4da");
+    light.addColorStop(0.25, effect.color);
+    light.addColorStop(1, effect.color + "00");
+    ctx.globalAlpha = flare * flare * 0.85;
+    circle(ctx, 0, 0, radius, light);
+  }
+  if (effect.boss) {
+    ctx.globalAlpha = opacity * 0.55;
+    circle(ctx, 0, 0, 24 + travel * 45, null, effect.color, 2.5);
   }
 
   const count = effect.boss ? 13 : 8;
@@ -639,6 +654,51 @@ function drawImpact(ctx, effect, life, reduced) {
       circle(ctx, spread * 0.65, side * spread * 0.4, 3 * (1 - progress), tint);
     }
   }
+  ctx.restore();
+}
+
+function drawProjectile(ctx, shot, time, fraction, reduced) {
+  const dx = shot.target.x - shot.x;
+  const dy = shot.target.y - shot.y;
+  const distance = Math.hypot(dx, dy);
+  const angle = Math.atan2(dy, dx);
+  const advance = Math.min(distance, fraction * 10);
+  const x = shot.x + Math.cos(angle) * advance;
+  const y = shot.y + Math.sin(angle) * advance;
+  if (reduced) {
+    circle(ctx, x, y, 4, shot.color);
+    return;
+  }
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  ctx.lineCap = "round";
+  const length = shot.tower.id === "sniper" ? 29 : shot.type === "splash" ? 19 : 13;
+  const trail = ctx.createLinearGradient(-length, 0, 0, 0);
+  trail.addColorStop(0, shot.color + "00");
+  trail.addColorStop(1, shot.color + "e0");
+  trace(ctx, [[-length, 0], [0, 0]]);
+  ctx.strokeStyle = trail;
+  ctx.lineWidth = shot.type === "splash" ? 5 : 3;
+  ctx.stroke();
+
+  if (shot.type === "chain") {
+    trace(ctx, [[-length, -2], [-8, 3], [-5, -3], [0, 0]]);
+    ctx.strokeStyle = "#eecfff";
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+  } else if (shot.type === "slow") {
+    ctx.rotate(time * 0.12);
+    polygon(ctx, 4, 5);
+    ctx.fillStyle = shot.color;
+    ctx.fill();
+  } else {
+    const size = shot.type === "splash" ? 5.5 : 3.5;
+    circle(ctx, 0, 0, size + 2, shot.color + "40");
+    circle(ctx, 0, 0, size, shot.color);
+  }
+  circle(ctx, 0, 0, 1.8, "#fafaff");
   ctx.restore();
 }
 
@@ -929,7 +989,7 @@ export class Board {
     }
     match.towers.forEach((tower) =>
       turret(ctx, tower, tower === selected || tower === hovered,
-        reduced || tower.firedAt == null ? 0 : Math.max(0, 1 - (match.time - tower.firedAt) / 10)),
+        reduced || tower.firedAt == null ? 0 : Math.max(0, 1 - (match.time + effectFraction - tower.firedAt) / 10)),
     );
     if (fireCoverage)
       for (const tower of fireCoverage)
@@ -961,60 +1021,20 @@ export class Board {
       circle(ctx, cue.x, cue.y, radius + 6, null, color + "66", 2);
     }
     const compactCombat = ctx.canvas.clientWidth < 550;
-    match.enemies.forEach((enemy) => target(ctx, enemy, match.time, compactCombat));
-    if (focusTarget?.hp > 0 && !focusTarget.escaped) {
-      ctx.save();
-      ctx.translate(focusTarget.x, focusTarget.y);
-      const size = focusTarget.boss ? 39 : 25;
-      for (let i = 0; i < 4; i++) {
-        trace(ctx, [[size - 10, -size], [size, -size], [size, 10 - size]]);
-        ctx.lineWidth = 6;
-        ctx.strokeStyle = "#142235";
-        ctx.stroke();
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = "#ffe292";
-        ctx.stroke();
-        ctx.rotate(Math.PI / 2);
-      }
-      ctx.restore();
+    match.enemies.forEach((enemy) => target(ctx, enemy, match.time));
+    for (const shot of match.shots)
+      drawProjectile(ctx, shot, match.time + effectFraction, effectFraction, reduced);
+
+    // Keep a single damage label per lane even when several enemies leak together.
+    const coreHits = [null, null];
+    for (const effect of match.effects) {
+      if (effect.kind !== "core-hit") continue;
+      const previous = coreHits[effect.lane];
+      coreHits[effect.lane] = {
+        ...effect, loss: effect.loss + (previous?.life === effect.life ? previous.loss : 0),
+      };
     }
-    match.shots.forEach((shot) => {
-      if (!reduced) {
-        const angle = Math.atan2(shot.target.y - shot.y, shot.target.x - shot.x);
-        const length = shot.tower.id === "sniper" ? 25 : 13;
-        trace(ctx, [
-          [shot.x - Math.cos(angle) * length, shot.y - Math.sin(angle) * length],
-          [shot.x, shot.y],
-        ]);
-        ctx.strokeStyle = shot.color + "a0";
-        ctx.lineWidth = shot.type === "splash" ? 4 : 2.5;
-        ctx.stroke();
-      }
-      if (!reduced && shot.type === "chain") {
-        const angle = Math.atan2(shot.target.y - shot.y, shot.target.x - shot.x);
-        ctx.save();
-        ctx.translate(shot.x, shot.y);
-        ctx.rotate(angle);
-        trace(ctx, [[-16, 1], [-9, -3], [-7, 2], [0, 0]]);
-        ctx.strokeStyle = "#f4ddff";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.restore();
-      }
-      if (!reduced && shot.type === "slow") {
-        ctx.save();
-        ctx.translate(shot.x, shot.y);
-        ctx.rotate(match.time * 0.12);
-        polygon(ctx, 4, 6);
-        ctx.strokeStyle = shot.color;
-        ctx.stroke();
-        ctx.restore();
-      }
-      circle(ctx, shot.x, shot.y, 7, shot.color + "48");
-      circle(ctx, shot.x, shot.y, shot.type === "splash" ? 4.5 : 3, shot.color);
-      circle(ctx, shot.x, shot.y, 1.5, "#f0fbff");
-    });
-    for (const fx of match.effects) {
+    for (const fx of [...match.effects.filter(effect => effect.kind !== "core-hit"), ...coreHits.filter(Boolean)]) {
       if (reduced && fx.kind !== "impact" && fx.kind !== "core-hit") continue;
       const life = Math.max(0, fx.life - effectFraction);
       if (life === 0) continue;
@@ -1022,8 +1042,9 @@ export class Board {
       if (fx.kind === "core-hit") {
         const progress = reduced ? 0.2 : 1 - life / 33;
         ctx.globalAlpha = Math.min(1, life / 12);
-        circle(ctx, fx.x, fx.y, 39 + progress * 32, "#e2354f65", "#ff586b", 6);
-        circle(ctx, fx.x, fx.y, 28 + progress * 15, null, "#ffd4a7", 3);
+        circle(ctx, fx.x, fx.y, 34 + progress * 28, "#e2354f30", "#ff586b", 3.5);
+        if (!reduced && progress < 0.5)
+          circle(ctx, fx.x, fx.y, 25 + progress * 18, null, "#ffd4a7", 2);
         ctx.save();
         ctx.font = "bold 28px system-ui";
         ctx.textAlign = "center";
@@ -1059,5 +1080,22 @@ export class Board {
         );
     }
     ctx.globalAlpha = 1;
+    if (focusTarget?.hp > 0 && !focusTarget.escaped) {
+      ctx.save();
+      ctx.translate(focusTarget.x, focusTarget.y);
+      const size = focusTarget.boss ? 39 : 25;
+      for (let i = 0; i < 4; i++) {
+        trace(ctx, [[size - 10, -size], [size, -size], [size, 10 - size]]);
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = "#142235";
+        ctx.stroke();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "#ffe292";
+        ctx.stroke();
+        ctx.rotate(Math.PI / 2);
+      }
+      ctx.restore();
+    }
+    for (const enemy of match.enemies) drawEnemyHealth(ctx, enemy, compactCombat);
   }
 }
