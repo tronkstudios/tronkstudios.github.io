@@ -15,6 +15,8 @@
   let pulling = false;
   let gameGeneration=0;
   let previewTimer=0;
+  let rematchLevel = 0;
+  let nextRematchLevel = 0;
   let lastRun = null; // cómo empezó la última partida (para «Otra vez»)
 
   const charById = (id) => TS.CHARACTERS.find((c) => c.id === id);
@@ -876,9 +878,11 @@
   function play(setups, opts) {
     const s = setups || [localSetup()];
     const o = { mode: "solo", localId: 0, map: save.settings.map || "bosque", ...(opts || {}) };
+    lastRun = { setups:structuredClone(s), opts:structuredClone(o) };
     // en las 3 primeras partidas los enemigos pegan menos
     if (o.mode === "solo" && !o.daily && !o.veteran && !o.sprint && !o.training && save.runs < 3) o.easy = true;
-    lastRun = { setups:structuredClone(s), opts:structuredClone(o) };
+    rematchLevel = o.mode === "solo" && !o.daily && !o.preview && !o.training ? o.rematchLevel || 0 : 0;
+    $("hud-rematch").hidden = !rematchLevel;
     for (const x of s) Sprites.get(`char:${x.charId}`);
     if (!o.preview && !o.training && !o.veteran && !o.sprint) Account.startRun();
     enterGame(() => {
@@ -893,6 +897,8 @@
 
   function playGuest(info) {
     lastRun = { guest: true };
+    rematchLevel = 0;
+    $("hud-rematch").hidden = true;
     Account.startRun();
     enterGame(() => {
       Game.startGuest(info);
@@ -998,6 +1004,15 @@
   Game.on("transform", form => banner(L(form.name), L(form.effect)));
   let slotKey = "";
   Game.on("hud", (d) => {
+    if (rematchLevel) {
+      if (d.level >= rematchLevel) {
+        banner(L("¡Objetivo conseguido!"), L("Nivel") + " " + rematchLevel);
+        rematchLevel = 0;
+        $("hud-rematch").hidden = true;
+      } else {
+        $("hud-rematch").textContent = L("Objetivo") + " · " + L("Nivel") + " " + d.level + "/" + rematchLevel;
+      }
+    }
     const formButton = $("hud-form");
     const form = d.form;
     formButton.hidden = !form;
@@ -1367,7 +1382,7 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     const generation=gameGeneration,endedState=Game.state;
     Game.setControlsEnabled(false);
     if (Game.mode === "guest") r={...r,charId:Game.state?.players[Game.localId]?.charId || save.selected,coop:true};
-    if (r.daily && save.dailyDone !== r.daily) {
+    if (r.daily && (!save.dailyDone || r.daily > save.dailyDone)) {
       save.dailyDone = r.daily;
       r.coins += 100;
       scheduleNotice(() => toast(LT("dailyBonus")), 400);
@@ -1446,6 +1461,15 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     $("end-maps").hidden = !!online || !!r.daily;
     $("end-again").textContent=L(online?"Volver a la sala online":"Repetir configuración");
     $("end-retry-note").textContent=L(online?"Vuelve a crear o unirte a una sala para jugar con tus amigos.":"Mismo personaje, mapa y reglas. El mapa se genera de nuevo salvo en retos con semilla.");
+    nextRematchLevel = 0;
+    if (!online && !r.daily) {
+      const tier = save.formTiers[r.charId] || 0;
+      const formLevel = TS.FORM_LEVELS[tier];
+      nextRematchLevel = formLevel || r.level + 1;
+      const nextForm = TS.HERO_FORMS[r.charId]?.names[tier];
+      const target = L("Ir a por el nivel") + " " + nextRematchLevel;
+      $("end-again").textContent = nextForm ? target + " · " + L(nextForm) : target;
+    }
     const recipe = Game.hudData()?.evolution;
     if (!online && recipe && !recipe.evolved) {
       const missing = [recipe.level < 6 && (recipe.weapon + " " + recipe.level + "/6"),
@@ -1497,7 +1521,7 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     $("end").hidden = true;
     Game.stop();
     if (!lastRun || lastRun.guest || (lastRun.opts && lastRun.opts.mode === "host")) { demoOn = false; show("online"); }
-    else play(lastRun.setups, lastRun.opts);
+    else play(lastRun.setups, {...lastRun.opts, rematchLevel:nextRematchLevel});
   });
   $("end-maps").addEventListener("click", () => {
     backToMenu();

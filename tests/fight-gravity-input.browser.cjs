@@ -180,6 +180,7 @@ async function checkRunner(browser) {
   const original = await page.evaluate(() => {
     const game = window.gravityShiftGame;
     game.startNewRun({ instant: true });
+    game.scoreMgr.distance = 47.5;
     game.lastDeath = { type: "ROTATING", surfaceKey: "FLOOR" };
     game.handleGameOver();
     return { seed: game.rng.seedLabel, setting: game.scoreMgr.saveData.settings.customSeed };
@@ -187,11 +188,23 @@ async function checkRunner(browser) {
   assert.match(await page.locator("#go-advice").textContent(), /giro de la barra/);
   assert.equal(await page.evaluate(() => document.activeElement.id), "go-title");
   await page.setViewportSize({ width: 320, height: 480 });
+  assert.match(await page.locator("#btn-retry-course").textContent(), /57 m/);
   await page.locator("#btn-retry-course").tap();
   assert.deepEqual(await page.evaluate(() => {
     const game = window.gravityShiftGame;
     return { seed: game.rng.seedLabel, setting: game.scoreMgr.saveData.settings.customSeed };
   }), original);
+  const rematch = await page.evaluate(() => {
+    const game = gravityShiftGame;
+    game.scoreMgr.distance = 52;
+    game.ui.updateHUD();
+    const remaining = document.querySelector("#rematch-distance").textContent;
+    game.scoreMgr.distance = 57;
+    game.ui.updateHUD();
+    return { remaining, cleared: !game.rematchDistance && document.querySelector("#rematch-distance").hidden };
+  });
+  assert.match(rematch.remaining, /5 m/);
+  assert.ok(rematch.cleared);
   await page.evaluate(() => {
     const game = window.gravityShiftGame;
     game.startNewRun({ instant: true, mode: "daily", challengeDate: "2026-11-25" });

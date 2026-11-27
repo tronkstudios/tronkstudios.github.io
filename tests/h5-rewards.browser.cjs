@@ -60,6 +60,7 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8789";
         if(window.ignorePlacement) return;
         function offer(){
            if(window.noFill){config.adBreakDone({breakStatus:"noAdPreloaded"});return;}
+           if(window.expiredGesture) Object.defineProperty(navigator, "userActivation", {configurable:true, value:{isActive:false}});
            config.beforeReward(()=>{
               if(!navigator.userActivation.isActive) throw new Error("The ad must be opened by a direct click");
               window.visibleAds++;
@@ -77,6 +78,7 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8789";
                 config.adBreakDone({breakStatus:ok?"viewed":"dismissed"});
               };
            });
+           if(window.expiredGesture) delete navigator.userActivation;
         }
         if(window.delayedOffer) setTimeout(offer,25);
         else offer();
@@ -189,7 +191,14 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8789";
         await page.evaluate(() => finishAd(false));
         assert.equal(await balance(), initial);
 
+        await page.evaluate(() => { window.expiredGesture = true; });
         await button.tap();
+        const offer = page.locator("dialog.tronk-ad-offer");
+        await offer.getByRole("button", { name: "Cancelar" }).tap();
+        assert.equal(await balance(), initial);
+        assert.equal(await page.evaluate(() => visibleAds), 2);
+        await button.tap();
+        await offer.getByRole("button", { name: "Reproducir anuncio" }).tap();
         await page.waitForFunction(() => visibleAds === 3);
         const lateView = path.includes("bio-lab");
         await page.evaluate(late => { window.lateView = late; finishAd(true); }, lateView);
@@ -204,9 +213,11 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8789";
         if (path.includes("bio-lab")) {
           const canvas = page.locator("#board"),
             bounds = await canvas.boundingBox();
+          const { Match } = await import("../juegos/bio-lab-defense/engine.js");
+          const [site] = new Match(1, null, { fixedLayout: true }).buildSites;
           const pos = {
-            x: (bounds.width * 170) / 900,
-            y: (bounds.height * 170) / 540,
+            x: ((bounds.width - 2) * site.x) / 900,
+            y: ((bounds.height - 2) * site.y) / 540,
           };
           const balanceAfterReward = await balance();
           await canvas.tap({ position: pos });

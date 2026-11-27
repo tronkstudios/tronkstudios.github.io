@@ -104,6 +104,16 @@ test('remote progress keeps the object used by the menus and purchases', () => {
   assert.equal(menuSave.coins,500);assert.equal(menuSave.selected,'lia');
   Save.addCoins(10);assert.equal(menuSave.coins,510);
 });
+test('daily claims survive account sync, stale devices and legacy run history', () => {
+  const { Save } = engine();
+  Save.mergeRemote({dailyDone:'2026-11-27'});
+  Save.mergeRemote({savedAt:Date.now()+1000,dailyDone:'2026-11-26'});
+  Save.mergeRemote({});
+  assert.equal(Save.exportData().dailyDone,'2026-11-27');
+  const old = engine({history:[{charId:'ranjay',map:'bosque',daily:'2026-11-27'}]});
+  assert.equal(old.Save.load().dailyDone,'2026-11-27');
+});
+
 test('invalid saved characters, stars and shop levels cannot break the menu or combat', () => {
   const { Save, TS } = engine({selected:'removed',owned:{removed:{stars:900},ranjay:{stars:-3},lia:{stars:80}},shop:null,best:{wins:'bad'},coins:'bad'});
   const d=Save.load();assert.equal(d.selected,TS.STARTER);assert.equal(d.owned.ranjay.stars,1);
