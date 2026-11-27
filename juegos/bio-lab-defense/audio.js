@@ -8,7 +8,7 @@ try {
 }
 
 const tones = {
-  build: [320, 510],
+  build: [180, 370, 610],
   wave: [180, 230, 385],
   ready: [440, 660, 880],
   alert: [275, 350, 275],
@@ -32,7 +32,7 @@ export function toggleSound() {
   } catch {
     /* optional */
   }
-  if (enabled) sound("build", true);
+  if (enabled) sound("ready", true);
   else if (context?.state === "running") void context.suspend().catch(() => {});
   return enabled;
 }
@@ -43,7 +43,7 @@ export function unlockAudio() {
   if (!Audio) return;
   try {
     context ||= new Audio();
-    if (context.state === "suspended") void context.resume().catch(() => {});
+    if (context.state !== "running") return context.resume().catch(() => {});
   } catch {
     /* play can continue without audio */
   }
@@ -51,7 +51,13 @@ export function unlockAudio() {
 
 export function sound(kind, userAction = false) {
   if (!enabled) return;
-  if (userAction) unlockAudio();
+  if (userAction) {
+    const resume = unlockAudio();
+    if (resume) {
+      void resume.then(() => sound(kind));
+      return;
+    }
+  }
   if (!context || context.state !== "running") return;
   const notes = tones[kind];
   const now = context.currentTime + 0.011;
@@ -83,7 +89,7 @@ const weapons = {
 };
 const bass = [110, 87.31, 130.81, 98];
 const motif = [0, 7, 12, 15, 7, 10, 5, 7];
-let nextBeat = 0, beat = 0, nextShot = 0, nextDeath = 0;
+let nextBeat = 0, beat = 0, nextShot = 0, nextDeath = 0, nextImpact = 0, nextCore = 0;
 const heard = new WeakSet();
 const lastShot = new WeakMap();
 
@@ -92,24 +98,30 @@ export function combatAudio(match) {
   const now = context.currentTime;
   // Trigger from the same events as the artwork, even when a shot hits instantly.
   for (const effect of match.effects) {
-    if (effect.kind !== "death" || heard.has(effect)) continue;
+    if (!effect.kind || heard.has(effect)) continue;
     heard.add(effect);
-    if (effect.boss || now >= nextDeath) {
+    if (effect.kind === "core-hit" && now >= nextCore) {
+      voice(132, 36, now, 0.23, 0.11, "triangle");
+      voice(410, 170, now + 0.03, 0.13, 0.045, "square");
+      nextCore = now + 0.15;
+    } else if (effect.kind === "impact" && now >= nextImpact) {
+      voice(effect.shielded ? 1260 : 300, effect.shielded ? 620 : 92, now, 0.075, 0.045, "triangle");
+      nextImpact = now + 0.085;
+    } else if (effect.kind === "death" && (effect.boss || now >= nextDeath)) {
       voice(effect.boss ? 138 : 400, effect.boss ? 34 : 88, now, effect.boss ? 0.38 : 0.11, 0.047, "triangle");
       nextDeath = now + 0.1;
     }
   }
-  if (match.state !== "wave") return;
   for (let i = 0; i < match.towers.length + Number(!!match.hero); i++) {
     const tower = match.towers[i] || match.hero;
     if (tower.firedAt == null || tower.firedAt === lastShot.get(tower)) continue;
     lastShot.set(tower, tower.firedAt);
     if (now < nextShot || match.time - tower.firedAt > 6) continue;
     const [start, end, type] = weapons[tower.type] || weapons.single;
-    voice(start, end, now, 0.09, 0.025, type);
+    voice(start, end, now, 0.09, 0.038, type);
     nextShot = now + 0.095;
   }
-  if (now < nextBeat) return;
+  if (match.state !== "wave" || now < nextBeat) return;
   const boss = match.enemies.some(enemy => enemy.boss && enemy.hp > 0);
   const root = bass[Math.floor(beat / 8) % bass.length];
   if (beat % 4 === 0) voice(root, root, now, 0.38, 0.036, "sine");

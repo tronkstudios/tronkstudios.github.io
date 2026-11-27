@@ -1580,6 +1580,7 @@ export class Match {
     color,
     { piercing = false, shred = false } = {},
     tower = null,
+    shot = null,
   ) {
     if (enemy.hp <= 0) return;
     const shield = enemy.shield;
@@ -1592,6 +1593,13 @@ export class Match {
         label: synergy === "corrosionDamage" ? "Corrosión + Impacto" : "Frío + Área",
         until: this.time + 145,
       };
+    }
+    if (shot && (damage > 0 || remainingShield < shield)) {
+      this.effects.push({
+        kind: "impact", x: enemy.x, y: enemy.y, color,
+        angle: Math.atan2(enemy.y - shot.y, enemy.x - shot.x) || 0,
+        attack: shot.type, shielded: remainingShield < shield, life: 18,
+      });
     }
     enemy.shield = remainingShield;
     if (enemy.variant === "scout" && (damage > 0 || remainingShield < shield))
@@ -1809,15 +1817,8 @@ export class Match {
         target.burnPierces ||= !!branch.piercing;
       }
     };
-    if (type !== "splash") {
-      this.effects.push({
-        kind: "impact", x: enemy.x, y: enemy.y, color,
-        angle: Math.atan2(enemy.y - shot.y, enemy.x - shot.x) || 0,
-        attack: type, life: 12,
-      });
-    }
     let chilled = Number(type === "splash" && enemy.slow > 0 && enemy.hp > 0);
-    this.damage(enemy, damage, color, branch, tower);
+    this.damage(enemy, damage, color, branch, tower, shot);
     applyDebuff(enemy);
     if (type === "splash" || spreadDebuff) {
       this.effect(enemy.x, enemy.y, color, radius);
@@ -1835,6 +1836,7 @@ export class Match {
             color,
             branch,
             tower,
+            { x: enemy.x, y: enemy.y, type },
           );
         }
         if (spreadDebuff) applyDebuff(other);
@@ -1858,7 +1860,7 @@ export class Match {
       );
       if (!next) break;
       this.effect(previous.x, previous.y, color, 0, { x: next.x, y: next.y });
-      this.damage(next, Math.round(damage * 0.72 ** i), color, branch, tower);
+      this.damage(next, Math.round(damage * 0.72 ** i), color, branch, tower, { x: previous.x, y: previous.y, type });
       hit.add(next);
       previous = next;
     }
@@ -2012,6 +2014,9 @@ export class Match {
           const loss = Math.min(this.hp, enemy.coolingBoss ? 18 : enemy.boss ? 30 : 10);
           this.hp -= loss;
           if (loss && !this.hp && this.breachEnemy == null) this.breachEnemy = enemy.encounterId;
+          if (loss) {
+            this.effects.push({ kind: "core-hit", x, y, loss, lane: enemy.lane, life: 33 });
+          }
           this.recordLeak(enemy, loss);
         }
       } else {
