@@ -127,6 +127,13 @@ const Sfx = (() => {
     wave: (t) => { tone("sine", 70, t, 0.3, 0.4, { slide: 0.6 }); hiss(t, 0.25, 0.2, { type: "lowpass", f: 500 }); },
     dodge: (t) => hiss(t, 0.16, 0.18, { f: 1800, f2: 5000 }),
     eshot: (t) => tone("square", 300, t, 0.08, 0.035, { slide: 1.6 }),
+    bellStrike: t => {
+      tone("sine",330,t,.34,.08);
+      tone("triangle",806,t,.14,.025);
+    },
+    bellCrown: t => {
+      [165,413,677].forEach((hz,i)=>tone("sine",hz,t+i*.045,.52-i*.09,.08/(i+1)));
+    },
     levelUp: (t) => { [523, 659, 784, 1047].forEach((f, i) => tone("square", f, t + i * 0.07, 0.14, 0.07)); },
     streak: (t) => { [659, 880, 1319].forEach((f,i)=>tone("triangle",f,t+i*.065,.16,.055)); },
     pick: (t) => tone("square", 880, t, 0.05, 0.05),

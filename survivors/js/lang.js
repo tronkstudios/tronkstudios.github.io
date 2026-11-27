@@ -21,6 +21,11 @@ let LANG = (() => {
 })();
 
 const EN = {
+  "Transformación desbloqueada":"Transformation unlocked", "Transformaciones":"Transformations",
+  "Carga de transformación":"Transformation charge", "Duración restante":"Time remaining",
+  "Cada tañido golpea a los enemigos que te rodean.":"Each toll strikes the enemies around you.", "Esencia":"Essence",
+  "Bronce despierto":"Waking Bronze", "Campanario errante":"Wandering Belfry",
+  "Tres campanas golpean el suelo una tras otra. La última cubre más terreno y empuja a la horda.":"Three bells strike the ground in sequence. The last covers more ground and pushes the horde back.",
   "bajas":"kills", "Transformar":"Transform", "Coraza de falla":"Fault Shell", "Ciudadela andante":"Walking Citadel",
   "Manto de esporas":"Spore Mantle", "Bosque errante":"Wandering Grove", "Órbita de cristal":"Crystal Orbit", "Planetario vivo":"Living Orrery",
   "Placas de ámbar que empujan a los enemigos cercanos.":"Amber plates push nearby enemies away.",

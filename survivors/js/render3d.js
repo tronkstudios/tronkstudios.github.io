@@ -912,16 +912,27 @@ const Render3D = (() => {
         const {kind,stage} = a.form;
         const count = 2+stage*2;
         const phase = kind === "shell" || Game.options.reducedMotion ? 0 : d.t/38;
-        const color = parseInt(TS.FORMS[kind].color.slice(1),16);
-        for (const side of [-1,1]) {
-          const offset = side*10;
-          at("octa",a.x+Math.cos(a.ang)*offset,36,a.y+Math.sin(a.ang)*offset,
-             kind === "shell" ? 12 : 6,kind === "bloom" ? 18 : 8+stage*2,8,color,a.ang);
-        }
-        for (let i=0;i<count;i++) {
-          const angle = phase+i*Math.PI*2/count;
-          at("octa",a.x+Math.cos(angle)*(17+stage*3),kind === "shell" ? 29 : 44+Math.sin(angle)*5,
-             a.y+Math.sin(angle)*(17+stage*3),kind === "shell" ? 11 : 5,kind === "bloom" ? 18 : 12,7,color);
+        const color = parseInt(TS.HERO_FORMS[a.id].color.slice(1),16);
+        if (kind === "bell") {
+          for (const side of stage === 2 ? [-1,0,1] : [0]) {
+            const x = a.x+side*19, y = side ? 53 : 66;
+            at("cone",x,y+4,a.y,17,21,17,0xde9a4a);
+            at("cyl",x,y-5,a.y,19,3,19,0xf6c979);
+            at("sph",x,y-9,a.y,5,6,5,0xe0ab5f);
+          }
+          between("glowCyl",[a.x-stage*12,54,a.y],[a.x,82,a.y],1.5,0x7bb9ac);
+          between("glowCyl",[a.x,82,a.y],[a.x+stage*12,54,a.y],1.5,0x7bb9ac);
+        } else {
+          for (const side of [-1,1]) {
+            const offset = side*10;
+            at("octa",a.x+Math.cos(a.ang)*offset,36,a.y+Math.sin(a.ang)*offset,
+               kind === "shell" ? 12 : 6,kind === "bloom" ? 18 : 8+stage*2,8,color,a.ang);
+          }
+          for (let i=0;i<count;i++) {
+            const angle = phase+i*Math.PI*2/count;
+            at("octa",a.x+Math.cos(angle)*(17+stage*3),kind === "shell" ? 29 : 44+Math.sin(angle)*5,
+               a.y+Math.sin(angle)*(17+stage*3),kind === "shell" ? 11 : 5,kind === "bloom" ? 18 : 12,7,color);
+          }
         }
       }
       if(a.mastered && a.atk?.t>0)at("octa",a.x+Math.cos(a.ang)*21,27,a.y+Math.sin(a.ang)*21,3,7,3,0xf2d397);

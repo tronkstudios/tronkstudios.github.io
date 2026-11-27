@@ -70,6 +70,7 @@ const Game = (() => {
     add(ch.perk);
     if (pl.form?.stage) {
       const strength = pl.form.stage;
+      if (pl.form.kind === "bell") s.might += .1 * strength;
       if (pl.form.kind === "shell") s.armor += 2 * strength;
       if (pl.form.kind === "bloom") s.area += .12 * strength;
       if (pl.form.kind === "orbit") s.speed += .1 * strength;
@@ -418,10 +419,11 @@ const Game = (() => {
     const sprint = mods.includes("rapida");
     const veteran = mods.includes("veterano");
     const formsAvailable = mode === "solo" && !opts.daily && !opts.training;
+    const formTier = [1,2].includes(opts.formTier) ? opts.formTier : 0;
     const openingDraft = mode === "solo" && !opts.daily && !opts.training && !veteran;
     const runSeconds = sprint ? 600 : TS.RUN_SECONDS;
     st = {
-      mapId, signature:TS.runSignature(setups,{...opts,mods,map:mapId,openingDraft,formsAvailable}), openingDraft, preview:mode === "solo" && opts.preview === true && !opts.daily && !opts.training, expedition:opts.preview === true && opts.expedition === true, training:opts.training || null, trainingPreset:opts.trainingPreset, trainingSample:null, sprint, runSeconds,
+      mapId, signature:TS.runSignature(setups,{...opts,mods,map:mapId,openingDraft,formsAvailable,formTier}), openingDraft, preview:mode === "solo" && opts.preview === true && !opts.daily && !opts.training, expedition:opts.preview === true && opts.expedition === true, training:opts.training || null, trainingPreset:opts.trainingPreset, trainingSample:null, sprint, runSeconds,
       mods,
       daily: opts.daily || null,
       evolutions: 0,
@@ -478,7 +480,7 @@ const Game = (() => {
     }
     if (formsAvailable) {
       const p = st.players[0];
-      p.form = {kind:TS.formKind(p.charId), stage:0, until:0, chargedAt:12*60, firstKill:0, nextPulse:0};
+      p.form = {hero:p.charId, unlocked:formTier, kind:TS.formKind(p.charId), stage:0, until:0, chargeStart:0, chargedAt:12*60, firstKill:0, nextPulse:0};
     }
     if (st.training) {
       st.sites = [];
@@ -1949,9 +1951,15 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     const f = p.form;
     if (!f) return null;
     const kills = Math.max(0, st.kills - f.firstKill);
-    const ready = f.stage === 0 ? st.t >= f.chargedAt : f.stage === 1 && st.t < f.until && kills >= 4;
-    return {kind:f.kind, stage:f.stage, kills:Math.min(4,kills), ready,
-      seconds:Math.max(0, Math.ceil(((f.stage ? f.until : f.chargedAt) - st.t) / 60))};
+    // Active play earns an extra second of charge per defeat.
+    const remaining = Math.max(0, f.chargedAt - st.t - kills * 60);
+    const charge = f.stage === 0 ? 1 - remaining / (f.chargedAt - f.chargeStart) :
+      f.stage === 1 ? kills / 4 : (f.until - st.t) / (8 * 60);
+    const ready = f.stage === 0 ? remaining === 0 : f.stage === 1 && st.t < f.until && kills >= 4;
+    const required = f.stage === 0 ? 1 : 2;
+    return {hero:f.hero, kind:f.kind, stage:f.stage, charge:clamp(charge,0,1), kills:Math.min(4,kills),
+      lockedLevel:f.unlocked < required ? TS.FORM_LEVELS[required-1] : 0, ready:ready && f.unlocked >= required,
+      seconds:Math.max(0, Math.ceil((f.stage ? f.until - st.t : remaining) / 60))};
   }
 
   function transform() {
@@ -1965,9 +1973,14 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     f.nextPulse = st.t + 1;
     computeStats(p);
     const identity = TS.FORMS[f.kind];
-    fx({k:"ring",x:p.x,y:p.y,r:52*U,color:identity.color,life:24});
-    sound("levelUp", .1, p.x, p.y);
-    emit("transform",{name:identity.names[f.stage-1], effect:identity.effect});
+    const heroForm = TS.HERO_FORMS[p.charId];
+    if (f.stage === 2 && f.kind !== "bell") useAbility(p,true);
+    fx({k:"ring",x:p.x,y:p.y,r:52*U,color:heroForm.color,life:24});
+    if (f.kind === "bell") {
+      f.beat = 0;
+      sound(f.stage === 2 ? "bellCrown" : "bellStrike", .1, p.x, p.y);
+    } else sound("levelUp", .1, p.x, p.y);
+    emit("transform",{name:heroForm.names[f.stage-1], effect:f.stage === 2 && identity.finalEffect ? identity.finalEffect : identity.effect});
     return true;
   }
 
@@ -1976,12 +1989,29 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     if (!f?.stage) return;
     if (st.t >= f.until || p.down) {
       f.stage = 0;
+      f.firstKill = st.kills;
+      f.chargeStart = st.t;
       f.chargedAt = st.t + 24*60;
       computeStats(p);
       return;
     }
     skillRecord(p,"form").availableTicks++;
     if (st.t < f.nextPulse) return;
+    if (f.kind === "bell") {
+      const beat = f.beat;
+      const final = f.stage === 2 && beat === 2;
+      const radius = (f.stage === 1 ? 44 : 46 + 19 * beat) * U;
+      fx({k:"ring",x:p.x,y:p.y,r:radius,color:final ? "#81e1d1" : "#ffc875",life:22});
+      sound(final ? "bellCrown" : "bellStrike", .1, p.x, p.y);
+      duringAttack(p,"form",()=>{
+        for (const e of enemiesInRadius(p.x,p.y,radius).filter(e=>!e.dead && !e.prop).slice(0,16)) {
+          hitEnemy(e,(final ? 27 : 12)*p.stats.might,p,{kx:e.x-p.x,ky:e.y-p.y,kb:final ? 6 : 1});
+        }
+      });
+      f.beat = f.stage === 2 ? (beat+1)%3 : 0;
+      f.nextPulse = st.t + (f.beat ? 18 : 108);
+      return;
+    }
     f.nextPulse = st.t + (f.stage === 1 ? 120 : 75);
     const radius = (f.kind === "orbit" ? 145 : 57) * U;
     const targets = enemiesInRadius(p.x,p.y,radius).filter(e=>!e.dead && !e.prop);
@@ -1996,7 +2026,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
         if (hit) hits++;
         if (f.kind === "orbit") fx({k:"ring",x:e.x,y:e.y,r:12,color:TS.FORMS.orbit.color,life:14});
       }
-      if (hits && f.kind !== "orbit") fx({k:"ring",x:p.x,y:p.y,r:radius,color:TS.FORMS[f.kind].color,life:18});
+      if (hits && f.kind !== "orbit") fx({k:"ring",x:p.x,y:p.y,r:radius,color:TS.HERO_FORMS[p.charId].color,life:18});
       if (f.kind === "bloom" && hits) {
         const healed = healPlayer(p, 2*f.stage, true);
         skillRecord(p,"form").healing += healed;
@@ -3366,6 +3396,12 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     while (st.xp >= st.xpNext) {
       st.xp -= st.xpNext;
       st.level++;
+      const form = st.players[0].form;
+      const tier = TS.formTier(st.level);
+      if (form && tier > form.unlocked) {
+        form.unlocked = tier;
+        emit("formUnlocked",{hero:form.hero,tier});
+      }
       st.xpNext = xpFor(st.level);
       st.pendingLevels++;
       sound("levelUp");
@@ -4018,8 +4054,26 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     ctx.save();
     ctx.translate(p.x, p.y - 23);
     ctx.lineWidth = 1.5;
-    ctx.fillStyle = TS.FORMS[kind].color;
+    ctx.fillStyle = TS.HERO_FORMS[p.charId].color;
     ctx.strokeStyle = "#183342";
+    if (kind === "bell") {
+      // A travelling belfry: verdigris roof, bronze bells and visible clappers.
+      const bells = stage === 2 ? [-17,0,17] : [0];
+      for (const x of bells) {
+        ctx.save();
+        ctx.translate(x, x ? -10 : -23);
+        ctx.rotate(options.reducedMotion ? 0 : Math.sin(t*2+x)*.14);
+        ctx.fillStyle="#377d78";ctx.fillRect(-2,-12,4,10);
+        ctx.fillStyle="#f9bd65";ctx.beginPath();ctx.moveTo(-9,9);
+        ctx.quadraticCurveTo(-5,4,-5,-2);ctx.quadraticCurveTo(0,-11,5,-2);
+        ctx.quadraticCurveTo(5,4,9,9);ctx.closePath();ctx.fill();ctx.stroke();
+        ctx.fillStyle="#7e4636";ctx.fillRect(-8,8,16,2);
+        ctx.fillStyle="#ffe6a4";ctx.fillRect(-2,10,4,4);ctx.restore();
+      }
+      ctx.strokeStyle="#84d9c8";ctx.lineWidth=3;ctx.beginPath();
+      ctx.moveTo(-12*stage,-17);ctx.lineTo(0,-38);ctx.lineTo(12*stage,-17);ctx.stroke();
+      ctx.restore();return;
+    }
     for (let i=0; i<count; i++) {
       const a = i*TAU/count + (kind === "shell" ? 0 : t);
       const x = Math.cos(a)*(16+stage*3), y = Math.sin(a)*10;
@@ -4059,7 +4113,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
       const {kind,stage} = p.form;
       ctx.save();
       ctx.translate(p.x+ox, p.y+oy-23);
-      ctx.fillStyle = TS.FORMS[kind].color;
+      ctx.fillStyle = TS.HERO_FORMS[p.charId].color;
       ctx.strokeStyle = "#223142";
       for (const side of [-1,1]) {
         ctx.beginPath();

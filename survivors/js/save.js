@@ -27,7 +27,7 @@ const Save = (() => {
       best: { time: 0, kills: 0, level: 0, wins: 0, streak:0 },
       bestVeteran: {time:0, kills:0, level:0, wins:0, streak:0},
       bestSprint: {time:0, kills:0, level:0, wins:0, streak:0},
-      mastery: {},
+      mastery: {}, formTiers:{},
       runs: 0, history:[],
       settings: { music: true, sfx: true, musicVol: 0.7, sfxVol: 0.9, lang: "" },
       name: "",
@@ -100,6 +100,10 @@ const Save = (() => {
     }));
     unlockRoster(d);
     d.history=normalizeHistory(d.history);
+    d.formTiers = Object.fromEntries(TS.CHARACTERS.map(ch => {
+      const prior = d.history.filter(row => row.charId === ch.id && !row.coop && !row.daily);
+      return [ch.id, Math.min(2,Math.max(integer(d.formTiers?.[ch.id]), ...prior.map(row=>TS.formTier(row.level))))];
+    }).filter(([,tier])=>tier > 0));
     return d;
   }
   function normalizeHistory(rows){
@@ -180,6 +184,7 @@ const Save = (() => {
       best: maxObj(d.best, remote.best),
       bestVeteran: maxObj(d.bestVeteran, remote.bestVeteran),
       bestSprint: maxObj(d.bestSprint,remote.bestSprint),
+      formTiers:maxObj(d.formTiers,remote.formTiers),
       mastery:maxObj(d.mastery,remote.mastery),
       stats: maxObj(d.stats, remote.stats),
       achievements: maxObj(d.achievements, remote.achievements),
@@ -299,6 +304,13 @@ const Save = (() => {
     return results;
   }
 
+  function unlockForm(hero,tier) {
+    const d = get();
+    if (!TS.HERO_FORMS[hero] || ![1,2].includes(tier) || (d.formTiers[hero] || 0) >= tier) return;
+    d.formTiers[hero] = tier;
+    persist();
+  }
+
   function recordRun(result,playerId=0) {
     const d = get();
     d.runs += 1;
@@ -326,5 +338,5 @@ const Save = (() => {
     persist();
   }
 
-  return { load, get, exportData, mergeRemote, setOnChange: (fn) => (onChange = fn), persist, addCoins, adUnlockProgress, recordUnlockAd, hasAdPulls, canEarnAdPulls, recordChestAd, chestAdCooldown, shopLevel, shopCost, buy, shopStats, pull, recordRun };
+  return { load, get, unlockForm, exportData, mergeRemote, setOnChange: (fn) => (onChange = fn), persist, addCoins, adUnlockProgress, recordUnlockAd, hasAdPulls, canEarnAdPulls, recordChestAd, chestAdCooldown, shopLevel, shopCost, buy, shopStats, pull, recordRun };
 })();
