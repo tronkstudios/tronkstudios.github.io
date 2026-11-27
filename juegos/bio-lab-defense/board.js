@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=41";
+import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=42";
 import { towerAttack } from "./affinities.js?v=3";
 import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=5";
 
@@ -314,14 +314,21 @@ function background(map, routes, chapter) {
   return base;
 }
 
-function turret(ctx, tower, chosen) {
+function turret(ctx, tower, chosen, recoil) {
   ctx.save();
   ctx.translate(tower.x, tower.y);
   circle(ctx, 0, 3, 20, "#040c19bb");
   if (chosen) circle(ctx, 0, 0, 26, null, "#d3f7ff", 2);
   if (tower.branch) circle(ctx, 0, 0, 23, null, "#f7d494", 2);
   ctx.rotate(tower.angle || 0);
+  if (recoil > 0) ctx.translate(-3 * recoil, 0);
   drawTurretModel(ctx, tower);
+  if (recoil > 0) {
+    ctx.globalAlpha = recoil;
+    trace(ctx, [[19, -3], [25 + recoil * 9, 0], [19, 3]]);
+    ctx.fillStyle = tower.color;
+    ctx.fill();
+  }
   ctx.restore();
   for (let i = 0; i < tower.rank; i++)
     circle(
@@ -845,7 +852,8 @@ export class Board {
       ctx.restore();
     }
     match.towers.forEach((tower) =>
-      turret(ctx, tower, tower === selected || tower === hovered),
+      turret(ctx, tower, tower === selected || tower === hovered,
+        reduced || tower.firedAt == null ? 0 : Math.max(0, 1 - (match.time - tower.firedAt) / 7)),
     );
     if (fireCoverage)
       for (const tower of fireCoverage)
@@ -906,6 +914,26 @@ export class Board {
         ctx.lineWidth = shot.type === "splash" ? 4 : 2.5;
         ctx.stroke();
       }
+      if (!reduced && shot.type === "chain") {
+        const angle = Math.atan2(shot.target.y - shot.y, shot.target.x - shot.x);
+        ctx.save();
+        ctx.translate(shot.x, shot.y);
+        ctx.rotate(angle);
+        trace(ctx, [[-16, 1], [-9, -3], [-7, 2], [0, 0]]);
+        ctx.strokeStyle = "#f4ddff";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+      }
+      if (!reduced && shot.type === "slow") {
+        ctx.save();
+        ctx.translate(shot.x, shot.y);
+        ctx.rotate(match.time * 0.12);
+        polygon(ctx, 4, 6);
+        ctx.strokeStyle = shot.color;
+        ctx.stroke();
+        ctx.restore();
+      }
       circle(ctx, shot.x, shot.y, 7, shot.color + "48");
       circle(ctx, shot.x, shot.y, shot.type === "splash" ? 4.5 : 3, shot.color);
       circle(ctx, shot.x, shot.y, 1.5, "#f0fbff");
@@ -913,7 +941,39 @@ export class Board {
     if (reduced) return;
     for (const fx of match.effects) {
       ctx.globalAlpha = fx.life / 25;
-      if (fx.to) {
+      if (fx.kind === "death") {
+        const progress = 1 - fx.life / 22;
+        const count = fx.boss ? 10 : 6;
+        const radius = 5 + fx.radius * Math.sqrt(progress);
+        ctx.strokeStyle = fx.color;
+        ctx.lineWidth = fx.boss ? 3 : 2;
+        for (let i = 0; i < count; i++) {
+          const angle = (fx.angle || 0) + i * 2 * Math.PI / count;
+          const dx = Math.cos(angle), dy = Math.sin(angle);
+          const x = fx.x + dx * radius, y = fx.y + dy * radius;
+          trace(ctx, [[x - 4 * dx + 2 * dy, y - 4 * dy - 2 * dx], [x, y], [x - 3 * dy, y + 3 * dx]]);
+          ctx.stroke();
+        }
+        if (fx.boss) circle(ctx, fx.x, fx.y, radius * 0.72, null, fx.color, 2);
+      } else if (fx.kind === "impact") {
+        ctx.save();
+        ctx.translate(fx.x, fx.y);
+        ctx.rotate(fx.angle);
+        ctx.globalAlpha = fx.life / 13;
+        const spread = 4 + (12 - fx.life) * 0.8;
+        if (fx.attack === "dot") {
+          for (const offset of [-1, 0, 1])
+            circle(ctx, spread * (1.2 - Math.abs(offset) * 0.5), offset * spread, 2.5, fx.color);
+        } else {
+          for (const offset of [-1, 1]) {
+            trace(ctx, [[2, offset * 2], [spread, offset * spread]]);
+            ctx.strokeStyle = fx.color;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
+        }
+        ctx.restore();
+      } else if (fx.to) {
         trace(ctx, [
           [fx.x, fx.y],
           [fx.to.x, fx.to.y],

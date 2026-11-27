@@ -1629,7 +1629,10 @@ export class Match {
     this.charge = Math.min(100, this.charge + (enemy.boss ? 28 : 6));
     const bounty = this.daily && this.combo >= 5 ? 1.25 : this.fixedLayout && this.wave >= 3 ? 0.85 : 1;
     this.addATP(Math.round(enemy.reward * bounty));
-    this.effect(enemy.x, enemy.y, color, enemy.boss ? 56 : 27);
+    this.effects.push({
+      kind: "death", x: enemy.x, y: enemy.y, color: enemy.color,
+      radius: enemy.boss ? 56 : 24, boss: enemy.boss, angle: enemy.angle, life: 22,
+    });
   }
 
   deployFinaleModules(boss, specs) {
@@ -1806,6 +1809,13 @@ export class Match {
         target.burnPierces ||= !!branch.piercing;
       }
     };
+    if (type !== "splash") {
+      this.effects.push({
+        kind: "impact", x: enemy.x, y: enemy.y, color,
+        angle: Math.atan2(enemy.y - shot.y, enemy.x - shot.x) || 0,
+        attack: type, life: 12,
+      });
+    }
     let chilled = Number(type === "splash" && enemy.slow > 0 && enemy.hp > 0);
     this.damage(enemy, damage, color, branch, tower);
     applyDebuff(enemy);
@@ -2103,6 +2113,7 @@ export class Match {
         branch: tower.branch || {},
         radius: tower.branch?.radius || (tower.id === "uv" ? 73 : 57),
       };
+      tower.firedAt = this.time;
       this.shots.push(shot);
       if (!this.daily) reserveImpact(committed, shot, this.time);
     }

@@ -87,8 +87,8 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8928";
       assert.equal(await page.locator("#tactical-pause").getAttribute("aria-pressed"), "true");
       // Restore the preparation phase for the first split counter wave.
       await page.evaluate(async () => {
-        const { Match } = await import("/juegos/bio-lab-defense/engine.js?v=41");
-        const { Checkpoint } = await import("/juegos/bio-lab-defense/checkpoint.js?v=38");
+        const { Match } = await import("/juegos/bio-lab-defense/engine.js?v=42");
+        const { Checkpoint } = await import("/juegos/bio-lab-defense/checkpoint.js?v=39");
         localStorage.setItem("biolab_save_v1", JSON.stringify({ unlockedLevel: 5, stars: [2, 2, 2, 2] }));
         localStorage.removeItem("biolab_checkpoint:guest");
         const counterMatch = new Match(5, null, { fixedLayout: true });

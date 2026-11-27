@@ -55,22 +55,69 @@ export function sound(kind, userAction = false) {
   if (!context || context.state !== "running") return;
   const notes = tones[kind];
   const now = context.currentTime + 0.011;
-  notes.forEach((pitch, i) => {
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-    const t = now + i * 0.083;
-    oscillator.type = "triangle";
-    oscillator.frequency.value = pitch;
-    gain.gain.setValueAtTime(0.001, t);
-    gain.gain.exponentialRampToValueAtTime(0.055, t + 0.012);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
-    oscillator.connect(gain);
-    gain.connect(context.destination);
-    oscillator.start(t);
-    oscillator.stop(t + 0.16);
-    oscillator.onended = () => {
-      oscillator.disconnect();
-      gain.disconnect();
-    };
-  });
+  notes.forEach((pitch, i) => voice(pitch, pitch, now + i * 0.083, 0.15, 0.055, "triangle"));
+}
+
+function voice(startHz, endHz, time, length, volume, type) {
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(startHz, time);
+  oscillator.frequency.exponentialRampToValueAtTime(endHz, time + length);
+  gain.gain.setValueAtTime(0.0001, time);
+  gain.gain.exponentialRampToValueAtTime(volume, time + 0.009);
+  gain.gain.exponentialRampToValueAtTime(0.0001, time + length);
+  oscillator.connect(gain);
+  gain.connect(context.destination);
+  oscillator.start(time);
+  oscillator.stop(time + length + 0.01);
+  oscillator.onended = () => {
+    oscillator.disconnect();
+    gain.disconnect();
+  };
+}
+
+const weapons = {
+  single: [760, 210, "triangle"], slow: [1100, 640, "sine"],
+  splash: [160, 48, "triangle"], dot: [340, 105, "sine"], chain: [880, 310, "sawtooth"],
+};
+const bass = [110, 87.31, 130.81, 98];
+const motif = [0, 7, 12, 15, 7, 10, 5, 7];
+let nextBeat = 0, beat = 0, nextShot = 0, nextDeath = 0;
+const heard = new WeakSet();
+const lastShot = new WeakMap();
+
+export function combatAudio(match) {
+  if (!enabled || !context || context.state !== "running") return;
+  const now = context.currentTime;
+  // Trigger from the same events as the artwork, even when a shot hits instantly.
+  for (const effect of match.effects) {
+    if (effect.kind !== "death" || heard.has(effect)) continue;
+    heard.add(effect);
+    if (effect.boss || now >= nextDeath) {
+      voice(effect.boss ? 138 : 400, effect.boss ? 34 : 88, now, effect.boss ? 0.38 : 0.11, 0.047, "triangle");
+      nextDeath = now + 0.1;
+    }
+  }
+  if (match.state !== "wave") return;
+  for (let i = 0; i < match.towers.length + Number(!!match.hero); i++) {
+    const tower = match.towers[i] || match.hero;
+    if (tower.firedAt == null || tower.firedAt === lastShot.get(tower)) continue;
+    lastShot.set(tower, tower.firedAt);
+    if (now < nextShot || match.time - tower.firedAt > 6) continue;
+    const [start, end, type] = weapons[tower.type] || weapons.single;
+    voice(start, end, now, 0.09, 0.025, type);
+    nextShot = now + 0.095;
+  }
+  if (now < nextBeat) return;
+  const boss = match.enemies.some(enemy => enemy.boss && enemy.hp > 0);
+  const root = bass[Math.floor(beat / 8) % bass.length];
+  if (beat % 4 === 0) voice(root, root, now, 0.38, 0.036, "sine");
+  if (beat % 2 === 0 || boss) {
+    const note = root * 2 * 2 ** (motif[beat % 8] / 12);
+    voice(note, note, now, 0.19, 0.016, "triangle");
+  }
+  if (beat % 4 === 2) voice(95, 42, now, 0.08, 0.024, "sine");
+  beat = (beat + 1) % 32;
+  nextBeat = now + (boss ? 0.18 : 0.22);
 }
