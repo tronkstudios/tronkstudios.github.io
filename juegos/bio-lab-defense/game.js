@@ -16,18 +16,18 @@ import {
   VARIANT_NAMES,
   escortArmor,
   dailySetup,
-} from "./engine.js?v=41";
-import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=12";
-import { attachDrill } from "./drill.js?v=15";
-import { Board } from "./board.js?v=49";
+} from "./engine.js?v=42";
+import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=13";
+import { attachDrill } from "./drill.js?v=16";
+import { Board } from "./board.js?v=50";
 import { towerIcon, heroIcon } from "./art.js?v=5";
-import { createCodex } from "./codex.js?v=29";
+import { createCodex } from "./codex.js?v=30";
 import { Profile, dayKey } from "./profile.js?v=21";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=7";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=17";
-import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
+import { combatAudio, sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=4";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=38";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=39";
 
 import { HEROES, CONTRACTS, MASTERY } from "./operations.js?v=8";
 
@@ -789,6 +789,7 @@ function startVeteran(level) {
 function begin(next, day = null, restored = null) {
   challengeDay = day;
   lastState = next.state;
+  winEffectTime = 0;
   lastBoss = false;
   match = next;
   objectiveCoverageKey = null;
@@ -2212,6 +2213,7 @@ function announce() {
 }
 
 let lastState;
+let winEffectTime = 0;
 function touchDraft(point, dragging) {
   const check = movingTower
     ? (x, y) => match.checkRelocation(movingTower, x, y)
@@ -2260,7 +2262,18 @@ function frame(now) {
       for (let i = 0; i < speed && match.state !== "lost" && match.state !== "won"; i++) match.tick();
       accumulator -= 1000 / 60;
     }
-    if (lastState !== match.state) {
+    if (!tacticalPaused && !adBusy) combatAudio(match);
+    // Give the final burst time to appear before covering the board with results.
+    const finalBurst = match.state === "won" && !reduced.matches &&
+      match.effects.some(effect => effect.kind === "death" && effect.boss && effect.life > 5);
+    if (finalBurst) {
+      winEffectTime += elapsed;
+      while (winEffectTime >= 1000 / 60) {
+        match.tick();
+        winEffectTime -= 1000 / 60;
+      }
+    }
+    if (!finalBurst && lastState !== match.state) {
       tacticalPaused = false;
       lastState = match.state;
       if (match.state === "won" || match.state === "lost") finish();
@@ -2640,7 +2653,7 @@ function showSoundState(enabled) {
   $("sound-toggle").setAttribute("aria-pressed", String(enabled));
   $("sound-toggle").setAttribute(
     "aria-label",
-    enabled ? "Silenciar sonido" : "Activar sonido",
+    enabled ? "Silenciar música y efectos" : "Activar música y efectos",
   );
   updateText("sound-toggle", enabled ? "Sonido sí" : "Sonido no");
 }

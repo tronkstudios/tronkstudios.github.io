@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT } from "./engine.js?v=41";
+import { WIDTH, HEIGHT } from "./engine.js?v=42";
 
 // Intersect each straight section of the route with the tower's range circle.
 export function routeCoverage(route, tower) {
