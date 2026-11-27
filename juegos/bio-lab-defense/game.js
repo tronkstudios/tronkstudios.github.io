@@ -460,10 +460,12 @@ function renderOperations() {
   if (focusedAction) $("operations").querySelector(`[data-operation="${focusedAction}"]:enabled`)?.focus({preventScroll:true});
 }
 
-function openMastery(contract) {
+function returnToContract(contract) {
   openOperations();
-  const control = contract && $("mastery").querySelector(`[data-operation="contract-${contract.id}"]`);
-  (control || $("operations-mastery")).focus();
+  const control = $("operations").querySelector(`[data-operation="contract-${contract.id}"]:enabled`);
+  const destination = control || $(contract.mastery ? "operations-mastery" : "operations-contracts");
+  destination.focus({ preventScroll: true });
+  destination.scrollIntoView({ block: "center" });
 }
 
 function contractUnlocked(contract) {
@@ -1091,6 +1093,7 @@ function renderSelection() {
         persistPreparation();
       }
       renderHUD();
+      panel.focus({ preventScroll: true });
     });
     improve.disabled = match.atp < cost;
     options.append(upgradeRow(tower, improve));
@@ -1103,6 +1106,7 @@ function renderSelection() {
           persistPreparation();
         }
         renderHUD();
+        panel.focus({ preventScroll: true });
       });
       improve.disabled = match.atp < cost;
       options.append(upgradeRow(tower, improve, branch));
@@ -2346,7 +2350,7 @@ function finish() {
         : contract.mastery ? "Desafío fallido" : "Contrato fallido",
       diagnostics.trim(),
       [["Reintentar", () => startContract(contract)], [contract.mastery ? "Volver a maestría" : "Volver a contratos",
-        () => contract.mastery ? openMastery() : openOperations()]], breach,
+        () => returnToContract(contract)]], breach,
       { ...combatDialog(tone, contract.name, [...outcomeStats, ["Puntos", score.toLocaleString("es-ES")]]),
         medal: medal ? "Maestría" : null });
     return;
@@ -2405,7 +2409,7 @@ function finish() {
     : [];
   if (chapterFinished) {
     const entry = MASTERY.find(contract => contract.chapter === mission.chapter);
-    if (entry && contractUnlocked(entry)) buttons.push(["Desafío de maestría", () => openMastery(entry)]);
+    if (entry && contractUnlocked(entry)) buttons.push(["Desafío de maestría", () => returnToContract(entry)]);
   }
   if (!won && !checkpointLost && checkpoint?.raw) {
     const expected = checkpoint.raw;
@@ -2599,7 +2603,10 @@ canvas.onkeydown = (e) => {
 };
 
 $("campaign-button").onclick = campaign;
-$("back-home").onclick = () => view("home");
+$("back-home").onclick = () => {
+  view("home");
+  $("campaign-button").focus();
+};
 $("sector-filter").onchange = renderLevels;
 $("reset-sector-filter").onclick = () => {
   $("sector-filter").value = "all";
@@ -2616,14 +2623,11 @@ $("home-resume-run").onclick = resumePreparation;
 $("campaign-resume-run").onclick = resumePreparation;
 $("back-campaign").onclick = () => {
   campaign();
-  if (!$(`campaign-sector-${briefingLevel}`)) {
-    $("sector-filter").value = "all";
-    renderLevels();
-  }
   const sector = $(`campaign-sector-${briefingLevel}`);
-  $("chapter-jump").value = String(MISSIONS[briefingLevel - 1].chapter);
-  sector.focus({ preventScroll: true });
-  sector.scrollIntoView({ block: "nearest" });
+  if (sector) $("chapter-jump").value = String(MISSIONS[briefingLevel - 1].chapter);
+  const destination = sector || $("resume-mission");
+  destination.focus({ preventScroll: true });
+  destination.scrollIntoView({ block: "nearest" });
 };
 $("launch-mission").onclick = () => start(briefingLevel);
 $("launch-veteran").onclick = () => startVeteran(briefingLevel);
@@ -2644,7 +2648,9 @@ showSoundState(soundEnabled());
 $("sound-toggle").onclick = () => showSoundState(toggleSound());
 $("operations-button").onclick = openOperations;
 $("back-operations").onclick = () => {
-  if (!adBusy) view("home");
+  if (adBusy) return;
+  view("home");
+  $("operations-button").focus();
 };
 $("move-hero").onclick = toggleBotMove;
 $("hero-ability").onpointerenter = $("hero-ability").onfocus = () => { abilityPreview = true; };
@@ -2855,6 +2861,7 @@ document.addEventListener("keydown", (event) => {
     screen !== "field" ||
     modal.open ||
     codex.open || fireOrders.open || drill.open ||
+    event.target.closest?.("select, input, textarea, [contenteditable=true]") ||
     event.defaultPrevented ||
     event.repeat ||
     event.ctrlKey ||
@@ -2882,7 +2889,7 @@ $("pause").onclick = () => {
   actions.push([
     "Abandonar partida",
     () => {
-      if (match.contract) openOperations();
+      if (match.contract) returnToContract(match.contract);
       else if (match.veteran) briefing(match.level);
       else if (match.daily) view("home");
       else {

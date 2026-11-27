@@ -78,6 +78,13 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8928";
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
       await page.locator("#next").click();
       await page.locator("#wave").getByText("1/4", { exact: true }).waitFor();
+      await touchBoard(second.x, second.y);
+      await page.locator("#tower-targeting").focus();
+      await page.keyboard.press("p");
+      assert.equal(await page.locator("#tactical-pause").getAttribute("aria-pressed"), "false");
+      await board.focus();
+      await page.keyboard.press("p");
+      assert.equal(await page.locator("#tactical-pause").getAttribute("aria-pressed"), "true");
       // Restore the preparation phase for the first split counter wave.
       await page.evaluate(async () => {
         const { Match } = await import("/juegos/bio-lab-defense/engine.js?v=41");
