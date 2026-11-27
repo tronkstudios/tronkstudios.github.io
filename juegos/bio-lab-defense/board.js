@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=43";
+import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=44";
 import { towerAttack } from "./affinities.js?v=3";
 import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=5";
 
@@ -377,7 +377,7 @@ function drawSupportNode(ctx, node) {
   ctx.restore();
 }
 
-function target(ctx, enemy, time, compact) {
+function target(ctx, enemy, time) {
   if (enemy.supportNode) {
     drawSupportNode(ctx, enemy);
     return;
@@ -430,6 +430,13 @@ function target(ctx, enemy, time, compact) {
   ctx.restore();
   if (enemy.shield > 0)
     circle(ctx, 0, 0, enemy.boss ? 35 : 22, null, "#91dfff", 2);
+  ctx.restore();
+}
+
+function drawEnemyHealth(ctx, enemy, compact) {
+  if (enemy.supportNode) return;
+  ctx.save();
+  ctx.translate(enemy.x, enemy.y);
   const width = enemy.boss ? 52 : compact ? 34 : 25;
   const y = enemy.boss ? -39 : compact ? -25 : -22;
   const barHeight = compact ? 7 : 5;
@@ -567,6 +574,134 @@ function highlightCoverage(ctx, tower, routes, range = tower.range, color = towe
   ctx.restore();
 }
 
+const fragmentShapes = {
+  rod: "capsule", "e-coli": "capsule", lactobacillus: "capsule",
+  tuberculosis: "capsule", diphtheria: "capsule", plague: "capsule",
+  spiral: "curve", cholera: "curve",
+  phage: "shard", hex: "shard", norovirus: "shard",
+  rhinovirus: "shard", polio: "shard",
+};
+
+function drawDeathBurst(ctx, effect, life) {
+  const progress = 1 - life / 22;
+  const travel = 1 - (1 - progress) ** 2;
+  const scale = effect.boss ? 1.65 : 1;
+  const opacity = (1 - progress) ** 1.5;
+  ctx.save();
+  ctx.translate(effect.x, effect.y);
+  if (progress < 0.48) {
+    const flare = 1 - progress / 0.48;
+    const radius = (11 + travel * 17) * scale;
+    const light = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+    light.addColorStop(0, "#fff4da");
+    light.addColorStop(0.25, effect.color);
+    light.addColorStop(1, effect.color + "00");
+    ctx.globalAlpha = flare * flare * 0.85;
+    circle(ctx, 0, 0, radius, light);
+  }
+  if (effect.boss) {
+    ctx.globalAlpha = opacity * 0.55;
+    circle(ctx, 0, 0, 24 + travel * 45, null, effect.color, 2.5);
+  }
+
+  const count = effect.boss ? 13 : 8;
+  const shape = fragmentShapes[effect.shape];
+  for (let i = 0; i < count; i++) {
+    const angle = (effect.angle || 0) + i * 2.39996;
+    const distance = scale * (4 + (18 + (i * 13 % 31)) * travel);
+    const size = scale * (1.8 + (i % 4) * 0.52) * (1 - progress * 0.7);
+    const x = Math.cos(angle) * distance;
+    const y = Math.sin(angle) * distance + progress ** 2 * 9;
+    ctx.globalAlpha = opacity * (i % 3 === 0 ? 0.95 : 0.82);
+    if (!shape) {
+      circle(ctx, x, y, size, effect.color);
+      continue;
+    }
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle + progress * (i % 2 ? 2 : -2));
+    ctx.fillStyle = ctx.strokeStyle = effect.color;
+    ctx.lineCap = "round";
+    ctx.lineWidth = size;
+    if (shape === "shard") {
+      trace(ctx, [[-size, -size], [size * 1.8, 0], [-size * 0.5, size]]);
+      ctx.fill();
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(-size * 1.3, 0);
+      if (shape === "curve") ctx.quadraticCurveTo(0, size * 1.7, size * 1.3, 0);
+      else ctx.lineTo(size * 1.3, 0);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function drawImpact(ctx, effect, life, reduced) {
+  const progress = reduced ? 0.2 : 1 - life / 18;
+  const tint = effect.shielded ? "#a9eaff" : effect.color;
+  ctx.save();
+  ctx.translate(effect.x, effect.y);
+  ctx.rotate(effect.angle);
+  ctx.globalAlpha = (life / 18) ** 1.25;
+  if (effect.shielded || reduced) {
+    circle(ctx, 0, 0, 10 + progress * 10, null, tint, 2.5);
+  } else {
+    const spread = 5 + 20 * (1 - (1 - progress) ** 2);
+    circle(ctx, 0, 0, 5 * (1 - progress), "#fff4d9", tint, 2);
+    for (const side of [-1, 1]) {
+      circle(ctx, spread * 0.65, side * spread * 0.4, 3 * (1 - progress), tint);
+    }
+  }
+  ctx.restore();
+}
+
+function drawProjectile(ctx, shot, time, fraction, reduced) {
+  const dx = shot.target.x - shot.x;
+  const dy = shot.target.y - shot.y;
+  const distance = Math.hypot(dx, dy);
+  const angle = Math.atan2(dy, dx);
+  const advance = Math.min(distance, fraction * 10);
+  const x = shot.x + Math.cos(angle) * advance;
+  const y = shot.y + Math.sin(angle) * advance;
+  if (reduced) {
+    circle(ctx, x, y, 4, shot.color);
+    return;
+  }
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  ctx.lineCap = "round";
+  const length = shot.tower.id === "sniper" ? 29 : shot.type === "splash" ? 19 : 13;
+  const trail = ctx.createLinearGradient(-length, 0, 0, 0);
+  trail.addColorStop(0, shot.color + "00");
+  trail.addColorStop(1, shot.color + "e0");
+  trace(ctx, [[-length, 0], [0, 0]]);
+  ctx.strokeStyle = trail;
+  ctx.lineWidth = shot.type === "splash" ? 5 : 3;
+  ctx.stroke();
+
+  if (shot.type === "chain") {
+    trace(ctx, [[-length, -2], [-8, 3], [-5, -3], [0, 0]]);
+    ctx.strokeStyle = "#eecfff";
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+  } else if (shot.type === "slow") {
+    ctx.rotate(time * 0.12);
+    polygon(ctx, 4, 5);
+    ctx.fillStyle = shot.color;
+    ctx.fill();
+  } else {
+    const size = shot.type === "splash" ? 5.5 : 3.5;
+    circle(ctx, 0, 0, size + 2, shot.color + "40");
+    circle(ctx, 0, 0, size, shot.color);
+  }
+  circle(ctx, 0, 0, 1.8, "#fafaff");
+  ctx.restore();
+}
+
 export class Board {
   constructor(canvas) {
     this.ctx = canvas.getContext("2d");
@@ -581,7 +716,7 @@ export class Board {
     reduced,
     aiming,
     hovered = null,
-    { gatePreview, movingHero, movingTower, skillPreview, upgradePreview, snapOrigin, breach = null, reviewGap = null, routePlan = false, focusTarget = match.focusTarget, fireCoverage = null, previewPowerCut, affinityProfiles = [] } = {},
+    { gatePreview, movingHero, movingTower, skillPreview, upgradePreview, snapOrigin, breach = null, reviewGap = null, routePlan = false, focusTarget = match.focusTarget, fireCoverage = null, previewPowerCut, affinityProfiles = [], effectFraction = 0 } = {},
   ) {
     const ctx = this.ctx;
     const key = match.mission
@@ -854,7 +989,7 @@ export class Board {
     }
     match.towers.forEach((tower) =>
       turret(ctx, tower, tower === selected || tower === hovered,
-        reduced || tower.firedAt == null ? 0 : Math.max(0, 1 - (match.time - tower.firedAt) / 10)),
+        reduced || tower.firedAt == null ? 0 : Math.max(0, 1 - (match.time + effectFraction - tower.firedAt) / 10)),
     );
     if (fireCoverage)
       for (const tower of fireCoverage)
@@ -886,7 +1021,65 @@ export class Board {
       circle(ctx, cue.x, cue.y, radius + 6, null, color + "66", 2);
     }
     const compactCombat = ctx.canvas.clientWidth < 550;
-    match.enemies.forEach((enemy) => target(ctx, enemy, match.time, compactCombat));
+    match.enemies.forEach((enemy) => target(ctx, enemy, match.time));
+    for (const shot of match.shots)
+      drawProjectile(ctx, shot, match.time + effectFraction, effectFraction, reduced);
+
+    // Keep a single damage label per lane even when several enemies leak together.
+    const coreHits = [null, null];
+    for (const effect of match.effects) {
+      if (effect.kind !== "core-hit") continue;
+      const previous = coreHits[effect.lane];
+      coreHits[effect.lane] = {
+        ...effect, loss: effect.loss + (previous?.life === effect.life ? previous.loss : 0),
+      };
+    }
+    for (const fx of [...match.effects.filter(effect => effect.kind !== "core-hit"), ...coreHits.filter(Boolean)]) {
+      if (reduced && fx.kind !== "impact" && fx.kind !== "core-hit") continue;
+      const life = Math.max(0, fx.life - effectFraction);
+      if (life === 0) continue;
+      ctx.globalAlpha = Math.min(1, life / 22);
+      if (fx.kind === "core-hit") {
+        const progress = reduced ? 0.2 : 1 - life / 33;
+        ctx.globalAlpha = Math.min(1, life / 12);
+        circle(ctx, fx.x, fx.y, 34 + progress * 28, "#e2354f30", "#ff586b", 3.5);
+        if (!reduced && progress < 0.5)
+          circle(ctx, fx.x, fx.y, 25 + progress * 18, null, "#ffd4a7", 2);
+        ctx.save();
+        ctx.font = "bold 28px system-ui";
+        ctx.textAlign = "center";
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = "#270c21";
+        ctx.fillStyle = "#fff1dc";
+        const labelX = Math.max(48, Math.min(WIDTH - 48, fx.x));
+        const labelY = Math.max(38, Math.min(HEIGHT - 14, fx.y + (fx.lane ? 49 : -49) - progress * 10));
+        ctx.strokeText(`−${fx.loss} %`, labelX, labelY);
+        ctx.fillText(`−${fx.loss} %`, labelX, labelY);
+        ctx.restore();
+      } else if (fx.kind === "death") {
+        drawDeathBurst(ctx, fx, life);
+      } else if (fx.kind === "impact") {
+        drawImpact(ctx, fx, life, reduced);
+      } else if (fx.to) {
+        trace(ctx, [
+          [fx.x, fx.y],
+          [fx.to.x, fx.to.y],
+        ]);
+        ctx.strokeStyle = fx.color;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      } else
+        circle(
+          ctx,
+          fx.x,
+          fx.y,
+          5 + fx.radius * (1 - life / 22),
+          null,
+          fx.color,
+          2,
+        );
+    }
+    ctx.globalAlpha = 1;
     if (focusTarget?.hp > 0 && !focusTarget.escaped) {
       ctx.save();
       ctx.translate(focusTarget.x, focusTarget.y);
@@ -903,115 +1096,6 @@ export class Board {
       }
       ctx.restore();
     }
-    match.shots.forEach((shot) => {
-      if (!reduced) {
-        const angle = Math.atan2(shot.target.y - shot.y, shot.target.x - shot.x);
-        const length = shot.tower.id === "sniper" ? 25 : 13;
-        trace(ctx, [
-          [shot.x - Math.cos(angle) * length, shot.y - Math.sin(angle) * length],
-          [shot.x, shot.y],
-        ]);
-        ctx.strokeStyle = shot.color + "a0";
-        ctx.lineWidth = shot.type === "splash" ? 4 : 2.5;
-        ctx.stroke();
-      }
-      if (!reduced && shot.type === "chain") {
-        const angle = Math.atan2(shot.target.y - shot.y, shot.target.x - shot.x);
-        ctx.save();
-        ctx.translate(shot.x, shot.y);
-        ctx.rotate(angle);
-        trace(ctx, [[-16, 1], [-9, -3], [-7, 2], [0, 0]]);
-        ctx.strokeStyle = "#f4ddff";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.restore();
-      }
-      if (!reduced && shot.type === "slow") {
-        ctx.save();
-        ctx.translate(shot.x, shot.y);
-        ctx.rotate(match.time * 0.12);
-        polygon(ctx, 4, 6);
-        ctx.strokeStyle = shot.color;
-        ctx.stroke();
-        ctx.restore();
-      }
-      circle(ctx, shot.x, shot.y, 7, shot.color + "48");
-      circle(ctx, shot.x, shot.y, shot.type === "splash" ? 4.5 : 3, shot.color);
-      circle(ctx, shot.x, shot.y, 1.5, "#f0fbff");
-    });
-    for (const fx of match.effects) {
-      if (reduced && fx.kind !== "impact" && fx.kind !== "core-hit") continue;
-      ctx.globalAlpha = fx.life / 25;
-      if (fx.kind === "core-hit") {
-        const progress = reduced ? 0.2 : 1 - fx.life / 33;
-        ctx.globalAlpha = Math.min(1, fx.life / 12);
-        circle(ctx, fx.x, fx.y, 39 + progress * 32, "#e2354f65", "#ff586b", 6);
-        circle(ctx, fx.x, fx.y, 28 + progress * 15, null, "#ffd4a7", 3);
-        ctx.save();
-        ctx.font = "bold 28px system-ui";
-        ctx.textAlign = "center";
-        ctx.lineWidth = 6;
-        ctx.strokeStyle = "#270c21";
-        ctx.fillStyle = "#fff1dc";
-        const labelX = Math.max(48, Math.min(WIDTH - 48, fx.x));
-        const labelY = Math.max(38, Math.min(HEIGHT - 14, fx.y + (fx.lane ? 49 : -49) - progress * 10));
-        ctx.strokeText(`−${fx.loss} %`, labelX, labelY);
-        ctx.fillText(`−${fx.loss} %`, labelX, labelY);
-        ctx.restore();
-      } else if (fx.kind === "death") {
-        const progress = 1 - fx.life / 22;
-        const count = fx.boss ? 10 : 6;
-        const radius = 5 + fx.radius * Math.sqrt(progress);
-        ctx.strokeStyle = fx.color;
-        ctx.lineWidth = fx.boss ? 3 : 2;
-        for (let i = 0; i < count; i++) {
-          const angle = (fx.angle || 0) + i * 2 * Math.PI / count;
-          const dx = Math.cos(angle), dy = Math.sin(angle);
-          const x = fx.x + dx * radius, y = fx.y + dy * radius;
-          trace(ctx, [[x - 4 * dx + 2 * dy, y - 4 * dy - 2 * dx], [x, y], [x - 3 * dy, y + 3 * dx]]);
-          ctx.stroke();
-        }
-        if (fx.boss) circle(ctx, fx.x, fx.y, radius * 0.72, null, fx.color, 2);
-      } else if (fx.kind === "impact") {
-        ctx.save();
-        ctx.translate(fx.x, fx.y);
-        ctx.rotate(fx.angle);
-        ctx.globalAlpha = Math.min(1, fx.life / 10);
-        const spread = reduced ? 17 : 13 + (18 - fx.life) * 0.9;
-        const tint = fx.shielded ? "#a9eaff" : fx.color;
-        circle(ctx, 0, 0, spread * 0.8, null, tint, 3);
-        if (!fx.shielded && fx.life > 12) circle(ctx, 0, 0, 7, "#fff4d9", tint, 3);
-        if (fx.attack === "dot") {
-          for (const offset of [-1, 0, 1])
-            circle(ctx, spread * (1.2 - Math.abs(offset) * 0.5), offset * spread, 2.5, fx.color);
-        } else {
-          for (const offset of [-1, 1]) {
-            trace(ctx, [[5, offset * 4], [spread, offset * spread]]);
-            ctx.strokeStyle = tint;
-            ctx.lineWidth = 3;
-            ctx.stroke();
-          }
-        }
-        ctx.restore();
-      } else if (fx.to) {
-        trace(ctx, [
-          [fx.x, fx.y],
-          [fx.to.x, fx.to.y],
-        ]);
-        ctx.strokeStyle = fx.color;
-        ctx.lineWidth = 3;
-        ctx.stroke();
-      } else
-        circle(
-          ctx,
-          fx.x,
-          fx.y,
-          5 + fx.radius * (1 - fx.life / 22),
-          null,
-          fx.color,
-          2,
-        );
-    }
-    ctx.globalAlpha = 1;
+    for (const enemy of match.enemies) drawEnemyHealth(ctx, enemy, compactCombat);
   }
 }

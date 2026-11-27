@@ -1,4 +1,4 @@
-import { specializations, upgradeCost } from "./engine.js?v=43";
+import { specializations, upgradeCost } from "./engine.js?v=44";
 
 // Clone the complete state together so references between routes, towers and shots survive.
 // The mission definition contains medal predicates and is read-only during combat.
