@@ -51,6 +51,8 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8928";
       assert.deepEqual([built.towers[0].x, built.towers[0].y], [first.x, first.y]);
       assert.equal(built.atp, budget - 50);
 
+      await page.locator("#move-hero").click();
+      await touchBoard(first.x, first.y);
       await touchBoard(first.x, first.y);
       await page.locator("#relocate-tower").click();
       await touchBoard(second.x + 5, second.y + 5);
@@ -79,7 +81,7 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8928";
       // Restore the preparation phase for the first split counter wave.
       await page.evaluate(async () => {
         const { Match } = await import("/juegos/bio-lab-defense/engine.js?v=40");
-        const { Checkpoint } = await import("/juegos/bio-lab-defense/checkpoint.js?v=36");
+        const { Checkpoint } = await import("/juegos/bio-lab-defense/checkpoint.js?v=37");
         localStorage.setItem("biolab_save_v1", JSON.stringify({ unlockedLevel: 5, stars: [2, 2, 2, 2] }));
         localStorage.removeItem("biolab_checkpoint:guest");
         const counterMatch = new Match(5, null, { fixedLayout: true });

@@ -22,12 +22,12 @@ import { attachDrill } from "./drill.js?v=14";
 import { Board } from "./board.js?v=48";
 import { towerIcon, heroIcon } from "./art.js?v=5";
 import { createCodex } from "./codex.js?v=28";
-import { Profile, dayKey } from "./profile.js?v=20";
+import { Profile, dayKey } from "./profile.js?v=21";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=7";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=17";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=36";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=37";
 
 import { HEROES, CONTRACTS, MASTERY } from "./operations.js?v=8";
 
@@ -2495,8 +2495,10 @@ function towerAt(x, y) {
 function botAt(x, y, tower) {
   const bot = match.hero;
   if (!bot) return false;
+  // Keep the installation selectable when the nanobot stands on its base.
+  if (tower && Math.hypot(bot.x - tower.x, bot.y - tower.y) < 12) return false;
   const distance = Math.hypot(bot.x - x, bot.y - y);
-  return distance <= 29 && (!tower || distance <= Math.hypot(tower.x - x, tower.y - y));
+  return distance <= 29 && (!tower || distance < Math.hypot(tower.x - x, tower.y - y));
 }
 
 function pointer(e) {
@@ -3016,10 +3018,10 @@ $("boost").onclick = () => {
   });
 };
 window.addEventListener("online", () => {
-  void profile.flush();
+  if (prepared) void profile.flush();
 });
 window.addEventListener("focus", () => {
-  void profile.flush();
+  if (prepared) void profile.flush();
 });
 $("campaign-button").disabled =
   $("daily-button").disabled =

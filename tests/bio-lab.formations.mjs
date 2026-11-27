@@ -4,7 +4,7 @@ import { Match, BLUEPRINTS, dailySetup, suggestPlacement, reactorProduction, REA
 import { CONTRACTS } from "../juegos/bio-lab-defense/operations.js";
 import { MISSIONS } from "../juegos/bio-lab-defense/campaign.js";
 import { restoreCheckpoint } from "../juegos/bio-lab-defense/checkpoint.js";
-import { normalize } from "../juegos/bio-lab-defense/profile.js";
+import { Profile, normalize } from "../juegos/bio-lab-defense/profile.js";
 
 test("legacy completion opens the next chapter with expanded profile slots", () => {
   const profile = normalize({ unlockedLevel: 10, stars: Array(10).fill(2) });
@@ -1035,4 +1035,42 @@ test("Paralaje alternates visible lens segments and a defeat preserves the last 
   assert.equal(match.replay.length, 31);
   assert.ok(match.replay.at(-1).enemies.some(([, , id]) => id === match.breachEnemy));
   assert.ok(match.replay.every(frame => frame.hero.length === 2));
+});
+
+test("restoring preparations keeps nanobot performance and remaining barrier time", async () => {
+  const { Checkpoint } = await import("../juegos/bio-lab-defense/checkpoint.js");
+  const match = new Match(8, null, { heroId: "ivo", fixedLayout: true });
+  Object.assign(match.hero, { inflicted: 82, defeated: 2, shieldsBroken: 3 });
+  match.startWave();
+  match.time = 600;
+  assert.ok(match.closeBarrier());
+  match.time += 40;
+  match.state = "build";
+  const cp = new Checkpoint();
+  let raw = null;
+  const previous = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+  Object.defineProperty(globalThis, "localStorage", { configurable: true, value: {
+    getItem: () => raw, setItem: (_, value) => { raw = value; },
+  } });
+  try {
+    assert.ok(cp.write(match, { speed: 1 }));
+    const { match: restored } = restoreCheckpoint(cp.read(38));
+    assert.equal(restored.barrier.until - restored.time, 200);
+    assert.equal(restored.barrier.used, true);
+    assert.deepEqual([restored.hero.inflicted, restored.hero.defeated, restored.hero.shieldsBroken], [82, 2, 3]);
+  } finally {
+    if (previous) Object.defineProperty(globalThis, "localStorage", previous);
+    else delete globalThis.localStorage;
+  }
+});
+
+test("reconnecting with a clean account cache retrieves progress without spending or playing", async () => {
+  const profile = new Profile(() => {});
+  profile.user = "account";
+  profile.cache = () => {};
+  profile.download = async () => ({ revision: 4, data: { unlockedLevel: 12 } });
+  await profile.flush();
+  assert.equal(profile.data.unlockedLevel, 12);
+  assert.equal(profile.revision, 4);
+  assert.equal(profile.changed, profile.saved);
 });

@@ -55,7 +55,10 @@ export class Checkpoint {
       hero: match.hero ? {
         id: match.hero.id, x: match.hero.x, y: match.hero.y,
         abilityCooldown: match.hero.abilityCooldown, cooldown: match.hero.cooldown,
+        inflicted: match.hero.inflicted, defeated: match.hero.defeated, shieldsBroken: match.hero.shieldsBroken,
+        slowTicks: match.hero.slowTicks, synergyHits: match.hero.synergyHits,
       } : undefined,
+      barrierRemaining: match.barrier && Math.max(0, match.barrier.until - match.time),
       barrierUsed: match.barrier?.used,
       powerFirst: match.power?.first,
       archiveFirstLane: match.archive?.[0].lane,
@@ -132,12 +135,20 @@ export function restoreCheckpoint(data) {
     return null;
   if (match.hero && number(data.hero.x, 19, 881) && number(data.hero.y, 19, 521)) {
     match.moveHero(data.hero.x, data.hero.y);
+    if (number(data.hero.inflicted, 0, Number.MAX_SAFE_INTEGER)) match.hero.inflicted = data.hero.inflicted;
+    for (const stat of ["defeated", "shieldsBroken", "slowTicks", "synergyHits"]) {
+      if (integer(data.hero[stat], 0, Number.MAX_SAFE_INTEGER)) match.hero[stat] = data.hero[stat];
+    }
     if (integer(data.hero.abilityCooldown, 0, match.hero.recharge))
       match.hero.abilityCooldown = data.hero.abilityCooldown;
     if (number(data.hero.cooldown, -100000, 2000)) match.hero.cooldown = data.hero.cooldown;
   }
   if (match.console) match.console.complete = data.wave > 0;
-  if (match.barrier) match.barrier.used = data.barrierUsed === true;
+  if (match.barrier) {
+    match.barrier.used = data.barrierUsed === true;
+    if (match.barrier.used && integer(data.barrierRemaining, 0, 240))
+      match.barrier.until = match.time + data.barrierRemaining;
+  }
   if (match.archive)
     for (const [index, terminal] of match.archive.entries()) terminal.complete = data.wave > index;
   if (match.power) {
