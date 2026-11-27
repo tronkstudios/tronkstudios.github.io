@@ -16,7 +16,7 @@ const RewardedAds = (() => {
   let moduleAttempt = 0;
   async function loadAdModule() {
     const attempt = moduleAttempt++;
-    const url = "/js/h5-rewards.js?v=7" + (attempt ? "&retry=" + attempt : "");
+    const url = "/js/h5-rewards.js?v=8" + (attempt ? "&retry=" + attempt : "");
     let timer;
     try {
       return await Promise.race([

@@ -13,3 +13,11 @@ En la ficha de cada personaje bloqueado se puede avanzar su desbloqueo completan
 La recompensa requiere la confirmación del proveedor y se aplica cuando se cierra el anuncio. Las cancelaciones y las solicitudes sin anuncio disponible no consumen la espera. El progreso usa el guardado actual del juego y el formato web se valida con eventos simulados mediante `node tests/survivors.rewarded.cjs`. La prueba no realiza solicitudes publicitarias de producción.
 
 En el hangar de Gravity Runners, cada chasis acumula sus propios anuncios: 2 para raros, 3 para épicos, 5 para legendarios y 7 para míticos. Aether Valkyrie requiere 1 anuncio. La compra con energía y los hitos siguen disponibles.
+
+### Comprobar el circuito de Google en local
+
+Desde la raíz del repositorio, inicia `python3 -m http.server 8789 --bind 127.0.0.1`. En un navegador con conexión, abre `http://127.0.0.1:8789/survivors/?ads=test` o `http://127.0.0.1:8789/juegos/tronk-gravity-runners/?ads=test`. El parámetro activa los anuncios de ejemplo del SDK de Google exclusivamente en localhost. Puedes usar un perfil nuevo para que las monedas y las esperas empiecen desde cero.
+
+En Survivor, entra en el cofre y pulsa **Ver anuncio · +50 monedas**. En Gravity, termina una carrera normal y elige **Ver anuncio · Continuar una vez**. Si la oferta tarda y el navegador necesita otro toque, aparecerá **Reproducir anuncio**. Espera a que termine la cuenta atrás del ejemplo y ciérralo. El saldo debe subir 50 monedas en Survivor y la misma carrera debe reanudarse en Gravity. Los anuncios de ejemplo no se facturan.
+
+Con Playwright y Chromium instalados, `node tests/h5-google-test-mode.browser.cjs` verifica ambos recorridos con el servidor local en marcha. Para cancelación, falta de inventario y respuestas duplicadas, ejecuta `node tests/h5-rewards.browser.cjs`, que simula el proveedor.

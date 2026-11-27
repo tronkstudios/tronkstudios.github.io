@@ -21,6 +21,7 @@ let LANG = (() => {
 })();
 
 const EN = {
+  "Objetivo":"Goal", "Ir a por el nivel":"Aim for level", "¡Objetivo conseguido!":"Goal reached!",
   "Mecha de feria":"Fairground Fuse", "Castillo de pólvora":"Firework Castle",
   "Velo de azahar":"Orange Blossom Veil", "Jardín de medianoche":"Midnight Garden",
   "Cometa de banda":"Touchline Comet", "Once de órbita":"Orbital Eleven",

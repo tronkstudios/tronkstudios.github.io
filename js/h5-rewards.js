@@ -67,6 +67,10 @@ export function createAdSenseProvider(client) {
           tag = document.createElement("script");
           tag.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${client}`;
           tag.dataset.adClient = client;
+          if (["localhost", "127.0.0.1", "[::1]"].includes(location.hostname) &&
+              new URLSearchParams(location.search).get("ads") === "test") {
+            tag.dataset.adbreakTest = "on";
+          }
           tag.async = true;
           tag.crossOrigin = "anonymous";
           tag.onload = () => {
@@ -102,12 +106,20 @@ export function createAdSenseProvider(client) {
     let shown = false,
       viewed = false,
       dismissed = false,
+      closed = false,
       finished = false;
-    let timer;
+    let timer, prompt;
+    function closePrompt() {
+      if (!prompt) return;
+      prompt.close();
+      prompt.remove();
+      prompt = null;
+    }
     function settle(callback, reason) {
       if (finished) return;
       finished = true;
       busy = false;
+      closePrompt();
       clearTimeout(timer);
       callback(reason);
     }
@@ -121,35 +133,63 @@ export function createAdSenseProvider(client) {
         type: "reward",
         name: placementName,
         beforeReward(showAd) {
-          if (finished || shown) return;
+          if (finished || shown || prompt) return;
           if (!canShow() || document.hidden) return settle(onCancel);
           // Google puede ofrecer el vídeo después del clic, mientras siga activo el gesto.
           const activated = navigator.userActivation?.isActive ?? clickInProgress;
-          if (!activated)
-            return settle(onError, "notReady");
-          shown = true;
-          wait(7000, onError, "timeout");
-          try {
-            showAd();
-          } catch {
-            settle(onError, "error");
+          function openReward() {
+            if (finished || shown) return;
+            if (!canShow() || document.hidden) return settle(onCancel);
+            closePrompt();
+            shown = true;
+            wait(12000, onError, "timeout");
+            try { showAd(); } catch { settle(onError, "error"); }
           }
+          if (activated) return openReward();
+          // A delayed offer needs a fresh gesture on browsers that restrict video.
+          const english = document.documentElement.lang === "en";
+          prompt = document.createElement("dialog");
+          prompt.className = "tronk-ad-offer";
+          prompt.setAttribute("aria-label", english ? "Rewarded ad ready" : "Anuncio con recompensa listo");
+          prompt.style.cssText = "max-width:90vw;padding:16px;border:1px solid #658493;border-radius:12px;background:#132331;color:#fff";
+          const play = document.createElement("button");
+          play.textContent = english ? "Play ad" : "Reproducir anuncio";
+          play.onclick = openReward;
+          const cancel = document.createElement("button");
+          cancel.textContent = english ? "Cancel" : "Cancelar";
+          cancel.onclick = () => settle(onCancel);
+          prompt.oncancel = event => { event.preventDefault(); settle(onCancel); };
+          for (const button of [play, cancel]) {
+            button.style.cssText = "min-height:44px;padding:0 14px;margin:3px;border-radius:6px;border:1px solid #9bb6bf;font:600 1rem system-ui";
+          }
+          play.style.background = "#b2f0df";
+          play.style.color = "#092d2a";
+          cancel.style.background = "#213747";
+          cancel.style.color = "#fff";
+          prompt.append(play, cancel);
+          document.body.append(prompt);
+          prompt.showModal();
+          wait(60000, onCancel);
         },
         beforeAd() {
           if (finished || !shown) return;
-          wait(90000, onError, "timeout");
+          wait(180000, onError, "timeout");
           onShow?.();
         },
         afterAd() {
           if (finished) return;
-          clearTimeout(timer);
-          timer = setTimeout(() => settle(viewed ? onReward : onCancel), 1000);
+          closed = true;
+          if (viewed || dismissed) settle(viewed ? onReward : onCancel);
+          else wait(7000, onCancel);
         },
         adViewed() {
-          if (shown && !finished) viewed = true;
+          if (!shown || finished) return;
+          viewed = true;
+          if (closed) settle(onReward);
         },
         adDismissed() {
           dismissed = true;
+          if (closed) settle(onCancel);
         },
         adBreakDone({ breakStatus } = {}) {
           if (shown && (viewed || breakStatus === "viewed")) settle(onReward);
