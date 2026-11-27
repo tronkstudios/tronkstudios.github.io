@@ -29,6 +29,7 @@ export function normalize(data = {}) {
   const stars = Array.from({ length: MISSIONS.length }, (_, i) => bounded(data?.stars?.[i], 3));
   const nextSector = Math.min(MISSIONS.length, stars.findLastIndex(Boolean) + 2);
   return {
+    learnedUpgrade: data?.learnedUpgrade === true,
     heroAds,
     heroOwned,
     heroEquipped: heroOwned[data?.heroEquipped] === true ? data.heroEquipped : "iris",
@@ -144,6 +145,7 @@ export class Profile {
       next.stars = next.stars.map((stars, i) =>
         Math.max(stars, this.data.stars[i]),
       );
+      next.learnedUpgrade ||= this.data.learnedUpgrade;
       next.medals = next.medals.map(
         (earned, i) => earned || this.data.medals[i],
       );
@@ -251,14 +253,19 @@ export class Profile {
   }
 
   async flush() {
-    if (this.busy || !this.user || this.saved === this.changed) return;
+    if (this.busy || !this.user || (this.remoteReady && this.saved === this.changed)) return;
     this.busy = true;
     try {
       if (!this.remoteReady) {
         const remote = await this.download();
         this.remoteReady = true;
-        if (remote && this.revision !== remote.revision) this.adopt(remote);
-        if (!remote) this.revision = 0;
+        if (remote && (this.saved === this.changed || this.revision !== remote.revision)) this.adopt(remote);
+        if (!remote) {
+          this.revision = 0;
+          if (this.saved === this.changed) this.changed++;
+        }
+        this.status = "Cuenta de TronkStudios vinculada.";
+        this.cache();
       }
       let conflicts = 0;
       while (this.changed !== this.saved) {

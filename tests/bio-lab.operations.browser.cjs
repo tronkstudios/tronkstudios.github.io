@@ -237,6 +237,7 @@ window.testRun = {
     await page.getByRole("heading", { name: "Nuevo récord de maestría" }).waitFor();
     await page.getByRole("button", { name: "Volver a maestría" }).tap();
     await page.locator("#mastery").getByText("Medalla de maestría obtenida").waitFor();
+    assert.equal(await page.evaluate(() => document.activeElement.dataset.operation), "contract-mastery-4");
     await page.locator('[data-operation="contract-guardia"]').tap();
     assert.equal(await page.locator("#supplies").isVisible(), false);
     assert.equal(await page.locator("#field-specials").isVisible(), false);
@@ -256,7 +257,9 @@ window.testRun = {
     await page.getByRole("heading", { name: "Nuevo récord de élite" }).waitFor();
     await page.getByRole("button", { name: "Volver a contratos" }).tap();
     await page.locator("#contracts").getByText(/Récord personal · \d/).waitFor();
+    assert.equal(await page.evaluate(() => document.activeElement.dataset.operation), "contract-guardia");
     await page.locator("#back-operations").tap();
+    assert.equal(await page.evaluate(() => document.activeElement.id), "operations-button");
 
     const launch = async (index) => {
       await page.locator("#campaign-button").tap();

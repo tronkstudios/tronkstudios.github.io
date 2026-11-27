@@ -759,7 +759,7 @@ export function reactorProduction(tower) {
 }
 
 export class Match {
-  constructor(level, daily = null, { heroId, contract, veteran = false, legacyArchiveOrder = false, fixedLayout = false } = {}) {
+  constructor(level, daily = null, { heroId, contract, veteran = false, legacyArchiveOrder = false, fixedLayout = false, limitedConstruction = true } = {}) {
     this.level = level;
     this.daily = daily;
     this.contract = contract || null;
@@ -783,6 +783,12 @@ export class Match {
       !daily && level === 6 ? [this.routes[1], route(layout(COOLING_SHORTCUT))] : null;
     this.gateDiverted = false;
     this.towerLimit = contract?.towerLimit ?? this.mission?.towerLimit;
+    this.limitedConstruction = limitedConstruction && this.fixedLayout && !this.ranked && level >= 2 &&
+      !this.mission.finale?.storyModules;
+    if (this.limitedConstruction) {
+      const capacity = level < 5 ? 3 : level < 12 ? 4 : 6;
+      this.towerLimit = Math.min(this.towerLimit ?? capacity, capacity);
+    }
     this.firePads = [];
     this.powerCuts = !this.ranked || this.fixedLayout ? this.mission.powerCuts : null;
     if (this.fixedLayout && this.powerCuts) {
@@ -1322,7 +1328,7 @@ export class Match {
     if (!type || !["build", "wave"].includes(this.state))
       return "La partida está detenida.";
     if (this.towers.length >= (this.towerLimit ?? Infinity))
-      return this.contract ? "Has alcanzado el máximo de torres del contrato." : "Has ocupado todos los puestos del sector.";
+      return this.contract ? "Has alcanzado el máximo de torres del contrato." : "Límite de torres alcanzado. Selecciona una instalada para mejorarla.";
     if (type.unlock > this.techLevel)
       return "Esta torre se habilita en otro sector.";
     return this.checkSite(x, y, null, restoring) || (this.atp < type.cost ? "ATP insuficiente." : "");
@@ -1495,7 +1501,8 @@ export class Match {
     const bossScale = coolingBoss ? 0.68 : boss ? 1.18 : 1;
     const veteranHealth = this.veteran && !(this.archive && wave <= 2) ? 1.09 : 1;
     const storyPressure = this.fixedLayout && wave >= 3 ? 1.15 + 0.10 * (wave - 3) : 1;
-    const hp = Math.round(spec.hp * scale * bossScale * hpFactor * veteranHealth * storyPressure);
+    const pressure = this.limitedConstruction && wave >= 3 ? 1.3 + 0.16 * (wave - 3) : 1;
+    const hp = Math.round(spec.hp * scale * bossScale * hpFactor * veteranHealth * storyPressure * pressure);
     return {
       hp,
       affinity: this.hasAffinities ? affinityFor(spec.shape, this.fixedLayout) : undefined,
@@ -1507,7 +1514,7 @@ export class Match {
   estimateImpact(tower, order, wave = this.coverageWave) {
     if (!tower.damage || this.towerOffline(tower, wave))
       return { damage: 0, shieldDamage: 0, unshieldedDamage: 0, hitsToDefeat: null };
-    const enemy = this.entryDefense(order, wave);
+    const enemy = { ...this.entryDefense(order, wave), variant: order.variant };
     const amount = Math.round(tower.damage * this.padBonus(tower, wave));
     const hitAtShield = shield => resolveImpact(enemy, shield, amount, tower.branch || {}, tower, this.time);
     const first = hitAtShield(enemy.shield);
@@ -1736,15 +1743,14 @@ export class Match {
       this.effect(enemy.x, enemy.y, enemy.coolingBoss === "runner" ? "#ffae85" : "#9ddcff", 88);
       return;
     }
-    if (phase === 2) {
+    if (enteredSecondPhase) {
       enemy.shield = Math.round(enemy.maxHp * 0.19);
       const backup = this.routes.length > 1 ? 1 - enemy.lane : enemy.lane;
       for (let i = 0; i < 3; i++)
         nextEnemy(this.queue, PATHOGEN_TYPES[2], backup, { speed: 1.22, groupName: "Refuerzos del jefe" });
       if (this.queue.length === 3) this.spawnIn = 8;
-    } else {
-      enemy.speed *= 1.5;
     }
+    if (phase === 3) enemy.speed *= 1.5;
     this.effect(enemy.x, enemy.y, phase === 2 ? "#9ddcff" : "#ffae85", 88);
   }
 
@@ -1789,7 +1795,9 @@ export class Match {
       if (type === "dot") {
         if (this.fixedLayout && tower?.id === "toxin" && target.hp > 0)
           target.corrodedUntil = this.time + 180;
-        target.burn = Math.max(target.burn, branch.burn || 130);
+        const duration = branch.burn || 130;
+        if (!target.burn) target.burnPulseIn = duration % 12 || 12;
+        target.burn = Math.max(target.burn, duration);
         const burnDamage = damage * 0.115;
         if (burnDamage >= (target.burnDamage || 0)) {
           target.burnDamage = burnDamage;
@@ -1911,7 +1919,8 @@ export class Match {
         ? escort : null;
       if (enemy.burn > 0) {
         enemy.burn--;
-        if (enemy.burn % 12 === 0)
+        if (--enemy.burnPulseIn === 0) {
+          enemy.burnPulseIn = 12;
           this.damage(
             enemy,
             enemy.burnDamage,
@@ -1921,6 +1930,7 @@ export class Match {
             },
             enemy.burnTower,
           );
+        }
         if (!enemy.burn) {
           enemy.burnDamage = 0;
           enemy.burnPierces = false;

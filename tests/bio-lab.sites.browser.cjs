@@ -51,6 +51,8 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8928";
       assert.deepEqual([built.towers[0].x, built.towers[0].y], [first.x, first.y]);
       assert.equal(built.atp, budget - 50);
 
+      await page.locator("#move-hero").click();
+      await touchBoard(first.x, first.y);
       await touchBoard(first.x, first.y);
       await page.locator("#relocate-tower").click();
       await touchBoard(second.x + 5, second.y + 5);
@@ -76,10 +78,17 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8928";
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
       await page.locator("#next").click();
       await page.locator("#wave").getByText("1/4", { exact: true }).waitFor();
+      await touchBoard(second.x, second.y);
+      await page.locator("#tower-targeting").focus();
+      await page.keyboard.press("p");
+      assert.equal(await page.locator("#tactical-pause").getAttribute("aria-pressed"), "false");
+      await board.focus();
+      await page.keyboard.press("p");
+      assert.equal(await page.locator("#tactical-pause").getAttribute("aria-pressed"), "true");
       // Restore the preparation phase for the first split counter wave.
       await page.evaluate(async () => {
-        const { Match } = await import("/juegos/bio-lab-defense/engine.js?v=39");
-        const { Checkpoint } = await import("/juegos/bio-lab-defense/checkpoint.js?v=35");
+        const { Match } = await import("/juegos/bio-lab-defense/engine.js?v=41");
+        const { Checkpoint } = await import("/juegos/bio-lab-defense/checkpoint.js?v=38");
         localStorage.setItem("biolab_save_v1", JSON.stringify({ unlockedLevel: 5, stars: [2, 2, 2, 2] }));
         localStorage.removeItem("biolab_checkpoint:guest");
         const counterMatch = new Match(5, null, { fixedLayout: true });
@@ -125,6 +134,26 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8928";
       assert.notDeepEqual([afterTrial.towers[0].x, afterTrial.towers[0].y], [counterSite.x, counterSite.y]);
       assert.equal(afterTrial.atp, beforeTrial.atp);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+      await page.evaluate(() => {
+        const key = "biolab_checkpoint:guest";
+        const checkpoint = JSON.parse(localStorage.getItem(key));
+        checkpoint.atp = 0;
+        localStorage.setItem(key, JSON.stringify(checkpoint));
+      });
+      await page.reload();
+      await page.locator("#home-resume-run").click();
+      const unaffordable = counters.getByRole("button", { name: "Faltan 50 ATP" });
+      await unaffordable.waitFor();
+      assert.ok(await unaffordable.isDisabled());
+      await page.evaluate(() => {
+        localStorage.setItem("biolab_save_v1", JSON.stringify({ unlockedLevel: 38, stars: Array(37).fill(2) }));
+      });
+      await page.reload();
+      await page.locator("#campaign-button").click();
+      const sector = page.locator("#campaign-sector-23");
+      await sector.getByText("Máximo de 6 torres").waitFor();
+      await sector.click();
+      await page.locator("#briefing-build-sites").getByText(/28 puestos de construcción. Puedes ocupar hasta 6 a la vez/).waitFor();
       assert.deepEqual(errors, []);
       await page.close();
       console.log(`Fixed construction, relocation, and checkpoint passed at ${width}px.`);

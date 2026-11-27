@@ -16,24 +16,24 @@ import {
   VARIANT_NAMES,
   escortArmor,
   dailySetup,
-} from "./engine.js?v=39";
-import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=10";
-import { attachDrill } from "./drill.js?v=13";
-import { Board } from "./board.js?v=46";
+} from "./engine.js?v=41";
+import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=12";
+import { attachDrill } from "./drill.js?v=15";
+import { Board } from "./board.js?v=49";
 import { towerIcon, heroIcon } from "./art.js?v=5";
-import { createCodex } from "./codex.js?v=27";
-import { Profile, dayKey } from "./profile.js?v=19";
+import { createCodex } from "./codex.js?v=29";
+import { Profile, dayKey } from "./profile.js?v=21";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=7";
-import { CHAPTERS, MISSIONS } from "./campaign.js?v=16";
+import { CHAPTERS, MISSIONS } from "./campaign.js?v=17";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=35";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=38";
 
 import { HEROES, CONTRACTS, MASTERY } from "./operations.js?v=8";
 
 const $ = (id) => document.getElementById(id);
 drawSpecimen($("specimen-art"));
-const sectorThumbnails = new Map();
+const sectorPreviews = new Map();
 const panels = ["home", "campaign", "briefing", "operations", "field"];
 const canvas = $("board");
 const board = new Board(canvas);
@@ -460,10 +460,12 @@ function renderOperations() {
   if (focusedAction) $("operations").querySelector(`[data-operation="${focusedAction}"]:enabled`)?.focus({preventScroll:true});
 }
 
-function openMastery(contract) {
+function returnToContract(contract) {
   openOperations();
-  const control = contract && $("mastery").querySelector(`[data-operation="contract-${contract.id}"]`);
-  (control || $("operations-mastery")).focus();
+  const control = $("operations").querySelector(`[data-operation="contract-${contract.id}"]:enabled`);
+  const destination = control || $(contract.mastery ? "operations-mastery" : "operations-contracts");
+  destination.focus({ preventScroll: true });
+  destination.scrollIntoView({ block: "center" });
 }
 
 function contractUnlocked(contract) {
@@ -587,15 +589,18 @@ function renderLevels() {
         : stars
           ? `${"★".repeat(stars)}${"☆".repeat(3 - stars)}${profile.data.medals[i] ? " · Insignia" : ""}`
           : level === active ? "Siguiente misión" : "Disponible";
-      if (!sectorThumbnails.has(level))
-        sectorThumbnails.set(level, routeThumbnail(new Match(level, null, { fixedLayout: true }).routes, chapter.color));
-      button.append(number, sectorThumbnails.get(level), label);
+      if (!sectorPreviews.has(level)) {
+        const preview = new Match(level, null, { fixedLayout: true });
+        sectorPreviews.set(level, { thumbnail: routeThumbnail(preview.routes, chapter.color), limit: preview.towerLimit });
+      }
+      const { thumbnail, limit } = sectorPreviews.get(level);
+      button.append(number, thumbnail, label);
       if (chapter.scenery) {
         const objective = document.createElement("small");
         objective.textContent = mission.objective === "archive" ? "Proteger terminales"
           : mission.objective === "power" ? "Aislar una línea"
           : mission.routePattern === 19 ? "Apagón programado"
-          : mission.routePattern ? "Desvío programado" : `${mission.towerLimit} puestos de defensa`;
+          : mission.routePattern ? "Desvío programado" : limit ? `Máximo de ${limit} torres` : "Defender el núcleo";
         button.append(objective);
       }
       if (filter === "medal") {
@@ -648,7 +653,7 @@ function briefing(level) {
   updateText("briefing-task", mission.task);
   updateText("briefing-speaker", mission.speaker);
   updateText("briefing-voice", mission.briefing);
-  updateText("briefing-tip", [mission.cue, preview.firePads.length && !preview.padCycle ? "Las plataformas iluminadas dan +25 % de daño a las torres de ataque." : "", preview.towerLimit ? `Dispones de ${preview.towerLimit} puestos.` : ""].filter(Boolean).join(" "));
+  updateText("briefing-tip", [mission.cue, preview.firePads.length && !preview.padCycle ? "Las plataformas iluminadas dan +25 % de daño a las torres de ataque." : "", preview.limitedConstruction ? `Desde la tercera oleada llegan enemigos más resistentes. Reserva ATP para mejorar.` : preview.towerLimit ? `Dispones de ${preview.towerLimit} puestos.` : ""].filter(Boolean).join(" "));
   updateText(
     "briefing-medal",
     profile.data.medals[level - 1]
@@ -662,8 +667,11 @@ function briefing(level) {
   updateText("briefing-waves", `${preview.maxWaves} oleadas`);
   updateText("briefing-entries", preview.routes.length === 2 ? "2 entradas" : "1 entrada");
   $("briefing-build-sites").hidden = !preview.fixedLayout;
-  if (preview.fixedLayout)
-    updateText("briefing-build-sites", `${preview.buildSites.length} puestos de construcción. Elige si interceptas en las primeras curvas o refuerzas el tramo común antes del núcleo.`);
+  if (preview.fixedLayout) {
+    const sites = preview.buildSites.length;
+    const capacity = preview.towerLimit != null && preview.towerLimit < sites ? `Puedes ocupar hasta ${preview.towerLimit} a la vez.` : "Puedes ocuparlos todos.";
+    updateText("briefing-build-sites", `${sites} puestos de construcción. ${capacity}`);
+  }
   $("briefing-finale").hidden = !mission.finale;
   if (mission.finale) {
     const finale = preview.planWave(preview.maxWaves).finale;
@@ -929,6 +937,13 @@ function updateDockBudget() {
   if (limit != null) updateText("tower-limit", match.fixedLayout && match.towerLimit == null
     ? `${limit - match.towers.length} puestos libres`
     : `${match.towers.length}/${limit} instaladas`);
+  for (const button of $("wave-counter-list").querySelectorAll("button[data-cost]")) {
+    const shortfall = Number(button.dataset.cost) - match.atp;
+    button.disabled = full || shortfall > 0;
+    button.textContent = full ? "Límite de torres alcanzado" : shortfall > 0 ? `Faltan ${shortfall} ATP` : button.dataset.price;
+    if (button.disabled) button.removeAttribute("aria-label");
+    else button.setAttribute("aria-label", button.dataset.action);
+  }
   for (const button of $("dock").children) {
     if (button.disabled) continue;
     const cost = Number(button.dataset.cost);
@@ -1036,6 +1051,7 @@ function renderSelection() {
   if (key === selectionKey) return;
   selectionKey = key;
   upgradePreview = null;
+  panel.classList.toggle("installed-tower", !!selected);
   const heading = document.createElement("strong");
   const detail = document.createElement("p");
   if (!selected) {
@@ -1047,7 +1063,11 @@ function renderSelection() {
     return;
   }
   const tower = selected;
-  heading.textContent = `${tower.name} · Nivel ${tower.rank}`;
+  heading.textContent = tower.name;
+  const rank = document.createElement("span");
+  rank.className = "tower-rank";
+  rank.textContent = `Nivel ${tower.rank}${tower.branch ? " · " + tower.branch.name : ""}`;
+  heading.append(rank);
   detail.textContent =
     tower.branch?.detail ||
     (tower.type === "eco"
@@ -1056,34 +1076,39 @@ function renderSelection() {
   if (towerAttack[tower.id]) detail.textContent += ` · ${towerAttack[tower.id]}`;
   const padBonus = match.padBonus(tower);
   if (padBonus > 1) detail.textContent += ` · Plataforma de tiro +${Math.round((padBonus - 1) * 100)} %`;
-  if (tower.branch) heading.textContent += ` · ${tower.branch.name}`;
+
   const cost = upgradeCost(tower);
   const options = document.createElement("div");
   options.className = "upgrade-options";
+  if (tower.rank < 3 && match.atp < cost) {
+    const budget = document.createElement("p");
+    budget.id = "upgrade-shortfall";
+    options.append(budget);
+  }
   if (tower.rank === 1) {
     const improve = makeButton(`Mejorar · ${cost} ATP`, () => {
       if (match.upgrade(tower)) {
+        rememberUpgrade();
         message(`${tower.name} mejorada a nivel 2.`);
         persistPreparation();
       }
       renderHUD();
+      panel.focus({ preventScroll: true });
     });
     improve.disabled = match.atp < cost;
-    improve.append(upgradeForecast(tower));
     options.append(upgradeRow(tower, improve));
   } else if (tower.rank === 2) {
     for (const [choice, branch] of specializations(tower).entries()) {
       const improve = makeButton(`${branch.name} · ${cost} ATP`, () => {
         if (match.upgrade(tower, choice)) {
+          rememberUpgrade();
           message(`Especialización «${branch.name}» activada.`);
           persistPreparation();
         }
         renderHUD();
+        panel.focus({ preventScroll: true });
       });
       improve.disabled = match.atp < cost;
-      const note = document.createElement("small");
-      note.textContent = branch.detail;
-      improve.append(note, upgradeForecast(tower, branch));
       options.append(upgradeRow(tower, improve, branch));
     }
   }
@@ -1112,7 +1137,7 @@ function renderSelection() {
       else message("No hay otro puesto operativo para ensayar el traslado.", true);
     });
     compare.disabled = match.power?.first === null || adBusy;
-    options.append(compare);
+    actions.append(compare);
   }
   if (tower.type !== "eco") {
     const label = document.createElement("label");
@@ -1136,10 +1161,10 @@ function renderSelection() {
       $("tower-targeting")?.focus({ preventScroll: true });
     };
     label.append(targeting);
-    actions.append(label);
+    actions.prepend(label);
   }
-  if (!match.contract?.noSell) actions.append(
-    makeButton(`Vender · +${Math.floor(tower.paid * 0.65)} ATP`, () => {
+  if (!match.contract?.noSell) {
+    const sell = makeButton(`Vender · +${Math.floor(tower.paid * 0.65)} ATP`, () => {
       if (match.sell(tower)) {
         message(`${tower.name} retirada.`);
       }
@@ -1147,10 +1172,15 @@ function renderSelection() {
       movingTower = null;
       persistPreparation();
       renderHUD();
-    }),
-  );
-  const performance = elPerformance(tower);
-  panel.replaceChildren(heading, detail, performance, options, actions);
+    });
+    sell.className = "sell-tower";
+    actions.append(sell);
+  }
+  const identity = document.createElement("header");
+  identity.className = "tower-identity";
+  identity.append(towerIcon(tower), heading);
+  panel.style.setProperty("--tower-accent", tower.color);
+  panel.replaceChildren(identity, detail, elPerformance(tower), options, actions);
 }
 
 function rehearsalPosition(tower) {
@@ -1192,7 +1222,19 @@ function upgradeRow(tower, purchase, branch) {
   toggle.disabled = movingTower === tower;
   if (branch) toggle.setAttribute("aria-label", `${label} · ${branch.name}`);
   toggle.setAttribute("aria-pressed", "false");
-  row.append(purchase, toggle);
+  const title = document.createElement("strong");
+  title.textContent = branch?.name || "Nivel 2";
+  const description = document.createElement("p");
+  description.textContent = branch?.detail || "";
+  const accessibleName = purchase.textContent;
+  purchase.textContent = `${branch ? "Elegir" : "Mejorar"} · ${upgradeCost(tower)} ATP`;
+  purchase.setAttribute("aria-label", accessibleName);
+  const controls = document.createElement("div");
+  controls.className = "upgrade-controls";
+  controls.append(purchase, toggle);
+  row.append(title);
+  if (branch) row.append(description);
+  row.append(upgradeForecast(tower, branch), controls);
   return row;
 }
 
@@ -1301,16 +1343,30 @@ function placementForecast(tower, point, original = null, action = "") {
 function upgradeForecast(tower, branch) {
   const next = upgradeStats(tower, branch);
   const interval = (ticks) => cadence.format(ticks / 60);
-  const preview = document.createElement("small");
-  preview.className = "upgrade-forecast";
+  const preview = document.createElement("dl");
+  preview.className = "upgrade-metrics";
+  const add = (name, before, after) => {
+    const metric = document.createElement("div");
+    const label = document.createElement("dt");
+    label.textContent = name;
+    const values = document.createElement("dd");
+    values.textContent = before === after ? String(after) : `${before} → ${after}`;
+    metric.append(label, values);
+    preview.append(metric);
+  };
   if (tower.type === "eco") {
     const before = reactorProduction(tower);
     const after = reactorProduction({ ...tower, ...next, rank: tower.rank + 1, branch });
-    preview.textContent = `${before.output} → ${after.output} ATP/ciclo · ${interval(before.ticks)} → ${interval(after.ticks)} s · ${Math.round(before.perMinute)} → ${Math.round(after.perMinute)} ATP/min${after.charge ? ` · +${after.charge} de pulso/ciclo` : ""}`;
-    return preview;
+    add("ATP/ciclo", before.output, after.output);
+    add("Ciclo (s)", interval(before.ticks), interval(after.ticks));
+    add("ATP/min", Math.round(before.perMinute), Math.round(after.perMinute));
+    if (after.charge) add("Pulso/ciclo", before.charge, after.charge);
+  } else {
+    const bonus = match.padBonus(tower);
+    add("Daño", Math.round(tower.damage * bonus), Math.round(next.damage * bonus));
+    add("Alcance", tower.range, next.range);
+    add("Disparo (s)", interval(tower.fireRate), interval(next.fireRate));
   }
-  const stats = `Daño ${Math.round(tower.damage * match.padBonus(tower))} → ${Math.round(next.damage * match.padBonus(tower))} · Alcance ${tower.range} → ${next.range}`;
-  preview.textContent = `${stats} · ${interval(tower.fireRate)} → ${interval(next.fireRate)} s por disparo`;
   return preview;
 }
 
@@ -1380,7 +1436,9 @@ function renderCounterSuggestions(preview) {
         canvas.scrollIntoView({ block: "nearest" });
         message(`${tower.name} seleccionada. Busca cobertura en la entrada ${lane ? "B" : "A"}.`);
       });
-      choose.setAttribute("aria-label", `Elegir ${tower.name} para la entrada ${lane ? "B" : "A"} por ${tower.cost} ATP`);
+      choose.dataset.cost = tower.cost;
+      choose.dataset.price = choose.textContent;
+      choose.dataset.action = `Elegir ${tower.name} para la entrada ${lane ? "B" : "A"} por ${tower.cost} ATP`;
       card.append(choose);
     } else {
       const status = document.createElement("small");
@@ -1391,6 +1449,7 @@ function renderCounterSuggestions(preview) {
   });
   panel.hidden = rows.length === 0;
   $("wave-counter-list").replaceChildren(...rows);
+  dockBudgetKey = null;
 }
 
 function affinityHints({ weak, resist, weakness = WEAKNESS, resistance = RESISTANCE }) {
@@ -1755,9 +1814,38 @@ function renderWaveDebrief(waiting) {
   }));
 }
 
+function rememberUpgrade() {
+  if (match.ranked || profile.data.learnedUpgrade) return;
+  profile.data.learnedUpgrade = true;
+  profile.commit();
+}
+
+function introductoryTower() {
+  return match.towers.find(tower => tower.rank === 1 && tower.type !== "eco");
+}
+
+$("field-guide-upgrade").onclick = () => {
+  if (match.state !== "build" || adBusy) return;
+  const tower = introductoryTower();
+  if (!tower) return;
+  selected = tower;
+  blueprint = movingTower = null;
+  aiming = movingHero = false;
+  highlightDock();
+  renderHUD();
+  persistPreparation();
+  const panel = $("selection");
+  panel.scrollIntoView({ block: "center" });
+  (panel.querySelector(".upgrade-controls button:not(:disabled)") || panel).focus({ preventScroll: true });
+};
+
 function renderFieldGuide(waiting) {
-  const visible = waiting && !match.ranked && match.level === 1 &&
-    !profile.data.stars[0] && !guideDismissed && match.wave < 2;
+  const canTeach = waiting && !match.ranked && !guideDismissed;
+  const tower = canTeach && !profile.data.learnedUpgrade && introductoryTower();
+  const intro = canTeach && match.level === 1 && !profile.data.stars[0] && match.wave < 2;
+  const visible = intro || !!tower;
+  $("field-guide-upgrade").hidden = !tower;
+  if (tower) updateText("field-guide-upgrade", `Ver mejora de ${tower.name} · ${upgradeCost(tower)} ATP`);
   const showPreview = visible && match.wave === 0 && match.towers.length === 0 &&
     match.atp >= BLUEPRINTS[0].cost && !adBusy;
   $("field-guide").hidden = !visible;
@@ -1767,7 +1855,11 @@ function renderFieldGuide(waiting) {
   $("field-guide-site").hidden = !guideSite;
   if (showPreview) updateText("field-guide-preview", guideSite ? "Quitar marcador" : "Ver posición sugerida");
   if (!visible) return;
-  if (match.wave === 1) {
+  if (tower) {
+    const next = upgradeStats(tower);
+    updateText("field-guide-title", intro && match.wave === 0 ? "Lanza tu primera oleada" : "Mejora una torre instalada");
+    updateText("field-guide-text", `Tu ${tower.name} puede subir a nivel 2. Daño ${tower.damage} → ${next.damage} y alcance ${tower.range} → ${next.range} desde el mismo puesto. Toca la torre para elegir la mejora.`);
+  } else if (match.wave === 1) {
     updateText("field-guide-title", "Refuerza la defensa");
     updateText("field-guide-text", match.towers.length
       ? "Selecciona una torre instalada para ver cuánto ganan su daño y su alcance al mejorarla."
@@ -2105,6 +2197,8 @@ function renderHUD() {
   $("heal").disabled =
     !waiting || checkpointLost || repaired || match.hp === 100 || profile.data.bioGems < 5;
   renderSelection();
+  if (selected && $("upgrade-shortfall"))
+    updateText("upgrade-shortfall", `Faltan ${upgradeCost(selected) - match.atp} ATP para mejorar`);
   if (selected && $("tower-performance"))
     updateText("tower-performance", towerReport(selected));
 }
@@ -2256,7 +2350,7 @@ function finish() {
         : contract.mastery ? "Desafío fallido" : "Contrato fallido",
       diagnostics.trim(),
       [["Reintentar", () => startContract(contract)], [contract.mastery ? "Volver a maestría" : "Volver a contratos",
-        () => contract.mastery ? openMastery() : openOperations()]], breach,
+        () => returnToContract(contract)]], breach,
       { ...combatDialog(tone, contract.name, [...outcomeStats, ["Puntos", score.toLocaleString("es-ES")]]),
         medal: medal ? "Maestría" : null });
     return;
@@ -2315,7 +2409,7 @@ function finish() {
     : [];
   if (chapterFinished) {
     const entry = MASTERY.find(contract => contract.chapter === mission.chapter);
-    if (entry && contractUnlocked(entry)) buttons.push(["Desafío de maestría", () => openMastery(entry)]);
+    if (entry && contractUnlocked(entry)) buttons.push(["Desafío de maestría", () => returnToContract(entry)]);
   }
   if (!won && !checkpointLost && checkpoint?.raw) {
     const expected = checkpoint.raw;
@@ -2405,8 +2499,10 @@ function towerAt(x, y) {
 function botAt(x, y, tower) {
   const bot = match.hero;
   if (!bot) return false;
+  // Keep the installation selectable when the nanobot stands on its base.
+  if (tower && Math.hypot(bot.x - tower.x, bot.y - tower.y) < 12) return false;
   const distance = Math.hypot(bot.x - x, bot.y - y);
-  return distance <= 29 && (!tower || distance <= Math.hypot(tower.x - x, tower.y - y));
+  return distance <= 29 && (!tower || distance < Math.hypot(tower.x - x, tower.y - y));
 }
 
 function pointer(e) {
@@ -2507,7 +2603,10 @@ canvas.onkeydown = (e) => {
 };
 
 $("campaign-button").onclick = campaign;
-$("back-home").onclick = () => view("home");
+$("back-home").onclick = () => {
+  view("home");
+  $("campaign-button").focus();
+};
 $("sector-filter").onchange = renderLevels;
 $("reset-sector-filter").onclick = () => {
   $("sector-filter").value = "all";
@@ -2524,14 +2623,11 @@ $("home-resume-run").onclick = resumePreparation;
 $("campaign-resume-run").onclick = resumePreparation;
 $("back-campaign").onclick = () => {
   campaign();
-  if (!$(`campaign-sector-${briefingLevel}`)) {
-    $("sector-filter").value = "all";
-    renderLevels();
-  }
   const sector = $(`campaign-sector-${briefingLevel}`);
-  $("chapter-jump").value = String(MISSIONS[briefingLevel - 1].chapter);
-  sector.focus({ preventScroll: true });
-  sector.scrollIntoView({ block: "nearest" });
+  if (sector) $("chapter-jump").value = String(MISSIONS[briefingLevel - 1].chapter);
+  const destination = sector || $("resume-mission");
+  destination.focus({ preventScroll: true });
+  destination.scrollIntoView({ block: "nearest" });
 };
 $("launch-mission").onclick = () => start(briefingLevel);
 $("launch-veteran").onclick = () => startVeteran(briefingLevel);
@@ -2552,7 +2648,9 @@ showSoundState(soundEnabled());
 $("sound-toggle").onclick = () => showSoundState(toggleSound());
 $("operations-button").onclick = openOperations;
 $("back-operations").onclick = () => {
-  if (!adBusy) view("home");
+  if (adBusy) return;
+  view("home");
+  $("operations-button").focus();
 };
 $("move-hero").onclick = toggleBotMove;
 $("hero-ability").onpointerenter = $("hero-ability").onfocus = () => { abilityPreview = true; };
@@ -2763,6 +2861,7 @@ document.addEventListener("keydown", (event) => {
     screen !== "field" ||
     modal.open ||
     codex.open || fireOrders.open || drill.open ||
+    event.target.closest?.("select, input, textarea, [contenteditable=true]") ||
     event.defaultPrevented ||
     event.repeat ||
     event.ctrlKey ||
@@ -2790,7 +2889,7 @@ $("pause").onclick = () => {
   actions.push([
     "Abandonar partida",
     () => {
-      if (match.contract) openOperations();
+      if (match.contract) returnToContract(match.contract);
       else if (match.veteran) briefing(match.level);
       else if (match.daily) view("home");
       else {
@@ -2926,10 +3025,10 @@ $("boost").onclick = () => {
   });
 };
 window.addEventListener("online", () => {
-  void profile.flush();
+  if (prepared) void profile.flush();
 });
 window.addEventListener("focus", () => {
-  void profile.flush();
+  if (prepared) void profile.flush();
 });
 $("campaign-button").disabled =
   $("daily-button").disabled =

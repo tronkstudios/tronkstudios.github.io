@@ -4,7 +4,7 @@ import { Match, BLUEPRINTS, dailySetup, suggestPlacement, reactorProduction, REA
 import { CONTRACTS } from "../juegos/bio-lab-defense/operations.js";
 import { MISSIONS } from "../juegos/bio-lab-defense/campaign.js";
 import { restoreCheckpoint } from "../juegos/bio-lab-defense/checkpoint.js";
-import { normalize } from "../juegos/bio-lab-defense/profile.js";
+import { Profile, normalize } from "../juegos/bio-lab-defense/profile.js";
 
 test("legacy completion opens the next chapter with expanded profile slots", () => {
   const profile = normalize({ unlockedLevel: 10, stars: Array(10).fill(2) });
@@ -1035,4 +1035,97 @@ test("Paralaje alternates visible lens segments and a defeat preserves the last 
   assert.equal(match.replay.length, 31);
   assert.ok(match.replay.at(-1).enemies.some(([, , id]) => id === match.breachEnemy));
   assert.ok(match.replay.every(frame => frame.hero.length === 2));
+});
+
+test("restoring preparations keeps nanobot performance and remaining barrier time", async () => {
+  const { Checkpoint } = await import("../juegos/bio-lab-defense/checkpoint.js");
+  const match = new Match(8, null, { heroId: "ivo", fixedLayout: true });
+  Object.assign(match.hero, { inflicted: 82, defeated: 2, shieldsBroken: 3 });
+  match.startWave();
+  match.time = 600;
+  assert.ok(match.closeBarrier());
+  match.time += 40;
+  match.state = "build";
+  const cp = new Checkpoint();
+  let raw = null;
+  const previous = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+  Object.defineProperty(globalThis, "localStorage", { configurable: true, value: {
+    getItem: () => raw, setItem: (_, value) => { raw = value; },
+  } });
+  try {
+    assert.ok(cp.write(match, { speed: 1 }));
+    const { match: restored } = restoreCheckpoint(cp.read(38));
+    assert.equal(restored.barrier.until - restored.time, 200);
+    assert.equal(restored.barrier.used, true);
+    assert.deepEqual([restored.hero.inflicted, restored.hero.defeated, restored.hero.shieldsBroken], [82, 2, 3]);
+  } finally {
+    if (previous) Object.defineProperty(globalThis, "localStorage", previous);
+    else delete globalThis.localStorage;
+  }
+});
+
+test("reconnecting with a clean account cache retrieves progress without spending or playing", async () => {
+  const profile = new Profile(() => {});
+  profile.user = "account";
+  profile.cache = () => {};
+  profile.download = async () => ({ revision: 4, data: { unlockedLevel: 12 } });
+  await profile.flush();
+  assert.equal(profile.data.unlockedLevel, 12);
+  assert.equal(profile.revision, 4);
+  assert.equal(profile.changed, profile.saved);
+});
+
+test("refreshing acid between pulses preserves its periodic damage", () => {
+  const run = refresh => {
+    const match = new Match(5);
+    match.startWave();
+    match.spawn();
+    match.queue = [];
+    const [enemy] = match.enemies;
+    Object.assign(enemy, { hp: 10000, maxHp: 10000, armor: 0, shield: 0, speed: 0 });
+    const shot = { damage: 10, type: "dot", color: "#fff", branch: {} };
+    match.hit(enemy, shot);
+    let pulses = 0;
+    for (let tick = 0; tick < 120; tick++) {
+      if (refresh && tick && tick % 6 === 0) match.hit(enemy, shot);
+      const before = enemy.hp;
+      match.tick();
+      if (enemy.hp < before) pulses++;
+    }
+    return pulses;
+  };
+  assert.equal(run(false), 10);
+  assert.equal(run(true), 10);
+});
+
+test("a surviving boss crossing both thresholds deploys its shield and reinforcements once", () => {
+  const match = new Match(1);
+  match.wave = match.maxWaves - 1;
+  match.preview = match.planWave(match.maxWaves);
+  match.startWave();
+  match.queue = match.queue.filter(entry => entry.boss);
+  match.spawn();
+  const [boss] = match.enemies;
+  const speed = boss.speed;
+  match.damage(boss, boss.hp * 0.75, "#fff", { piercing: true });
+  match.advanceBoss(boss);
+  assert.equal(boss.phase, 3);
+  assert.equal(match.queue.length, 3);
+  assert.equal(boss.shield, Math.round(boss.maxHp * 0.19));
+  assert.equal(boss.speed, speed * 1.5);
+});
+
+test("the precision forecast includes the mobile emitter multiplier used on impact", () => {
+  const match = new Match(38, null, { fixedLayout: true });
+  const wave = match.maxWaves;
+  const entry = match.planWave(wave).order.find(e => e.variant === "emitter");
+  const tower = { ...BLUEPRINTS.find(t => t.id === "sniper"), rank: 1, x: 0, y: 0, inflicted: 0 };
+  const estimate = match.estimateImpact(tower, entry, wave);
+  match.wave = wave;
+  match.queue = [entry];
+  match.spawn();
+  const [target] = match.enemies;
+  const initial = target.hp;
+  match.damage(target, tower.damage, tower.color, {}, tower);
+  assert.equal(estimate.damage, initial - target.hp);
 });

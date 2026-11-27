@@ -231,7 +231,7 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8789";
           await canvas.tap({ position: pos });
           await page.getByRole("button", { name: /^Mejorar/ }).tap();
           await page.getByRole("button", { name: /^Perforante/ }).tap();
-          await page.getByText("Nano-Láser · Nivel 3 · Perforante").waitFor();
+          await page.locator("#selection .tower-rank").filter({ hasText: /^Nivel 3 · Perforante$/ }).waitFor();
           const targeting = page.getByLabel("Prioridad de objetivo");
           await targeting.selectOption("last");
           assert.equal(await targeting.inputValue(), "last");

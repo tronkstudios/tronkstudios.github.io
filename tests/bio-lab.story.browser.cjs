@@ -95,6 +95,10 @@ window.forceRunnerLeak = () => {
       await page.locator("#briefing-best").getByText(/★★☆.*90 %/).waitFor();
       await page.locator("#back-campaign").click();
       assert.equal(await filter.inputValue(), "stars");
+      await page.locator("#resume-mission").click();
+      await page.locator("#back-campaign").click();
+      assert.equal(await filter.inputValue(), "stars");
+      assert.equal(await page.evaluate(() => document.activeElement.id), "resume-mission");
       await filter.selectOption("medal");
       assert.equal(await page.locator(".level").count(), 2);
       await filter.selectOption("all");

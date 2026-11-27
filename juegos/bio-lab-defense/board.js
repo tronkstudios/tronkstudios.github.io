@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=39";
+import { WIDTH, HEIGHT, escortArmor } from "./engine.js?v=41";
 import { towerAttack } from "./affinities.js?v=3";
 import { drawEnemyModel, drawTurretModel, drawHeroModel } from "./art.js?v=5";
 
@@ -643,6 +643,7 @@ export class Board {
         warning && !previewPowerCut ? "#d79b421a" : "#d79b4238", "#ffd277", 4);
       ctx.restore();
     }
+    const showVacantSites = movingTower || match.towerLimit == null || match.towers.length < match.towerLimit;
     for (const site of match.buildSites || []) {
       if (match.firePads.includes(site)) continue;
       ctx.save();
@@ -653,7 +654,7 @@ export class Board {
       ctx.lineWidth = 2.5;
       ctx.fill();
       ctx.stroke();
-      if (!match.towers.some(tower => tower.x === site.x && tower.y === site.y)) {
+      if (showVacantSites && !match.towers.some(tower => tower.x === site.x && tower.y === site.y)) {
         trace(ctx, [[-6, 0], [6, 0]]);
         ctx.stroke();
         trace(ctx, [[0, -6], [0, 6]]);
