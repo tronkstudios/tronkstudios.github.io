@@ -8,11 +8,51 @@
 const TS = {};
 
 TS.FORMS = {
+  bell:{names:["Bronce despierto", "Campanario errante"], color:"#ffcb78", effect:"Cada tañido golpea a los enemigos que te rodean.", finalEffect:"Tres campanas golpean el suelo una tras otra. La última cubre más terreno y empuja a la horda."},
   shell:{names:["Coraza de falla", "Ciudadela andante"], color:"#ffab68", effect:"Placas de ámbar que empujan a los enemigos cercanos."},
   bloom:{names:["Manto de esporas", "Bosque errante"], color:"#89edbd", effect:"Las esporas frenan a los enemigos y te curan al alcanzarlos."},
   orbit:{names:["Órbita de cristal", "Planetario vivo"], color:"#99bbff", effect:"Los cristales atacan a distancia a varios enemigos."}
 };
+TS.FORM_LEVELS = [3,8];
+TS.HERO_FORMS = {
+  ranjay:{names:["Bronce despierto","Campanario errante"],color:"#ffcb78"},
+  bruno:{names:["Mecha de feria","Castillo de pólvora"],color:"#ff7848"},
+  lia:{names:["Velo de azahar","Jardín de medianoche"],color:"#efa3d4"},
+  toto:{names:["Cometa de banda","Once de órbita"],color:"#69e6ae"},
+  omogos:{names:["Vigía de espinas","Ballesta del lindero"],color:"#b9ce75"},
+  finillos:{names:["Talón de cantera","Cordillera en marcha"],color:"#dfa47e"},
+  chambas:{names:["Hojaluna","Leñador del eclipse"],color:"#e4b679"},
+  frosti:{names:["Escarcha de aguja","Palacio de cencellada"],color:"#a9eaff"},
+  yant:{names:["Punta de marea","Ariete del estuario"],color:"#6bd9df"},
+  eledemak:{names:["Nudillo de cobre","Fragua a dos manos"],color:"#ff9d69"},
+  kaito:{names:["Pliegue de tinta","Teatro de sombras"],color:"#b9a8ff"},
+  nova:{names:["Polvo de perseidas","Bóveda celeste"],color:"#aea6ff"},
+  sunk:{names:["Puño de pedernal","Coloso de grietas"],color:"#f3b46b"},
+  quizo:{names:["Chispa cautiva","Tormenta embotellada"],color:"#e9e376"},
+  zeta:{names:["Piloto de enjambre","Estación nodriza"],color:"#89c4fa"},
+  duna:{names:["Velo de arena","Ojo del simún"],color:"#ebc37d"},
+  nix:{names:["Aguja polar","Brújula boreal"],color:"#83ddde"},
+  savia:{names:["Brote acre","Invernadero voraz"],color:"#a4db61"},
+  brasa:{names:["Ascua de horno","Caldera ambulante"],color:"#ff7854"},
+  lumen:{names:["Candela de guardia","Faro de las mareas"],color:"#f6dd95"},
+  iria:{names:["Pluma de fresno","Arquería del dosel"],color:"#b1de9c"},
+  boro:{names:["Cobre trenzado","Dinamo de bolsillo"],color:"#f6a963"},
+  vega:{names:["Pliegue de acero","Pavo real de cuchillas"],color:"#91d9df"},
+  tala:{names:["Pulso de cuero","Tambor de raíces"],color:"#de9670"},
+  mara:{names:["Garfio de quilla","Mascarón de tormenta"],color:"#6fc7bd"},
+  oriel:{names:["Vidrio facetado","Catedral de luz"],color:"#d0acff"},
+  cira:{names:["Hilván de plata","Costurera de grietas"],color:"#f3b2c9"},
+  yago:{names:["Pendón de viaje","Bastión de las cintas"],color:"#edbe76"},
+  ada:{names:["Horquilla sonora","Cámara de resonancia"],color:"#bcb1f5"},
+  rook:{names:["Ala de retorno","Molino de contraviento"],color:"#97c8a4"},
+  vesper:{names:["Filo creciente","Custodia del novilunio"],color:"#a7acf4"},
+  tesia:{names:["Hilo de tormenta","Telar de relámpagos"],color:"#82d9ff"},
+  basalto:{names:["Piel de escoria","Corazón de cantera"],color:"#ec9473"},
+  siro:{names:["Anillo de sal","Rosetón de salinas"],color:"#efe6b4"},
+};
+TS.formTier = level => TS.FORM_LEVELS.filter(required => level >= required).length;
 TS.formKind = hero => {
+  if (hero === "ranjay") return "bell";
   const trait = TS.ACTIVE_IDENTITIES[hero]?.[2];
   if (["guard","heavy","axe","blast"].includes(trait)) return "shell";
   if (["healer","support","acid","ice","wind"].includes(trait)) return "bloom";
@@ -835,7 +875,7 @@ TS.activePathDescription=(charId,id)=>{
  return (TS.ACTIVE_TRAIT_TEXT[TS.ACTIVE_IDENTITIES[charId]?.[2]] || ["",""])[id==="precision"?0:1];
 };
 TS.siteName=s=>s.kind==="nest"?({ciudad:"Antena de refuerzos",playa:"Nido de coral",bosque:"Nido de refuerzos"}[s.theme] || TS.SITE_NAMES.nest):TS.SITE_NAMES[s.kind];
-TS.runSignature=(setups,opts={})=>JSON.stringify({version:7,party:setups.map(p=>({charId:p.charId,stars:Math.max(1,Math.min(TS.GACHA.maxStars,Number(p.stars)||1)),meta:Object.fromEntries(Object.entries(p.meta || {}).filter(([k,v])=>["maxHp","speed","might","area","cooldown","magnet","armor","regen","growth","greed","amount","revive","reviveSpeed"].includes(k)&&Number.isFinite(v)).sort(([a],[b])=>a.localeCompare(b)))})).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))),rules:{map:opts.map || "bosque",mods:[...(opts.mods || [])].sort(),easy:!!opts.easy,daily:!!opts.daily,seed:opts.daily?opts.seed || 0:null,...(opts.openingDraft===true?{openingDraft:true}:{}),...(opts.formsAvailable===true?{formsAvailable:true}:{})}});
+TS.runSignature=(setups,opts={})=>JSON.stringify({version:7,party:setups.map(p=>({charId:p.charId,stars:Math.max(1,Math.min(TS.GACHA.maxStars,Number(p.stars)||1)),meta:Object.fromEntries(Object.entries(p.meta || {}).filter(([k,v])=>["maxHp","speed","might","area","cooldown","magnet","armor","regen","growth","greed","amount","revive","reviveSpeed"].includes(k)&&Number.isFinite(v)).sort(([a],[b])=>a.localeCompare(b)))})).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))),rules:{map:opts.map || "bosque",mods:[...(opts.mods || [])].sort(),easy:!!opts.easy,daily:!!opts.daily,seed:opts.daily?opts.seed || 0:null,...(opts.openingDraft===true?{openingDraft:true}:{}),...(opts.formsAvailable===true?{formsAvailable:true}:{}),...(opts.formsAvailable && [0,1,2].includes(opts.formTier)?{formTier:opts.formTier}:{})}});
 
 TS.validRunSignature=value=>{
  if(typeof value!=="string" || value.length>8192)return "";

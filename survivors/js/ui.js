@@ -559,6 +559,20 @@
         el("small","",L(mastered?"Destello dorado equipado.":TS.mastery(id).text)));
       box.append(mastery);
     }
+    const forms = el("div","profile-mastery form-gallery");
+    forms.append(el("strong","",L("Transformaciones")));
+    const idle = Stick.idleFrame(ch);
+    TS.HERO_FORMS[id].names.forEach((name,index) => {
+      const unlocked = (save.formTiers[id] || 0) > index;
+      const card = el("figure","form-card");
+      const art = document.createElement("canvas");
+      art.width=224; art.height=174; art.setAttribute("aria-hidden","true");
+      Game.formPortrait(art,id,index+1,idle);
+      const caption = el("figcaption");
+      caption.append(el("b","",L(name)),el("small","",(unlocked ? "✓ " : "") + L("Nivel") + " " + TS.FORM_LEVELS[index]));
+      card.append(art,caption);forms.append(card);
+    });
+    box.append(forms);
     const practice = el("div", "practice-controls");
     const target = el("select");
     target.setAttribute("aria-label", L("Objetivo de práctica"));
@@ -868,7 +882,7 @@
     for (const x of s) Sprites.get(`char:${x.charId}`);
     if (!o.preview && !o.training && !o.veteran && !o.sprint) Account.startRun();
     enterGame(() => {
-      Game.start(s, o);
+      Game.start(s, {...o, formTier:save.formTiers[s[0].charId] || 0});
       if (!o.training) window.TronkMeasure?.(o.preview ? "challenge_start" : "run_start");
       chooseCampMode("guns");
       if (o.expedition) banner(L("Expedición"), L("Evoluciona tu arma y derrota al Moco Rey antes de cuatro minutos."));
@@ -977,6 +991,10 @@
   }
 
   $("hud-form").addEventListener("click", () => Game.transform());
+  Game.on("formUnlocked", ({hero,tier}) => {
+    Save.unlockForm(hero,tier);
+    toast(L("Transformación desbloqueada") + " · " + L(TS.HERO_FORMS[hero].names[tier-1]));
+  });
   Game.on("transform", form => banner(L(form.name), L(form.effect)));
   let slotKey = "";
   Game.on("hud", (d) => {
@@ -985,15 +1003,21 @@
     formButton.hidden = !form;
     if (form) {
       const identity = TS.FORMS[form.kind];
-      const label = L(identity.names[form.stage === 2 || (form.stage === 1 && form.ready) ? 1 : 0]);
+      const heroForm = TS.HERO_FORMS[form.hero];
+      const label = L(heroForm.names[form.stage === 2 || (form.stage === 1 && form.ready) ? 1 : 0]);
       formButton.disabled = !form.ready;
-      formButton.style.setProperty("--form-color", identity.color);
+      formButton.style.setProperty("--form-color", heroForm.color);
       formButton.querySelector("b").textContent = label;
+      const percent = Math.floor(form.charge * 100);
+      const meter = $("form-charge");
+      meter.value = percent;
+      meter.setAttribute("aria-label", L(form.stage === 2 ? "Duración restante" : "Carga de transformación"));
       const action = L("Transformar") + (isTouch ? "" : " · F");
-      formButton.querySelector("small").textContent = form.ready
+      formButton.querySelector("small").textContent = form.lockedLevel ? L("Nivel") + " " + form.lockedLevel + (form.stage ? " · " + form.seconds + " s" : "") : form.ready
         ? (form.stage ? form.seconds + " s · " : "") + action
-        : form.seconds + " s" + (form.stage === 1 ? " · " + form.kills + "/4 " + L("bajas") : "");
-      formButton.title = L(identity.effect);
+        : form.stage === 0 ? percent + "% · " + L("Esencia") :
+          form.seconds + " s" + (form.stage === 1 ? " · " + form.kills + "/4 " + L("bajas") : "");
+      formButton.title = L(form.stage && identity.finalEffect ? identity.finalEffect : identity.effect);
     }
     if (d.training == null) updateTips(d.seconds);
     const xpPercent = Math.min(100, Math.floor(100 * d.xp / Math.max(1,d.xpNext)));
@@ -1400,7 +1424,7 @@ ${L("Recoge un cofre con ambos requisitos")}`:"";
     const renderSkills=()=>{skillList.textContent="";const skills=Object.entries(combat?.bySkill || {}).sort((a,b)=>(b[1][sorting.value] || 0)-(a[1][sorting.value] || 0));
     if(!skills.length)skillList.append(el("p","",L("Sin impactos registrados")));
     for(const [id,values] of skills){
-      const ch=charById(r.charId),name=id==="form"?TS.FORMS[TS.formKind(r.charId)].names[0]:id==="weapon"?TS.WEAPONS[ch.weapon].name:id==="active"?TS.ABILITIES[ch.id].name:id==="camp"?"Tronk defensor":TS.TECHNIQUES[ch.id]?.find(m=>m.id===id)?.name || id;
+      const ch=charById(r.charId),name=id==="form"?TS.HERO_FORMS[r.charId].names[0]:id==="weapon"?TS.WEAPONS[ch.weapon].name:id==="active"?TS.ABILITIES[ch.id].name:id==="camp"?"Tronk defensor":TS.TECHNIQUES[ch.id]?.find(m=>m.id===id)?.name || id;
       const row=el("div","skill-result"),meter=el("meter");meter.min=0;meter.max=Math.max(1,combat?.dealt || 0);meter.value=values.damage || 0;meter.setAttribute("aria-label",L(name));
       const seconds=(values.availableTicks || 0)/60,dps=seconds>0?((values.damage || 0)/seconds).toLocaleString(LANG,{maximumFractionDigits:1}):"—";
       const variant=r.techniquePaths?.[Game.localId]?.[id];

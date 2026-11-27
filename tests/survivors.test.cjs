@@ -861,7 +861,7 @@ test('expedition spawns its boss and distinguishes victory from the time limit',
 test('temporary forms charge on simulation time, chain manually, expire and restore stats', () => {
   for (const hero of ['ranjay','lia','nova']) {
     const { Game } = engine();
-    Game.start([setup(hero)]);
+    Game.start([setup(hero)],{formTier:2});
     const p = Game.state.players[0], base = {...p.stats};
     assert.equal(Game.transform(),false);
     Game.state.t = 12*60;
@@ -890,4 +890,64 @@ test('temporary forms charge on simulation time, chain manually, expire and rest
     Game.start([setup(hero)],{daily:'2026-11-26'});
     assert.equal(Game.transform(),false);
   }
+});
+
+test('essence combines combat and simulation time; Ranjay rings three distinct beats in his final form', () => {
+  const { Game } = engine();
+  Game.start([setup('ranjay')],{formTier:2});
+  const state = Game.state, form = state.players[0].form;
+  assert.equal(Game.hudData().form.charge, 0);
+  state.t = 3*60;
+  state.kills = 3;
+  assert.equal(Game.hudData().form.charge, .5);
+  state.kills = 9;
+  assert.equal(Game.transform(), true);
+  state.kills += 2;
+  assert.equal(Game.hudData().form.charge, .5);
+  assert.equal(Game.transform(), false);
+  state.kills += 2;
+  assert.equal(Game.transform(), true);
+  assert.equal(Game.hudData().form.charge, 1);
+  const radii = [];
+  for (let beat=0;beat<3;beat++) {
+    state.t = form.nextPulse - 1;
+    Game.step();
+    const ring = state.fx.findLast(f=>f.k === 'ring' && f.life === 22);
+    radii.push(ring.r);
+  }
+  assert.ok(radii[0] < radii[1] && radii[1] < radii[2]);
+  state.t = form.until-1;
+  Game.step();
+  assert.equal(Game.hudData().form.charge, 0);
+});
+
+test('each hero unlocks their two distinct forms at levels 3 and 8', () => {
+  const {Game, Save, TS} = engine();
+  const names = TS.CHARACTERS.flatMap(hero=>TS.HERO_FORMS[hero.id].names);
+  assert.equal(new Set(names).size,68);
+  Game.on('formUnlocked', ({hero,tier})=>Save.unlockForm(hero,tier));
+  for (const hero of TS.CHARACTERS) {
+    Game.start([setup(hero.id)]);
+    const state = Game.state;
+    state.t = 800;
+    assert.equal(Game.transform(), false);
+    for (const [level,stage] of [[3,1],[8,2]]) {
+      state.level = level-1;
+      state.xp = state.xpNext;
+      Game.step();
+      assert.equal(Save.get().formTiers[hero.id],stage);
+      Game.choose(0,0);
+      if (stage === 2) state.kills += 4;
+      assert.equal(Game.transform(),true,hero.id);
+      assert.equal(state.players[0].form.stage,stage);
+      if (stage === 1) {
+        state.kills += 4;
+        assert.equal(Game.transform(),false,'level 8 is still required');
+      }
+    }
+  }
+  const copy = engine(Save.exportData());
+  assert.equal(copy.Save.load().formTiers.ranjay,2);
+  copy.Save.mergeRemote({formTiers:{ranjay:1}});
+  assert.equal(copy.Save.get().formTiers.ranjay,2);
 });

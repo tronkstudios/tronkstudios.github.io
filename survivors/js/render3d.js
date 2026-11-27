@@ -43,6 +43,7 @@ const Render3D = (() => {
   const tmpV2 = new T.Vector3();
   const tmpS = new T.Vector3();
   const tmpC = new T.Color();
+  const formRotation = new T.Euler();
 
   function pool(name, geo, mat, cap, shadow = true) {
     const m = new T.InstancedMesh(geo, mat, cap);
@@ -910,18 +911,50 @@ const Render3D = (() => {
       stickman(o, a.x, a.y, a.ang, P, k, a.flash, a.outline !== false);
       if (a.form) {
         const {kind,stage} = a.form;
-        const count = 2+stage*2;
-        const phase = kind === "shell" || Game.options.reducedMotion ? 0 : d.t/38;
-        const color = parseInt(TS.FORMS[kind].color.slice(1),16);
-        for (const side of [-1,1]) {
-          const offset = side*10;
-          at("octa",a.x+Math.cos(a.ang)*offset,36,a.y+Math.sin(a.ang)*offset,
-             kind === "shell" ? 12 : 6,kind === "bloom" ? 18 : 8+stage*2,8,color,a.ang);
-        }
-        for (let i=0;i<count;i++) {
-          const angle = phase+i*Math.PI*2/count;
-          at("octa",a.x+Math.cos(angle)*(17+stage*3),kind === "shell" ? 29 : 44+Math.sin(angle)*5,
-             a.y+Math.sin(angle)*(17+stage*3),kind === "shell" ? 11 : 5,kind === "bloom" ? 18 : 12,7,color);
+        const phase = Game.options.reducedMotion ? 0 : d.t/46;
+        const color = parseInt(TS.HERO_FORMS[a.id].color.slice(1),16);
+        const pos = (side,h,back=0) => [a.x-Math.sin(a.ang)*side-Math.cos(a.ang)*back,h,
+          a.y+Math.cos(a.ang)*side-Math.sin(a.ang)*back];
+        if (kind === "bell") {
+          const top = pos(0,81,6);
+          for(const side of [-1,1]) {
+            const eave = pos(side*(stage===2 ? 25 : 14),65,6);
+            between("cyl",top,eave,2.4,0x458b83);
+            between("glowCyl",top,eave,.8,0xf5d484);
+          }
+          for (const side of stage === 2 ? [-1,0,1] : [0]) {
+            const [x,h,z] = pos(side*22,side ? 56 : 66,6);
+            at("cone",x,h,z,8,17,8,0xbe813e);
+            at("cyl",x,h-8,z,9,2,9,0xffcf79);
+            at("sph",x,h-11,z,2.6,3,2.6,0xffe2a1);
+          }
+        } else if (kind === "orbit") {
+          for(let band=0;band<stage;band++) {
+            const tilt = band ? -.65 : .65, radius = stage===2 ? 32 : 23;
+            tmpQ.setFromEuler(formRotation.set(tilt,0,0));
+            tmpM.compose(tmpV.set(a.x,40,a.y),tmpQ,tmpS.set(radius,5,radius));
+            push("ring",tmpM,color);
+            for(let i=0;i<3;i++) {
+              const angle=phase*(band ? -1 : 1)+i*TAU/3+band, z=Math.sin(angle)*radius;
+              const x=a.x+Math.cos(angle)*radius, h=40-z*Math.sin(tilt);
+              at("octa",x,h,a.y+z*Math.cos(tilt),3.4,7,3.4,color);
+              at("glow",x,h+4,a.y+z*Math.cos(tilt),1.3,2,1.3,0xffefcb);
+            }
+          }
+        } else {
+          for(const side of [-1,1]) {
+            for(let i=0;i<=stage;i++) {
+              const root=pos(side*6,34,5);
+              const tip=pos(side*((stage===2 ? 32 : 22)-i*2),56-i*8,9+i*4);
+              tmpV.set(tip[0]-root[0],tip[1]-root[1],tip[2]-root[2]);
+              const len=tmpV.length();
+              tmpQ.setFromUnitVectors(UP,tmpV.normalize());
+              tmpM.compose(tmpV2.set((root[0]+tip[0])/2,(root[1]+tip[1])/2,(root[2]+tip[2])/2),
+                tmpQ,tmpS.set(kind==="shell" ? 7 : 5,len/2,kind==="shell" ? 5 : 2.5));
+              push(kind==="shell" ? "octa" : "lowSph",tmpM,color);
+              between("glowCyl",root,tip,.8,0xf9eccc);
+            }
+          }
         }
       }
       if(a.mastered && a.atk?.t>0)at("octa",a.x+Math.cos(a.ang)*21,27,a.y+Math.sin(a.ang)*21,3,7,3,0xf2d397);
