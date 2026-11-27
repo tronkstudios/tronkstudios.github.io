@@ -2436,3 +2436,51 @@ dialog::backdrop { background: #031016cf; }
   #field-tools button { min-height: 44px; padding: 0.35rem 0.48rem; font-size: 0.75rem; }
   #wave-preview { scroll-margin-top: 70px; }
 }
+
+/* Installed tower inspector */
+#selection.installed-tower {
+  container-type: inline-size;
+  padding: 12px;
+  background: linear-gradient(148deg, #17323a, #0c1c29 48%);
+  border: 1px solid #355663;
+  border-top: 3px solid var(--tower-accent);
+  border-radius: 12px;
+}
+.tower-identity { display: flex; gap: 10px; align-items: center; }
+.tower-identity .tower-art {
+  flex: none; width: 46px; height: 46px; padding: 4px;
+  background: #0a1c27; border: 1px solid #41636b; border-radius: 10px;
+}
+.tower-identity strong { font-size: 1rem; line-height: 1.25; text-wrap: balance; }
+#selection.installed-tower > p { margin: 8px 0; line-height: 1.45; }
+#selection .tower-performance { padding: 7px 9px; color: #b3e4dc; background: #112c34; }
+#selection .upgrade-options { gap: 9px; }
+#selection .upgrade-row {
+  display: grid; grid-template-columns: 1fr; gap: 7px;
+  padding: 10px; border-radius: 9px; border: 1px solid #395767; background: #112532;
+}
+#selection .upgrade-row > strong { font-size: .94rem; color: #f4f9fa; }
+#selection .upgrade-row p { margin: 0; font-size: .8rem; line-height: 1.38; color: #c2d2d9; }
+.upgrade-metrics { display: flex; flex-wrap: wrap; gap: 5px 10px; margin: 0; padding: 7px 0; border-block: 1px solid #2a4754; }
+.upgrade-metrics dt { color: #b2c7cd; font-size: .69rem; }
+.upgrade-metrics dd { margin: 2px 0 0; font-size: .75rem; font-variant-numeric: tabular-nums; color: #d3f6e8; white-space: nowrap; }
+.upgrade-controls, #selection .actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 5px; }
+#selection .upgrade-controls button, #selection .actions button {
+  width: 100%; min-width: 0; padding: 6px; text-align: center; line-height: 1.25;
+}
+#selection .upgrade-controls button:first-child { background: #225345; color: #e2fff2; border-color: #539b83; }
+#selection .upgrade-controls button:disabled { opacity: 1; background: #25333d; color: #adbcc5; border-color: #44525c; }
+#selection .actions { margin-top: 10px; padding-top: 9px; border-top: 1px solid #314b58; }
+#selection .tower-targeting, #selection .sell-tower { grid-column: 1 / -1; }
+#selection .sell-tower { color: #eab6ab; border-color: #644948; background: #28242b; }
+#selection .upgrade-drill { text-align: center; }
+@container (min-width: 390px) {
+  #selection .upgrade-options { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  #selection .upgrade-options > :only-child, #selection .upgrade-drill { grid-column: 1 / -1; }
+}
+.tower-identity .tower-rank { display: block; color: #b6dbdc; font-size: .78rem; font-weight: 550; margin-top: 3px; }
+#undo-build { border-style: dashed; background: #11242c; color: #c6dddf; }
+@media (max-width: 760px) {
+  #selection { scroll-margin-block-start: 70px; }
+}
+#selection #upgrade-shortfall { grid-column: 1 / -1; margin: 0; color: #f0ce96; font-size: .78rem; }

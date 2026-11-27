@@ -1036,6 +1036,7 @@ function renderSelection() {
   if (key === selectionKey) return;
   selectionKey = key;
   upgradePreview = null;
+  panel.classList.toggle("installed-tower", !!selected);
   const heading = document.createElement("strong");
   const detail = document.createElement("p");
   if (!selected) {
@@ -1047,7 +1048,11 @@ function renderSelection() {
     return;
   }
   const tower = selected;
-  heading.textContent = `${tower.name} · Nivel ${tower.rank}`;
+  heading.textContent = tower.name;
+  const rank = document.createElement("span");
+  rank.className = "tower-rank";
+  rank.textContent = `Nivel ${tower.rank}${tower.branch ? " · " + tower.branch.name : ""}`;
+  heading.append(rank);
   detail.textContent =
     tower.branch?.detail ||
     (tower.type === "eco"
@@ -1056,10 +1061,15 @@ function renderSelection() {
   if (towerAttack[tower.id]) detail.textContent += ` · ${towerAttack[tower.id]}`;
   const padBonus = match.padBonus(tower);
   if (padBonus > 1) detail.textContent += ` · Plataforma de tiro +${Math.round((padBonus - 1) * 100)} %`;
-  if (tower.branch) heading.textContent += ` · ${tower.branch.name}`;
+
   const cost = upgradeCost(tower);
   const options = document.createElement("div");
   options.className = "upgrade-options";
+  if (tower.rank < 3 && match.atp < cost) {
+    const budget = document.createElement("p");
+    budget.id = "upgrade-shortfall";
+    options.append(budget);
+  }
   if (tower.rank === 1) {
     const improve = makeButton(`Mejorar · ${cost} ATP`, () => {
       if (match.upgrade(tower)) {
@@ -1069,7 +1079,6 @@ function renderSelection() {
       renderHUD();
     });
     improve.disabled = match.atp < cost;
-    improve.append(upgradeForecast(tower));
     options.append(upgradeRow(tower, improve));
   } else if (tower.rank === 2) {
     for (const [choice, branch] of specializations(tower).entries()) {
@@ -1081,9 +1090,6 @@ function renderSelection() {
         renderHUD();
       });
       improve.disabled = match.atp < cost;
-      const note = document.createElement("small");
-      note.textContent = branch.detail;
-      improve.append(note, upgradeForecast(tower, branch));
       options.append(upgradeRow(tower, improve, branch));
     }
   }
@@ -1112,7 +1118,7 @@ function renderSelection() {
       else message("No hay otro puesto operativo para ensayar el traslado.", true);
     });
     compare.disabled = match.power?.first === null || adBusy;
-    options.append(compare);
+    actions.append(compare);
   }
   if (tower.type !== "eco") {
     const label = document.createElement("label");
@@ -1136,10 +1142,10 @@ function renderSelection() {
       $("tower-targeting")?.focus({ preventScroll: true });
     };
     label.append(targeting);
-    actions.append(label);
+    actions.prepend(label);
   }
-  if (!match.contract?.noSell) actions.append(
-    makeButton(`Vender · +${Math.floor(tower.paid * 0.65)} ATP`, () => {
+  if (!match.contract?.noSell) {
+    const sell = makeButton(`Vender · +${Math.floor(tower.paid * 0.65)} ATP`, () => {
       if (match.sell(tower)) {
         message(`${tower.name} retirada.`);
       }
@@ -1147,10 +1153,15 @@ function renderSelection() {
       movingTower = null;
       persistPreparation();
       renderHUD();
-    }),
-  );
-  const performance = elPerformance(tower);
-  panel.replaceChildren(heading, detail, performance, options, actions);
+    });
+    sell.className = "sell-tower";
+    actions.append(sell);
+  }
+  const identity = document.createElement("header");
+  identity.className = "tower-identity";
+  identity.append(towerIcon(tower), heading);
+  panel.style.setProperty("--tower-accent", tower.color);
+  panel.replaceChildren(identity, detail, elPerformance(tower), options, actions);
 }
 
 function rehearsalPosition(tower) {
@@ -1192,7 +1203,19 @@ function upgradeRow(tower, purchase, branch) {
   toggle.disabled = movingTower === tower;
   if (branch) toggle.setAttribute("aria-label", `${label} · ${branch.name}`);
   toggle.setAttribute("aria-pressed", "false");
-  row.append(purchase, toggle);
+  const title = document.createElement("strong");
+  title.textContent = branch?.name || "Nivel 2";
+  const description = document.createElement("p");
+  description.textContent = branch?.detail || "";
+  const accessibleName = purchase.textContent;
+  purchase.textContent = `${branch ? "Elegir" : "Mejorar"} · ${upgradeCost(tower)} ATP`;
+  purchase.setAttribute("aria-label", accessibleName);
+  const controls = document.createElement("div");
+  controls.className = "upgrade-controls";
+  controls.append(purchase, toggle);
+  row.append(title);
+  if (branch) row.append(description);
+  row.append(upgradeForecast(tower, branch), controls);
   return row;
 }
 
@@ -1301,16 +1324,30 @@ function placementForecast(tower, point, original = null, action = "") {
 function upgradeForecast(tower, branch) {
   const next = upgradeStats(tower, branch);
   const interval = (ticks) => cadence.format(ticks / 60);
-  const preview = document.createElement("small");
-  preview.className = "upgrade-forecast";
+  const preview = document.createElement("dl");
+  preview.className = "upgrade-metrics";
+  const add = (name, before, after) => {
+    const metric = document.createElement("div");
+    const label = document.createElement("dt");
+    label.textContent = name;
+    const values = document.createElement("dd");
+    values.textContent = before === after ? String(after) : `${before} → ${after}`;
+    metric.append(label, values);
+    preview.append(metric);
+  };
   if (tower.type === "eco") {
     const before = reactorProduction(tower);
     const after = reactorProduction({ ...tower, ...next, rank: tower.rank + 1, branch });
-    preview.textContent = `${before.output} → ${after.output} ATP/ciclo · ${interval(before.ticks)} → ${interval(after.ticks)} s · ${Math.round(before.perMinute)} → ${Math.round(after.perMinute)} ATP/min${after.charge ? ` · +${after.charge} de pulso/ciclo` : ""}`;
-    return preview;
+    add("ATP/ciclo", before.output, after.output);
+    add("Ciclo (s)", interval(before.ticks), interval(after.ticks));
+    add("ATP/min", Math.round(before.perMinute), Math.round(after.perMinute));
+    if (after.charge) add("Pulso/ciclo", before.charge, after.charge);
+  } else {
+    const bonus = match.padBonus(tower);
+    add("Daño", Math.round(tower.damage * bonus), Math.round(next.damage * bonus));
+    add("Alcance", tower.range, next.range);
+    add("Disparo (s)", interval(tower.fireRate), interval(next.fireRate));
   }
-  const stats = `Daño ${Math.round(tower.damage * match.padBonus(tower))} → ${Math.round(next.damage * match.padBonus(tower))} · Alcance ${tower.range} → ${next.range}`;
-  preview.textContent = `${stats} · ${interval(tower.fireRate)} → ${interval(next.fireRate)} s por disparo`;
   return preview;
 }
 
@@ -2105,6 +2142,8 @@ function renderHUD() {
   $("heal").disabled =
     !waiting || checkpointLost || repaired || match.hp === 100 || profile.data.bioGems < 5;
   renderSelection();
+  if (selected && $("upgrade-shortfall"))
+    updateText("upgrade-shortfall", `Faltan ${upgradeCost(selected) - match.atp} ATP para mejorar`);
   if (selected && $("tower-performance"))
     updateText("tower-performance", towerReport(selected));
 }
