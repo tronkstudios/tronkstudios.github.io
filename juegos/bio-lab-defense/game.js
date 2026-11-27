@@ -16,18 +16,18 @@ import {
   VARIANT_NAMES,
   escortArmor,
   dailySetup,
-} from "./engine.js?v=40";
-import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=11";
-import { attachDrill } from "./drill.js?v=14";
-import { Board } from "./board.js?v=48";
+} from "./engine.js?v=41";
+import { routeCoverage, routeTeamCoverage, suggestPowerRelocation } from "./coverage.js?v=12";
+import { attachDrill } from "./drill.js?v=15";
+import { Board } from "./board.js?v=49";
 import { towerIcon, heroIcon } from "./art.js?v=5";
-import { createCodex } from "./codex.js?v=28";
+import { createCodex } from "./codex.js?v=29";
 import { Profile, dayKey } from "./profile.js?v=21";
 import { adMessage, createAdSenseProvider } from "/js/h5-rewards.js?v=7";
 import { CHAPTERS, MISSIONS } from "./campaign.js?v=17";
 import { sound, toggleSound, soundEnabled, unlockAudio } from "./audio.js?v=3";
 
-import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=37";
+import { Checkpoint, restoreCheckpoint } from "./checkpoint.js?v=38";
 
 import { HEROES, CONTRACTS, MASTERY } from "./operations.js?v=8";
 

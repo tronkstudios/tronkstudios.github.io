@@ -1514,7 +1514,7 @@ export class Match {
   estimateImpact(tower, order, wave = this.coverageWave) {
     if (!tower.damage || this.towerOffline(tower, wave))
       return { damage: 0, shieldDamage: 0, unshieldedDamage: 0, hitsToDefeat: null };
-    const enemy = this.entryDefense(order, wave);
+    const enemy = { ...this.entryDefense(order, wave), variant: order.variant };
     const amount = Math.round(tower.damage * this.padBonus(tower, wave));
     const hitAtShield = shield => resolveImpact(enemy, shield, amount, tower.branch || {}, tower, this.time);
     const first = hitAtShield(enemy.shield);
@@ -1743,15 +1743,14 @@ export class Match {
       this.effect(enemy.x, enemy.y, enemy.coolingBoss === "runner" ? "#ffae85" : "#9ddcff", 88);
       return;
     }
-    if (phase === 2) {
+    if (enteredSecondPhase) {
       enemy.shield = Math.round(enemy.maxHp * 0.19);
       const backup = this.routes.length > 1 ? 1 - enemy.lane : enemy.lane;
       for (let i = 0; i < 3; i++)
         nextEnemy(this.queue, PATHOGEN_TYPES[2], backup, { speed: 1.22, groupName: "Refuerzos del jefe" });
       if (this.queue.length === 3) this.spawnIn = 8;
-    } else {
-      enemy.speed *= 1.5;
     }
+    if (phase === 3) enemy.speed *= 1.5;
     this.effect(enemy.x, enemy.y, phase === 2 ? "#9ddcff" : "#ffae85", 88);
   }
 
@@ -1796,7 +1795,9 @@ export class Match {
       if (type === "dot") {
         if (this.fixedLayout && tower?.id === "toxin" && target.hp > 0)
           target.corrodedUntil = this.time + 180;
-        target.burn = Math.max(target.burn, branch.burn || 130);
+        const duration = branch.burn || 130;
+        if (!target.burn) target.burnPulseIn = duration % 12 || 12;
+        target.burn = Math.max(target.burn, duration);
         const burnDamage = damage * 0.115;
         if (burnDamage >= (target.burnDamage || 0)) {
           target.burnDamage = burnDamage;
@@ -1918,7 +1919,8 @@ export class Match {
         ? escort : null;
       if (enemy.burn > 0) {
         enemy.burn--;
-        if (enemy.burn % 12 === 0)
+        if (--enemy.burnPulseIn === 0) {
+          enemy.burnPulseIn = 12;
           this.damage(
             enemy,
             enemy.burnDamage,
@@ -1928,6 +1930,7 @@ export class Match {
             },
             enemy.burnTower,
           );
+        }
         if (!enemy.burn) {
           enemy.burnDamage = 0;
           enemy.burnPierces = false;

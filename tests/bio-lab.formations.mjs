@@ -1074,3 +1074,58 @@ test("reconnecting with a clean account cache retrieves progress without spendin
   assert.equal(profile.revision, 4);
   assert.equal(profile.changed, profile.saved);
 });
+
+test("refreshing acid between pulses preserves its periodic damage", () => {
+  const run = refresh => {
+    const match = new Match(5);
+    match.startWave();
+    match.spawn();
+    match.queue = [];
+    const [enemy] = match.enemies;
+    Object.assign(enemy, { hp: 10000, maxHp: 10000, armor: 0, shield: 0, speed: 0 });
+    const shot = { damage: 10, type: "dot", color: "#fff", branch: {} };
+    match.hit(enemy, shot);
+    let pulses = 0;
+    for (let tick = 0; tick < 120; tick++) {
+      if (refresh && tick && tick % 6 === 0) match.hit(enemy, shot);
+      const before = enemy.hp;
+      match.tick();
+      if (enemy.hp < before) pulses++;
+    }
+    return pulses;
+  };
+  assert.equal(run(false), 10);
+  assert.equal(run(true), 10);
+});
+
+test("a surviving boss crossing both thresholds deploys its shield and reinforcements once", () => {
+  const match = new Match(1);
+  match.wave = match.maxWaves - 1;
+  match.preview = match.planWave(match.maxWaves);
+  match.startWave();
+  match.queue = match.queue.filter(entry => entry.boss);
+  match.spawn();
+  const [boss] = match.enemies;
+  const speed = boss.speed;
+  match.damage(boss, boss.hp * 0.75, "#fff", { piercing: true });
+  match.advanceBoss(boss);
+  assert.equal(boss.phase, 3);
+  assert.equal(match.queue.length, 3);
+  assert.equal(boss.shield, Math.round(boss.maxHp * 0.19));
+  assert.equal(boss.speed, speed * 1.5);
+});
+
+test("the precision forecast includes the mobile emitter multiplier used on impact", () => {
+  const match = new Match(38, null, { fixedLayout: true });
+  const wave = match.maxWaves;
+  const entry = match.planWave(wave).order.find(e => e.variant === "emitter");
+  const tower = { ...BLUEPRINTS.find(t => t.id === "sniper"), rank: 1, x: 0, y: 0, inflicted: 0 };
+  const estimate = match.estimateImpact(tower, entry, wave);
+  match.wave = wave;
+  match.queue = [entry];
+  match.spawn();
+  const [target] = match.enemies;
+  const initial = target.hp;
+  match.damage(target, tower.damage, tower.color, {}, tower);
+  assert.equal(estimate.damage, initial - target.hp);
+});
