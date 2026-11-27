@@ -559,11 +559,18 @@
         el("small","",L(mastered?"Destello dorado equipado.":TS.mastery(id).text)));
       box.append(mastery);
     }
-    const forms = el("div","profile-mastery");
+    const forms = el("div","profile-mastery form-gallery");
     forms.append(el("strong","",L("Transformaciones")));
+    const idle = Stick.idleFrame(ch);
     TS.HERO_FORMS[id].names.forEach((name,index) => {
       const unlocked = (save.formTiers[id] || 0) > index;
-      forms.append(el("small","",(unlocked ? "✓ " : "") + L(name) + " · " + L("Nivel") + " " + TS.FORM_LEVELS[index]));
+      const card = el("figure","form-card");
+      const art = document.createElement("canvas");
+      art.width=224; art.height=174; art.setAttribute("aria-hidden","true");
+      Game.formPortrait(art,id,index+1,idle);
+      const caption = el("figcaption");
+      caption.append(el("b","",L(name)),el("small","",(unlocked ? "✓ " : "") + L("Nivel") + " " + TS.FORM_LEVELS[index]));
+      card.append(art,caption);forms.append(card);
     });
     box.append(forms);
     const practice = el("div", "practice-controls");

@@ -933,5 +933,9 @@ const Stick = (() => {
   // El esqueleto, para el motor 3D (render3d.js)
   const rig = { pose, locomotion, joints, bowModel, LAT, WEAPON, styleOf: (o) => (WEAPON[o.weapon] || WEAPON.none)[2] };
 
-  return { set, movingFrame, portrait, illustration, characterOptions, ENEMIES, RES, rig };
+  function idleFrame(ch) {
+    const o = characterOptions(ch);
+    return frame(o,pose(rig.styleOf(o),"idle"),false,VIEWS.downSide);
+  }
+  return { set, movingFrame, portrait, illustration, idleFrame, characterOptions, ENEMIES, RES, rig };
 })();

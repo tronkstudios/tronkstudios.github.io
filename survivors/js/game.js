@@ -4047,44 +4047,112 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     return [(p.atk.ax || 0)*n,(p.atk.ay || 0)*n];
   }
 
-  function drawForm(p) {
+  function drawForm(ctx, p, time) {
     const {kind, stage} = p.form;
-    const t = options.reducedMotion ? 0 : st.t / 38;
-    const count = 2 + stage * 2;
+    const color = TS.HERO_FORMS[p.charId].color;
+    const phase = options.reducedMotion ? 0 : time/46;
     ctx.save();
-    ctx.translate(p.x, p.y - 23);
+    ctx.translate(p.x,p.y-23);
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
     ctx.lineWidth = 1.5;
-    ctx.fillStyle = TS.HERO_FORMS[p.charId].color;
-    ctx.strokeStyle = "#183342";
+    const ink = "#172537", glint = "#fff3ce";
     if (kind === "bell") {
-      // A travelling belfry: verdigris roof, bronze bells and visible clappers.
-      const bells = stage === 2 ? [-17,0,17] : [0];
-      for (const x of bells) {
-        ctx.save();
-        ctx.translate(x, x ? -10 : -23);
-        ctx.rotate(options.reducedMotion ? 0 : Math.sin(t*2+x)*.14);
-        ctx.fillStyle="#377d78";ctx.fillRect(-2,-12,4,10);
-        ctx.fillStyle="#f9bd65";ctx.beginPath();ctx.moveTo(-9,9);
-        ctx.quadraticCurveTo(-5,4,-5,-2);ctx.quadraticCurveTo(0,-11,5,-2);
-        ctx.quadraticCurveTo(5,4,9,9);ctx.closePath();ctx.fill();ctx.stroke();
-        ctx.fillStyle="#7e4636";ctx.fillRect(-8,8,16,2);
-        ctx.fillStyle="#ffe6a4";ctx.fillRect(-2,10,4,4);ctx.restore();
+      ctx.translate(0,-14);
+      const span = stage === 2 ? 25 : 13;
+      ctx.strokeStyle = ink; ctx.lineWidth = 5;
+      ctx.beginPath();ctx.moveTo(-span,-12);ctx.lineTo(-span,-28);
+      ctx.lineTo(0,-40);ctx.lineTo(span,-28);ctx.lineTo(span,-12);ctx.stroke();
+      ctx.strokeStyle="#77beb0";ctx.lineWidth=2;ctx.stroke();
+      ctx.fillStyle="#275754";ctx.beginPath();ctx.moveTo(-span-4,-25);
+      ctx.lineTo(0,-43);ctx.lineTo(span+4,-25);ctx.lineTo(0,-34);ctx.closePath();ctx.fill();
+      ctx.strokeStyle="#e3cf89";ctx.stroke();
+      for (const side of stage === 2 ? [-1,0,1] : [0]) {
+        ctx.save();ctx.translate(side*22,side ? -17 : -25);
+        ctx.rotate(Math.sin(phase*1.8+side*.7)*(options.reducedMotion ? 0 : .12));
+        ctx.fillStyle="#a46135";ctx.strokeStyle=ink;
+        ctx.beginPath();ctx.moveTo(-9,8);ctx.quadraticCurveTo(-5,3,-5,-3);
+        ctx.quadraticCurveTo(0,-10,5,-3);ctx.quadraticCurveTo(5,3,9,8);
+        ctx.closePath();ctx.fill();ctx.stroke();
+        ctx.fillStyle=color;ctx.fillRect(-8,6,16,3);
+        ctx.strokeStyle=glint;ctx.beginPath();ctx.moveTo(-3,-3);ctx.lineTo(-5,4);ctx.stroke();
+        ctx.fillStyle="#ffe3a1";ctx.beginPath();ctx.arc(0,11,2.5,0,TAU);ctx.fill();ctx.restore();
       }
-      ctx.strokeStyle="#84d9c8";ctx.lineWidth=3;ctx.beginPath();
-      ctx.moveTo(-12*stage,-17);ctx.lineTo(0,-38);ctx.lineTo(12*stage,-17);ctx.stroke();
-      ctx.restore();return;
+    } else if (kind === "orbit") {
+      const radius = stage === 2 ? 32 : 23;
+      for (let band=0;band<stage;band++) {
+        const tilt = band ? .65 : -.65;
+        ctx.beginPath();ctx.ellipse(0,-7,radius,11,tilt,0,TAU);
+        ctx.strokeStyle=ink;ctx.lineWidth=3.5;ctx.stroke();
+        ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.stroke();
+        for(let i=0;i<3;i++) {
+          const angle=phase*(band ? -1 : 1)+i*TAU/3+band;
+          const x=radius*Math.cos(angle),y=11*Math.sin(angle);
+          ctx.save();ctx.rotate(tilt);ctx.translate(x,y);
+          ctx.fillStyle=color;ctx.strokeStyle=ink;ctx.beginPath();ctx.moveTo(0,-7);
+          ctx.lineTo(4,0);ctx.lineTo(0,6);ctx.lineTo(-4,0);ctx.closePath();ctx.fill();ctx.stroke();
+          ctx.fillStyle=glint;ctx.beginPath();ctx.moveTo(0,-6);ctx.lineTo(0,1);ctx.lineTo(-3,0);ctx.fill();ctx.restore();
+        }
+      }
+    } else {
+      for (const side of [-1,1]) {
+        ctx.save();ctx.scale(side,1);
+        for(let i=stage;i>=0;i--) {
+          ctx.save();ctx.translate(6,-3+i*2);
+          ctx.rotate(i*.40+(kind==="bloom" ? .05*Math.sin(phase+i) : 0));
+          const length=stage===2 ? 32-i*3 : 22-i*2;
+          ctx.fillStyle=color;ctx.strokeStyle=ink;ctx.lineWidth=1.8;
+          ctx.beginPath();ctx.moveTo(0,4);
+          if(kind==="bloom"){
+            ctx.bezierCurveTo(4,-17,length-5,-12,length,-23);
+            ctx.bezierCurveTo(length+2,-6,18,5,0,4);
+          }else{
+            ctx.lineTo(9,-13);ctx.lineTo(length,-23);ctx.lineTo(length-4,-5);ctx.lineTo(11,7);
+          }
+          ctx.closePath();ctx.fill();ctx.stroke();
+          ctx.fillStyle="rgba(20,39,49,.40)";ctx.beginPath();ctx.moveTo(0,4);
+          ctx.lineTo(length,-23);ctx.lineTo(length-5,-5);ctx.lineTo(10,5);ctx.fill();
+          ctx.strokeStyle=glint;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(5,0);
+          ctx.quadraticCurveTo(14,-8,length-2,-20);ctx.stroke();ctx.restore();
+        }
+        ctx.restore();
+      }
     }
-    for (let i=0; i<count; i++) {
-      const a = i*TAU/count + (kind === "shell" ? 0 : t);
-      const x = Math.cos(a)*(16+stage*3), y = Math.sin(a)*10;
+    ctx.restore();
+  }
+
+  function formPortrait(canvas,hero,stage,img) {
+    const art = canvas.getContext("2d");
+    art.save();
+    const height = TS.formKind(hero) === "bell" ? 99 : 87;
+    const scale = Math.min(canvas.width/112,canvas.height/height);
+    art.translate(canvas.width/2,canvas.height-9*scale);
+    art.scale(scale,scale);
+    drawForm(art,{x:0,y:0,charId:hero,form:{kind:TS.formKind(hero),stage}},0);
+    const res=img.res || 1;
+    art.drawImage(img,-img.width/(2*res),-(img.foot ?? People.OY)/res,img.width/res,img.height/res);
+    drawFormArmor(art,hero,stage,0,-23);
+    art.restore();
+  }
+
+  function drawFormArmor(ctx,hero,stage,x,y) {
+    const kind = TS.formKind(hero);
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.fillStyle = TS.HERO_FORMS[hero].color;
+    ctx.strokeStyle = "#223142";
+    for (const side of [-1,1]) {
       ctx.beginPath();
-      if (kind === "bloom") ctx.ellipse(x,y-10,5,11,a,0,TAU);
-      else {
-        const size = kind === "shell" ? 8 : 4;
-        ctx.moveTo(x-size,y);ctx.lineTo(x,y-(kind === "shell" ? 14 : 8));
-        ctx.lineTo(x+size,y);ctx.lineTo(x,y+5);ctx.closePath();
+      ctx.moveTo(side*3,-4);
+      if (kind === "shell") {
+        ctx.lineTo(side*(10+stage*2),-9); ctx.lineTo(side*12,2); ctx.lineTo(side*5,4);
+      } else if (kind === "bloom") {
+        ctx.quadraticCurveTo(side*(18+stage*3),-18,side*10,6);
+        ctx.quadraticCurveTo(side*5,8,side*3,-4);
+      } else {
+        ctx.lineTo(side*12,-(8+stage*3)); ctx.lineTo(side*9,-1); ctx.lineTo(side*5,2);
       }
-      ctx.fill();ctx.stroke();
+      ctx.closePath();ctx.fill();ctx.stroke();
     }
     ctx.restore();
   }
@@ -4105,31 +4173,11 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
       return;
     }
     if (!options.reducedMotion && p.iframes > 0 && p.iframes % 6 < 3 && !p.flash) ctx.globalAlpha = 0.6;
-    if (p.form?.stage) drawForm(p);
+    if (p.form?.stage) drawForm(ctx,p,st.t);
     const img = personImage(set, p.dir, !options.reducedMotion && p.flash > 6, p.moving, p.walkT, p.atk);
     const [ox,oy]=attackOffset(p);
     drawSprite(img, p.x+ox, p.y+oy, People.OY, p.face < 0);
-    if (p.form?.stage) {
-      const {kind,stage} = p.form;
-      ctx.save();
-      ctx.translate(p.x+ox, p.y+oy-23);
-      ctx.fillStyle = TS.HERO_FORMS[p.charId].color;
-      ctx.strokeStyle = "#223142";
-      for (const side of [-1,1]) {
-        ctx.beginPath();
-        ctx.moveTo(side*3,-4);
-        if (kind === "shell") {
-          ctx.lineTo(side*(10+stage*2),-9); ctx.lineTo(side*12,2); ctx.lineTo(side*5,4);
-        } else if (kind === "bloom") {
-          ctx.quadraticCurveTo(side*(18+stage*3),-18,side*10,6);
-          ctx.quadraticCurveTo(side*5,8,side*3,-4);
-        } else {
-          ctx.lineTo(side*12,-(8+stage*3)); ctx.lineTo(side*9,-1); ctx.lineTo(side*5,2);
-        }
-        ctx.closePath();ctx.fill();ctx.stroke();
-      }
-      ctx.restore();
-    }
+    if (p.form?.stage) drawFormArmor(ctx,p.charId,p.form.stage,p.x+ox,p.y+oy-23);
     ctx.globalAlpha = 1;
     if (p.mastered && p.atk?.t > 0) {
       const x=p.x+(p.atk.ax || 0)*19, y=p.y-24+(p.atk.ay || 0)*13;
@@ -5529,6 +5577,7 @@ if(attack?.source==="rupture")kb=Math.max(5,kb);
     },
     difficultyAt,
     characterPreview,
+    formPortrait,
     setGoal,
     terrain,
     hudData,

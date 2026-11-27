@@ -122,3 +122,10 @@
 #form-charge::-webkit-progress-bar { background:#304657; }
 #form-charge::-webkit-progress-value { background:var(--form-color); }
 #form-charge::-moz-progress-bar { background:var(--form-color); }
+
+.profile-mastery.form-gallery { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.form-gallery > strong { grid-column:1/-1; }
+.form-card { margin:0; overflow:hidden; border:1px solid #3f5960; border-radius:10px; background:radial-gradient(ellipse at 50% 66%,#274449,#121f29 75%); }
+.form-card canvas { display:block; width:100%; max-height:112px; object-fit:contain; }
+.form-card figcaption { padding:6px 9px; background:#13232d; }
+.form-card figcaption b,.form-card figcaption small { display:block; }
